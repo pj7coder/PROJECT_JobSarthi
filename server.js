@@ -185,7 +185,7 @@ async function callGroq(messages, jsonMode = false) {
   }
 
   const payload = {
-    model: "llama-3.1-70b-versatile",
+    model: "llama-3.3-70b-versatile",
     messages: messages,
     temperature: 0.2
   };
