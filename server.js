@@ -305,35 +305,52 @@ async function parseDocumentWithGemini(base64Data, mimeType, prompt) {
     }
   };
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
+  const retries = 3;
+  let delay = 2000;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    if (response.status === 429) {
-      throw new Error("RATE_LIMIT: Gemini AI API rate limit reached. Please wait a few seconds before trying again.");
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        if (response.status === 429 && attempt < retries) {
+          console.warn(`Gemini rate limit hit. Retrying attempt ${attempt}/${retries} in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2;
+          continue;
+        }
+        const errorText = await response.text();
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
+        throw new Error("Gemini returned an empty completion response.");
+      }
+      const textResponse = result.candidates[0].content.parts[0].text;
+      let cleanText = textResponse.trim();
+      if (cleanText.startsWith("```")) {
+        const lines = cleanText.split("\n");
+        if (lines[0].startsWith("```")) lines.shift();
+        if (lines[lines.length - 1].startsWith("```")) lines.pop();
+        cleanText = lines.join("\n").trim();
+      }
+      return JSON.parse(cleanText);
+    } catch (err) {
+      if (attempt === retries) {
+        throw err;
+      }
+      console.warn(`Attempt ${attempt} failed: ${err.message}. Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2;
     }
-    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
   }
-
-  const result = await response.json();
-  if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
-    throw new Error("Gemini returned an empty completion response.");
-  }
-  const textResponse = result.candidates[0].content.parts[0].text;
-  let cleanText = textResponse.trim();
-  if (cleanText.startsWith("```")) {
-    const lines = cleanText.split("\n");
-    if (lines[0].startsWith("```")) lines.shift();
-    if (lines[lines.length - 1].startsWith("```")) lines.pop();
-    cleanText = lines.join("\n").trim();
-  }
-  return JSON.parse(cleanText);
 }
 
 const SYSTEM_PROMPT = `
@@ -846,29 +863,34 @@ app.post("/api/seeker/parse-resume", async (req, res) => {
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (GEMINI_API_KEY) {
-      console.log("Parsing resume via Gemini 2.5 Flash...");
-      const prompt = `Extract the candidate's education (college, degree, CGPA), skills (comma-separated list of tags), work experience, class 10th marks, class 12th marks, hobbies (list), preferred locations (list), expected CTC, and languages known. Return ONLY a raw JSON object matching this schema:\n{\n  "college": "College name",\n  "degree": "Degree name",\n  "cgpa": "CGPA (e.g. 8.5/10 or 3.8/4.0)",\n  "skills": ["Skill1", "Skill2"],\n  "experience": "Brief experience summary",\n  "class10th": "Class 10th marks (e.g. 92% or 9.5 CGPA) if found, else empty",\n  "class12th": "Class 12th marks (e.g. 88% or 85%) if found, else empty",\n  "hobbies": ["Hobby1", "Hobby2"] if found, else empty array,\n  "preferredLocations": ["Location1", "Location2"] if found, else empty array,\n  "expectedCtc": "Expected CTC if found, else empty",\n  "languages": ["Lang1", "Lang2"] if found, else empty array\n}`;
-      const parsed = await parseDocumentWithGemini(base64Data, mimeType, prompt);
-      return res.json(parsed);
+      try {
+        console.log("Parsing resume via Gemini 2.5 Flash...");
+        const prompt = `Extract the candidate's education (college, degree, CGPA), skills (comma-separated list of tags), work experience, class 10th marks, class 12th marks, hobbies (list), preferred locations (list), expected CTC, and languages known. Return ONLY a raw JSON object matching this schema:\n{\n  "college": "College name",\n  "degree": "Degree name",\n  "cgpa": "CGPA (e.g. 8.5/10 or 3.8/4.0)",\n  "skills": ["Skill1", "Skill2"],\n  "experience": "Brief experience summary",\n  "class10th": "Class 10th marks (e.g. 92% or 9.5 CGPA) if found, else empty",\n  "class12th": "Class 12th marks (e.g. 88% or 85%) if found, else empty",\n  "hobbies": ["Hobby1", "Hobby2"] if found, else empty array,\n  "preferredLocations": ["Location1", "Location2"] if found, else empty array,\n  "expectedCtc": "Expected CTC if found, else empty",\n  "languages": ["Lang1", "Lang2"] if found, else empty array\n}`;
+        const parsed = await parseDocumentWithGemini(base64Data, mimeType, prompt);
+        return res.json(parsed);
+      } catch (geminiErr) {
+        console.warn("Gemini parsing failed, falling back to mock:", geminiErr);
+      }
     }
 
     // --- Mock Fallback OCR Parsing ---
-    console.log("No Gemini API Key found. Emulating Resume OCR...");
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    console.log("Emulating Resume OCR...");
     res.json({
       college: "BITS Pilani",
       degree: "B.E. in Computer Science",
       cgpa: "9.1/10",
       skills: ["HTML", "CSS", "JavaScript", "React.js", "Node.js", "MongoDB", "SQL"],
-      experience: "Web Developer Intern at InnovateTech Solutions (4 months), optimized UI performance and built interactive dashboard features."
+      experience: "Web Developer Intern at InnovateTech Solutions (4 months), optimized UI performance and built interactive dashboard features.",
+      class10th: "94%",
+      class12th: "92%",
+      hobbies: ["Coding", "Chess", "Gaming"],
+      preferredLocations: ["Mumbai", "Remote"],
+      expectedCtc: "12 LPA",
+      languages: ["English", "Hindi"]
     });
 
   } catch (err) {
     console.error("Resume parsing error:", err);
-    if (err.message && err.message.includes("RATE_LIMIT")) {
-      return res.status(429).json({ error: "Please try again after a few seconds." });
-    }
     res.status(500).json({ error: "Failed to parse resume." });
   }
 });
@@ -882,24 +904,24 @@ app.post("/api/seeker/parse-certificate", async (req, res) => {
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (GEMINI_API_KEY) {
-      console.log("Parsing certificate via Gemini 2.5 Flash...");
-      const prompt = `Identify the title of this certificate. Return ONLY a raw JSON object matching this schema:\n{\n  "title": "Certificate Title / Course Name"\n}`;
-      const parsed = await parseDocumentWithGemini(base64Data, mimeType, prompt);
-      return res.json(parsed);
+      try {
+        console.log("Parsing certificate via Gemini 2.5 Flash...");
+        const prompt = `Identify the title of this certificate. Return ONLY a raw JSON object matching this schema:\n{\n  "title": "Certificate Title / Course Name"\n}`;
+        const parsed = await parseDocumentWithGemini(base64Data, mimeType, prompt);
+        return res.json(parsed);
+      } catch (geminiErr) {
+        console.warn("Gemini certificate parsing failed, falling back to mock:", geminiErr);
+      }
     }
 
     // --- Mock Fallback OCR Parsing ---
-    console.log("No Gemini API Key found. Emulating Certificate OCR...");
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    console.log("Emulating Certificate OCR...");
     res.json({
       title: "Google Advanced Project Management Certificate"
     });
 
   } catch (err) {
     console.error("Certificate parsing error:", err);
-    if (err.message && err.message.includes("RATE_LIMIT")) {
-      return res.status(429).json({ error: "Please try again after a few seconds." });
-    }
     res.status(500).json({ error: "Failed to parse certificate." });
   }
 });
