@@ -322,7 +322,14 @@ async function parseDocumentWithGemini(base64Data, mimeType, prompt) {
     throw new Error("Gemini returned an empty completion response.");
   }
   const textResponse = result.candidates[0].content.parts[0].text;
-  return JSON.parse(textResponse.trim());
+  let cleanText = textResponse.trim();
+  if (cleanText.startsWith("```")) {
+    const lines = cleanText.split("\n");
+    if (lines[0].startsWith("```")) lines.shift();
+    if (lines[lines.length - 1].startsWith("```")) lines.pop();
+    cleanText = lines.join("\n").trim();
+  }
+  return JSON.parse(cleanText);
 }
 
 const SYSTEM_PROMPT = `
