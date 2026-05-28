@@ -379,8 +379,11 @@
             })
           });
 
-          if (!response.ok) throw new Error("Resume AI parsing failed");
-          const parsed = await response.json();
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(data.error || "Resume AI parsing failed");
+          }
+          const parsed = data;
 
           // Auto-fill values with fade-in effects
           if (parsed.college) document.getElementById('collegeName').value = parsed.college;
@@ -398,7 +401,7 @@
           alert("Sarthi AI successfully extracted data and autofilled your educational & credentials fields!");
         } catch (err) {
           console.error(err);
-          alert("Sarthi AI OCR failed to connect. Please input credentials manually.");
+          alert(err.message || "Sarthi AI OCR failed to connect. Please input credentials manually.");
         } finally {
           document.getElementById('resumeLoader').style.display = 'none';
         }
@@ -452,8 +455,11 @@
             })
           });
 
-          if (!response.ok) throw new Error("Certificate AI parsing failed");
-          const parsed = await response.json();
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(data.error || "Certificate AI parsing failed");
+          }
+          const parsed = data;
 
           if (parsed.title) {
             document.getElementById('certTitle').value = parsed.title;
@@ -461,7 +467,7 @@
           }
         } catch (err) {
           console.error(err);
-          alert("Sarthi AI certificate title scan failed. Please type the title manually.");
+          alert(err.message || "Sarthi AI certificate title scan failed. Please type the title manually.");
         } finally {
           document.getElementById('certLoader').style.display = 'none';
         }
