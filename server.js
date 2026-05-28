@@ -261,6 +261,70 @@ async function callGroqVision(base64Data, promptText) {
   return data.choices[0].message.content;
 }
 
+// Gemini Multimodal Document Parser
+async function parseDocumentWithGemini(base64Data, mimeType, prompt) {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is not configured.");
+  }
+
+  // Extract raw base64 data without schema header (e.g. data:application/pdf;base64,)
+  const base64Content = base64Data.split(",")[1] || base64Data;
+
+  // Clean and determine correct MIME type
+  let cleanMimeType = mimeType;
+  if (!cleanMimeType) {
+    if (base64Data.startsWith("data:")) {
+      cleanMimeType = base64Data.split(";")[0].split(":")[1];
+    } else {
+      cleanMimeType = "application/pdf"; // default fallback
+    }
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+  const payload = {
+    contents: [
+      {
+        parts: [
+          {
+            text: prompt
+          },
+          {
+            inlineData: {
+              mimeType: cleanMimeType,
+              data: base64Content
+            }
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      responseMimeType: "application/json"
+    }
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
+    throw new Error("Gemini returned an empty completion response.");
+  }
+  const textResponse = result.candidates[0].content.parts[0].text;
+  return JSON.parse(textResponse.trim());
+}
+
 const SYSTEM_PROMPT = `
 You are Sarthi, an advanced AI-powered career companion and recruitment assistant on the JobSarthi platform.
 Your goal is to guide job seekers with career advice, resume analysis, mock interviews, and matched job suggestions.
@@ -769,51 +833,11 @@ app.post("/api/seeker/parse-resume", async (req, res) => {
       return res.status(400).json({ error: "Base64 data is required." });
     }
 
-    if (GROQ_API_KEY) {
-      let extractedText = "";
-
-      // 1. If it is a PDF, use pdf-parse
-      if (mimeType === "application/pdf" || base64Data.includes("application/pdf")) {
-        try {
-          console.log("Extracting text from PDF resume...");
-          const base64Content = base64Data.split(",")[1] || base64Data;
-          const buffer = Buffer.from(base64Content, "base64");
-          const parsedPdf = await pdf(buffer);
-          extractedText = parsedPdf.text;
-        } catch (pdfErr) {
-          console.error("pdf-parse failed, trying vision fallback:", pdfErr);
-        }
-      }
-
-      // 2. If it's an image or pdf-parse failed, use Groq Llama 3.2 Vision
-      if (!extractedText) {
-        try {
-          console.log("Extracting text from Image resume via Groq Vision...");
-          const visionPrompt = "Transcribe all text from this resume image clearly and completely. Do not add comments, return only the plain transcription.";
-          extractedText = await callGroqVision(base64Data, visionPrompt);
-        } catch (visionErr) {
-          console.warn("Groq Vision OCR failed, using smart profile fallback:", visionErr);
-          // Return a structured placeholder instead of throwing an error
-          return res.json({
-            college: "Veermata Jijabai Technological Institute (VJTI)",
-            degree: "Bachelor of Technology in Information Technology",
-            cgpa: "8.9/10",
-            skills: ["Java", "Docker", "Node.js", "System Design", "React.js"],
-            experience: "Software Engineering Intern at Google (3 months). Assisted the Search team in maintaining microservice deployment endpoints."
-          });
-        }
-      }
-
-      // 3. Feed the actual extracted text to Llama 3.3 for structured JSON output
-      const messages = [
-        {
-          role: "user",
-          content: `Extract the education (college, degree, CGPA), skills (comma separated list of tags), and work experience details from this resume text:\n\n${extractedText}\n\nReturn ONLY a raw JSON object matching this schema:\n{\n  "college": "College name",\n  "degree": "Degree name",\n  "cgpa": "CGPA (e.g. 8.5/10 or 3.8/4.0)",\n  "skills": ["Skill1", "Skill2"],\n  "experience": "Brief experience summary"\n}`
-        }
-      ];
-
-      const reply = await callGroq(messages, true);
-      const parsed = JSON.parse(reply.trim());
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (GEMINI_API_KEY) {
+      console.log("Parsing resume via Gemini 2.5 Flash...");
+      const prompt = `Extract the candidate's education (college, degree, CGPA), skills (comma separated list of tags), and work experience details from this resume file. Return ONLY a raw JSON object matching this schema:\n{\n  "college": "College name",\n  "degree": "Degree name",\n  "cgpa": "CGPA (e.g. 8.5/10 or 3.8/4.0)",\n  "skills": ["Skill1", "Skill2"],\n  "experience": "Brief experience summary"\n}`;
+      const parsed = await parseDocumentWithGemini(base64Data, mimeType, prompt);
       return res.json(parsed);
     }
 
@@ -842,44 +866,11 @@ app.post("/api/seeker/parse-certificate", async (req, res) => {
       return res.status(400).json({ error: "Base64 data is required." });
     }
 
-    if (GROQ_API_KEY) {
-      let extractedText = "";
-
-      // 1. If it is a PDF, use pdf-parse
-      if (mimeType === "application/pdf" || base64Data.includes("application/pdf")) {
-        try {
-          const base64Content = base64Data.split(",")[1] || base64Data;
-          const buffer = Buffer.from(base64Content, "base64");
-          const parsedPdf = await pdf(buffer);
-          extractedText = parsedPdf.text;
-        } catch (pdfErr) {
-          console.error("pdf-parse failed for certificate:", pdfErr);
-        }
-      }
-
-      // 2. If it is an image or pdf-parse failed, use Groq Llama 3.2 Vision
-      if (!extractedText) {
-        try {
-          const visionPrompt = "Transcribe all text from this certificate image clearly. Do not add comments, return only the plain transcription.";
-          extractedText = await callGroqVision(base64Data, visionPrompt);
-        } catch (visionErr) {
-          console.warn("Groq Vision OCR failed for certificate, using smart fallback:", visionErr);
-          // Return a generic placeholder instead of throwing an error
-          return res.json({
-            title: "Advanced Professional Certification"
-          });
-        }
-      }
-
-      // 3. Feed the text to Llama 3.3 for structured JSON output
-      const messages = [
-        {
-          role: "user",
-          content: `Identify the title of the certificate from this text. Return ONLY a raw JSON object matching this schema:\n{\n  "title": "Certificate Title / Course Name"\n}\n\nText: ${extractedText}`
-        }
-      ];
-      const reply = await callGroq(messages, true);
-      const parsed = JSON.parse(reply.trim());
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (GEMINI_API_KEY) {
+      console.log("Parsing certificate via Gemini 2.5 Flash...");
+      const prompt = `Identify the title of this certificate. Return ONLY a raw JSON object matching this schema:\n{\n  "title": "Certificate Title / Course Name"\n}`;
+      const parsed = await parseDocumentWithGemini(base64Data, mimeType, prompt);
       return res.json(parsed);
     }
 
