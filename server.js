@@ -867,7 +867,7 @@ app.post("/api/seeker/parse-resume", async (req, res) => {
   } catch (err) {
     console.error("Resume parsing error:", err);
     if (err.message && err.message.includes("RATE_LIMIT")) {
-      return res.status(429).json({ error: "Gemini AI rate limit reached (15 uploads per minute). Please wait 10-15 seconds before trying again." });
+      return res.status(429).json({ error: "Please try again after a few seconds." });
     }
     res.status(500).json({ error: "Failed to parse resume." });
   }
@@ -898,7 +898,7 @@ app.post("/api/seeker/parse-certificate", async (req, res) => {
   } catch (err) {
     console.error("Certificate parsing error:", err);
     if (err.message && err.message.includes("RATE_LIMIT")) {
-      return res.status(429).json({ error: "Gemini AI rate limit reached (15 uploads per minute). Please wait 10-15 seconds before trying again." });
+      return res.status(429).json({ error: "Please try again after a few seconds." });
     }
     res.status(500).json({ error: "Failed to parse certificate." });
   }
