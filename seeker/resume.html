@@ -282,6 +282,7 @@
     let myCertificatesList = [];
     let uploadedResumeName = "";
     let uploadedResumeBase64 = "";
+    let lastUploadedCertBase64 = "";
 
     document.addEventListener("DOMContentLoaded", () => {
       loadSeekerProfile();
@@ -434,6 +435,7 @@
       const reader = new FileReader();
       reader.onload = async function() {
         const base64Data = reader.result;
+        lastUploadedCertBase64 = base64Data;
 
         try {
           const response = await fetch('/api/seeker/parse-certificate', {
@@ -474,8 +476,9 @@
 
       myCertificatesList.push({
         title: title,
-        fileUrl: "#" // Saved locally inside state
+        fileUrl: lastUploadedCertBase64 || "#"
       });
+      lastUploadedCertBase64 = "";
 
       renderCertificatesList();
       
@@ -529,6 +532,7 @@
         skills: mySkillsList,
         certificates: myCertificatesList,
         resumeFileName: uploadedResumeName,
+        resumeBase64: uploadedResumeBase64,
         linkedinId: document.getElementById('linkedinId').value.trim()
       };
 

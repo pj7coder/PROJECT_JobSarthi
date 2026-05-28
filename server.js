@@ -6,8 +6,35 @@ import path from "path";
 import { fileURLToPath } from "url";
 // GoogleGenerativeAI removed (migrating to Groq)
 import { MongoClient } from "mongodb";
+import { v2 as cloudinary } from "cloudinary";
 
 dotenv.config();
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Cloudinary upload helper
+async function uploadToCloudinary(base64Data, resourceType = "auto") {
+  if (!base64Data) return "";
+  if (base64Data.startsWith("http")) return base64Data;
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    console.warn("Cloudinary not fully configured. Storing raw data in DB.");
+    return base64Data;
+  }
+  try {
+    const res = await cloudinary.uploader.upload(base64Data, {
+      resource_type: resourceType
+    });
+    return res.secure_url;
+  } catch (err) {
+    console.error("Cloudinary upload failed:", err);
+    return base64Data;
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -641,6 +668,30 @@ app.post("/api/seeker/profile", async (req, res) => {
     if (!email) {
       return res.status(400).json({ error: "Email is required." });
     }
+
+    // Intercept Base64 strings and upload to Cloudinary
+    if (profile) {
+      // 1. Handle resumeBase64
+      if (profile.resumeBase64 && profile.resumeBase64.startsWith("data:")) {
+        console.log("Uploading resume to Cloudinary...");
+        // Resumes (PDF, DOCX) should be uploaded as raw/auto
+        const secureUrl = await uploadToCloudinary(profile.resumeBase64, "auto");
+        profile.resumeUrl = secureUrl;
+        delete profile.resumeBase64; // Remove heavy raw base64 so we don't store it in DB
+      }
+
+      // 2. Handle certificates fileUrl base64
+      if (profile.certificates && Array.isArray(profile.certificates)) {
+        for (let i = 0; i < profile.certificates.length; i++) {
+          const cert = profile.certificates[i];
+          if (cert.fileUrl && cert.fileUrl.startsWith("data:")) {
+            console.log(`Uploading certificate "${cert.title}" to Cloudinary...`);
+            const secureUrl = await uploadToCloudinary(cert.fileUrl, "auto");
+            cert.fileUrl = secureUrl;
+          }
+        }
+      }
+    }
     
     if (mongoDb) {
       await mongoDb.collection("users").updateOne(
@@ -655,7 +706,7 @@ app.post("/api/seeker/profile", async (req, res) => {
         await writeLocalDB(local);
       }
     }
-    res.json({ success: true });
+    res.json({ success: true, profile });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to save profile." });
