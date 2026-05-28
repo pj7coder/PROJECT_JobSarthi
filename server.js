@@ -512,7 +512,8 @@ app.get("/api/recruiter/applicants", async (req, res) => {
         degree: user?.profile?.degree || "Not specified",
         cgpa: user?.profile?.cgpa || "N/A",
         certificates: user?.profile?.certificates || [],
-        resumeFileName: user?.profile?.resumeFileName || ""
+        resumeFileName: user?.profile?.resumeFileName || "",
+        resumeUrl: user?.profile?.resumeUrl || ""
       });
     }
     

@@ -425,11 +425,11 @@
           <strong>Experience Summary:</strong><br>
           ${selectedCandidate.statement}
         </div>
-        ${selectedCandidate.resumeFileName ? `
+        ${selectedCandidate.resumeUrl ? `
           <div style="margin-bottom: 16px;">
             <strong>Uploaded Resume:</strong><br>
-            <a href="#" onclick="alert('Resume file download: ${selectedCandidate.resumeFileName}')" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; font-size:0.85rem; margin-top:4px;">
-              📄 ${selectedCandidate.resumeFileName} (View/Download)
+            <a href="${selectedCandidate.resumeUrl}" target="_blank" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; font-size:0.85rem; margin-top:4px;">
+              📄 ${selectedCandidate.resumeFileName || "View Resume"} (View/Download)
             </a>
           </div>
         ` : ''}
@@ -439,7 +439,7 @@
             ${selectedCandidate.certificates.map(cert => `
               <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 8px 12px; border-radius: var(--radius-sm); margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-size:0.85rem;">🏆 ${cert.title}</span>
-                <a href="#" onclick="alert('Certificate preview for: ${cert.title}')" style="color: var(--accent-secondary); font-size: 0.8rem; font-weight:600; text-decoration: underline;">View File</a>
+                <a href="${cert.fileUrl}" target="_blank" style="color: var(--accent-secondary); font-size: 0.8rem; font-weight:600; text-decoration: underline;">View File</a>
               </div>
             `).join('')}
           </div>
