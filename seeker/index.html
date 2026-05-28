@@ -267,41 +267,58 @@
   <!-- Container -->
   <main class="container">
     <div class="dashboard-grid">
-      <!-- Profile Sidebar -->
-      <aside class="glass-panel profile-sidebar">
-        <div class="profile-avatar-large" id="sidebarAvatar">C</div>
-        <h2 class="seeker-name" id="sidebarName">Candidate Profile</h2>
-        <p class="seeker-title" id="sidebarTitle">Software Seeker</p>
+      <!-- Profile & Resume Sidebar Column -->
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Profile Sidebar -->
+        <aside class="glass-panel profile-sidebar" style="width: 100%; box-sizing: border-box;">
+          <div class="profile-avatar-large" id="sidebarAvatar">C</div>
+          <h2 class="seeker-name" id="sidebarName">Candidate Profile</h2>
+          <p class="seeker-title" id="sidebarTitle">Software Seeker</p>
 
-        <div style="width: 100%; text-align: left; margin-top: 10px;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500;">
-            <span class="stat-label">Profile Completeness</span>
-            <span style="color: var(--accent-secondary);" id="profileCompletenessText">0%</span>
+          <div style="width: 100%; text-align: left; margin-top: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500;">
+              <span class="stat-label">Profile Completeness</span>
+              <span style="color: var(--accent-secondary);" id="profileCompletenessText">0%</span>
+            </div>
+            <div class="profile-progress-container">
+              <div class="profile-progress-bar" id="profileProgressBar" style="width: 0%;"></div>
+            </div>
           </div>
-          <div class="profile-progress-container">
-            <div class="profile-progress-bar" id="profileProgressBar" style="width: 0%;"></div>
-          </div>
-        </div>
 
-        <div class="sidebar-stats" id="applications">
-          <div class="stat-row">
-            <span class="stat-label">Applications Sent</span>
-            <span class="stat-value" id="applicationsSentCount">0</span>
+          <div class="sidebar-stats" id="applications" style="width: 100%;">
+            <div class="stat-row">
+              <span class="stat-label">Applications Sent</span>
+              <span class="stat-value" id="applicationsSentCount">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Interviews Scheduled</span>
+              <span class="stat-value" style="color: var(--success);" id="interviewsScheduledCount">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Uploaded Certificates</span>
+              <span class="stat-value" id="certificatesCount">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Skills Logged</span>
+              <span class="stat-value" style="color: var(--accent-secondary);" id="skillsLoggedCount">0</span>
+            </div>
           </div>
-          <div class="stat-row">
-            <span class="stat-label">Interviews Scheduled</span>
-            <span class="stat-value" style="color: var(--success);" id="interviewsScheduledCount">0</span>
+        </aside>
+
+        <!-- Resume Preview Panel -->
+        <div class="glass-panel" id="resumePreviewContainer" style="padding: 20px; display: none; flex-direction: column; align-items: center; text-align: center;">
+          <h3 style="font-size: 1rem; margin-bottom: 12px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            📄 Uploaded Resume
+          </h3>
+          <div id="resumeThumbnailBox" style="width: 100%; height: 260px; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
+            <div id="resumeFallbackIcon" style="font-size: 3rem; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 8px;">
+              <span>📄</span>
+              <span id="resumeNameLabel" style="font-size: 0.85rem; color: var(--text-main); word-break: break-all; max-width: 90%; padding: 0 10px;">resume.pdf</span>
+            </div>
           </div>
-          <div class="stat-row">
-            <span class="stat-label">Uploaded Certificates</span>
-            <span class="stat-value" id="certificatesCount">0</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">Skills Logged</span>
-            <span class="stat-value" style="color: var(--accent-secondary);" id="skillsLoggedCount">0</span>
-          </div>
+          <a id="viewResumeBtn" href="#" target="_blank" class="btn btn-secondary" style="margin-top: 14px; width: 100%; padding: 8px; font-size: 0.85rem; font-weight: 600; text-align: center; text-decoration: none;">View / Download</a>
         </div>
-      </aside>
+      </div>
 
       <!-- Main Section -->
       <section class="dashboard-main">
@@ -567,6 +584,39 @@
               <a href="resume.html" class="btn btn-secondary" style="display: inline-block; padding: 6px 12px; font-size: 0.85rem;">Edit Profile & Add Skills</a>
             </div>
           `;
+        }
+
+        // 3. Render Seeker Resume Preview Thumbnail
+        const resumeUrl = profile.resumeUrl;
+        if (resumeUrl) {
+          document.getElementById('resumePreviewContainer').style.display = 'flex';
+          document.getElementById('viewResumeBtn').href = resumeUrl;
+          document.getElementById('resumeNameLabel').textContent = profile.resumeFileName || "resume.pdf";
+
+          let thumbnailUrl = resumeUrl;
+          if (resumeUrl.toLowerCase().endsWith('.pdf')) {
+            const lastDot = resumeUrl.lastIndexOf('.');
+            thumbnailUrl = resumeUrl.substring(0, lastDot) + '.jpg';
+          }
+
+          const img = document.createElement('img');
+          img.src = thumbnailUrl;
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = 'cover';
+          img.style.borderRadius = 'var(--radius-sm)';
+          
+          img.onload = () => {
+            const thumbBox = document.getElementById('resumeThumbnailBox');
+            thumbBox.innerHTML = '';
+            thumbBox.appendChild(img);
+          };
+          
+          img.onerror = () => {
+            console.log("Could not convert PDF page, using premium default icon.");
+          };
+        } else {
+          document.getElementById('resumePreviewContainer').style.display = 'none';
         }
 
       } catch (err) {

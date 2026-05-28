@@ -187,8 +187,17 @@ window.headerSeekerHTML = `
               <p id="popupProfileEmail">candidate@jobsarthi.ai</p>
             </div>
           </div>
-          <div class="dropdown-body">
-            <button class="dropdown-action-item logout-btn" onclick="logout()">
+          <div class="dropdown-body" style="padding: 10px; display: flex; flex-direction: column; gap: 4px;">
+            <a class="dropdown-action-item" href="resume.html" style="text-decoration: none; display: flex; align-items: center; gap: 8px; color: var(--text-main); font-size: 0.88rem; padding: 10px 12px; transition: background 0.2s; border-radius: 6px; width: 100%; box-sizing: border-box; background: transparent; border: none; cursor: pointer; text-align: left;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+              Update Profile
+            </a>
+            <button class="dropdown-action-item" onclick="alert('Change Password feature is currently under development!')" style="display: flex; align-items: center; gap: 8px; color: var(--text-main); font-size: 0.88rem; padding: 10px 12px; transition: background 0.2s; border-radius: 6px; width: 100%; box-sizing: border-box; background: transparent; border: none; cursor: pointer; text-align: left;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              Change Password
+            </button>
+            <div style="border-top: 1px solid var(--border-subtle); margin: 6px 0;"></div>
+            <button class="dropdown-action-item logout-btn" onclick="logout()" style="display: flex; align-items: center; gap: 8px; color: var(--danger); font-size: 0.88rem; padding: 10px 12px; transition: background 0.2s; border-radius: 6px; width: 100%; box-sizing: border-box; background: transparent; border: none; cursor: pointer; text-align: left;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
               Log Out
             </button>
@@ -294,8 +303,17 @@ window.headerRecruiterHTML = `
               <p id="popupProfileEmail">recruiter@jobsarthi.ai</p>
             </div>
           </div>
-          <div class="dropdown-body">
-            <button class="dropdown-action-item logout-btn" onclick="logout()">
+          <div class="dropdown-body" style="padding: 10px; display: flex; flex-direction: column; gap: 4px;">
+            <button class="dropdown-action-item" onclick="alert('Recruiter profile settings are under development!')" style="display: flex; align-items: center; gap: 8px; color: var(--text-main); font-size: 0.88rem; padding: 10px 12px; transition: background 0.2s; border-radius: 6px; width: 100%; box-sizing: border-box; background: transparent; border: none; cursor: pointer; text-align: left;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+              Update Profile
+            </button>
+            <button class="dropdown-action-item" onclick="alert('Change Password feature is currently under development!')" style="display: flex; align-items: center; gap: 8px; color: var(--text-main); font-size: 0.88rem; padding: 10px 12px; transition: background 0.2s; border-radius: 6px; width: 100%; box-sizing: border-box; background: transparent; border: none; cursor: pointer; text-align: left;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              Change Password
+            </button>
+            <div style="border-top: 1px solid var(--border-subtle); margin: 6px 0;"></div>
+            <button class="dropdown-action-item logout-btn" onclick="logout()" style="display: flex; align-items: center; gap: 8px; color: var(--danger); font-size: 0.88rem; padding: 10px 12px; transition: background 0.2s; border-radius: 6px; width: 100%; box-sizing: border-box; background: transparent; border: none; cursor: pointer; text-align: left;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
               Log Out
             </button>

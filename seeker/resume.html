@@ -229,7 +229,8 @@
           </div>
         </div>
 
-        <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button class="btn btn-secondary" type="button" style="width: 120px;" onclick="clearProfileForm()">Clear All</button>
           <button class="btn btn-glow" style="width: 180px;" onclick="saveSeekerProfile()">Save Profile</button>
         </div>
       </div>
@@ -452,6 +453,32 @@
         if (!mySkillsList.includes(s)) mySkillsList.push(s);
       });
       renderSkillTags();
+    }
+
+    // Clear all form inputs
+    function clearProfileForm() {
+      if (confirm("Are you sure you want to clear all form fields? This will not save changes.")) {
+        document.getElementById('collegeName').value = "";
+        document.getElementById('degreeName').value = "";
+        document.getElementById('cgpa').value = "";
+        document.getElementById('experienceSummary').value = "";
+        document.getElementById('class10th').value = "";
+        document.getElementById('class12th').value = "";
+        document.getElementById('hobbies').value = "";
+        document.getElementById('preferredLocations').value = "";
+        document.getElementById('expectedCtc').value = "";
+        document.getElementById('languages').value = "";
+        document.getElementById('linkedinId').value = "";
+        
+        mySkillsList = [];
+        renderSkillTags();
+        
+        uploadedResumeName = "";
+        uploadedResumeBase64 = "";
+        document.getElementById('resumeUploadTitle').textContent = "Upload Resume (PDF, DOCX)";
+        const resumeInput = document.getElementById('resumeFile');
+        if (resumeInput) resumeInput.value = "";
+      }
     }
 
     // Save Seeker Profile to Database
