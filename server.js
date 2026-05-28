@@ -39,6 +39,33 @@ async function uploadToCloudinary(base64Data, resourceType = "auto") {
   }
 }
 
+// Cloudinary delete helper
+async function deleteFromCloudinary(fileUrl) {
+  if (!fileUrl || !fileUrl.startsWith("http")) return;
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    return;
+  }
+  try {
+    const parts = fileUrl.split("/");
+    const uploadIndex = parts.indexOf("upload");
+    if (uploadIndex === -1) return;
+    
+    // Extract public id with extension skipping 'upload' and 'v[version]'
+    let publicIdWithExtension = parts.slice(uploadIndex + 2).join("/");
+    
+    // Strip file extension
+    const lastDotIndex = publicIdWithExtension.lastIndexOf(".");
+    const publicId = lastDotIndex !== -1 ? publicIdWithExtension.substring(0, lastDotIndex) : publicIdWithExtension;
+    
+    const resourceType = parts[uploadIndex - 1] || "auto";
+
+    console.log(`Deleting old file from Cloudinary: ${publicId} (${resourceType})`);
+    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+  } catch (err) {
+    console.error("Cloudinary deletion failed:", err);
+  }
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -811,10 +838,17 @@ app.post("/api/seeker/profile", async (req, res) => {
       return res.status(400).json({ error: "Email is required." });
     }
 
+    // Fetch existing user to clean up old resume/files from Cloudinary if overwritten
+    const existingUser = await dbService.findUserByEmail(email);
+    const oldResumeUrl = existingUser?.profile?.resumeUrl;
+
     // Intercept Base64 strings and upload to Cloudinary
     if (profile) {
       // 1. Handle resumeBase64
       if (profile.resumeBase64 && profile.resumeBase64.startsWith("data:")) {
+        if (oldResumeUrl) {
+          await deleteFromCloudinary(oldResumeUrl);
+        }
         console.log("Uploading resume to Cloudinary...");
         // Resumes (PDF, DOCX) should be uploaded as raw/auto
         const secureUrl = await uploadToCloudinary(profile.resumeBase64, "auto");
