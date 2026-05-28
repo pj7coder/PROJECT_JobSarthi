@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Resume & Profile Builder - JobSarthi Seeker</title>
-  <meta name="description" content="Build your seeker profile, upload resumes and certificates, and let Sarthi AI auto-fill the details.">
+  <meta name="description"
+    content="Build your seeker profile, upload resumes and certificates, and let Sarthi AI auto-fill the details.">
   <link rel="stylesheet" href="../css/main.css">
   <script>
     if (localStorage.getItem('theme') === 'light') {
@@ -39,7 +41,8 @@
       position: relative;
     }
 
-    .upload-zone:hover, .upload-zone.dragover {
+    .upload-zone:hover,
+    .upload-zone.dragover {
       border-color: var(--accent-secondary);
       background: rgba(6, 182, 212, 0.05);
     }
@@ -115,7 +118,9 @@
     }
 
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .toast-alert {
@@ -134,6 +139,7 @@
     }
   </style>
 </head>
+
 <body>
   <!-- Liquid Glass Backdrop Blobs -->
   <div class="liquid-blob-container">
@@ -151,7 +157,8 @@
   <main class="container">
     <div style="margin-bottom: 20px;">
       <h1 style="font-size: 2.2rem; margin-bottom: 8px;">Build Seeker Profile</h1>
-      <p style="color: var(--text-muted); font-size: 1.05rem;">Upload your resume to instantly auto-fill credentials, educational profiles, and skillsets using AI.</p>
+      <p style="color: var(--text-muted); font-size: 1.05rem;">Upload your resume to instantly auto-fill credentials,
+        educational profiles, and skillsets using AI.</p>
     </div>
 
     <!-- Quick AI Import Panel (At the top) -->
@@ -174,17 +181,21 @@
             <div style="font-size: 2.5rem; margin-bottom: 10px;">📄</div>
             <h3 style="font-size: 1.05rem; margin-bottom: 4px;" id="resumeUploadTitle">Upload Resume (PDF, DOCX)</h3>
             <p style="font-size: 0.8rem; color: var(--text-muted);">Drag and drop or click to upload resume file</p>
-            <input type="file" id="resumeFile" class="file-input" accept=".pdf,image/*" onchange="handleResumeUpload(event)">
+            <input type="file" id="resumeFile" class="file-input" accept=".pdf,image/*"
+              onchange="handleResumeUpload(event)">
           </div>
         </div>
 
         <!-- LinkedIn zone -->
-        <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; justify-content: center; gap: 12px; background: rgba(255,255,255,0.01);">
+        <div class="glass-panel"
+          style="padding: 20px; display: flex; flex-direction: column; justify-content: center; gap: 12px; background: rgba(255,255,255,0.01);">
           <div style="font-size: 1.8rem;">🔗</div>
           <h3 style="font-size: 1.05rem; margin-bottom: -4px;">Import from LinkedIn</h3>
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="linkedinId" class="form-control" placeholder="E.g., linkedin.com/in/username" style="flex: 1; padding: 8px 12px; font-size: 0.85rem;">
-            <button class="btn btn-secondary" onclick="extractLinkedIn()" style="padding: 8px 16px; font-size: 0.85rem;">Extract</button>
+            <input type="text" id="linkedinId" class="form-control" placeholder="E.g., linkedin.com/in/username"
+              style="flex: 1; padding: 8px 12px; font-size: 0.85rem;">
+            <button class="btn btn-secondary" onclick="extractLinkedIn()"
+              style="padding: 8px 16px; font-size: 0.85rem;">Extract</button>
           </div>
         </div>
       </div>
@@ -194,7 +205,26 @@
     <div class="profile-layout">
       <!-- Left side: Educational & Experience Forms -->
       <div class="glass-panel" style="padding: 30px; display: flex; flex-direction: column; gap: 20px;">
-        <h2 style="font-size: 1.3rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 14px; margin-bottom: 10px;">Personal Credentials</h2>
+        <h2
+          style="font-size: 1.3rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 14px; margin-bottom: 10px;">
+          Personal Credentials</h2>
+
+        <!-- Profile Photo Upload Zone -->
+        <div style="display: flex; align-items: center; gap: 20px; padding: 10px 0; margin-bottom: 10px;">
+          <div id="avatarContainer" onclick="document.getElementById('avatarFileInput').click()" style="position: relative; width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary)); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 800; color: #fff; border: 2px solid rgba(255, 255, 255, 0.15); cursor: pointer; overflow: hidden; box-shadow: 0 4px 15px rgba(6, 182, 212, 0.25); flex-shrink: 0;">
+            <span id="avatarInitials">C</span>
+            <img id="avatarPreview" src="" style="width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0;">
+            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+              <span style="font-size: 0.72rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Change</span>
+            </div>
+            <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)">
+          </div>
+          <div>
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Profile Photo</h3>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px;">Recommended: Square JPG or PNG</p>
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('avatarFileInput').click()" style="padding: 5px 10px; font-size: 0.75rem; border-radius: var(--radius-sm);">Upload Image</button>
+          </div>
+        </div>
 
         <div class="form-group">
           <label class="form-label" for="collegeName">College / University</label>
@@ -214,14 +244,16 @@
 
         <div class="form-group">
           <label class="form-label" for="experienceSummary">Work / Internship Experience</label>
-          <textarea id="experienceSummary" class="form-control" rows="6" placeholder="Summarize your work history, internship projects, or tech stack deployments..."></textarea>
+          <textarea id="experienceSummary" class="form-control" rows="6"
+            placeholder="Summarize your work history, internship projects, or tech stack deployments..."></textarea>
         </div>
 
         <!-- Skills Manager inside Form -->
         <div class="form-group">
           <label class="form-label">Professional Skill Tree</label>
           <div style="display: flex; gap: 10px;">
-            <input type="text" id="skillInput" class="form-control" placeholder="E.g., React.js, Node.js, Python" style="flex: 1;">
+            <input type="text" id="skillInput" class="form-control" placeholder="E.g., React.js, Node.js, Python"
+              style="flex: 1;">
             <button type="button" class="btn btn-secondary" onclick="addSkillTag()">Add</button>
           </div>
           <div class="skills-flex" id="skillsContainer">
@@ -229,17 +261,19 @@
           </div>
         </div>
 
-        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
-          <button class="btn btn-secondary" type="button" style="width: 120px;" onclick="clearProfileForm()">Clear All</button>
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
           <button class="btn btn-glow" style="width: 180px;" onclick="saveSeekerProfile()">Save Profile</button>
         </div>
       </div>
 
       <!-- Right side: Other Details Manager -->
       <div class="glass-panel" style="padding: 30px; display: flex; flex-direction: column; gap: 20px;">
-        <h2 style="font-size: 1.3rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 14px; margin-bottom: 10px;">Other Professional Details</h2>
+        <h2
+          style="font-size: 1.3rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 14px; margin-bottom: 10px;">
+          Other Professional Details</h2>
         <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.4; margin-top: -10px;">
-          Add auxiliary details to make your profile stand out. Uploading a resume with these details will allow Sarthi AI to extract them automatically.
+          Add auxiliary details to make your profile stand out. Uploading a resume with these details will allow Sarthi
+          AI to extract them automatically.
         </p>
 
         <!-- 10th & 12th Marks -->
@@ -257,13 +291,15 @@
         <!-- Hobbies & Interests -->
         <div class="form-group">
           <label class="form-label" for="hobbies">Hobbies & Interests</label>
-          <input type="text" id="hobbies" class="form-control" placeholder="E.g., Reading, Coding, Swimming (comma separated)">
+          <input type="text" id="hobbies" class="form-control"
+            placeholder="E.g., Reading, Coding, Swimming (comma separated)">
         </div>
 
         <!-- Preferred Locations -->
         <div class="form-group">
           <label class="form-label" for="preferredLocations">Preferred Locations</label>
-          <input type="text" id="preferredLocations" class="form-control" placeholder="E.g., Mumbai, Bangalore, Remote (comma separated)">
+          <input type="text" id="preferredLocations" class="form-control"
+            placeholder="E.g., Mumbai, Bangalore, Remote (comma separated)">
         </div>
 
         <!-- Expected Salary / CTC -->
@@ -275,7 +311,8 @@
         <!-- Languages Known -->
         <div class="form-group">
           <label class="form-label" for="languages">Languages Known</label>
-          <input type="text" id="languages" class="form-control" placeholder="E.g., English, Hindi, Marathi (comma separated)">
+          <input type="text" id="languages" class="form-control"
+            placeholder="E.g., English, Hindi, Marathi (comma separated)">
         </div>
       </div>
     </div>
@@ -289,6 +326,25 @@
     let mySkillsList = [];
     let uploadedResumeName = "";
     let uploadedResumeBase64 = "";
+    let uploadedAvatarBase64 = "";
+
+    // Handle avatar photo selection and conversion to Base64
+    function handleAvatarUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        uploadedAvatarBase64 = e.target.result;
+        
+        // Show preview image
+        const preview = document.getElementById('avatarPreview');
+        preview.src = uploadedAvatarBase64;
+        preview.style.display = 'block';
+        document.getElementById('avatarInitials').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
 
     document.addEventListener("DOMContentLoaded", () => {
       loadSeekerProfile();
@@ -308,7 +364,7 @@
         document.getElementById('degreeName').value = profile.degree || '';
         document.getElementById('cgpa').value = profile.cgpa || '';
         document.getElementById('experienceSummary').value = profile.experience || '';
-        
+
         document.getElementById('class10th').value = profile.class10th || '';
         document.getElementById('class12th').value = profile.class12th || '';
         document.getElementById('hobbies').value = Array.isArray(profile.hobbies) ? profile.hobbies.join(', ') : (profile.hobbies || '');
@@ -318,6 +374,17 @@
 
         mySkillsList = profile.skills || [];
         renderSkillTags();
+
+        // Populate avatar initials or image
+        const seekerName = localStorage.getItem('seeker_name') || 'C';
+        document.getElementById('avatarInitials').textContent = seekerName.charAt(0).toUpperCase();
+
+        if (profile.avatarUrl) {
+          const preview = document.getElementById('avatarPreview');
+          preview.src = profile.avatarUrl;
+          preview.style.display = 'block';
+          document.getElementById('avatarInitials').style.display = 'none';
+        }
 
         if (profile.resumeFileName) {
           uploadedResumeName = profile.resumeFileName;
@@ -372,10 +439,10 @@
       document.getElementById('resumeUploadTitle').textContent = `Resume: ${file.name}`;
 
       const reader = new FileReader();
-      reader.onload = async function() {
+      reader.onload = async function () {
         const base64Data = reader.result;
         uploadedResumeBase64 = base64Data;
-        
+
         // Show loading spinner
         document.getElementById('resumeLoader').style.display = 'flex';
 
@@ -400,7 +467,7 @@
           if (parsed.degree) document.getElementById('degreeName').value = parsed.degree;
           if (parsed.cgpa) document.getElementById('cgpa').value = parsed.cgpa;
           if (parsed.experience) document.getElementById('experienceSummary').value = parsed.experience;
-          
+
           if (parsed.class10th) document.getElementById('class10th').value = parsed.class10th;
           if (parsed.class12th) document.getElementById('class12th').value = parsed.class12th;
           if (parsed.hobbies) {
@@ -447,7 +514,7 @@
       document.getElementById('degreeName').value = "Bachelor of Technology in Information Technology";
       document.getElementById('cgpa').value = "8.9/10";
       document.getElementById('experienceSummary').value = "Software Engineering Intern at Google (3 months). Assisted the Search team in maintaining microservice deployment endpoints.";
-      
+
       const suggestedSkills = ["Java", "Docker", "Node.js", "System Design"];
       suggestedSkills.forEach(s => {
         if (!mySkillsList.includes(s)) mySkillsList.push(s);
@@ -455,7 +522,7 @@
       renderSkillTags();
     }
 
-    // Clear all form inputs
+    // Clear all form inputs including profile image
     function clearProfileForm() {
       if (confirm("Are you sure you want to clear all form fields? This will not save changes.")) {
         document.getElementById('collegeName').value = "";
@@ -478,6 +545,14 @@
         document.getElementById('resumeUploadTitle').textContent = "Upload Resume (PDF, DOCX)";
         const resumeInput = document.getElementById('resumeFile');
         if (resumeInput) resumeInput.value = "";
+
+        // Reset Profile picture preview
+        uploadedAvatarBase64 = "";
+        document.getElementById('avatarPreview').src = "";
+        document.getElementById('avatarPreview').style.display = "none";
+        document.getElementById('avatarInitials').style.display = "block";
+        const avatarInput = document.getElementById('avatarFileInput');
+        if (avatarInput) avatarInput.value = "";
       }
     }
 
@@ -503,7 +578,9 @@
         languages: document.getElementById('languages').value.split(',').map(s => s.trim()).filter(Boolean),
         resumeFileName: uploadedResumeName,
         resumeBase64: uploadedResumeBase64,
-        linkedinId: document.getElementById('linkedinId').value.trim()
+        linkedinId: document.getElementById('linkedinId').value.trim(),
+        avatarUrl: document.getElementById('avatarPreview').style.display === 'block' ? document.getElementById('avatarPreview').src : "",
+        avatarBase64: uploadedAvatarBase64
       };
 
       try {
@@ -548,4 +625,5 @@
     });
   </script>
 </body>
+
 </html>

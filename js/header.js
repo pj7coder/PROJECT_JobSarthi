@@ -86,6 +86,44 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sidebarName) sidebarName.textContent = userName;
       if (welcomeName) welcomeName.textContent = userName;
       
+      // Function to render avatar image over initials
+      function updateAvatarUI(avatarUrl) {
+        if (!avatarUrl) return;
+        const imgHtml = `<img src="${avatarUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`;
+        if (headerInitials) {
+          headerInitials.innerHTML = imgHtml;
+          headerInitials.style.background = 'transparent';
+        }
+        if (popupInitials) {
+          popupInitials.innerHTML = imgHtml;
+          popupInitials.style.background = 'transparent';
+        }
+        if (sidebarAvatar) {
+          sidebarAvatar.innerHTML = imgHtml;
+          sidebarAvatar.style.background = 'transparent';
+        }
+      }
+
+      // Fast load avatar from localStorage, and fetch API to keep it fresh
+      if (isSeeker) {
+        const storedAvatar = localStorage.getItem('seeker_avatar_url');
+        if (storedAvatar) {
+          updateAvatarUI(storedAvatar);
+        }
+        // Async update
+        fetch(`${prefix}api/seeker/profile?email=${encodeURIComponent(userEmail)}`)
+          .then(res => res.json())
+          .then(profile => {
+            if (profile && profile.avatarUrl) {
+              localStorage.setItem('seeker_avatar_url', profile.avatarUrl);
+              updateAvatarUI(profile.avatarUrl);
+            } else {
+              localStorage.removeItem('seeker_avatar_url');
+            }
+          })
+          .catch(err => console.error("Error fetching avatar:", err));
+      }
+      
       // 6. Dropdown Interactions
       const triggers = headerWrapper.querySelectorAll('.dropdown-trigger');
       triggers.forEach(trigger => {

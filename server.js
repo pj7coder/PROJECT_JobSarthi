@@ -841,6 +841,7 @@ app.post("/api/seeker/profile", async (req, res) => {
     // Fetch existing user to clean up old resume/files from Cloudinary if overwritten
     const existingUser = await dbService.findUserByEmail(email);
     const oldResumeUrl = existingUser?.profile?.resumeUrl;
+    const oldAvatarUrl = existingUser?.profile?.avatarUrl;
 
     // Intercept Base64 strings and upload to Cloudinary
     if (profile) {
@@ -854,6 +855,17 @@ app.post("/api/seeker/profile", async (req, res) => {
         const secureUrl = await uploadToCloudinary(profile.resumeBase64, "auto");
         profile.resumeUrl = secureUrl;
         delete profile.resumeBase64; // Remove heavy raw base64 so we don't store it in DB
+      }
+
+      // Handle avatarBase64 (Profile Picture)
+      if (profile.avatarBase64 && profile.avatarBase64.startsWith("data:")) {
+        if (oldAvatarUrl) {
+          await deleteFromCloudinary(oldAvatarUrl);
+        }
+        console.log("Uploading profile picture to Cloudinary...");
+        const secureUrl = await uploadToCloudinary(profile.avatarBase64, "image");
+        profile.avatarUrl = secureUrl;
+        delete profile.avatarBase64;
       }
 
       // 2. Handle certificates fileUrl base64
