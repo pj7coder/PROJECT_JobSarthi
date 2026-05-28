@@ -7,6 +7,9 @@ import { fileURLToPath } from "url";
 // GoogleGenerativeAI removed (migrating to Groq)
 import { MongoClient } from "mongodb";
 import { v2 as cloudinary } from "cloudinary";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pdf = require("pdf-parse");
 
 dotenv.config();
 
@@ -206,6 +209,52 @@ async function callGroq(messages, jsonMode = false) {
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Groq API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+async function callGroqVision(base64Data, promptText) {
+  if (!GROQ_API_KEY) {
+    throw new Error("GROQ_API_KEY is not configured.");
+  }
+  const base64Content = base64Data.split(",")[1] || base64Data;
+  const mimeType = base64Data.split(";")[0].split(":")[1] || "image/jpeg";
+  const dataUri = `data:${mimeType};base64,${base64Content}`;
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.2-11b-vision-preview",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: promptText
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: dataUri
+              }
+            }
+          ]
+        }
+      ],
+      temperature: 0.2
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Groq Vision API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
@@ -721,17 +770,38 @@ app.post("/api/seeker/parse-resume", async (req, res) => {
     }
 
     if (GROQ_API_KEY) {
-      // Mock extractable profile texts to pass into llama-3.1 model to retrieve parsed profile
-      const mockResumeText = `
-        Education: BITS Pilani, B.E. Computer Science, CGPA 9.2/10
-        Skills: React, Node.js, JavaScript, Python, MongoDB, SQL, Git
-        Experience: Frontend Web Developer intern at Google. Worked on UI interfaces and API integrations.
-      `;
+      let extractedText = "";
 
+      // 1. If it is a PDF, use pdf-parse
+      if (mimeType === "application/pdf" || base64Data.includes("application/pdf")) {
+        try {
+          console.log("Extracting text from PDF resume...");
+          const base64Content = base64Data.split(",")[1] || base64Data;
+          const buffer = Buffer.from(base64Content, "base64");
+          const parsedPdf = await pdf(buffer);
+          extractedText = parsedPdf.text;
+        } catch (pdfErr) {
+          console.error("pdf-parse failed, trying vision fallback:", pdfErr);
+        }
+      }
+
+      // 2. If it's an image or pdf-parse failed, use Groq Llama 3.2 Vision
+      if (!extractedText) {
+        try {
+          console.log("Extracting text from Image resume via Groq Vision...");
+          const visionPrompt = "Transcribe all text from this resume image clearly and completely. Do not add comments, return only the plain transcription.";
+          extractedText = await callGroqVision(base64Data, visionPrompt);
+        } catch (visionErr) {
+          console.error("Groq Vision OCR failed:", visionErr);
+          throw new Error("Unable to extract text from resume.");
+        }
+      }
+
+      // 3. Feed the actual extracted text to Llama 3.3 for structured JSON output
       const messages = [
         {
           role: "user",
-          content: `Extract the education (college, degree, CGPA), skills (comma separated list of tags), and work experience details from this resume text:\n${mockResumeText}\n\nReturn ONLY a raw JSON object matching this schema:\n{\n  "college": "College name",\n  "degree": "Degree name",\n  "cgpa": "CGPA (e.g. 8.5/10 or 3.8/4.0)",\n  "skills": ["Skill1", "Skill2"],\n  "experience": "Brief experience summary"\n}`
+          content: `Extract the education (college, degree, CGPA), skills (comma separated list of tags), and work experience details from this resume text:\n\n${extractedText}\n\nReturn ONLY a raw JSON object matching this schema:\n{\n  "college": "College name",\n  "degree": "Degree name",\n  "cgpa": "CGPA (e.g. 8.5/10 or 3.8/4.0)",\n  "skills": ["Skill1", "Skill2"],\n  "experience": "Brief experience summary"\n}`
         }
       ];
 
@@ -766,11 +836,36 @@ app.post("/api/seeker/parse-certificate", async (req, res) => {
     }
 
     if (GROQ_API_KEY) {
-      const mockCertificateName = "AWS Certified Cloud Practitioner";
+      let extractedText = "";
+
+      // 1. If it is a PDF, use pdf-parse
+      if (mimeType === "application/pdf" || base64Data.includes("application/pdf")) {
+        try {
+          const base64Content = base64Data.split(",")[1] || base64Data;
+          const buffer = Buffer.from(base64Content, "base64");
+          const parsedPdf = await pdf(buffer);
+          extractedText = parsedPdf.text;
+        } catch (pdfErr) {
+          console.error("pdf-parse failed for certificate:", pdfErr);
+        }
+      }
+
+      // 2. If it is an image or pdf-parse failed, use Groq Llama 3.2 Vision
+      if (!extractedText) {
+        try {
+          const visionPrompt = "Transcribe all text from this certificate image clearly. Do not add comments, return only the plain transcription.";
+          extractedText = await callGroqVision(base64Data, visionPrompt);
+        } catch (visionErr) {
+          console.error("Groq Vision OCR failed for certificate:", visionErr);
+          throw new Error("Unable to extract text from certificate.");
+        }
+      }
+
+      // 3. Feed the text to Llama 3.3 for structured JSON output
       const messages = [
         {
           role: "user",
-          content: `Identify the title of this certificate. Return ONLY a raw JSON object matching this schema:\n{\n  "title": "Certificate Title"\n}\n\nInput hints: ${mockCertificateName}`
+          content: `Identify the title of the certificate from this text. Return ONLY a raw JSON object matching this schema:\n{\n  "title": "Certificate Title / Course Name"\n}\n\nText: ${extractedText}`
         }
       ];
       const reply = await callGroq(messages, true);
