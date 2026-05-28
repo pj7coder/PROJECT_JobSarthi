@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recruiter Authentication - JobSarthi</title>
+  <meta name="description" content="Sign in or register for an employer account on JobSarthi to start recruiting.">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .auth-body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: radial-gradient(circle at top right, #1f122e 0%, #06050a 100%);
+      padding: 20px;
+    }
+
+    .auth-container {
+      max-width: 480px;
+      width: 100%;
+      position: relative;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+      transition: var(--transition-fast);
+    }
+
+    .back-btn:hover {
+      color: var(--accent-tertiary);
+      transform: translateX(-4px);
+    }
+
+    .auth-panel {
+      padding: 40px;
+      border-color: rgba(217, 70, 239, 0.15);
+    }
+
+    .auth-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--glass-border);
+      margin-bottom: 30px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      text-align: center;
+      padding: 12px;
+      font-family: var(--font-display);
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: var(--transition-fast);
+      border-bottom: 2px solid transparent;
+    }
+
+    .auth-tab.active {
+      color: var(--text-main);
+      border-bottom-color: var(--accent-tertiary);
+    }
+
+    .form-wrapper {
+      display: none;
+    }
+
+    .form-wrapper.active {
+      display: block;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body class="auth-body">
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="bg-glow-1" style="background: radial-gradient(circle, rgba(217, 70, 239, 0.15) 0%, rgba(0,0,0,0) 70%);">
+  </div>
+
+  <div class="auth-container">
+    <a href="../landing.html" class="back-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to Portal Choice
+    </a>
+
+    <div class="glass-panel auth-panel">
+      <div class="logo"
+        style="justify-content: center; margin-bottom: 30px; background: linear-gradient(135deg, var(--text-main) 30%, var(--accent-tertiary) 100%); -webkit-background-clip: text;">
+        <div class="logo-icon"
+          style="background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-tertiary) 100%);">S</div>
+        JobSarthi <span
+          style="font-size: 0.85rem; padding: 2px 8px; border-radius: 99px; background: rgba(217,70,239,0.1); color: var(--accent-tertiary); margin-left: 5px; font-weight:600;">Recruiter</span>
+      </div>
+
+      <div class="auth-tabs">
+        <div class="auth-tab active" onclick="switchTab('login')">Employer Log In</div>
+        <div class="auth-tab" onclick="switchTab('signup')">Create Business Account</div>
+      </div>
+
+      <!-- Login Form -->
+      <div id="loginForm" class="form-wrapper active">
+        <form onsubmit="handleAuth(event, 'login')">
+          <div class="form-group">
+            <label class="form-label" for="loginEmail">Work Email Address</label>
+            <input type="email" id="loginEmail" class="form-control" placeholder="hr@company.com"
+              value="recruiter@jobsarthi.ai">
+          </div>
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="form-label" for="loginPassword">Password</label>
+              <a href="#" style="font-size: 0.8rem; color: var(--accent-tertiary);">Forgot Password?</a>
+            </div>
+            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••"
+              value="password123">
+          </div>
+          <button type="submit" class="btn btn-primary"
+            style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%); box-shadow: 0 4px 15px rgba(217,70,239,0.3);">Sign
+            In as Recruiter</button>
+        </form>
+      </div>
+
+      <!-- Sign Up Form -->
+      <div id="signupForm" class="form-wrapper">
+        <form onsubmit="handleAuth(event, 'signup')">
+          <div class="form-group">
+            <label class="form-label" for="companyName">Company Name</label>
+            <input type="text" id="companyName" class="form-control" placeholder="Acme Corporation">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="signupEmail">Work Email Address</label>
+            <input type="email" id="signupEmail" class="form-control" placeholder="name@company.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="signupPassword">Password</label>
+            <input type="password" id="signupPassword" class="form-control" placeholder="Minimum 8 characters">
+          </div>
+          <button type="submit" class="btn btn-primary"
+            style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%); box-shadow: 0 4px 15px rgba(217,70,239,0.3);">Create
+            Recruiter Account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab) {
+      const tabs = document.querySelectorAll('.auth-tab');
+      const loginForm = document.getElementById('loginForm');
+      const signupForm = document.getElementById('signupForm');
+
+      tabs.forEach(t => t.classList.remove('active'));
+
+      if (tab === 'login') {
+        tabs[0].classList.add('active');
+        loginForm.classList.add('active');
+        signupForm.classList.remove('active');
+      } else {
+        tabs[1].classList.add('active');
+        signupForm.classList.add('active');
+        loginForm.classList.remove('active');
+      }
+    }
+
+    async function handleAuth(event, type) {
+      event.preventDefault();
+
+      let body = {};
+      let endpoint = '';
+
+      if (type === 'signup') {
+        const companyName = document.getElementById('companyName').value || "InnovateTech";
+        const email = document.getElementById('signupEmail').value || "recruiter_" + Date.now() + "@jobsarthi.ai";
+        const password = document.getElementById('signupPassword').value || "password123";
+        
+        body = { fullName: companyName + " HR", email, password, role: 'recruiter', company: companyName };
+        endpoint = '/api/auth/signup';
+      } else {
+        const email = document.getElementById('loginEmail').value || "recruiter@jobsarthi.ai";
+        const password = document.getElementById('loginPassword').value || "password123";
+        
+        body = { email, password };
+        endpoint = '/api/auth/login';
+      }
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          alert(result.error || 'Authentication failed. Please check your credentials.');
+          return;
+        }
+
+        // Store user info in localStorage for frontend compatibility
+        localStorage.setItem('recruiter_logged_in', 'true');
+        localStorage.setItem('recruiter_company', result.user.company || 'InnovateTech');
+        localStorage.setItem('recruiter_email', result.user.email);
+
+        // Redirect to recruiter home dashboard
+        window.location.href = 'index.html';
+      } catch (err) {
+        console.warn('Backend server offline. Falling back to local simulation for UI testing:', err);
+        localStorage.setItem('recruiter_logged_in', 'true');
+        localStorage.setItem('recruiter_company', body.company || "InnovateTech");
+        localStorage.setItem('recruiter_email', body.email || "recruiter@jobsarthi.ai");
+        window.location.href = 'index.html';
+      }
+    }
+  
+    // Liquid glass spotlight coordinates tracking
+    document.addEventListener('mousemove', (e) => {
+      const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    });
+</script>
+
+</body>
+
+</html>

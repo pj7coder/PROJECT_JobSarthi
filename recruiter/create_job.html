@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post a New Job - JobSarthi</title>
+  <meta name="description" content="Add a new job opening to JobSarthi's search index.">
+  <link rel="stylesheet" href="../css/main.css">
+  <script>
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.add('light-theme');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('light-theme');
+      });
+    }
+  </script>
+  <style>
+    .form-container-panel {
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 40px;
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .form-row-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .toast-alert {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 16px 24px;
+      background: var(--success);
+      color: #fff;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+      display: none;
+      z-index: 2000;
+      font-weight: 600;
+      animation: fadeInUp 0.3s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="bg-glow-1" style="background: radial-gradient(circle, rgba(217, 70, 239, 0.1) 0%, rgba(0,0,0,0) 70%);"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Recruiter Header (loaded dynamically via js/header.js) -->
+  <div class="header-wrapper"></div>
+
+  <!-- Container -->
+  <main class="container">
+    <div class="glass-panel form-container-panel">
+      <div style="border-bottom: 1px solid var(--glass-border); padding-bottom: 20px; margin-bottom: 30px;">
+        <h1 style="font-size: 1.8rem; margin-bottom: 6px;">Create Job Opening</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">Fill in the specific qualifications. JobSarthi's AI matching algorithms will score and highlight candidate listings automatically.</p>
+      </div>
+
+      <form onsubmit="handlePostJob(event)">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="jobTitle">Job Title</label>
+            <input type="text" id="jobTitle" class="form-control" placeholder="E.g., Senior Frontend Engineer" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="jobCategory">Job Category</label>
+            <select id="jobCategory" class="form-control" required>
+              <option value="tech">Tech & Software Development</option>
+              <option value="design">Design & Creative Layouts</option>
+              <option value="marketing">Marketing & Brand Growth</option>
+              <option value="pm">Product Management</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="jobType">Employment Type</label>
+            <select id="jobType" class="form-control" required>
+              <option value="Full-time">Full-Time</option>
+              <option value="Part-time">Part-Time</option>
+              <option value="Contract">Contract / Freelance</option>
+              <option value="Internship">Internship</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="jobSalary">Salary Range (per year)</label>
+            <input type="text" id="jobSalary" class="form-control" placeholder="E.g., ₹10,000,000 - ₹14,000,000" required>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="jobLocation">Office Location / Remote</label>
+            <input type="text" id="jobLocation" class="form-control" placeholder="E.g., Bangalore, India (Hybrid) or Remote" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="jobSkills">Required Skills (Comma separated)</label>
+            <input type="text" id="jobSkills" class="form-control" placeholder="React, Redux, JavaScript, REST APIs" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="jobDesc">Role Description</label>
+          <textarea id="jobDesc" class="form-control" rows="5" placeholder="Outline the primary tasks, team structures, and project scope..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="jobReqs">Key Requirements (One per line)</label>
+          <textarea id="jobReqs" class="form-control" rows="4" placeholder="• 3+ years experience with React&#10;• Experience with CSS modules&#10;• Good communication skills" required></textarea>
+        </div>
+
+        <div style="margin-top: 30px; display: flex; justify-content: flex-end; gap: 16px;">
+          <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%);">Publish Job Listing</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <div class="toast-alert" id="successToast">
+    Job posted successfully! It is now visible on seeker boards.
+  </div>
+
+  <script>
+    // Form submit listener is direct
+
+    async function handlePostJob(event) {
+      event.preventDefault();
+
+      const title = document.getElementById('jobTitle').value;
+      const category = document.getElementById('jobCategory').value;
+      const type = document.getElementById('jobType').value;
+      const salary = document.getElementById('jobSalary').value;
+      const location = document.getElementById('jobLocation').value;
+      const skills = document.getElementById('jobSkills').value.split(',').map(s => s.trim());
+      const description = document.getElementById('jobDesc').value;
+      const requirements = document.getElementById('jobReqs').value.split('\n').map(s => s.trim().replace(/^•\s*/, '')).filter(s => s.length > 0);
+
+      const compName = localStorage.getItem('recruiter_company') || 'InnovateTech';
+
+      const newJob = {
+        title,
+        category,
+        type,
+        salary: salary + " / year",
+        location,
+        skills,
+        description,
+        reqs: requirements,
+        company: compName
+      };
+
+      try {
+        const response = await fetch('/api/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newJob)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          alert(result.error || 'Failed to post job. Please try again.');
+          return;
+        }
+
+        // Show toast
+        const toast = document.getElementById('successToast');
+        toast.style.display = 'block';
+
+        // Reset form
+        event.target.reset();
+
+        setTimeout(() => {
+          toast.style.display = 'none';
+          window.location.href = 'index.html';
+        }, 2000);
+      } catch (err) {
+        console.error('Create job error:', err);
+        alert('Could not connect to the backend server. Please make sure the server is running.');
+      }
+    }
+  
+  </script>
+  
+  <script src="../js/header.js"></script>
+  <script>
+    // Liquid glass spotlight coordinates tracking
+    document.addEventListener('mousemove', (e) => {
+      const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    });
+</script>
+
+</body>
+</html>

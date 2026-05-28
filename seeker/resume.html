@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume & Profile Builder - JobSarthi Seeker</title>
+  <meta name="description" content="Build your seeker profile, upload resumes and certificates, and let Sarthi AI auto-fill the details.">
+  <link rel="stylesheet" href="../css/main.css">
+  <script>
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.add('light-theme');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('light-theme');
+      });
+    }
+  </script>
+  <style>
+    .profile-layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    @media (max-width: 950px) {
+      .profile-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .upload-zone {
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-md);
+      padding: 30px 20px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      transition: var(--transition-normal);
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent-secondary);
+      background: rgba(6, 182, 212, 0.05);
+    }
+
+    .file-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .skills-flex {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .skill-tag {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--accent-secondary);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .skill-tag .remove-btn {
+      cursor: pointer;
+      font-weight: 800;
+      color: var(--danger);
+      background: none;
+      border: none;
+      font-size: 0.9rem;
+    }
+
+    .cert-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 16, 22, 0.85);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 10;
+      backdrop-filter: blur(4px);
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--accent-secondary);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .toast-alert {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 16px 24px;
+      background: var(--success);
+      color: #fff;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+      display: none;
+      z-index: 2000;
+      font-weight: 600;
+      animation: fadeInUp 0.3s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Seeker Header (loaded dynamically via js/header.js) -->
+  <div class="header-wrapper"></div>
+
+  <main class="container">
+    <div style="margin-bottom: 20px;">
+      <h1 style="font-size: 2.2rem; margin-bottom: 8px;">Build Seeker Profile</h1>
+      <p style="color: var(--text-muted); font-size: 1.05rem;">Upload your resume to instantly auto-fill credentials, educational profiles, and skillsets using AI.</p>
+    </div>
+
+    <!-- Quick AI Import Panel (At the top) -->
+    <div class="glass-panel" style="padding: 24px; margin-bottom: 30px; border-color: rgba(99, 102, 241, 0.2);">
+      <h2 style="font-size: 1.2rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+        ✨ AI Profile Auto-Fill
+      </h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+        Let Sarthi AI construct your profile. You can either upload your resume file or fetch credentials from LinkedIn.
+      </p>
+
+      <div class="profile-layout" style="margin-top: 0; gap: 20px;">
+        <!-- Resume zone -->
+        <div class="upload-zone" id="resumeUploadZone">
+          <div id="resumeLoader" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <span style="font-weight: 600; font-size: 0.9rem;">Sarthi AI is parsing resume...</span>
+          </div>
+          <div>
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">📄</div>
+            <h3 style="font-size: 1.05rem; margin-bottom: 4px;" id="resumeUploadTitle">Upload Resume (PDF, DOCX)</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Drag and drop or click to upload resume file</p>
+            <input type="file" id="resumeFile" class="file-input" accept=".pdf,.doc,.docx" onchange="handleResumeUpload(event)">
+          </div>
+        </div>
+
+        <!-- LinkedIn zone -->
+        <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; justify-content: center; gap: 12px; background: rgba(255,255,255,0.01);">
+          <div style="font-size: 1.8rem;">🔗</div>
+          <h3 style="font-size: 1.05rem; margin-bottom: -4px;">Import from LinkedIn</h3>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="linkedinId" class="form-control" placeholder="E.g., linkedin.com/in/username" style="flex: 1; padding: 8px 12px; font-size: 0.85rem;">
+            <button class="btn btn-secondary" onclick="extractLinkedIn()" style="padding: 8px 16px; font-size: 0.85rem;">Extract</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Profile Fields Split -->
+    <div class="profile-layout">
+      <!-- Left side: Educational & Experience Forms -->
+      <div class="glass-panel" style="padding: 30px; display: flex; flex-direction: column; gap: 20px;">
+        <h2 style="font-size: 1.3rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 14px; margin-bottom: 10px;">Personal Credentials</h2>
+
+        <div class="form-group">
+          <label class="form-label" for="collegeName">College / University</label>
+          <input type="text" id="collegeName" class="form-control" placeholder="E.g., BITS Pilani or IIT Madras">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="form-group">
+            <label class="form-label" for="degreeName">Degree & Program</label>
+            <input type="text" id="degreeName" class="form-control" placeholder="E.g., B.Tech Computer Science">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cgpa">CGPA / Grade</label>
+            <input type="text" id="cgpa" class="form-control" placeholder="E.g., 9.1/10 or 3.8/4.0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="experienceSummary">Work / Internship Experience</label>
+          <textarea id="experienceSummary" class="form-control" rows="6" placeholder="Summarize your work history, internship projects, or tech stack deployments..."></textarea>
+        </div>
+
+        <!-- Skills Manager inside Form -->
+        <div class="form-group">
+          <label class="form-label">Professional Skill Tree</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="text" id="skillInput" class="form-control" placeholder="E.g., React.js, Node.js, Python" style="flex: 1;">
+            <button type="button" class="btn btn-secondary" onclick="addSkillTag()">Add</button>
+          </div>
+          <div class="skills-flex" id="skillsContainer">
+            <!-- Skills Tags -->
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+          <button class="btn btn-glow" style="width: 180px;" onclick="saveSeekerProfile()">Save Profile</button>
+        </div>
+      </div>
+
+      <!-- Right side: Certificates Manager -->
+      <div class="glass-panel" style="padding: 30px; display: flex; flex-direction: column; gap: 20px;">
+        <h2 style="font-size: 1.3rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 14px; margin-bottom: 10px;">Certificates & Badges</h2>
+        <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.4; margin-top: -10px;">
+          Add professional verifications. When uploading certificate images/PDFs, Sarthi AI will automatically attempt to scan and extract the certificate titles.
+        </p>
+
+        <!-- Certificate File Zone -->
+        <div class="upload-zone" id="certUploadZone" style="padding: 20px;">
+          <div id="certLoader" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <span style="font-weight: 600; font-size: 0.9rem;">Sarthi AI scanning title...</span>
+          </div>
+          <div>
+            <div style="font-size: 2rem; margin-bottom: 8px;">🏆</div>
+            <h4 id="certUploadTitle" style="font-size: 0.95rem; margin-bottom: 2px;">Upload Certificate (Image, PDF)</h4>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">Drag or click to analyze certificate</p>
+            <input type="file" id="certFile" class="file-input" accept="image/*,.pdf" onchange="handleCertUpload(event)">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="certTitle">Certificate Title / Verification Course</label>
+          <input type="text" id="certTitle" class="form-control" placeholder="E.g., AWS Certified Cloud Practitioner">
+        </div>
+
+        <button class="btn btn-secondary" onclick="addCertificateToList()">Add Certificate</button>
+
+        <div style="margin-top: 15px;">
+          <h3 style="font-size: 1rem; margin-bottom: 10px; font-weight: 700;">Uploaded Credentials</h3>
+          <div id="certificatesContainer">
+            <!-- List of added certificates -->
+            <span id="noCertsText" style="color: var(--text-dark); font-size: 0.85rem;">No certificates added yet.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-alert" id="successToast">
+    Profile successfully synced to JobSarthi Database!
+  </div>
+
+  <script>
+    let mySkillsList = [];
+    let myCertificatesList = [];
+    let uploadedResumeName = "";
+    let uploadedResumeBase64 = "";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadSeekerProfile();
+    });
+
+    async function loadSeekerProfile() {
+      const email = localStorage.getItem('seeker_email');
+      if (!email) return;
+
+      try {
+        const response = await fetch(`/api/seeker/profile?email=${encodeURIComponent(email)}`);
+        if (!response.ok) throw new Error("Failed to load");
+        const profile = await response.json();
+
+        // Populate fields
+        document.getElementById('collegeName').value = profile.college || '';
+        document.getElementById('degreeName').value = profile.degree || '';
+        document.getElementById('cgpa').value = profile.cgpa || '';
+        document.getElementById('experienceSummary').value = profile.experience || '';
+        
+        mySkillsList = profile.skills || [];
+        renderSkillTags();
+
+        myCertificatesList = profile.certificates || [];
+        renderCertificatesList();
+
+        if (profile.resumeFileName) {
+          uploadedResumeName = profile.resumeFileName;
+          document.getElementById('resumeUploadTitle').textContent = `Resume: ${uploadedResumeName}`;
+        }
+      } catch (err) {
+        console.error("Error loading profile:", err);
+      }
+    }
+
+    // Skill tags helpers
+    function renderSkillTags() {
+      const container = document.getElementById('skillsContainer');
+      container.innerHTML = '';
+      mySkillsList.forEach((skill, idx) => {
+        const tag = document.createElement('div');
+        tag.className = 'skill-tag';
+        tag.innerHTML = `
+          <span>${skill}</span>
+          <button class="remove-btn" onclick="removeSkillTag(${idx})">×</button>
+        `;
+        container.appendChild(tag);
+      });
+    }
+
+    function addSkillTag() {
+      const input = document.getElementById('skillInput');
+      const val = input.value.trim();
+      if (val && !mySkillsList.includes(val)) {
+        mySkillsList.push(val);
+        renderSkillTags();
+        input.value = '';
+      }
+    }
+
+    function removeSkillTag(idx) {
+      mySkillsList.splice(idx, 1);
+      renderSkillTags();
+    }
+
+    // Resume AI parsing
+    function handleResumeUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      uploadedResumeName = file.name;
+      document.getElementById('resumeUploadTitle').textContent = `Resume: ${file.name}`;
+
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const base64Data = reader.result;
+        uploadedResumeBase64 = base64Data;
+        
+        // Show loading spinner
+        document.getElementById('resumeLoader').style.display = 'flex';
+
+        try {
+          const response = await fetch('/api/seeker/parse-resume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              base64Data: base64Data,
+              mimeType: file.type
+            })
+          });
+
+          if (!response.ok) throw new Error("Resume AI parsing failed");
+          const parsed = await response.json();
+
+          // Auto-fill values with fade-in effects
+          if (parsed.college) document.getElementById('collegeName').value = parsed.college;
+          if (parsed.degree) document.getElementById('degreeName').value = parsed.degree;
+          if (parsed.cgpa) document.getElementById('cgpa').value = parsed.cgpa;
+          if (parsed.experience) document.getElementById('experienceSummary').value = parsed.experience;
+          
+          if (parsed.skills && Array.isArray(parsed.skills)) {
+            parsed.skills.forEach(s => {
+              if (!mySkillsList.includes(s)) mySkillsList.push(s);
+            });
+            renderSkillTags();
+          }
+
+          alert("Sarthi AI successfully extracted data and autofilled your educational & credentials fields!");
+        } catch (err) {
+          console.error(err);
+          alert("Sarthi AI OCR failed to connect. Please input credentials manually.");
+        } finally {
+          document.getElementById('resumeLoader').style.display = 'none';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // LinkedIn extraction mock
+    async function extractLinkedIn() {
+      const link = document.getElementById('linkedinId').value.trim();
+      if (!link) {
+        alert("Please enter a valid LinkedIn Profile URL or username.");
+        return;
+      }
+
+      alert("Simulating LinkedIn Profile Integration via Sarthi AI API...");
+
+      // Set values mockingly
+      document.getElementById('collegeName').value = "Veermata Jijabai Technological Institute (VJTI)";
+      document.getElementById('degreeName').value = "Bachelor of Technology in Information Technology";
+      document.getElementById('cgpa').value = "8.9/10";
+      document.getElementById('experienceSummary').value = "Software Engineering Intern at Google (3 months). Assisted the Search team in maintaining microservice deployment endpoints.";
+      
+      const suggestedSkills = ["Java", "Docker", "Node.js", "System Design"];
+      suggestedSkills.forEach(s => {
+        if (!mySkillsList.includes(s)) mySkillsList.push(s);
+      });
+      renderSkillTags();
+    }
+
+    // Certificate AI parsing
+    function handleCertUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      document.getElementById('certUploadTitle').textContent = `Certificate: ${file.name}`;
+      document.getElementById('certLoader').style.display = 'flex';
+
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const base64Data = reader.result;
+
+        try {
+          const response = await fetch('/api/seeker/parse-certificate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              base64Data: base64Data,
+              mimeType: file.type
+            })
+          });
+
+          if (!response.ok) throw new Error("Certificate AI parsing failed");
+          const parsed = await response.json();
+
+          if (parsed.title) {
+            document.getElementById('certTitle').value = parsed.title;
+            alert(`Sarthi AI scanned your certificate and identified the title: "${parsed.title}"!`);
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Sarthi AI certificate title scan failed. Please type the title manually.");
+        } finally {
+          document.getElementById('certLoader').style.display = 'none';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Add Certificate to list
+    function addCertificateToList() {
+      const titleInput = document.getElementById('certTitle');
+      const title = titleInput.value.trim();
+      
+      if (!title) {
+        alert("Please specify a title for the certificate.");
+        return;
+      }
+
+      myCertificatesList.push({
+        title: title,
+        fileUrl: "#" // Saved locally inside state
+      });
+
+      renderCertificatesList();
+      
+      // Reset inputs
+      titleInput.value = '';
+      document.getElementById('certUploadTitle').textContent = "Upload Certificate (Image, PDF)";
+      document.getElementById('certFile').value = '';
+    }
+
+    function renderCertificatesList() {
+      const container = document.getElementById('certificatesContainer');
+      const noText = document.getElementById('noCertsText');
+      
+      // Clear all items except noText
+      container.innerHTML = '';
+
+      if (myCertificatesList.length === 0) {
+        container.innerHTML = '<span id="noCertsText" style="color: var(--text-dark); font-size: 0.85rem;">No certificates added yet.</span>';
+        return;
+      }
+
+      myCertificatesList.forEach((cert, idx) => {
+        const div = document.createElement('div');
+        div.className = 'cert-item';
+        div.innerHTML = `
+          <span>🏆 ${cert.title}</span>
+          <button class="btn btn-secondary" onclick="removeCertificate(${idx})" style="padding:4px 8px; font-size:0.75rem; color:var(--danger);">Delete</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function removeCertificate(idx) {
+      myCertificatesList.splice(idx, 1);
+      renderCertificatesList();
+    }
+
+    // Save Seeker Profile to Database
+    async function saveSeekerProfile() {
+      const email = localStorage.getItem('seeker_email');
+      if (!email) {
+        alert("Authentication Error. Please log in again.");
+        return;
+      }
+
+      const profileData = {
+        college: document.getElementById('collegeName').value.trim(),
+        degree: document.getElementById('degreeName').value.trim(),
+        cgpa: document.getElementById('cgpa').value.trim(),
+        experience: document.getElementById('experienceSummary').value.trim(),
+        skills: mySkillsList,
+        certificates: myCertificatesList,
+        resumeFileName: uploadedResumeName,
+        linkedinId: document.getElementById('linkedinId').value.trim()
+      };
+
+      try {
+        const response = await fetch('/api/seeker/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email,
+            profile: profileData
+          })
+        });
+
+        if (!response.ok) throw new Error("Failed to save profile");
+
+        // Show Toast Success
+        const toast = document.getElementById('successToast');
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+          window.location.href = 'index.html';
+        }, 2000);
+
+      } catch (err) {
+        console.error(err);
+        alert("Failed to save profile data. Verify backend connection.");
+      }
+    }
+  </script>
+
+  <script src="../js/header.js"></script>
+  <script>
+    // Liquid glass spotlight coordinates tracking
+    document.addEventListener('mousemove', (e) => {
+      const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    });
+  </script>
+</body>
+</html>

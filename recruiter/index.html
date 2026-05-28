@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recruiter Dashboard - JobSarthi</title>
+  <meta name="description"
+    content="Manage job postings, screen applicants, view hiring funnels, and communicate with candidates.">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    :root {
+      /* Custom recruiter accent colors (purple/magenta) */
+      --accent-recruiter: var(--accent-tertiary);
+    }
+
+    .recruiter-header {
+      border-bottom: 1px solid rgba(217, 70, 239, 0.15);
+    }
+
+    .nav-link.recruiter-active::after {
+      background: linear-gradient(90deg, var(--accent-tertiary), var(--accent-primary));
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .stat-card {
+      padding: 24px;
+      position: relative;
+    }
+
+    .stat-number {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin: 8px 0;
+      color: var(--text-main);
+    }
+
+    .stat-subtext {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Dashboard Layout Splits */
+    .dashboard-split {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-split {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .applicants-table-wrap {
+      padding: 30px;
+    }
+
+    .recruiter-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .recruiter-table th {
+      padding: 12px 16px;
+      color: var(--text-dark);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .recruiter-table td {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      font-size: 0.9rem;
+    }
+
+    .candidate-name {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .candidate-role {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .match-tag {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    /* Shortcut Actions Panel */
+    .shortcuts-panel {
+      padding: 30px;
+      height: fit-content;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .shortcut-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border);
+      transition: var(--transition-normal);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .shortcut-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(217, 70, 239, 0.3);
+      transform: translateX(4px);
+    }
+
+    .shortcut-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(217, 70, 239, 0.1);
+      color: var(--accent-recruiter);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="bg-glow-1" style="background: radial-gradient(circle, rgba(217, 70, 239, 0.1) 0%, rgba(0,0,0,0) 70%);">
+  </div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Recruiter Header (loaded dynamically via js/header.js) -->
+  <div class="header-wrapper"></div>
+
+  <!-- Container -->
+  <main class="container">
+    <!-- Welcome Header -->
+    <div>
+      <h1 style="font-size: 2.2rem; margin-bottom: 6px;">Recruiting Dashboard</h1>
+      <p style="color: var(--text-muted); font-size: 1.05rem;">Welcome back, <span id="companyWelcome"
+          style="color: var(--accent-tertiary);">InnovateTech</span> Recruitment Hub. Here's your talent acquisition
+        status today.</p>
+    </div>
+
+    <!-- Stats Cards Grid -->
+    <section class="stats-grid">
+      <div class="glass-panel stat-card">
+        <span class="stat-subtext">Active Job Openings</span>
+        <div class="stat-number">5</div>
+        <span class="stat-subtext" style="color: var(--accent-tertiary);">2 post promotions active</span>
+      </div>
+      <div class="glass-panel stat-card">
+        <span class="stat-subtext">Total Candidates Screened</span>
+        <div class="stat-number">124</div>
+        <span class="stat-subtext" style="color: var(--success);">+14 new applicants today</span>
+      </div>
+      <div class="glass-panel stat-card">
+        <span class="stat-subtext">Pending AI Profile Reviews</span>
+        <div class="stat-number">38</div>
+        <span class="stat-subtext" style="color: var(--warning);">Needs immediate screening</span>
+      </div>
+      <div class="glass-panel stat-card">
+        <span class="stat-subtext">Interviews Scheduled</span>
+        <div class="stat-number">8</div>
+        <span class="stat-subtext" style="color: var(--accent-secondary);">4 scheduled this week</span>
+      </div>
+    </section>
+
+    <!-- Split Main Area -->
+    <div class="dashboard-split">
+      <!-- Left side: Recent Applicants Table -->
+      <section class="glass-panel applicants-table-wrap">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="font-size: 1.25rem;">Recent Applicants</h2>
+          <a href="applicants.html" style="color: var(--accent-tertiary); font-size: 0.9rem; font-weight: 600;">View
+            Pipeline &rarr;</a>
+        </div>
+
+        <table class="recruiter-table">
+          <thead>
+            <tr>
+              <th>Candidate</th>
+              <th>Applied Role</th>
+              <th>AI Fit Index</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="dashboardApplicantsContainer">
+            <!-- Populated via Javascript -->
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Right side: Quick Shortcuts -->
+      <aside class="glass-panel shortcuts-panel">
+        <h2
+          style="font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 10px;">
+          Quick Shortcuts</h2>
+
+        <div class="shortcut-btn" onclick="window.location.href='create_job.html'">
+          <div class="shortcut-icon">➕</div>
+          <div>
+            <h3 style="font-size: 0.95rem; margin-bottom: 4px;">Post a New Job</h3>
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Publish a job listing to search networks.</p>
+          </div>
+        </div>
+
+        <div class="shortcut-btn" onclick="window.location.href='applicants.html'">
+          <div class="shortcut-icon">👥</div>
+          <div>
+            <h3 style="font-size: 0.95rem; margin-bottom: 4px;">Manage Applicants</h3>
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Review candidate pipelines & resumes.</p>
+          </div>
+        </div>
+
+        <div class="shortcut-btn" onclick="window.location.href='analytics.html'">
+          <div class="shortcut-icon">📊</div>
+          <div>
+            <h3 style="font-size: 0.95rem; margin-bottom: 4px;">Hiring Analytics</h3>
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Analyze application graphs & rates.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    // Initial applicants mock data
+    const mockApplicants = [
+      { id: 1, name: "Arjun Mehta", role: "Frontend Developer", match: 94, status: "Applied", date: "Just now" },
+      { id: 2, name: "Priya Sharma", role: "UI/UX Designer", match: 88, status: "Reviewing", date: "3 hours ago" },
+      { id: 3, name: "Kabir Dev", role: "Python Developer", match: 81, status: "Interviewing", date: "Yesterday" },
+      { id: 4, name: "Anjali Gupta", role: "Growth Marketer", match: 76, status: "Applied", date: "Yesterday" },
+      { id: 5, name: "Rohan Das", role: "Product Manager", match: 69, status: "Reviewing", date: "2 days ago" }
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const comp = localStorage.getItem('recruiter_company') || 'InnovateTech';
+      document.getElementById('companyWelcome').textContent = comp;
+
+      loadDashboardApplicants(comp);
+    });
+
+    async function loadDashboardApplicants(companyName) {
+      const container = document.getElementById('dashboardApplicantsContainer');
+      try {
+        const response = await fetch(`/api/recruiter/applicants?company=${encodeURIComponent(companyName)}`);
+        if (!response.ok) throw new Error("Failed to fetch");
+        const list = await response.json();
+        
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+          container.innerHTML = `
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-dark); padding: 30px;">
+                No applicants received yet.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        // Display top 5 recent applicants
+        const recent = list.slice(0, 5);
+
+        recent.forEach(c => {
+          const row = document.createElement('tr');
+
+          let matchClass = 'background: rgba(6,182,212,0.1); color: var(--accent-secondary); border: 1px solid rgba(6,182,212,0.3);';
+          if (c.match >= 90) {
+            matchClass = 'background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.3);';
+          } else if (c.match < 75) {
+            matchClass = 'background: rgba(217,70,239,0.1); color: var(--accent-tertiary); border: 1px solid rgba(217,70,239,0.3);';
+          }
+
+          let statusBadge = `<span class="badge badge-warning">${c.status}</span>`;
+          if (c.status === 'Interviewing') {
+            statusBadge = `<span class="badge badge-primary">${c.status}</span>`;
+          } else if (c.status === 'Reviewing') {
+            statusBadge = `<span class="badge" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3);">${c.status}</span>`;
+          } else if (c.status === 'Shortlisted') {
+            statusBadge = `<span class="badge badge-success">${c.status}</span>`;
+          }
+
+          row.innerHTML = `
+            <td>
+              <div class="candidate-name">${c.name}</div>
+              <div class="candidate-role">${c.date}</div>
+            </td>
+            <td>${c.role}</td>
+            <td>
+              <span class="match-tag" style="${matchClass}">${c.match}% Fit</span>
+            </td>
+            <td>${statusBadge}</td>
+            <td>
+              <a href="applicants.html" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Review</a>
+            </td>
+          `;
+
+          container.appendChild(row);
+        });
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--danger); padding: 30px;">
+              Failed to load applicants from server.
+            </td>
+          </tr>
+        `;
+      }
+    }
+  </script>
+  
+  <script src="../js/header.js"></script>
+  <script>
+    // Liquid glass spotlight coordinates tracking
+    document.addEventListener('mousemove', (e) => {
+      const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    });
+  </script>
+
+
+
+</body>
+
+</html>

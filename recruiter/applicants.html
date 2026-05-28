@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Applicants - JobSarthi</title>
+  <meta name="description" content="View incoming applications, read AI screening notes, and manage candidate hiring stages.">
+  <link rel="stylesheet" href="../css/main.css">
+  <script>
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.add('light-theme');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('light-theme');
+      });
+    }
+  </script>
+  <style>
+    .applicants-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .pipeline-header {
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .applicant-item {
+      padding: 24px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 24px;
+      transition: var(--transition-normal);
+    }
+
+    @media (max-width: 750px) {
+      .applicant-item {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .applicant-avatar {
+        margin: 0 auto;
+      }
+      .applicant-actions {
+        justify-content: center;
+        width: 100%;
+      }
+    }
+
+    .applicant-item:hover {
+      border-color: rgba(217, 70, 239, 0.25);
+      box-shadow: 0 8px 25px -10px rgba(217, 70, 239, 0.15);
+    }
+
+    .applicant-avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-tertiary), var(--accent-primary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .applicant-info h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .applicant-info .applied-for {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .applicant-skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .applicant-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .score-badge {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    /* Resume Drawer */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .drawer-content {
+      width: 550px;
+      height: 100%;
+      background: #0f1016;
+      border-left: 1px solid var(--glass-border);
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+      animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .drawer-close {
+      cursor: pointer;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      display: inline-flex;
+    }
+
+    .ai-review-box {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="bg-glow-1" style="background: radial-gradient(circle, rgba(217, 70, 239, 0.1) 0%, rgba(0,0,0,0) 70%);"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Recruiter Header (loaded dynamically via js/header.js) -->
+  <div class="header-wrapper"></div>
+
+  <!-- Container -->
+  <main class="container">
+    <div>
+      <h1 style="font-size: 2.2rem; margin-bottom: 6px;">Manage Candidates</h1>
+      <p style="color: var(--text-muted); font-size: 1.05rem;">Review resumes, inspect automated match ratings, and update application stages.</p>
+    </div>
+
+    <!-- Pipeline Header panel -->
+    <div class="glass-panel pipeline-header" style="margin-top: 30px;">
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span style="color: var(--text-muted); font-size: 0.9rem;">Filter by Role:</span>
+        <select id="roleFilter" class="form-control" style="padding: 8px 16px;" onchange="renderApplicants()">
+          <option value="all">All Roles</option>
+          <option value="Frontend Developer">Frontend Developer</option>
+          <option value="UI/UX Designer">UI/UX Designer</option>
+          <option value="Python Developer">Python Developer</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span style="color: var(--text-muted); font-size: 0.9rem;">Sort by:</span>
+        <select id="sortFilter" class="form-control" style="padding: 8px 16px;" onchange="renderApplicants()">
+          <option value="matchDesc">Match Score: High to Low</option>
+          <option value="matchAsc">Match Score: Low to High</option>
+          <option value="name">Candidate Name</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Applicants Board -->
+    <div class="applicants-layout" id="applicantsContainer">
+      <!-- Items loaded via script -->
+    </div>
+  </main>
+
+  <!-- Candidate Details Drawer -->
+  <div class="drawer-overlay" id="candidateDrawer" onclick="closeDrawer(event)">
+    <div class="drawer-content" onclick="event.stopPropagation()">
+      <div>
+        <div class="drawer-close" onclick="closeDrawer(null)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 30px;">
+          <div class="applicant-avatar" id="drawerAvatar" style="width: 64px; height: 64px; font-size: 1.8rem;">A</div>
+          <div>
+            <h2 id="drawerName" style="font-size: 1.4rem;">Candidate Name</h2>
+            <div id="drawerAppliedRole" style="color: var(--accent-tertiary); font-weight: 600;">Applied Role</div>
+          </div>
+        </div>
+
+        <!-- AI Screening Box -->
+        <div class="ai-review-box">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #818cf8; margin-bottom: 8px;">
+            <span>🤖</span> Sarthi AI Fit Analysis
+          </div>
+          <p id="drawerAiNote" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main);">
+            Analyzing...
+          </p>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <h3 style="font-size: 1.05rem; margin-bottom: 8px;">Skills & Verifications</h3>
+          <div class="applicant-skills" id="drawerSkills">
+            <!-- Badges -->
+          </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <h3 style="font-size: 1.05rem; margin-bottom: 8px;">Candidate Statement</h3>
+          <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.5;" id="drawerStatement">
+            Candidate statement description goes here.
+          </p>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div style="margin-top: 40px; display: flex; gap: 12px;" id="drawerActions">
+        <!-- Buttons loaded based on context -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Detailed list of mock applicants
+    const candidateData = [
+      {
+        id: 1,
+        name: "Arjun Mehta",
+        role: "Frontend Developer",
+        match: 94,
+        status: "Applied",
+        skills: ["React.js", "Redux", "JavaScript", "HTML/CSS"],
+        verified: ["JavaScript", "HTML/CSS"],
+        statement: "Enthusiastic frontend engineer with 3 years of building highly interactive web apps. Eager to bring pixel-perfect design sensibilities to the team.",
+        aiNote: "Excellent match. Arjun has cleared multiple skill badges. His profile shows strong compatibility with the React/Vue developer opening."
+      },
+      {
+        id: 2,
+        name: "Priya Sharma",
+        role: "UI/UX Designer",
+        match: 88,
+        status: "Reviewing",
+        skills: ["Figma", "Sketch", "UX Research", "Wireframing"],
+        verified: ["Figma"],
+        statement: "Layout expert with focus on human-centered interaction models. Experienced in designing mobile SaaS templates and visual asset systems.",
+        aiNote: "Strong match. Priya's portfolio shows excellent dark-theme layouts and clean grid standards, matching the product designer requirements closely."
+      },
+      {
+        id: 3,
+        name: "Kabir Dev",
+        role: "Python Developer",
+        match: 81,
+        status: "Interviewing",
+        skills: ["Python", "FastAPI", "PostgreSQL", "Docker"],
+        verified: ["Python"],
+        statement: "Backend engineer focused on creating fast microservices and indexing databases. Experienced in setting up AWS server pipelines.",
+        aiNote: "Recommended match. Clear fundamentals in Python. Missing explicit large-scale data flow credentials, but has strong database optimization values."
+      },
+      {
+        id: 4,
+        name: "Anjali Gupta",
+        role: "Growth Marketer",
+        match: 76,
+        status: "Applied",
+        skills: ["SEO", "Google Ads", "Content Strategy", "Copywriting"],
+        verified: [],
+        statement: "Growth-driven writer helping tech companies expand organic audience footprints by 200%. Skilled in ad-spends and digital analytics.",
+        aiNote: "Moderate match. Focuses heavily on content strategy rather than programmatic analytics, but covers all base levels for the marketing role."
+      },
+      {
+        id: 5,
+        name: "Rohan Das",
+        role: "Product Manager",
+        match: 69,
+        status: "Reviewing",
+        skills: ["Agile", "Jira", "Product Roadmap", "User Testing"],
+        verified: [],
+        statement: "Strategic planner organizing cross-functional teams to build mobile solutions. Experienced in gathering user requirements and specifications.",
+        aiNote: "Potential match. Rohan has good leadership context, but shows minor technical overlaps for the SaaS technical product requirements."
+      }
+    ];
+
+    let selectedCandidate = null;
+    let applicantsList = [];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const comp = localStorage.getItem('recruiter_company') || 'InnovateTech';
+      loadApplicants(comp);
+    });
+
+    async function loadApplicants(companyName) {
+      try {
+        const response = await fetch(`/api/recruiter/applicants?company=${encodeURIComponent(companyName)}`);
+        if (!response.ok) throw new Error("Failed to fetch");
+        applicantsList = await response.json();
+        renderApplicants();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('applicantsContainer').innerHTML = `
+          <div class="glass-panel" style="padding: 40px; text-align: center; color: var(--danger);">
+            Failed to load applicants from server.
+          </div>
+        `;
+      }
+    }
+
+    function renderApplicants() {
+      const container = document.getElementById('applicantsContainer');
+      container.innerHTML = '';
+
+      const roleFilter = document.getElementById('roleFilter').value;
+      const sortFilter = document.getElementById('sortFilter').value;
+
+      // Filter
+      let filtered = applicantsList.filter(c => {
+        if (roleFilter === 'all') return true;
+        return c.role === roleFilter;
+      });
+
+      // Sort
+      filtered.sort((a, b) => {
+        if (sortFilter === 'matchDesc') return b.match - a.match;
+        if (sortFilter === 'matchAsc') return a.match - b.match;
+        if (sortFilter === 'name') return a.name.localeCompare(b.name);
+        return 0;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="glass-panel" style="padding: 40px; text-align: center; color: var(--text-dark);">
+            No applicants found matching this filter setting.
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'glass-panel applicant-item';
+        
+        let scoreStyle = 'background: rgba(6,182,212,0.1); color: var(--accent-secondary); border: 1px solid rgba(6,182,212,0.3);';
+        if (c.match >= 90) {
+          scoreStyle = 'background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.3);';
+        } else if (c.match < 75) {
+          scoreStyle = 'background: rgba(217,70,239,0.1); color: var(--accent-tertiary); border: 1px solid rgba(217,70,239,0.3);';
+        }
+
+        let badgeStatus = `<span class="badge badge-warning">${c.status}</span>`;
+        if (c.status === 'Interviewing') {
+          badgeStatus = `<span class="badge badge-primary">${c.status}</span>`;
+        } else if (c.status === 'Shortlisted') {
+          badgeStatus = `<span class="badge badge-success">${c.status}</span>`;
+        } else if (c.status === 'Rejected') {
+          badgeStatus = `<span class="badge" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">${c.status}</span>`;
+        }
+
+        item.innerHTML = `
+          <div class="applicant-avatar">${c.name.split(' ').map(n=>n[0]).join('')}</div>
+          <div class="applicant-info">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <h3>${c.name}</h3>
+              ${badgeStatus}
+            </div>
+            <div class="applied-for">Applied for: <strong>${c.role}</strong></div>
+            <div class="applicant-skills">
+              ${c.skills.map(s => `<span class="badge" style="background: rgba(255,255,255,0.03); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.05); text-transform:none;">${s}</span>`).join('')}
+            </div>
+          </div>
+          <div class="applicant-actions">
+            <span class="score-badge" style="${scoreStyle}">${c.match}% Fit</span>
+            <button class="btn btn-secondary" onclick="openCandidateDrawer('${c.id}')">Review Profile</button>
+          </div>
+        `;
+
+        container.appendChild(item);
+      });
+    }
+
+    function openCandidateDrawer(id) {
+      selectedCandidate = applicantsList.find(c => c.id === id);
+      if (!selectedCandidate) return;
+
+      document.getElementById('drawerAvatar').textContent = selectedCandidate.name.split(' ').map(n=>n[0]).join('');
+      document.getElementById('drawerName').textContent = selectedCandidate.name;
+      document.getElementById('drawerAppliedRole').textContent = `Applied for: ${selectedCandidate.role}`;
+      
+      let badgeHtml = selectedCandidate.skills.map(s => `<span class="badge" style="background: rgba(255,255,255,0.03); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.05); text-transform:none; margin-right:4px;">${s}</span>`).join('');
+      document.getElementById('drawerSkills').innerHTML = badgeHtml;
+
+      // Fit Index note
+      document.getElementById('drawerAiNote').innerHTML = `Candidate has a fit index of <strong>${selectedCandidate.match}%</strong>. ${selectedCandidate.skills.length > 2 ? 'Strong technical overlaps.' : 'Adequate core skills matches.'}`;
+      
+      // Update Candidate statement with details
+      document.getElementById('drawerStatement').innerHTML = `
+        <div style="margin-bottom: 12px;">
+          <strong>College:</strong> ${selectedCandidate.college}<br>
+          <strong>Degree:</strong> ${selectedCandidate.degree} (${selectedCandidate.cgpa ? 'CGPA: ' + selectedCandidate.cgpa : 'No CGPA'})
+        </div>
+        <div style="margin-bottom: 16px;">
+          <strong>Experience Summary:</strong><br>
+          ${selectedCandidate.statement}
+        </div>
+        ${selectedCandidate.resumeFileName ? `
+          <div style="margin-bottom: 16px;">
+            <strong>Uploaded Resume:</strong><br>
+            <a href="#" onclick="alert('Resume file download: ${selectedCandidate.resumeFileName}')" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; font-size:0.85rem; margin-top:4px;">
+              📄 ${selectedCandidate.resumeFileName} (View/Download)
+            </a>
+          </div>
+        ` : ''}
+        ${selectedCandidate.certificates && selectedCandidate.certificates.length > 0 ? `
+          <div>
+            <strong>Uploaded Certificates:</strong><br>
+            ${selectedCandidate.certificates.map(cert => `
+              <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 8px 12px; border-radius: var(--radius-sm); margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size:0.85rem;">🏆 ${cert.title}</span>
+                <a href="#" onclick="alert('Certificate preview for: ${cert.title}')" style="color: var(--accent-secondary); font-size: 0.8rem; font-weight:600; text-decoration: underline;">View File</a>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      `;
+
+      // Actions Footer
+      const actionsDiv = document.getElementById('drawerActions');
+      actionsDiv.innerHTML = '';
+
+      if (selectedCandidate.status !== 'Shortlisted') {
+        const b1 = document.createElement('button');
+        b1.className = 'btn btn-glow';
+        b1.style.flex = '1';
+        b1.textContent = 'Shortlist Candidate';
+        b1.onclick = () => updateCandidateStatus('Shortlisted');
+        actionsDiv.appendChild(b1);
+      }
+
+      if (selectedCandidate.status !== 'Interviewing') {
+        const b2 = document.createElement('button');
+        b2.className = 'btn btn-primary';
+        b2.style.flex = '1';
+        b2.style.background = 'linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%)';
+        b2.textContent = 'Schedule Interview';
+        b2.onclick = () => updateCandidateStatus('Interviewing');
+        actionsDiv.appendChild(b2);
+      }
+
+      if (selectedCandidate.status !== 'Rejected') {
+        const b3 = document.createElement('button');
+        b3.className = 'btn btn-secondary';
+        b3.style.color = 'var(--danger)';
+        b3.textContent = 'Reject';
+        b3.onclick = () => updateCandidateStatus('Rejected');
+        actionsDiv.appendChild(b3);
+      }
+
+      document.getElementById('candidateDrawer').style.display = 'flex';
+    }
+
+    function closeDrawer(event) {
+      if (event === null || event.target === document.getElementById('candidateDrawer')) {
+        document.getElementById('candidateDrawer').style.display = 'none';
+      }
+    }
+
+    async function updateCandidateStatus(status) {
+      if (!selectedCandidate) return;
+
+      try {
+        const response = await fetch(`/api/recruiter/applicants/${selectedCandidate.id}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        if (!response.ok) throw new Error("Failed to update status");
+        
+        selectedCandidate.status = status;
+        document.getElementById('candidateDrawer').style.display = 'none';
+        
+        // Reload all applicants from database to keep lists perfectly synced
+        const comp = localStorage.getItem('recruiter_company') || 'InnovateTech';
+        loadApplicants(comp);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to update status on server.");
+      }
+    }
+  
+  </script>
+  
+  <script src="../js/header.js"></script>
+  <script>
+    // Liquid glass spotlight coordinates tracking
+    document.addEventListener('mousemove', (e) => {
+      const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    });
+</script>
+
+</body>
+</html>

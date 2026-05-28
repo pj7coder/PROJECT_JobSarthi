@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications Hub - JobSarthi Seeker</title>
+  <meta name="description" content="Stay up to date with job applications, mock reviews, and alerts from Sarthi AI.">
+  <link rel="stylesheet" href="../css/main.css">
+  <script>
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.add('light-theme');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('light-theme');
+      });
+    }
+  </script>
+  <style>
+    .notif-container {
+      max-width: 800px;
+      margin: 30px auto;
+    }
+
+    .notif-header-panel {
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .notif-tabs {
+      display: flex;
+      gap: 16px;
+    }
+
+    .notif-tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition-fast);
+    }
+
+    .notif-tab.active {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      box-shadow: inset 0 0 8px rgba(255,255,255,0.05);
+    }
+
+    .notif-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .notif-card {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px;
+      align-items: flex-start;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .notif-card.unread::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--accent-secondary);
+    }
+
+    .notif-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+
+    .notif-card.unread .notif-icon {
+      border-color: rgba(6, 182, 212, 0.3);
+      background: rgba(6, 182, 212, 0.08);
+      color: var(--accent-secondary);
+    }
+
+    .notif-info h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .notif-info p {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    .notif-time {
+      font-size: 0.78rem;
+      color: var(--text-dark);
+      margin-top: 6px;
+    }
+
+    .notif-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .action-check {
+      cursor: pointer;
+      color: var(--text-dark);
+      background: none;
+      border: none;
+      transition: var(--transition-fast);
+    }
+
+    .action-check:hover {
+      color: var(--accent-secondary);
+    }
+  </style>
+</head>
+<body>
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Seeker Header (loaded dynamically via js/header.js) -->
+  <div class="header-wrapper"></div>
+
+  <main class="container">
+    <div class="notif-container">
+      <!-- Title & Clear Controls -->
+      <div class="glass-panel notif-header-panel">
+        <div>
+          <h1 style="font-size: 1.6rem; margin-bottom: 4px;">Notifications Hub</h1>
+          <p style="color: var(--text-muted); font-size: 0.85rem;" id="unreadCounter">0 unread notifications</p>
+        </div>
+        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="clearAllNotifications()">Clear All</button>
+      </div>
+
+      <!-- Filters Row -->
+      <div class="glass-panel" style="padding: 12px; margin-bottom: 20px; border-radius: var(--radius-md);">
+        <div class="notif-tabs">
+          <button class="notif-tab active" onclick="switchFilter(this, 'all')">All</button>
+          <button class="notif-tab" onclick="switchFilter(this, 'unread')">Unread</button>
+          <button class="notif-tab" onclick="switchFilter(this, 'jobs')">Applications</button>
+          <button class="notif-tab" onclick="switchFilter(this, 'sarthi')">Sarthi AI Tips</button>
+        </div>
+      </div>
+
+      <!-- Feed List -->
+      <div class="notif-list" id="notifListContainer">
+        <!-- Rendered items go here -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Initial mock list if storage is clear
+    const defaultNotifications = [
+      {
+        id: 101,
+        title: "Interview Schedule Request",
+        desc: "InnovateTech Solutions wants to schedule a video chat next Tuesday. Click here to confirm your time slot.",
+        time: "1 hour ago",
+        unread: true,
+        type: "jobs",
+        icon: "📆"
+      },
+      {
+        id: 102,
+        title: "Profile Viewed",
+        desc: "Recruiters from DeepScale Corp and Google reviewed your 'JavaScript & UI design' credentials.",
+        time: "5 hours ago",
+        unread: true,
+        type: "jobs",
+        icon: "👁️"
+      },
+      {
+        id: 103,
+        title: "Sarthi Learning Tip",
+        desc: "We found 12 React.js jobs in your location. Complete the 'React Assessment' to unlock a verified badge to boost matching rates.",
+        time: "Yesterday",
+        unread: false,
+        type: "sarthi",
+        icon: "🤖"
+      },
+      {
+        id: 104,
+        title: "System Alert: Welcome to JobSarthi!",
+        desc: "Ensure your profile is complete. Start interacting with Sarthi, searching jobs, and refining your skills to stand out.",
+        time: "2 days ago",
+        unread: false,
+        type: "sarthi",
+        icon: "🎉"
+      }
+    ];
+
+    let currentFilter = "all";
+
+    // Authentication Verification
+    document.addEventListener("DOMContentLoaded", () => {
+      if (localStorage.getItem('seeker_logged_in') !== 'true') {
+        window.location.href = 'login_signup.html';
+        return;
+      }
+      
+      const userName = localStorage.getItem('seeker_name') || 'Candidate User';
+      const initial = userName.charAt(0).toUpperCase();
+      document.getElementById('headerProfileName').textContent = userName;
+      document.getElementById('headerProfileInitials').textContent = initial;
+
+      // Init notifications stack
+      if (!localStorage.getItem('seeker_notifications')) {
+        localStorage.setItem('seeker_notifications', JSON.stringify(defaultNotifications));
+      }
+      renderNotifications();
+    });
+
+    function logout() {
+      localStorage.removeItem('seeker_logged_in');
+      localStorage.removeItem('seeker_name');
+      window.location.href = '../landing.html';
+    }
+
+    function switchFilter(btn, filter) {
+      document.querySelectorAll('.notif-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = filter;
+      renderNotifications();
+    }
+
+    function renderNotifications() {
+      const list = JSON.parse(localStorage.getItem('seeker_notifications') || '[]');
+      const container = document.getElementById('notifListContainer');
+      container.innerHTML = '';
+
+      // Count unread
+      const unreadCount = list.filter(n => n.unread).length;
+      document.getElementById('unreadCounter').textContent = `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}`;
+
+      // Filter logic
+      const filtered = list.filter(n => {
+        if (currentFilter === 'all') return true;
+        if (currentFilter === 'unread') return n.unread;
+        if (currentFilter === 'jobs') return n.type === 'jobs' || n.title.toLowerCase().includes('applied');
+        if (currentFilter === 'sarthi') return n.type === 'sarthi' || n.title.toLowerCase().includes('earned') || n.title.toLowerCase().includes('verified');
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="glass-panel" style="padding: 40px; text-align: center; color: var(--text-dark);">
+            No notifications found in this category.
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(n => {
+        const card = document.createElement('div');
+        card.className = `glass-card notif-card ${n.unread ? 'unread' : ''}`;
+        
+        card.innerHTML = `
+          <div class="notif-icon">${n.icon || '🔔'}</div>
+          <div class="notif-info">
+            <h3>${n.title}</h3>
+            <p>${n.desc}</p>
+            <div class="notif-time">${n.time}</div>
+          </div>
+          <div class="notif-actions">
+            ${n.unread ? `
+              <button class="action-check" title="Mark as Read" onclick="markAsRead(${n.id})">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+            ` : `
+              <span style="color: var(--text-dark); font-size: 0.8rem;">Read</span>
+            `}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function markAsRead(id) {
+      const list = JSON.parse(localStorage.getItem('seeker_notifications') || '[]');
+      const notif = list.find(n => n.id === id);
+      if (notif) {
+        notif.unread = false;
+        localStorage.setItem('seeker_notifications', JSON.stringify(list));
+      }
+      renderNotifications();
+    }
+
+    function clearAllNotifications() {
+      localStorage.setItem('seeker_notifications', JSON.stringify([]));
+      renderNotifications();
+    }
+  
+    // Liquid glass spotlight coordinates tracking
+    document.addEventListener('mousemove', (e) => {
+      const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    });
+  </script>
+  <script src="../js/header.js"></script>
+</body>
+</html>

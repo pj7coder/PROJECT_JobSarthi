@@ -1,0 +1,78 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "email": "candidate@jobsarthi.ai",
+      "password": "password123",
+      "fullName": "Candidate User",
+      "role": "jobseeker"
+    },
+    {
+      "id": "2",
+      "email": "recruiter@jobsarthi.ai",
+      "password": "password123",
+      "fullName": "InnovateTech HR",
+      "role": "recruiter",
+      "company": "InnovateTech"
+    },
+    {
+      "id": "1779720013355",
+      "email": "pranshujain2007@gmail.com",
+      "password": "12345678",
+      "fullName": "Pranshu Jain",
+      "role": "jobseeker"
+    },
+    {
+      "id": "1779889864556",
+      "email": "jainnaksh2006@gmail.com",
+      "password": "12345678",
+      "fullName": "Deepanshi ",
+      "role": "jobseeker"
+    },
+    {
+      "id": "1779900716713",
+      "email": "jonsnowned04@gmail.com",
+      "password": "88565254",
+      "fullName": "john cena ",
+      "role": "jobseeker"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "job_1",
+      "title": "Senior Frontend Developer",
+      "company": "InnovateTech",
+      "logo": "🎨",
+      "category": "tech",
+      "type": "Full-time",
+      "location": "Bangalore, India (Hybrid)",
+      "salary": "₹1,200,000 - ₹1,600,000 / year",
+      "match": 95,
+      "description": "We are seeking a talented Senior Frontend Developer skilled in modern React.js to join our core product team. You will lead UI component architecture, collaborate closely with design systems, and optimize page rendering performance.",
+      "reqs": [
+        "3+ years experience with React.js & Redux",
+        "Expert knowledge of CSS/CSS-in-JS and fluid layouts",
+        "Experience building responsive, animations-heavy landing pages"
+      ]
+    },
+    {
+      "id": "job_2",
+      "title": "UI/UX Product Designer",
+      "company": "PixelPerfect Labs",
+      "logo": "📐",
+      "category": "design",
+      "type": "Contract",
+      "location": "Remote",
+      "salary": "₹800,000 - ₹1,100,000 / year",
+      "match": 84,
+      "description": "Join our studio to build responsive dashboards, portal designs, and interactive layouts. You will build user flows, UI mockups, and work closely with React engineers to implement pixel-perfect user experiences.",
+      "reqs": [
+        "Strong portfolio demonstrating responsive design & glassmorphism layouts",
+        "Proficiency with Figma and design system libraries",
+        "Basic understanding of CSS grids and flexbox layouts"
+      ]
+    }
+  ],
+  "applications": [],
+  "messages": []
+}

@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse Jobs - JobSarthi Seeker</title>
+  <meta name="description" content="Explore open roles and apply with AI match score recommendations.">
+  <link rel="stylesheet" href="../css/main.css">
+  <script>
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.add('light-theme');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('light-theme');
+      });
+    }
+  </script>
+  <style>
+    .jobs-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    @media (max-width: 800px) {
+      .jobs-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Filter Sidebar */
+    .filter-sidebar {
+      padding: 24px;
+      height: fit-content;
+      position: sticky;
+      top: 100px;
+    }
+
+    .filter-section {
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 20px;
+    }
+
+    .filter-section:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .filter-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+
+    .checkbox-label:hover {
+      color: var(--text-main);
+    }
+
+    .checkbox-input {
+      accent-color: var(--accent-secondary);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    /* Search and Listings Area */
+    .search-container {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .search-input-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-control {
+      width: 100%;
+      padding-left: 48px;
+    }
+
+    /* Job Card List */
+    .jobs-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .job-item {
+      padding: 24px;
+      cursor: pointer;
+      transition: var(--transition-normal);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    @media (max-width: 650px) {
+      .job-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .job-item-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    .job-item:hover {
+      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: 0 10px 25px -10px var(--glass-glow);
+    }
+
+    .job-item-main {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .job-item-logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+    }
+
+    .job-item-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .job-item-company {
+      font-size: 0.95rem;
+      color: var(--accent-secondary);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .job-item-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 0.85rem;
+      color: var(--text-dark);
+    }
+
+    .job-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Modal / Drawer */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .drawer-content {
+      width: 550px;
+      height: 100%;
+      background: #0f1016;
+      border-left: 1px solid var(--glass-border);
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+      animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+
+    @media (max-width: 600px) {
+      .drawer-content {
+        width: 100%;
+      }
+    }
+
+    .drawer-close {
+      cursor: pointer;
+      color: var(--text-muted);
+      align-self: flex-start;
+      margin-bottom: 24px;
+      transition: var(--transition-fast);
+    }
+
+    .drawer-close:hover {
+      color: var(--text-main);
+    }
+
+    .detail-section {
+      margin-top: 24px;
+    }
+
+    .detail-subtitle {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text-main);
+    }
+
+    .detail-body {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .applied-alert {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 16px 24px;
+      background: var(--success);
+      color: #fff;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+      display: none;
+      z-index: 2000;
+      font-weight: 600;
+      animation: fadeInUp 0.3s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Seeker Header (loaded dynamically via js/header.js) -->
+  <div class="header-wrapper"></div>
+
+  <!-- Container -->
+  <main class="container">
+    <div class="jobs-layout">
+      <!-- Sidebar Filters -->
+      <aside class="glass-panel filter-sidebar">
+        <div class="filter-section">
+          <h3 class="filter-title">Job Category</h3>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" class="checkbox-input filter-category" value="tech" checked onchange="filterJobs()"> Tech & Development
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" class="checkbox-input filter-category" value="design" checked onchange="filterJobs()"> Design & Creative
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" class="checkbox-input filter-category" value="marketing" checked onchange="filterJobs()"> Marketing & Growth
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" class="checkbox-input filter-category" value="pm" checked onchange="filterJobs()"> Product Management
+            </label>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3 class="filter-title">Job Type</h3>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" class="checkbox-input filter-type" value="Full-time" checked onchange="filterJobs()"> Full-Time
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" class="checkbox-input filter-type" value="Part-time" checked onchange="filterJobs()"> Part-Time
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" class="checkbox-input filter-type" value="Remote" checked onchange="filterJobs()"> Remote
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" class="checkbox-input filter-type" value="Contract" checked onchange="filterJobs()"> Contract
+            </label>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3 class="filter-title">Min Match Score</h3>
+          <input type="range" min="50" max="95" value="70" class="form-control" style="width: 100%; cursor: pointer;" id="matchSlider" oninput="updateMatchFilter(this.value)">
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dark); margin-top: 8px;">
+            <span>50%</span>
+            <span id="sliderVal" style="color: var(--accent-secondary); font-weight: 700;">70% Match</span>
+            <span>95%</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Search & Results -->
+      <section>
+        <div class="search-container">
+          <div class="search-input-wrap">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="jobSearch" class="form-control search-control" placeholder="Search roles, skills, or companies..." onkeyup="filterJobs()">
+          </div>
+          <button class="btn btn-primary" onclick="filterJobs()">Search</button>
+        </div>
+
+        <div class="jobs-grid" id="jobsContainer">
+          <!-- Job Items will be dynamically populated -->
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Job Details Drawer -->
+  <div class="drawer-overlay" id="detailDrawer" onclick="closeDrawer(event)">
+    <div class="drawer-content" onclick="event.stopPropagation()">
+      <div>
+        <div class="drawer-close" onclick="closeDrawer(null)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+          <div class="job-item-logo" id="drawerLogo" style="font-size: 2.2rem; width: 64px; height: 64px;">⚛️</div>
+          <div>
+            <h2 id="drawerTitle" style="font-size: 1.5rem;">Job Title</h2>
+            <div id="drawerCompany" style="color: var(--accent-secondary); font-weight: 600;">Company Name</div>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 24px;" id="drawerBadges">
+          <!-- Badges dynamically added -->
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-subtitle">About the Role</div>
+          <div class="detail-body" id="drawerDesc">
+            Job description goes here.
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-subtitle">Key Qualifications</div>
+          <ul class="detail-body" id="drawerReqs" style="padding-left: 20px;">
+            <!-- Requirements list -->
+          </ul>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-subtitle">Compensation & Benefits</div>
+          <div class="detail-body" id="drawerComp">
+            Salary and benefits go here.
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 40px; display: flex; gap: 16px;">
+        <button id="applyBtn" class="btn btn-glow" style="flex: 1;" onclick="applyToCurrentJob()">Apply Now</button>
+        <button class="btn btn-secondary" onclick="closeDrawer(null)">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Alert -->
+  <div class="applied-alert" id="successToast">
+    Application submitted successfully! Recruiter will contact you soon.
+  </div>
+
+  <script>
+    // Raw Mock Job Data
+    const mockJobsFallback = [
+      {
+        id: "job_fallback_1",
+        title: "Frontend Developer (React/Vue)",
+        company: "InnovateTech Solutions",
+        logo: "⚛️",
+        category: "tech",
+        type: "Full-time",
+        location: "Remote (India)",
+        salary: "₹8,000,000 - ₹12,000,000 / year",
+        match: 94,
+        description: "Join our expanding UI team to deliver elegant, fast user experiences in React and Vue.js. You'll build core responsive elements and optimize performance across our web applications.",
+        reqs: [
+          "3+ years experience with modern React (hooks, context, state management)",
+          "Strong understanding of CSS/JS, layout design systems, and grids",
+          "Experience with micro-frontends is a plus"
+        ]
+      },
+      {
+        id: "job_fallback_2",
+        title: "Python Software Engineer",
+        company: "DeepScale Corp",
+        logo: "🐍",
+        category: "tech",
+        type: "Full-time",
+        location: "Bangalore, India (Hybrid)",
+        salary: "₹12,000,000 - ₹16,000,000 / year",
+        match: 87,
+        description: "Develop scalable microservices and process massive datasets using Python, Fast API, and PostgreSQL. Help scale our predictive analytical engines.",
+        reqs: [
+          "Proficiency in Python (OOP, decorators, asyncio)",
+          "Hands-on experience with SQL databases and database indexing",
+          "Familiarity with cloud microservices (AWS or GCP)"
+        ]
+      }
+    ];
+
+    let dbJobs = [];
+    let currentSelectedJob = null;
+
+    async function loadJobs() {
+      try {
+        const response = await fetch('/api/jobs');
+        if (!response.ok) throw new Error("Failed to fetch jobs");
+        dbJobs = await response.json();
+        if (!dbJobs || dbJobs.length === 0) {
+          dbJobs = mockJobsFallback;
+        }
+      } catch (err) {
+        console.error("Failed to fetch jobs from server, using fallback:", err);
+        dbJobs = mockJobsFallback;
+      }
+      filterJobs();
+    }
+
+    // Check login
+    document.addEventListener("DOMContentLoaded", () => {
+      loadJobs();
+    });
+
+    function updateMatchFilter(val) {
+      document.getElementById('sliderVal').textContent = val + '% Match';
+      filterJobs();
+    }
+
+    function filterJobs() {
+      const searchQuery = document.getElementById('jobSearch').value.toLowerCase();
+      const sliderVal = parseInt(document.getElementById('matchSlider').value);
+      
+      const selectedCategories = Array.from(document.querySelectorAll('.filter-category:checked')).map(cb => cb.value);
+      const selectedTypes = Array.from(document.querySelectorAll('.filter-type:checked')).map(cb => cb.value);
+
+      const filtered = dbJobs.filter(job => {
+        const matchesSearch = job.title.toLowerCase().includes(searchQuery) || 
+                              job.company.toLowerCase().includes(searchQuery) ||
+                              job.description.toLowerCase().includes(searchQuery);
+        
+        const matchesCategory = selectedCategories.includes(job.category);
+        
+        // Match type (Handling 'Remote' specifically since it can overlap with location or custom tags)
+        const matchesType = selectedTypes.includes(job.type) || (selectedTypes.includes('Remote') && job.location.toLowerCase().includes('remote'));
+        
+        const matchesMatchScore = job.match >= sliderVal;
+
+        return matchesSearch && matchesCategory && matchesType && matchesMatchScore;
+      });
+
+      renderJobs(filtered);
+    }
+
+    function renderJobs(jobs) {
+      const container = document.getElementById('jobsContainer');
+      container.innerHTML = '';
+
+      if (jobs.length === 0) {
+        container.innerHTML = `
+          <div class="glass-panel" style="padding: 40px; text-align: center; color: var(--text-muted);">
+            No jobs match your search parameters. Try widening your filters.
+          </div>
+        `;
+        return;
+      }
+
+      jobs.forEach(job => {
+        const card = document.createElement('div');
+        card.className = 'glass-card job-item';
+        card.onclick = () => openDrawer(job);
+        
+        card.innerHTML = `
+          <div class="job-item-main">
+            <div class="job-item-logo">${job.logo}</div>
+            <div>
+              <div class="job-item-title">${job.title}</div>
+              <div class="job-item-company">${job.company}</div>
+              <div class="job-item-meta">
+                <span>📍 ${job.location}</span>
+                <span>💰 ${job.salary.split(' / ')[0]}</span>
+                <span>🕒 ${job.type}</span>
+              </div>
+            </div>
+          </div>
+          <div class="job-item-actions" onclick="event.stopPropagation()">
+            <span class="match-score" style="
+              ${job.match >= 90 ? '' : job.match >= 80 ? 'color: var(--accent-primary); border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.1);' : 'color: var(--accent-tertiary); border-color: rgba(217,70,239,0.3); background: rgba(217,70,239,0.1);'}
+            ">${job.match}% Match</span>
+            <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openDrawerFromBtn('${job.id}')">Details</button>
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+    }
+
+    function openDrawerFromBtn(id) {
+      const job = dbJobs.find(j => j.id === id || j.id == id);
+      if (job) openDrawer(job);
+    }
+
+    function openDrawer(job) {
+      currentSelectedJob = job;
+      document.getElementById('drawerLogo').textContent = job.logo;
+      document.getElementById('drawerTitle').textContent = job.title;
+      document.getElementById('drawerCompany').textContent = job.company;
+      document.getElementById('drawerDesc').textContent = job.description;
+      document.getElementById('drawerComp').textContent = `Offering a highly competitive salary range of ${job.salary}. We also provide comprehensive medical coverage, premium wellness benefits, learning stipends, and hardware options.`;
+
+      // Render requirements list
+      const reqsUl = document.getElementById('drawerReqs');
+      reqsUl.innerHTML = '';
+      job.reqs.forEach(req => {
+        const li = document.createElement('li');
+        li.textContent = req;
+        li.style.marginBottom = '6px';
+        reqsUl.appendChild(li);
+      });
+
+      // Badges
+      const badgesDiv = document.getElementById('drawerBadges');
+      badgesDiv.innerHTML = `
+        <span class="badge badge-primary">${job.type}</span>
+        <span class="badge badge-success">${job.match}% AI MATCH</span>
+      `;
+
+      // Apply button status reset
+      const applyBtn = document.getElementById('applyBtn');
+      const appliedJobs = JSON.parse(localStorage.getItem('applied_jobs') || '[]');
+      if (appliedJobs.includes(job.id)) {
+        applyBtn.textContent = 'Applied';
+        applyBtn.disabled = true;
+        applyBtn.className = 'btn btn-secondary';
+        applyBtn.style.cursor = 'not-allowed';
+      } else {
+        applyBtn.textContent = 'Apply Now';
+        applyBtn.disabled = false;
+        applyBtn.className = 'btn btn-glow';
+        applyBtn.style.cursor = 'pointer';
+      }
+
+      document.getElementById('detailDrawer').style.display = 'flex';
+    }
+
+    function closeDrawer(event) {
+      if (event === null || event.target === document.getElementById('detailDrawer')) {
+        document.getElementById('detailDrawer').style.display = 'none';
+      }
+    }
+
+    async function applyToCurrentJob() {
+      if (!currentSelectedJob) return;
+      
+      const candidateName = localStorage.getItem('seeker_name') || 'Candidate User';
+      const candidateEmail = localStorage.getItem('seeker_email') || 'candidate@jobsarthi.ai';
+
+      try {
+        const response = await fetch(`/api/jobs/${currentSelectedJob.id}/apply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ candidateName, candidateEmail })
+        });
+
+        if (!response.ok) {
+          alert('Failed to submit application to the backend.');
+          return;
+        }
+
+        const appliedJobs = JSON.parse(localStorage.getItem('applied_jobs') || '[]');
+        if (!appliedJobs.includes(currentSelectedJob.id)) {
+          appliedJobs.push(currentSelectedJob.id);
+          localStorage.setItem('applied_jobs', JSON.stringify(appliedJobs));
+        }
+
+        // Add simple notification
+        const notifications = JSON.parse(localStorage.getItem('seeker_notifications') || '[]');
+        notifications.unshift({
+          id: Date.now(),
+          title: `Applied to ${currentSelectedJob.title}`,
+          desc: `Your profile matching analysis (${currentSelectedJob.match}%) has been sent directly to ${currentSelectedJob.company}.`,
+          time: "Just now",
+          unread: true
+        });
+        localStorage.setItem('seeker_notifications', JSON.stringify(notifications));
+
+        // Toast feedback
+        const toast = document.getElementById('successToast');
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 3000);
+
+        closeDrawer(null);
+        filterJobs();
+      } catch (err) {
+        console.error('Apply error:', err);
+        alert('Could not connect to the backend to apply.');
+      }
+    }
+  </script>
+  
+  <script src="../js/header.js"></script>
+  <script>
+    // Liquid glass spotlight coordinates tracking
+    document.addEventListener('mousemove', (e) => {
+      const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    });
+</script>
+
+</body>
+</html>
