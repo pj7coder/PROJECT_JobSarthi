@@ -174,7 +174,7 @@
             <div style="font-size: 2.5rem; margin-bottom: 10px;">📄</div>
             <h3 style="font-size: 1.05rem; margin-bottom: 4px;" id="resumeUploadTitle">Upload Resume (PDF, DOCX)</h3>
             <p style="font-size: 0.8rem; color: var(--text-muted);">Drag and drop or click to upload resume file</p>
-            <input type="file" id="resumeFile" class="file-input" accept=".pdf,.doc,.docx" onchange="handleResumeUpload(event)">
+            <input type="file" id="resumeFile" class="file-input" accept=".pdf,image/*" onchange="handleResumeUpload(event)">
           </div>
         </div>
 
@@ -352,6 +352,11 @@
     function handleResumeUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
+
+      if (file.name.endsWith('.doc') || file.name.endsWith('.docx') || file.type.includes('word')) {
+        alert("Word documents (.doc, .docx) are not supported by the AI parser. Please convert your resume to PDF or upload an image version.");
+        return;
+      }
 
       uploadedResumeName = file.name;
       document.getElementById('resumeUploadTitle').textContent = `Resume: ${file.name}`;
