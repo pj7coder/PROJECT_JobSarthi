@@ -234,40 +234,47 @@
         </div>
       </div>
 
-      <!-- Right side: Certificates Manager -->
+      <!-- Right side: Other Details Manager -->
       <div class="glass-panel" style="padding: 30px; display: flex; flex-direction: column; gap: 20px;">
-        <h2 style="font-size: 1.3rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 14px; margin-bottom: 10px;">Certificates & Badges</h2>
+        <h2 style="font-size: 1.3rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 14px; margin-bottom: 10px;">Other Professional Details</h2>
         <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.4; margin-top: -10px;">
-          Add professional verifications. When uploading certificate images/PDFs, Sarthi AI will automatically attempt to scan and extract the certificate titles.
+          Add auxiliary details to make your profile stand out. Uploading a resume with these details will allow Sarthi AI to extract them automatically.
         </p>
 
-        <!-- Certificate File Zone -->
-        <div class="upload-zone" id="certUploadZone" style="padding: 20px;">
-          <div id="certLoader" class="loading-overlay" style="display: none;">
-            <div class="spinner"></div>
-            <span style="font-weight: 600; font-size: 0.9rem;">Sarthi AI scanning title...</span>
+        <!-- 10th & 12th Marks -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div class="form-group">
+            <label class="form-label" for="class10th">Class 10th Marks</label>
+            <input type="text" id="class10th" class="form-control" placeholder="E.g., 92% or 9.5 CGPA">
           </div>
-          <div>
-            <div style="font-size: 2rem; margin-bottom: 8px;">🏆</div>
-            <h4 id="certUploadTitle" style="font-size: 0.95rem; margin-bottom: 2px;">Upload Certificate (Image, PDF)</h4>
-            <p style="font-size: 0.75rem; color: var(--text-muted);">Drag or click to analyze certificate</p>
-            <input type="file" id="certFile" class="file-input" accept="image/*,.pdf" onchange="handleCertUpload(event)">
+          <div class="form-group">
+            <label class="form-label" for="class12th">Class 12th Marks</label>
+            <input type="text" id="class12th" class="form-control" placeholder="E.g., 88% or 85%">
           </div>
         </div>
 
+        <!-- Hobbies & Interests -->
         <div class="form-group">
-          <label class="form-label" for="certTitle">Certificate Title / Verification Course</label>
-          <input type="text" id="certTitle" class="form-control" placeholder="E.g., AWS Certified Cloud Practitioner">
+          <label class="form-label" for="hobbies">Hobbies & Interests</label>
+          <input type="text" id="hobbies" class="form-control" placeholder="E.g., Reading, Coding, Swimming (comma separated)">
         </div>
 
-        <button class="btn btn-secondary" onclick="addCertificateToList()">Add Certificate</button>
+        <!-- Preferred Locations -->
+        <div class="form-group">
+          <label class="form-label" for="preferredLocations">Preferred Locations</label>
+          <input type="text" id="preferredLocations" class="form-control" placeholder="E.g., Mumbai, Bangalore, Remote (comma separated)">
+        </div>
 
-        <div style="margin-top: 15px;">
-          <h3 style="font-size: 1rem; margin-bottom: 10px; font-weight: 700;">Uploaded Credentials</h3>
-          <div id="certificatesContainer">
-            <!-- List of added certificates -->
-            <span id="noCertsText" style="color: var(--text-dark); font-size: 0.85rem;">No certificates added yet.</span>
-          </div>
+        <!-- Expected Salary / CTC -->
+        <div class="form-group">
+          <label class="form-label" for="expectedCtc">Expected CTC (Salary)</label>
+          <input type="text" id="expectedCtc" class="form-control" placeholder="E.g., 12 LPA or 6-8 LPA">
+        </div>
+
+        <!-- Languages Known -->
+        <div class="form-group">
+          <label class="form-label" for="languages">Languages Known</label>
+          <input type="text" id="languages" class="form-control" placeholder="E.g., English, Hindi, Marathi (comma separated)">
         </div>
       </div>
     </div>
@@ -279,10 +286,8 @@
 
   <script>
     let mySkillsList = [];
-    let myCertificatesList = [];
     let uploadedResumeName = "";
     let uploadedResumeBase64 = "";
-    let lastUploadedCertBase64 = "";
 
     document.addEventListener("DOMContentLoaded", () => {
       loadSeekerProfile();
@@ -303,11 +308,15 @@
         document.getElementById('cgpa').value = profile.cgpa || '';
         document.getElementById('experienceSummary').value = profile.experience || '';
         
+        document.getElementById('class10th').value = profile.class10th || '';
+        document.getElementById('class12th').value = profile.class12th || '';
+        document.getElementById('hobbies').value = Array.isArray(profile.hobbies) ? profile.hobbies.join(', ') : (profile.hobbies || '');
+        document.getElementById('preferredLocations').value = Array.isArray(profile.preferredLocations) ? profile.preferredLocations.join(', ') : (profile.preferredLocations || '');
+        document.getElementById('expectedCtc').value = profile.expectedCtc || '';
+        document.getElementById('languages').value = Array.isArray(profile.languages) ? profile.languages.join(', ') : (profile.languages || '');
+
         mySkillsList = profile.skills || [];
         renderSkillTags();
-
-        myCertificatesList = profile.certificates || [];
-        renderCertificatesList();
 
         if (profile.resumeFileName) {
           uploadedResumeName = profile.resumeFileName;
@@ -391,6 +400,19 @@
           if (parsed.cgpa) document.getElementById('cgpa').value = parsed.cgpa;
           if (parsed.experience) document.getElementById('experienceSummary').value = parsed.experience;
           
+          if (parsed.class10th) document.getElementById('class10th').value = parsed.class10th;
+          if (parsed.class12th) document.getElementById('class12th').value = parsed.class12th;
+          if (parsed.hobbies) {
+            document.getElementById('hobbies').value = Array.isArray(parsed.hobbies) ? parsed.hobbies.join(', ') : parsed.hobbies;
+          }
+          if (parsed.preferredLocations) {
+            document.getElementById('preferredLocations').value = Array.isArray(parsed.preferredLocations) ? parsed.preferredLocations.join(', ') : parsed.preferredLocations;
+          }
+          if (parsed.expectedCtc) document.getElementById('expectedCtc').value = parsed.expectedCtc;
+          if (parsed.languages) {
+            document.getElementById('languages').value = Array.isArray(parsed.languages) ? parsed.languages.join(', ') : parsed.languages;
+          }
+
           if (parsed.skills && Array.isArray(parsed.skills)) {
             parsed.skills.forEach(s => {
               if (!mySkillsList.includes(s)) mySkillsList.push(s);
@@ -432,101 +454,6 @@
       renderSkillTags();
     }
 
-    // Certificate AI parsing
-    function handleCertUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      document.getElementById('certUploadTitle').textContent = `Certificate: ${file.name}`;
-      document.getElementById('certLoader').style.display = 'flex';
-
-      const reader = new FileReader();
-      reader.onload = async function() {
-        const base64Data = reader.result;
-        lastUploadedCertBase64 = base64Data;
-
-        try {
-          const response = await fetch('/api/seeker/parse-certificate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              base64Data: base64Data,
-              mimeType: file.type
-            })
-          });
-
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            throw new Error(data.error || "Certificate AI parsing failed");
-          }
-          const parsed = data;
-
-          if (parsed.title) {
-            document.getElementById('certTitle').value = parsed.title;
-            alert(`Sarthi AI scanned your certificate and identified the title: "${parsed.title}"!`);
-          }
-        } catch (err) {
-          console.error(err);
-          alert(err.message || "Sarthi AI certificate title scan failed. Please type the title manually.");
-        } finally {
-          document.getElementById('certLoader').style.display = 'none';
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-
-    // Add Certificate to list
-    function addCertificateToList() {
-      const titleInput = document.getElementById('certTitle');
-      const title = titleInput.value.trim();
-      
-      if (!title) {
-        alert("Please specify a title for the certificate.");
-        return;
-      }
-
-      myCertificatesList.push({
-        title: title,
-        fileUrl: lastUploadedCertBase64 || "#"
-      });
-      lastUploadedCertBase64 = "";
-
-      renderCertificatesList();
-      
-      // Reset inputs
-      titleInput.value = '';
-      document.getElementById('certUploadTitle').textContent = "Upload Certificate (Image, PDF)";
-      document.getElementById('certFile').value = '';
-    }
-
-    function renderCertificatesList() {
-      const container = document.getElementById('certificatesContainer');
-      const noText = document.getElementById('noCertsText');
-      
-      // Clear all items except noText
-      container.innerHTML = '';
-
-      if (myCertificatesList.length === 0) {
-        container.innerHTML = '<span id="noCertsText" style="color: var(--text-dark); font-size: 0.85rem;">No certificates added yet.</span>';
-        return;
-      }
-
-      myCertificatesList.forEach((cert, idx) => {
-        const div = document.createElement('div');
-        div.className = 'cert-item';
-        div.innerHTML = `
-          <span>🏆 ${cert.title}</span>
-          <button class="btn btn-secondary" onclick="removeCertificate(${idx})" style="padding:4px 8px; font-size:0.75rem; color:var(--danger);">Delete</button>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function removeCertificate(idx) {
-      myCertificatesList.splice(idx, 1);
-      renderCertificatesList();
-    }
-
     // Save Seeker Profile to Database
     async function saveSeekerProfile() {
       const email = localStorage.getItem('seeker_email');
@@ -541,7 +468,12 @@
         cgpa: document.getElementById('cgpa').value.trim(),
         experience: document.getElementById('experienceSummary').value.trim(),
         skills: mySkillsList,
-        certificates: myCertificatesList,
+        class10th: document.getElementById('class10th').value.trim(),
+        class12th: document.getElementById('class12th').value.trim(),
+        hobbies: document.getElementById('hobbies').value.split(',').map(s => s.trim()).filter(Boolean),
+        preferredLocations: document.getElementById('preferredLocations').value.split(',').map(s => s.trim()).filter(Boolean),
+        expectedCtc: document.getElementById('expectedCtc').value.trim(),
+        languages: document.getElementById('languages').value.split(',').map(s => s.trim()).filter(Boolean),
         resumeFileName: uploadedResumeName,
         resumeBase64: uploadedResumeBase64,
         linkedinId: document.getElementById('linkedinId').value.trim()
