@@ -49,14 +49,14 @@ async function deleteFromCloudinary(fileUrl) {
     const parts = fileUrl.split("/");
     const uploadIndex = parts.indexOf("upload");
     if (uploadIndex === -1) return;
-    
+
     // Extract public id with extension skipping 'upload' and 'v[version]'
     let publicIdWithExtension = parts.slice(uploadIndex + 2).join("/");
-    
+
     // Strip file extension
     const lastDotIndex = publicIdWithExtension.lastIndexOf(".");
     const publicId = lastDotIndex !== -1 ? publicIdWithExtension.substring(0, lastDotIndex) : publicIdWithExtension;
-    
+
     const resourceType = parts[uploadIndex - 1] || "auto";
 
     console.log(`Deleting old file from Cloudinary: ${publicId} (${resourceType})`);
@@ -520,7 +520,7 @@ app.get("/api/recruiter/applicants", async (req, res) => {
   try {
     const { company } = req.query;
     const applicants = await dbService.getApplications(company);
-    
+
     // Enrich applicants with profile details from users collection
     const enriched = [];
     for (const app of applicants) {
@@ -543,7 +543,7 @@ app.get("/api/recruiter/applicants", async (req, res) => {
         resumeUrl: user?.profile?.resumeUrl || ""
       });
     }
-    
+
     res.json(enriched);
   } catch (err) {
     console.error("Enriching applicants failed:", err);
@@ -558,7 +558,7 @@ app.post("/api/recruiter/applicants/:id/status", async (req, res) => {
     if (!status) {
       return res.status(400).json({ error: "Status is required." });
     }
-    
+
     if (mongoDb) {
       await mongoDb.collection("applications").updateOne(
         { id: id },
@@ -725,7 +725,7 @@ Return ONLY a raw JSON object (do not include markdown block markers, no \`\`\`j
 
       const result = await model.generateContent(promptText);
       let responseText = result.response.text().trim();
-      
+
       // Clean up markdown block if model added it
       if (responseText.startsWith("```")) {
         responseText = responseText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
@@ -760,7 +760,7 @@ Return ONLY a raw JSON object (do not include markdown block markers, no \`\`\`j
       // Simple keyword matching for score calculation
       let keywordsMatched = 0;
       const keyTerms = ["rendering", "server", "client", "state", "components", "index", "query", "database", "middleware", "token", "auth", "flexbox", "grid", "hooks", "dom", "scaling", "api", "load"];
-      
+
       keyTerms.forEach(term => {
         if (answerLower.includes(term)) keywordsMatched++;
       });
@@ -880,7 +880,7 @@ app.post("/api/seeker/profile", async (req, res) => {
         }
       }
     }
-    
+
     if (mongoDb) {
       await mongoDb.collection("users").updateOne(
         { email: email.toLowerCase() },

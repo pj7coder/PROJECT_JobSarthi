@@ -672,7 +672,7 @@ body.light-theme .slider-round {
   border-color: rgba(0, 0, 0, 0.15);
 }
 
-.switch-toggle input:checked + .slider-round {
+.switch-toggle input:checked+.slider-round {
   background-color: var(--accent-primary);
 }
 
@@ -688,7 +688,7 @@ body.light-theme .slider-round {
   border-radius: 50%;
 }
 
-.switch-toggle input:checked + .slider-round:before {
+.switch-toggle input:checked+.slider-round:before {
   transform: translateX(16px);
 }
 
@@ -776,7 +776,8 @@ body.light-theme .dropdown-action-item:hover {
   height: 30px;
   width: 30px;
   object-fit: contain;
-  background-color: rgba(0, 102, 255, 0.805); /* Blue background so the logo is clearly visible in both light & dark themes */
+  background-color: rgba(0, 102, 255, 0.805);
+  /* Blue background so the logo is clearly visible in both light & dark themes */
   padding: 4px;
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -1038,6 +1039,7 @@ body.light-theme .header.about-active {
    Mobile Responsive Adjustments (Smartphone & Tablet)
    ========================================== */
 @media (max-width: 768px) {
+
   /* Global body padding adjustments */
   .container {
     padding: 0 16px !important;
@@ -1112,7 +1114,7 @@ body.light-theme .header.about-active {
     padding: 40px 0 !important;
   }
 
-  #portal > div:first-child {
+  #portal>div:first-child {
     margin-bottom: 30px !important;
   }
 
@@ -1153,14 +1155,14 @@ body.light-theme .header.about-active {
   }
 
   /* Media panel spans full width, smaller height */
-  .sarthi-slide > div:first-child {
+  .sarthi-slide>div:first-child {
     width: 100% !important;
     height: 130px !important;
     flex-shrink: 0 !important;
   }
 
   /* Text Details panel spans full width, centered */
-  .sarthi-slide > div:last-child {
+  .sarthi-slide>div:last-child {
     width: 100% !important;
     height: auto !important;
     padding-left: 0 !important;
@@ -1186,7 +1188,7 @@ body.light-theme .header.about-active {
   }
 
   /* Header inside expanded Sarthi widget */
-  #floatingExpandedContent > div:first-child {
+  #floatingExpandedContent>div:first-child {
     padding: 12px 16px 8px 16px !important;
   }
 
@@ -1253,7 +1255,8 @@ body.light-theme .sarthi-tool-card h4 {
 /* Gemini colorful border effect for Sarthi Pill */
 .gemini-pill-border {
   position: relative;
-  border: none !important; /* Override standard border */
+  border: none !important;
+  /* Override standard border */
 }
 
 /* Pseudo-element for the gradient border */
@@ -1262,20 +1265,23 @@ body.light-theme .sarthi-tool-card h4 {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 2.5px; /* border thickness */
+  padding: 2.5px;
+  /* border thickness */
   background: conic-gradient(from var(--angle), #3b82f6, #2563eb, #1d4ed8, #00f2fe, #06b6d4, #14b8a6, #10b981, #22c55e, #84cc16, #eab308, #f59e0b, #f97316, #ff4500, #ef4444, #f43f5e, #ec4899, #d946ef, #a855f7, #8b5cf6, #6366f1, #4f46e5, #3b82f6);
   animation: gemini-gradient-rotate 16s linear infinite;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
-  z-index: 5; /* Render above parent background, below child contents */
+  z-index: 5;
+  /* Render above parent background, below child contents */
 }
 
 @keyframes gemini-gradient-rotate {
   0% {
     --angle: 0deg;
   }
+
   100% {
     --angle: 360deg;
   }
@@ -1331,7 +1337,8 @@ body.light-theme .mobile-bottom-nav {
   transition: transform 0.25s ease;
 }
 
-.mobile-nav-item:hover, .mobile-nav-item.active {
+.mobile-nav-item:hover,
+.mobile-nav-item.active {
   color: var(--accent-secondary);
 }
 
@@ -1344,11 +1351,11 @@ body.light-theme .mobile-bottom-nav {
   .mobile-bottom-nav {
     display: flex;
   }
-  
+
   body {
     padding-bottom: 84px !important;
   }
-  
+
   .header nav {
     display: none !important;
   }
@@ -1359,34 +1366,34 @@ body.light-theme .mobile-bottom-nav {
     min-height: 560px !important;
     padding: 16px !important;
   }
-  
+
   #sarthiSlideTrack {
     height: 480px !important;
   }
-  
+
   .sarthi-slide {
     flex-direction: column !important;
     padding: 10px !important;
     gap: 12px !important;
     height: 100% !important;
   }
-  
-  .sarthi-slide > div:first-child {
+
+  .sarthi-slide>div:first-child {
     width: 100% !important;
     height: 180px !important;
   }
-  
-  .sarthi-slide > div:last-child {
+
+  .sarthi-slide>div:last-child {
     width: 100% !important;
     height: calc(100% - 192px) !important;
     padding-left: 0 !important;
     justify-content: flex-start !important;
   }
-  
+
   .sarthi-slide h4 {
     font-size: 1.1rem !important;
   }
-  
+
   .sarthi-slide p {
     font-size: 0.75rem !important;
     margin: 4px 0 10px 0 !important;

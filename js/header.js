@@ -269,6 +269,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.body.appendChild(mobileNavContainer);
       }
+      // Inject Dock CSS & JS dynamically
+      if (!document.querySelector('link[href*="Dock.css"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = `${prefix}css/Dock.css`;
+        document.head.appendChild(link);
+      }
+      if (!document.querySelector('script[src*="Dock.js"]')) {
+        const dockScript = document.createElement('script');
+        dockScript.src = `${prefix}js/Dock.js`;
+        document.head.appendChild(dockScript);
+      }
 
       // Dispatch a custom event to notify components that header is loaded
       document.dispatchEvent(new CustomEvent('headerLoaded', { detail: { prefix, isRecruiter, isSeeker } }));

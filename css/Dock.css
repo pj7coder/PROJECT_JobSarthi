@@ -1,0 +1,167 @@
+/* Dock Navigation Bar for Header */
+
+.dock-outer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.dock-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  gap: 12px;
+  height: 46px;
+  box-sizing: border-box;
+}
+
+body.light-theme .dock-panel {
+  background: transparent;
+}
+
+.dock-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  width: 54px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  will-change: width, height;
+}
+
+body.light-theme .dock-item {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.dock-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+body.light-theme .dock-item:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.dock-item.active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: var(--accent-tertiary) !important;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+}
+
+body.light-theme .dock-item.active {
+  background: rgba(0, 0, 0, 0.08) !important;
+  border-color: var(--accent-secondary) !important;
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.2);
+}
+
+.dock-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+.dock-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--text-muted);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.2s, transform 0.2s;
+}
+
+.dock-item:hover .dock-icon svg {
+  stroke: var(--text-main);
+  transform: scale(1.1);
+}
+
+.dock-item.active .dock-icon svg {
+  stroke: var(--text-main);
+}
+
+/* Dock item label style inside the pill */
+.dock-name {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-left: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+  pointer-events: none;
+}
+
+.dock-item:hover .dock-name,
+.dock-item.active .dock-name {
+  color: var(--text-main);
+}
+
+/* Unique Action Buttons Micro-Animations */
+
+/* Settings button: spin rotation on hover */
+.btn-icon[aria-label="Settings"] {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-icon[aria-label="Settings"] svg {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-icon[aria-label="Settings"]:hover svg {
+  transform: rotate(90deg);
+}
+
+/* Notification button: bell ring animation on hover */
+@keyframes bell-ring {
+  0% { transform: rotate(0deg); }
+  15% { transform: rotate(15deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-8deg); }
+  75% { transform: rotate(4deg); }
+  85% { transform: rotate(-2deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.btn-icon[aria-label="Notifications"] svg {
+  transform-origin: top center;
+}
+
+.btn-icon[aria-label="Notifications"]:hover svg {
+  animation: bell-ring 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Profile button: subtle scale bounce on hover */
+.profile-badge {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.2s ease, background-color 0.2s ease !important;
+}
+
+.profile-badge:hover {
+  transform: scale(1.08);
+}
+
+/* Finder & Recruiter landing header buttons: expand on hover */
+.header-actions .btn-glow {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease, padding 0.3s ease !important;
+}
+
+.header-actions .btn-glow:hover {
+  transform: scale(1.06);
+  padding: 8px 24px !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}

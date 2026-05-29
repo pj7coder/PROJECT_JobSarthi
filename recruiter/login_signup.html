@@ -137,8 +137,7 @@
               <label class="form-label" for="loginPassword">Password</label>
               <a href="#" style="font-size: 0.8rem; color: var(--accent-tertiary);">Forgot Password?</a>
             </div>
-            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••"
-              value="password123">
+            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="password123">
           </div>
           <button type="submit" class="btn btn-primary"
             style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%); box-shadow: 0 4px 15px rgba(217,70,239,0.3);">Sign
@@ -198,13 +197,13 @@
         const companyName = document.getElementById('companyName').value || "InnovateTech";
         const email = document.getElementById('signupEmail').value || "recruiter_" + Date.now() + "@jobsarthi.ai";
         const password = document.getElementById('signupPassword').value || "password123";
-        
+
         body = { fullName: companyName + " HR", email, password, role: 'recruiter', company: companyName };
         endpoint = '/api/auth/signup';
       } else {
         const email = document.getElementById('loginEmail').value || "recruiter@jobsarthi.ai";
         const password = document.getElementById('loginPassword').value || "password123";
-        
+
         body = { email, password };
         endpoint = '/api/auth/login';
       }
@@ -238,7 +237,7 @@
         window.location.href = 'index.html';
       }
     }
-  
+
     // Liquid glass spotlight coordinates tracking
     document.addEventListener('mousemove', (e) => {
       const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');
@@ -250,7 +249,7 @@
         card.style.setProperty('--mouse-y', `${y}px`);
       });
     });
-</script>
+  </script>
 
 </body>
 

@@ -54,13 +54,6 @@ window.headerLandingHTML = `
       </ul>
     </nav>
     <div class="header-actions">
-      <!-- Finder Tab (Blue) -->
-      <a href="seeker/login_signup.html" class="btn btn-glow"
-        style="padding: 8px 16px; font-size: 0.85rem; background: linear-gradient(135deg, #1d4ed8, #3b82f6); border: none; color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); border-radius: var(--radius-full); font-weight: 600;">Finder</a>
-      <!-- Recruiter Tab (Magenta) -->
-      <a href="recruiter/login_signup.html" class="btn btn-glow"
-        style="padding: 8px 16px; font-size: 0.85rem; background: linear-gradient(135deg, #a21caf, #d946ef); border: none; color: #fff; box-shadow: 0 4px 12px rgba(217, 70, 239, 0.3); border-radius: var(--radius-full); font-weight: 600;">Recruiter</a>
-
       <!-- Settings Dropdown Trigger -->
       <div class="header-dropdown-container">
         <button class="btn-icon dropdown-trigger" aria-label="Settings" style="background: transparent; border: none; color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 6px; border-radius: 50%; transition: background 0.2s;">
@@ -88,6 +81,13 @@ window.headerLandingHTML = `
           </div>
         </div>
       </div>
+
+      <!-- Finder Tab (Blue) -->
+      <a href="seeker/login_signup.html" class="btn btn-glow"
+        style="padding: 8px 16px; font-size: 0.85rem; background: linear-gradient(135deg, #1d4ed8, #3b82f6); border: none; color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); border-radius: var(--radius-full); font-weight: 600;">Finder</a>
+      <!-- Recruiter Tab (Magenta) -->
+      <a href="recruiter/login_signup.html" class="btn btn-glow"
+        style="padding: 8px 16px; font-size: 0.85rem; background: linear-gradient(135deg, #a21caf, #d946ef); border: none; color: #fff; box-shadow: 0 4px 12px rgba(217, 70, 239, 0.3); border-radius: var(--radius-full); font-weight: 600;">Recruiter</a>
     </div>
     <button id="closeAboutBtn" aria-label="Close About Panel">✕</button>
   </div>

@@ -11,6 +11,8 @@
   <!-- CSS Stylesheets -->
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/landing.css">
+  <link rel="stylesheet" href="css/VariableProximity.css">
+  <link rel="stylesheet" href="css/LogoLoop.css">
 
   <style>
     /* Specific layouts and alignments for landing page components */
@@ -606,12 +608,12 @@
     <section id="hero" class="hero-layout">
       <div class="hero-left"
         style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <h1 class="hero-headline"
-          style="font-size: 2.8rem; line-height: 1.2; margin-bottom: 16px; font-weight: 700; width: 100%;">
+        <h1 id="heroHeadline" class="hero-headline variable-proximity"
+          style="font-size: 3.5rem; line-height: 1.1; margin-bottom: 24px; font-weight: 800; width: 100%; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
           Welcome to JobSarthi
         </h1>
-        <p class="hero-subtitle"
-          style="font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; max-width: 480px; text-align: center;">
+        <p id="heroSubtitle" class="hero-subtitle variable-proximity"
+          style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 36px; max-width: 680px; text-align: center; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
           Your intelligent companion in navigating modern careers. Powered by Sarthi AI, connecting talented seekers
           with top company recruiter pipelines.
         </p>
@@ -773,82 +775,206 @@
           and recruiters who rely on JobSarthi.</p>
       </div>
 
-      <div
-        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 1100px; margin: 0 auto;">
+      <div id="reviewsLoopContainer" style="max-width: 100%; margin: 0 auto; overflow: hidden; position: relative;">
         <!-- Review 1 -->
-        <div class="glass-card review-card"
-          style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
           <div>
-            <div style="display: flex; gap: 4px; margin-bottom: 16px; color: #fbbf24; font-size: 1.1rem;">
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
               ★★★★★
             </div>
             <p
-              style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; font-style: italic; margin-bottom: 24px;">
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
               "Sarthi AI helped me rebuild my resume and prepare for technical interviews. The skill assessment badges
               gave me the edge I needed to land my dream job!"
             </p>
           </div>
           <div
-            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
             <div
-              style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; color: #fff;">
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
               AP
             </div>
             <div>
-              <h4 style="font-size: 0.95rem; font-weight: 600; margin: 0;">Aisha Patel</h4>
-              <p style="font-size: 0.78rem; color: var(--text-dark); margin: 0;">Full Stack Engineer</p>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Aisha Patel</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Full Stack Engineer</p>
             </div>
           </div>
         </div>
 
         <!-- Review 2 -->
-        <div class="glass-card review-card"
-          style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
           <div>
-            <div style="display: flex; gap: 4px; margin-bottom: 16px; color: #fbbf24; font-size: 1.1rem;">
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
               ★★★★★
             </div>
             <p
-              style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; font-style: italic; margin-bottom: 24px;">
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
               "Hiring has never been so seamless. The skill-verified applicants saved us countless hours of screening.
               The matchmaking scoring is incredibly accurate."
             </p>
           </div>
           <div
-            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
             <div
-              style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #d946ef); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; color: #fff;">
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #d946ef); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
               DC
             </div>
             <div>
-              <h4 style="font-size: 0.95rem; font-weight: 600; margin: 0;">David Chen</h4>
-              <p style="font-size: 0.78rem; color: var(--text-dark); margin: 0;">Director of Talent, InnovateTech</p>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">David Chen</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Director of Talent, InnovateTech</p>
             </div>
           </div>
         </div>
 
         <!-- Review 3 -->
-        <div class="glass-card review-card"
-          style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
           <div>
-            <div style="display: flex; gap: 4px; margin-bottom: 16px; color: #fbbf24; font-size: 1.1rem;">
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
               ★★★★★
             </div>
             <p
-              style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; font-style: italic; margin-bottom: 24px;">
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
               "The conversational companion, Sarthi, guided me through career roadmap recommendations that perfectly
               matched my portfolio. Extremely helpful!"
             </p>
           </div>
           <div
-            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
             <div
-              style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #3b82f6); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; color: #fff;">
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #3b82f6); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
               MT
             </div>
             <div>
-              <h4 style="font-size: 0.95rem; font-weight: 600; margin: 0;">Marcus Thompson</h4>
-              <p style="font-size: 0.78rem; color: var(--text-dark); margin: 0;">UX Designer</p>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Marcus Thompson</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">UX Designer</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 4 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "JobSarthi's automated pipeline is pure gold. It matches high-intent seekers directly with our stack requirements, cutting time-to-hire by 50%."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #ec4899); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              RM
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Rohan Malhotra</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Engineering Lead, FinSphere</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 5 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The mock AI interviews are extremely realistic. The constructive, real-time feedback helped me overcome my interview anxiety and land my current role."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              PS
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Priya Sharma</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Product Manager</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 6 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "We hired three senior developers through JobSarthi in under two weeks. The platform's automated skills verification makes it a game-changer for engineering teams."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #d946ef); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              LG
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Liam Gallagher</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Talent Acquisition Lead, CloudNexus</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 7 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The personalized job recommendations are spot on. I didn't have to scroll through hundreds of irrelevant postings; JobSarthi matched me directly to fitting roles."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #3b82f6); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              AS
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Ananya Sen</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Data Analyst</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 8 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The recruiter interface is simple yet powerful. Seeing pre-assessed candidates with transparent breakdown scores is exactly what modern hiring needs."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #10b981); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              SJ
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Sarah Jenkins</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">HR Director, CoreTech Solutions</p>
             </div>
           </div>
         </div>
@@ -1373,10 +1499,45 @@
         let currentClickOpacity = 0;
         let isLoopRunning = false;
 
+        // Cached DOM Elements
+        let cachedSlides = [];
+        let cachedDots = [];
+        let sarthiScrollSectionEl = null;
+        let floatingBtnEl = null;
+        let smallContentEl = null;
+        let expandedContentEl = null;
+        let clickContentEl = null;
+
+        // Cached Dimensions
+        let cachedWindowWidth = window.innerWidth;
+        let cachedWindowHeight = window.innerHeight;
+        let cachedSectionTopDoc = 0;
+        let cachedMaxScroll = 0;
+
+        function updateCachedSarthiDimensions() {
+          cachedWindowWidth = window.innerWidth;
+          cachedWindowHeight = window.innerHeight;
+          sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
+          if (sarthiScrollSectionEl) {
+            const rect = sarthiScrollSectionEl.getBoundingClientRect();
+            cachedSectionTopDoc = rect.top + window.scrollY;
+          }
+          cachedMaxScroll = document.documentElement.scrollHeight - cachedWindowHeight;
+        }
+
+        function cacheSarthiElements() {
+          cachedSlides = Array.from(document.querySelectorAll('#sarthiSlideTrack .sarthi-slide'));
+          cachedDots = Array.from(document.querySelectorAll('#sarthiPanelDots .sarthi-dot'));
+          sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
+          floatingBtnEl = document.getElementById('floatingSarthiBtn');
+          smallContentEl = document.getElementById('floatingSmallContent');
+          expandedContentEl = document.getElementById('floatingExpandedContent');
+          clickContentEl = document.getElementById('clickExpandedContent');
+        }
+
         function updateSarthiSlideMobile(index) {
           index = Math.max(0, Math.min(3, index));
-          const slides = document.querySelectorAll('#sarthiSlideTrack .sarthi-slide');
-          slides.forEach((slide, idx) => {
+          cachedSlides.forEach((slide, idx) => {
             if (idx === index) {
               slide.style.opacity = '1';
               slide.style.pointerEvents = 'auto';
@@ -1386,8 +1547,7 @@
             }
           });
 
-          const dots = document.querySelectorAll('#sarthiPanelDots .sarthi-dot');
-          dots.forEach((dot, idx) => {
+          cachedDots.forEach((dot, idx) => {
             if (idx === index) {
               dot.classList.add('active');
               dot.style.width = '28px';
@@ -1411,9 +1571,8 @@
             event.preventDefault();
             event.stopPropagation();
           }
-          const target = document.getElementById('sarthi-scroll-section');
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth' });
+          if (sarthiScrollSectionEl) {
+            sarthiScrollSectionEl.scrollIntoView({ behavior: 'smooth' });
           }
         }
 
@@ -1429,8 +1588,8 @@
         const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
 
         function updateSarthiScrollAnimation() {
-          const W = window.innerWidth;
-          const H = window.innerHeight;
+          const W = cachedWindowWidth;
+          const H = cachedWindowHeight;
 
           let targetWidth, targetHeight, targetX, targetY;
           let targetSmallOpacity = 0;
@@ -1475,88 +1634,73 @@
           currentScrollOpacity = lerp(currentScrollOpacity, targetScrollOpacity, 0.32);
           currentClickOpacity = lerp(currentClickOpacity, targetClickOpacity, 0.32);
 
-          const floatingBtn = document.getElementById('floatingSarthiBtn');
-          const smallContent = document.getElementById('floatingSmallContent');
-          const expandedContent = document.getElementById('floatingExpandedContent');
-          const clickContent = document.getElementById('clickExpandedContent');
-
-          if (floatingBtn) {
-            floatingBtn.style.width = `${currentWidth}px`;
-            floatingBtn.style.height = `${currentHeight}px`;
-            floatingBtn.style.transform = `translate(${currentX}px, ${currentY}px)`;
+          if (floatingBtnEl) {
+            floatingBtnEl.style.width = `${currentWidth}px`;
+            floatingBtnEl.style.height = `${currentHeight}px`;
+            floatingBtnEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
 
             if (sarthiMode === 'minimized') {
-              floatingBtn.style.borderRadius = '27px';
-              floatingBtn.style.background = 'var(--sarthi-bg-minimized)';
+              floatingBtnEl.style.borderRadius = '27px';
+              floatingBtnEl.style.background = 'var(--sarthi-bg-minimized)';
             } else {
-              floatingBtn.style.borderRadius = '24px';
-              floatingBtn.style.background = 'var(--sarthi-bg-expanded)';
+              floatingBtnEl.style.borderRadius = '24px';
+              floatingBtnEl.style.background = 'var(--sarthi-bg-expanded)';
             }
           }
 
-          if (smallContent) {
-            smallContent.style.opacity = currentSmallOpacity;
-            smallContent.style.pointerEvents = currentSmallOpacity > 0.5 ? 'auto' : 'none';
+          if (smallContentEl) {
+            smallContentEl.style.opacity = currentSmallOpacity;
+            smallContentEl.style.pointerEvents = currentSmallOpacity > 0.5 ? 'auto' : 'none';
           }
-          if (expandedContent) {
-            expandedContent.style.opacity = currentScrollOpacity;
-            expandedContent.style.pointerEvents = currentScrollOpacity > 0.5 ? 'auto' : 'none';
+          if (expandedContentEl) {
+            expandedContentEl.style.opacity = currentScrollOpacity;
+            expandedContentEl.style.pointerEvents = currentScrollOpacity > 0.5 ? 'auto' : 'none';
           }
-          if (clickContent) {
-            clickContent.style.opacity = currentClickOpacity;
-            clickContent.style.pointerEvents = currentClickOpacity > 0.5 ? 'auto' : 'none';
+          if (clickContentEl) {
+            clickContentEl.style.opacity = currentClickOpacity;
+            clickContentEl.style.pointerEvents = currentClickOpacity > 0.5 ? 'auto' : 'none';
           }
 
           // Slide track fading logic during scroll mode
           if (sarthiMode === 'scrollExpanded') {
-            const scrollSection = document.getElementById('sarthi-scroll-section');
-            if (scrollSection) {
-              const rect = scrollSection.getBoundingClientRect();
-              const viewHeight = window.innerHeight;
-              const sectionTopDoc = rect.top + window.scrollY;
+            const start = cachedSectionTopDoc - H + 200;
+            const end = cachedMaxScroll - 30;
 
-              const maxScroll = document.documentElement.scrollHeight - viewHeight;
-              const start = sectionTopDoc - viewHeight + 200;
-              const end = maxScroll - 30;
+            if (end > start) {
+              const totalScrollDistance = end - start;
+              const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
+              const expansionThreshold = 380;
 
-              if (end > start) {
-                const totalScrollDistance = end - start;
-                const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
-                const expansionThreshold = 380;
+              if (scrollOffset > expansionThreshold) {
+                const remaining = totalScrollDistance - expansionThreshold;
+                const slideProgress = Math.max(0, Math.min(0.99, (scrollOffset - expansionThreshold) / remaining));
+                const activeIdx = Math.floor(slideProgress * 4);
 
-                if (scrollOffset > expansionThreshold) {
-                  const remaining = totalScrollDistance - expansionThreshold;
-                  const slideProgress = Math.max(0, Math.min(0.99, (scrollOffset - expansionThreshold) / remaining));
-                  const activeIdx = Math.floor(slideProgress * 4);
+                cachedSlides.forEach((slide, idx) => {
+                  if (idx === activeIdx) {
+                    slide.style.opacity = '1';
+                    slide.style.pointerEvents = 'auto';
+                  } else {
+                    slide.style.opacity = '0';
+                    slide.style.pointerEvents = 'none';
+                  }
+                });
 
-                  const slides = document.querySelectorAll('#sarthiSlideTrack .sarthi-slide');
-                  slides.forEach((slide, idx) => {
-                    if (idx === activeIdx) {
-                      slide.style.opacity = '1';
-                      slide.style.pointerEvents = 'auto';
-                    } else {
-                      slide.style.opacity = '0';
-                      slide.style.pointerEvents = 'none';
-                    }
-                  });
-
-                  const dots = document.querySelectorAll('#sarthiPanelDots .sarthi-dot');
-                  dots.forEach((dot, idx) => {
-                    if (idx === activeIdx) {
-                      dot.style.width = '28px';
-                      dot.style.height = '10px';
-                      dot.style.borderRadius = '5px';
-                      dot.style.background = '#06b6d4';
-                      dot.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.8)';
-                    } else {
-                      dot.style.width = '10px';
-                      dot.style.height = '10px';
-                      dot.style.borderRadius = '5px';
-                      dot.style.background = 'var(--sarthi-dot-inactive)';
-                      dot.style.boxShadow = 'none';
-                    }
-                  });
-                }
+                cachedDots.forEach((dot, idx) => {
+                  if (idx === activeIdx) {
+                    dot.style.width = '28px';
+                    dot.style.height = '10px';
+                    dot.style.borderRadius = '5px';
+                    dot.style.background = '#06b6d4';
+                    dot.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.8)';
+                  } else {
+                    dot.style.width = '10px';
+                    dot.style.height = '10px';
+                    dot.style.borderRadius = '5px';
+                    dot.style.background = 'var(--sarthi-dot-inactive)';
+                    dot.style.boxShadow = 'none';
+                  }
+                });
               }
             }
           }
@@ -1585,18 +1729,16 @@
         }
 
         window.addEventListener('scroll', () => {
-          const isMobile = window.innerWidth <= 768;
+          const isMobile = cachedWindowWidth <= 768;
           if (isMobile) {
-            const sarthiScrollSection = document.getElementById('sarthi-scroll-section');
-            const floatingBtn = document.getElementById('floatingSarthiBtn');
-            if (sarthiScrollSection && floatingBtn) {
-              const rect = sarthiScrollSection.getBoundingClientRect();
-              if (rect.top < window.innerHeight - 100) {
-                floatingBtn.style.opacity = '0';
-                floatingBtn.style.pointerEvents = 'none';
+            if (sarthiScrollSectionEl && floatingBtnEl) {
+              const rectTop = cachedSectionTopDoc - window.scrollY;
+              if (rectTop < cachedWindowHeight - 100) {
+                floatingBtnEl.style.opacity = '0';
+                floatingBtnEl.style.pointerEvents = 'none';
               } else {
-                floatingBtn.style.opacity = '1';
-                floatingBtn.style.pointerEvents = 'auto';
+                floatingBtnEl.style.opacity = '1';
+                floatingBtnEl.style.pointerEvents = 'auto';
               }
             }
             return;
@@ -1611,23 +1753,19 @@
             return;
           }
 
-          const scrollSection = document.getElementById('sarthi-scroll-section');
-          if (!scrollSection) return;
+          if (cachedMaxScroll > 0) {
+            const start = cachedSectionTopDoc - cachedWindowHeight + 200;
+            const end = cachedMaxScroll - 30;
 
-          const rect = scrollSection.getBoundingClientRect();
-          const viewHeight = window.innerHeight;
-          const sectionTopDoc = rect.top + window.scrollY;
+            if (end > start) {
+              const totalScrollDistance = end - start;
+              const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
 
-          const maxScroll = document.documentElement.scrollHeight - viewHeight;
-          const start = sectionTopDoc - viewHeight + 200;
-          const end = maxScroll - 30;
-
-          if (end > start) {
-            const totalScrollDistance = end - start;
-            const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
-
-            if (scrollOffset > 0) {
-              sarthiMode = 'scrollExpanded';
+              if (scrollOffset > 0) {
+                sarthiMode = 'scrollExpanded';
+              } else {
+                sarthiMode = 'minimized';
+              }
             } else {
               sarthiMode = 'minimized';
             }
@@ -1639,15 +1777,21 @@
             isLoopRunning = true;
             requestAnimationFrame(updateSarthiScrollAnimation);
           }
-        });
+        }, { passive: true });
+
+        window.addEventListener('resize', () => {
+          updateCachedSarthiDimensions();
+        }, { passive: true });
 
         window.addEventListener('DOMContentLoaded', () => {
-          const isMobile = window.innerWidth <= 768;
+          cacheSarthiElements();
+          updateCachedSarthiDimensions();
+
+          const isMobile = cachedWindowWidth <= 768;
           if (isMobile) {
             // Move sarthi panel below review section statically
-            const sarthiScrollSection = document.getElementById('sarthi-scroll-section');
-            const panel = document.getElementById('floatingExpandedContent');
-            if (sarthiScrollSection && panel) {
+            const panel = expandedContentEl;
+            if (sarthiScrollSectionEl && panel) {
               panel.style.position = 'relative';
               panel.style.width = '100%';
               panel.style.maxWidth = '850px';
@@ -1664,17 +1808,16 @@
               // Add Gemini border class
               panel.classList.add('gemini-pill-border');
 
-              sarthiScrollSection.innerHTML = '';
-              sarthiScrollSection.appendChild(panel);
-              sarthiScrollSection.style.minHeight = 'auto';
-              sarthiScrollSection.style.height = 'auto';
-              sarthiScrollSection.style.padding = '40px 0';
+              sarthiScrollSectionEl.innerHTML = '';
+              sarthiScrollSectionEl.appendChild(panel);
+              sarthiScrollSectionEl.style.minHeight = 'auto';
+              sarthiScrollSectionEl.style.height = 'auto';
+              sarthiScrollSectionEl.style.padding = '40px 0';
               
               // Ensure minimized state elements on floatingSarthiBtn are visible
-              const smallContent = document.getElementById('floatingSmallContent');
-              if (smallContent) {
-                smallContent.style.opacity = '1';
-                smallContent.style.pointerEvents = 'auto';
+              if (smallContentEl) {
+                smallContentEl.style.opacity = '1';
+                smallContentEl.style.pointerEvents = 'auto';
               }
             }
           } else {
@@ -1683,41 +1826,35 @@
             }, 100);
           }
 
-          document.querySelectorAll('#sarthiPanelDots .sarthi-dot').forEach(dot => {
+          cachedDots.forEach(dot => {
             dot.addEventListener('click', (e) => {
               e.stopPropagation();
               const targetIdx = parseInt(dot.getAttribute('data-index'));
               if (isNaN(targetIdx)) return;
 
-              if (window.innerWidth <= 768) {
+              if (cachedWindowWidth <= 768) {
                 updateSarthiSlideMobile(targetIdx);
                 return;
               }
 
-              const scrollSection = document.getElementById('sarthi-scroll-section');
-              if (!scrollSection) return;
+              if (cachedMaxScroll > 0) {
+                const start = cachedSectionTopDoc - cachedWindowHeight + 200;
+                const end = cachedMaxScroll - 30;
 
-              const rect = scrollSection.getBoundingClientRect();
-              const viewHeight = window.innerHeight;
-              const sectionTopDoc = rect.top + window.scrollY;
+                if (end > start) {
+                  const totalScrollDistance = end - start;
+                  const expansionThreshold = 380;
+                  const remaining = totalScrollDistance - expansionThreshold;
 
-              const maxScroll = document.documentElement.scrollHeight - viewHeight;
-              const start = sectionTopDoc - viewHeight + 200;
-              const end = maxScroll - 30;
+                  const targetSlideProgress = targetIdx * 0.25 + 0.125;
+                  const targetScrollOffset = expansionThreshold + targetSlideProgress * remaining;
+                  const targetScrollY = start + targetScrollOffset;
 
-              if (end > start) {
-                const totalScrollDistance = end - start;
-                const expansionThreshold = 380;
-                const remaining = totalScrollDistance - expansionThreshold;
-
-                const targetSlideProgress = targetIdx * 0.25 + 0.125;
-                const targetScrollOffset = expansionThreshold + targetSlideProgress * remaining;
-                const targetScrollY = start + targetScrollOffset;
-
-                window.scrollTo({
-                  top: targetScrollY,
-                  behavior: 'smooth'
-                });
+                  window.scrollTo({
+                    top: targetScrollY,
+                    behavior: 'smooth'
+                  });
+                }
               }
             });
           });
@@ -1737,7 +1874,7 @@
               const diffX = touchEndX - touchStartX;
               
               if (Math.abs(diffX) > 50) {
-                if (window.innerWidth <= 768) {
+                if (cachedWindowWidth <= 768) {
                   const activeDot = document.querySelector('#sarthiPanelDots .sarthi-dot.active');
                   let currentIdx = activeDot ? parseInt(activeDot.getAttribute('data-index')) : 0;
                   if (isNaN(currentIdx)) currentIdx = 0;
@@ -1755,45 +1892,39 @@
                   return;
                 }
 
-                const scrollSection = document.getElementById('sarthi-scroll-section');
-                if (!scrollSection) return;
+                if (cachedMaxScroll > 0) {
+                  const start = cachedSectionTopDoc - cachedWindowHeight + 200;
+                  const end = cachedMaxScroll - 30;
 
-                const rect = scrollSection.getBoundingClientRect();
-                const viewHeight = window.innerHeight;
-                const sectionTopDoc = rect.top + window.scrollY;
+                  if (end > start) {
+                    const totalScrollDistance = end - start;
+                    const expansionThreshold = 380;
+                    const remaining = totalScrollDistance - expansionThreshold;
+                    const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
+                    
+                    let currentIdx = 0;
+                    if (scrollOffset > expansionThreshold) {
+                      const slideProgress = Math.max(0, Math.min(0.99, (scrollOffset - expansionThreshold) / remaining));
+                      currentIdx = Math.floor(slideProgress * 4);
+                    }
+                    
+                    let targetIdx = currentIdx;
+                    if (diffX < -50) { // Swiped left -> Next slide
+                      if (targetIdx < 3) targetIdx++;
+                    } else if (diffX > 50) { // Swiped right -> Previous slide
+                      if (targetIdx > 0) targetIdx--;
+                    }
+                    
+                    if (targetIdx !== currentIdx) {
+                      const targetSlideProgress = targetIdx * 0.25 + 0.125;
+                      const targetScrollOffset = expansionThreshold + targetSlideProgress * remaining;
+                      const targetScrollY = start + targetScrollOffset;
 
-                const maxScroll = document.documentElement.scrollHeight - viewHeight;
-                const start = sectionTopDoc - viewHeight + 200;
-                const end = maxScroll - 30;
-
-                if (end > start) {
-                  const totalScrollDistance = end - start;
-                  const expansionThreshold = 380;
-                  const remaining = totalScrollDistance - expansionThreshold;
-                  const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
-                  
-                  let currentIdx = 0;
-                  if (scrollOffset > expansionThreshold) {
-                    const slideProgress = Math.max(0, Math.min(0.99, (scrollOffset - expansionThreshold) / remaining));
-                    currentIdx = Math.floor(slideProgress * 4);
-                  }
-                  
-                  let targetIdx = currentIdx;
-                  if (diffX < -50) { // Swiped left -> Next slide
-                    if (targetIdx < 3) targetIdx++;
-                  } else if (diffX > 50) { // Swiped right -> Previous slide
-                    if (targetIdx > 0) targetIdx--;
-                  }
-                  
-                  if (targetIdx !== currentIdx) {
-                    const targetSlideProgress = targetIdx * 0.25 + 0.125;
-                    const targetScrollOffset = expansionThreshold + targetSlideProgress * remaining;
-                    const targetScrollY = start + targetScrollOffset;
-
-                    window.scrollTo({
-                      top: targetScrollY,
-                      behavior: 'smooth'
-                    });
+                      window.scrollTo({
+                        top: targetScrollY,
+                        behavior: 'smooth'
+                      });
+                    }
                   }
                 }
               }
@@ -1828,29 +1959,50 @@
             }
           });
 
-          // Update active nav link on scroll
-          window.addEventListener('scroll', () => {
-            let currentSectionId = 'hero';
-            const sections = ['hero', 'portal', 'reviews', 'sarthi-scroll-section'];
-
-            sections.forEach(id => {
+          // Update active nav link on scroll using high-performance cached offsets
+          let sectionOffsets = {};
+          function updateSectionOffsets() {
+            ['hero', 'portal', 'reviews', 'sarthi-scroll-section'].forEach(id => {
               const section = document.getElementById(id);
               if (section) {
                 const rect = section.getBoundingClientRect();
-                if (rect.top <= 120) {
-                  currentSectionId = id;
-                }
-              }
-            });
-
-            navLinks.forEach(link => {
-              if (link.getAttribute('href') === `#${currentSectionId}`) {
-                link.classList.add('active');
+                sectionOffsets[id] = rect.top + window.scrollY;
               } else {
-                link.classList.remove('active');
+                sectionOffsets[id] = 0;
               }
             });
-          });
+          }
+          window.addEventListener('resize', updateSectionOffsets, { passive: true });
+          window.addEventListener('load', updateSectionOffsets, { passive: true });
+          setTimeout(updateSectionOffsets, 250);
+
+          let navTicking = false;
+          window.addEventListener('scroll', () => {
+            if (!navTicking) {
+              window.requestAnimationFrame(() => {
+                let currentSectionId = 'hero';
+                const currentScroll = window.scrollY;
+
+                ['hero', 'portal', 'reviews', 'sarthi-scroll-section'].forEach(id => {
+                  const offset = sectionOffsets[id] || 0;
+                  if (currentScroll >= offset - 150) {
+                    currentSectionId = id;
+                  }
+                });
+
+                const activeLinks = document.querySelectorAll('.dock-item, .nav-link');
+                activeLinks.forEach(link => {
+                  if (link.getAttribute('href') === `#${currentSectionId}`) {
+                    link.classList.add('active');
+                  } else {
+                    link.classList.remove('active');
+                  }
+                });
+                navTicking = false;
+              });
+              navTicking = true;
+            }
+          }, { passive: true });
 
           function setupCarousel(type) {
             const container = document.querySelector(`.carousel-container[data-carousel="${type}"]`);
@@ -1913,8 +2065,76 @@
         });
       </script>
 
+      <!-- GSAP and ScrollTrigger -->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+      <!-- Custom SplitText and VariableProximity Scripts -->
+      <script src="js/SplitText.js"></script>
+      <script src="js/VariableProximity.js"></script>
+      <script src="js/LogoLoop.js"></script>
+
       <!-- JobSarthi Shared Header Script -->
       <script src="js/header.js"></script>
+
+      <!-- Initialize SplitText & VariableProximity for Hero introductory text -->
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          const headlineEl = document.getElementById('heroHeadline');
+          const subtitleEl = document.getElementById('heroSubtitle');
+
+          if (headlineEl) {
+            new SplitText(headlineEl, {
+              delay: 45,
+              duration: 0.8,
+              ease: 'power3.out',
+              from: { opacity: 0, y: 30 },
+              to: { opacity: 1, y: 0 },
+              onLetterAnimationComplete: () => {
+                new VariableProximity(headlineEl, {
+                  fromFontVariationSettings: "'wght' 400, 'opsz' 9",
+                  toFontVariationSettings: "'wght' 1000, 'opsz' 40",
+                  container: document.querySelector('.hero-left'),
+                  radius: 120,
+                  falloff: 'linear'
+                });
+              }
+            });
+          }
+
+          if (subtitleEl) {
+            new SplitText(subtitleEl, {
+              delay: 12,
+              duration: 0.8,
+              ease: 'power3.out',
+              from: { opacity: 0, y: 20 },
+              to: { opacity: 1, y: 0 },
+              onLetterAnimationComplete: () => {
+                new VariableProximity(subtitleEl, {
+                  fromFontVariationSettings: "'wght' 400, 'opsz' 9",
+                  toFontVariationSettings: "'wght' 800, 'opsz' 30",
+                  container: document.querySelector('.hero-left'),
+                  radius: 100,
+                  falloff: 'linear'
+                });
+              }
+            });
+          }
+
+          // Initialize LogoLoop for Success Reviews ticker
+          const reviewsContainer = document.getElementById('reviewsLoopContainer');
+          if (reviewsContainer) {
+            new LogoLoop(reviewsContainer, {
+              speed: 45,
+              gap: 24,
+              itemWidth: 340,
+              hoverSpeed: 0,
+              scaleOnHover: true,
+              fadeOut: true
+            });
+          }
+        });
+      </script>
 
 </body>
 

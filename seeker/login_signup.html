@@ -267,13 +267,13 @@
         const fullName = document.getElementById('signupName').value;
         const email = document.getElementById('signupEmail').value;
         const password = document.getElementById('signupPassword').value;
-        
+
         body = { fullName, email, password, role: 'jobseeker' };
         endpoint = '/api/auth/signup';
       } else {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
-        
+
         body = { email, password };
         endpoint = '/api/auth/login';
       }
@@ -307,7 +307,7 @@
         window.location.href = 'index.html';
       }
     }
-  
+
     // Liquid glass spotlight coordinates tracking
     document.addEventListener('mousemove', (e) => {
       const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');
@@ -319,7 +319,7 @@
         card.style.setProperty('--mouse-y', `${y}px`);
       });
     });
-</script>
+  </script>
 
 </body>
 
