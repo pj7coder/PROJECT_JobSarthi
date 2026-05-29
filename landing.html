@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/landing.css">
   <link rel="stylesheet" href="css/VariableProximity.css">
   <link rel="stylesheet" href="css/LogoLoop.css">
+  <link rel="stylesheet" href="css/Aurora.css">
 
   <style>
     /* Specific layouts and alignments for landing page components */
@@ -588,15 +589,8 @@
 
 <body class="landing-body">
 
-  <!-- Liquid Glass Backdrop Blobs -->
-  <div class="liquid-blob-container">
-    <div class="liquid-blob blob-1"></div>
-    <div class="liquid-blob blob-2"></div>
-    <div class="liquid-blob blob-3"></div>
-  </div>
-
-  <!-- Interactive Subtle Network Background -->
-  <canvas id="networkCanvas" style="opacity: 0.22;"></canvas>
+  <!-- Aurora Canvas Background -->
+  <div id="auroraBg" class="aurora-bg-container"></div>
 
   <!-- Header Wrapper (loaded dynamically via js/header.js) -->
   <div class="header-wrapper"></div>
@@ -2122,6 +2116,23 @@
               hoverSpeed: 0,
               scaleOnHover: true,
               fadeOut: true
+            });
+          }
+        });
+      </script>
+
+      <!-- Initialize WebGL Aurora Background Component -->
+      <script type="module">
+        import Aurora from './js/Aurora.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+          const container = document.getElementById('auroraBg');
+          if (container) {
+            new Aurora(container, {
+              colorStops: ["#6784ff", "#b575f2", "#ff27f3"],
+              blend: 0.5,
+              amplitude: 1.0,
+              speed: 0.5
             });
           }
         });
