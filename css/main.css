@@ -344,6 +344,17 @@ body.light-theme .header {
   letter-spacing: -0.02em;
 }
 
+.logo span {
+  display: inline-block;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), letter-spacing 0.3s ease;
+  transform-origin: left center;
+}
+
+.logo:hover span {
+  transform: scale(1.08);
+  letter-spacing: 0.04em;
+}
+
 .logo-icon {
   width: 24px;
   height: 24px;
