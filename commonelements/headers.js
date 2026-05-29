@@ -78,6 +78,26 @@ window.headerLandingHTML = `
                 <span class="slider-round"></span>
               </label>
             </div>
+            <div class="setting-option" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+              <div class="setting-info" style="text-align: left;">
+                <span class="setting-title" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Splash Cursor</span>
+                <span class="setting-desc" style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Toggle fluid cursor effects</span>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="splashCursorToggleCheckbox" onclick="toggleSplashCursor(this.checked)">
+                <span class="slider-round"></span>
+              </label>
+            </div>
+            <div class="setting-option" id="splashDensityOption" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 8px;">
+              <div class="setting-info" style="text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <span class="setting-title" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Cursor Trail Density</span>
+                  <span class="setting-desc" style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Adjust fluid trail thickness</span>
+                </div>
+                <span id="splashDensityVal" style="font-size: 0.8rem; font-weight: 700; color: var(--accent-secondary) !important;">7</span>
+              </div>
+              <input type="range" min="1" max="10" step="1" value="7" style="width: 100%; cursor: pointer;" id="splashDensitySlider" oninput="updateSplashDensity(this.value)">
+            </div>
           </div>
         </div>
       </div>
@@ -168,6 +188,26 @@ window.headerSeekerHTML = `
                 <input type="checkbox" id="themeToggleCheckbox" onclick="toggleTheme()">
                 <span class="slider-round"></span>
               </label>
+            </div>
+            <div class="setting-option" style="border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: 12px;">
+              <div class="setting-info">
+                <span class="setting-title">Splash Cursor</span>
+                <span class="setting-desc">Toggle fluid cursor effects</span>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="splashCursorToggleCheckbox" onclick="toggleSplashCursor(this.checked)">
+                <span class="slider-round"></span>
+              </label>
+            </div>
+            <div class="setting-option" id="splashDensityOption" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 8px;">
+              <div class="setting-info" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div>
+                  <span class="setting-title">Cursor Trail Density</span>
+                  <span class="setting-desc">Adjust fluid trail thickness</span>
+                </div>
+                <span id="splashDensityVal" style="font-weight: 700; color: var(--accent-secondary) !important;">7</span>
+              </div>
+              <input type="range" min="1" max="10" step="1" value="7" style="width: 100%; cursor: pointer;" id="splashDensitySlider" oninput="updateSplashDensity(this.value)">
             </div>
           </div>
         </div>
@@ -275,6 +315,26 @@ window.headerRecruiterHTML = `
                 <input type="checkbox" id="themeToggleCheckbox" onclick="toggleTheme()">
                 <span class="slider-round"></span>
               </label>
+            </div>
+            <div class="setting-option" style="border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: 12px;">
+              <div class="setting-info">
+                <span class="setting-title">Splash Cursor</span>
+                <span class="setting-desc">Toggle fluid cursor effects</span>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="splashCursorToggleCheckbox" onclick="toggleSplashCursor(this.checked)">
+                <span class="slider-round"></span>
+              </label>
+            </div>
+            <div class="setting-option" id="splashDensityOption" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 8px;">
+              <div class="setting-info" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div>
+                  <span class="setting-title">Cursor Trail Density</span>
+                  <span class="setting-desc">Adjust fluid trail thickness</span>
+                </div>
+                <span id="splashDensityVal" style="font-weight: 700; color: var(--accent-secondary) !important;">7</span>
+              </div>
+              <input type="range" min="1" max="10" step="1" value="7" style="width: 100%; cursor: pointer;" id="splashDensitySlider" oninput="updateSplashDensity(this.value)">
             </div>
           </div>
         </div>

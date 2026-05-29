@@ -95,10 +95,10 @@ body.light-theme .dock-item.active {
 
 /* Dock item label style inside the pill */
 .dock-name {
-  font-size: 0.74rem;
+  font-size: 0.71rem;
   font-weight: 600;
   color: var(--text-muted);
-  margin-left: 8px;
+  margin-left: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

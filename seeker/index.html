@@ -423,7 +423,7 @@
   </main>
 
   <!-- Unified Floating Sarthi AI Pill & Panel -->
-  <div id="floatingSarthiBtn" onclick="onFloatingSarthiClick(event)" class="gemini-pill-border moved-up-mobile"
+  <div id="floatingSarthiBtn" onclick="onFloatingSarthiClick(event)" class="gemini-pill-border moved-up-mobile glare-hover glare-hover--play-once"
     style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;">
     <!-- Small State Content -->
     <div id="floatingSmallContent"
@@ -625,6 +625,7 @@
         floatingBtn.style.height = `${Math.min(460, H - 80)}px`;
         floatingBtn.style.borderRadius = '24px';
         floatingBtn.style.background = 'var(--sarthi-bg-expanded)';
+        floatingBtn.classList.add('pane-open');
 
         smallContent.style.opacity = '0';
         smallContent.style.pointerEvents = 'none';
@@ -644,6 +645,7 @@
       floatingBtn.style.height = '54px';
       floatingBtn.style.borderRadius = '27px';
       floatingBtn.style.background = 'var(--sarthi-bg-minimized)';
+      floatingBtn.classList.remove('pane-open');
 
       smallContent.style.opacity = '1';
       smallContent.style.pointerEvents = 'auto';

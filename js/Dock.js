@@ -23,9 +23,9 @@ class HeaderDock {
   constructor(navElement, options = {}) {
     if (!navElement) return;
     this.nav = navElement;
-    this.baseWidth = options.baseWidth || 115;
+    this.baseWidth = options.baseWidth || 100;
     this.baseHeight = options.baseHeight || 32;
-    this.magnifiedWidth = options.magnifiedWidth || 145;
+    this.magnifiedWidth = options.magnifiedWidth || 125;
     this.magnifiedHeight = options.magnifiedHeight || 36;
     this.distance = options.distance || 120;
     this.active = false;

@@ -43,6 +43,37 @@ document.addEventListener("DOMContentLoaded", () => {
         const checkbox = document.getElementById('themeToggleCheckbox');
         if (checkbox) checkbox.checked = true;
       }
+
+      // 3b. Initialize splash cursor settings state
+      const splashEnabled = localStorage.getItem('splash_cursor_enabled') !== 'false';
+      const splashCheckboxes = document.querySelectorAll('#splashCursorToggleCheckbox');
+      splashCheckboxes.forEach(cb => {
+        cb.checked = splashEnabled;
+      });
+      
+      const splashDensitySliderVal = parseFloat(localStorage.getItem('splash_cursor_density_slider') || '7');
+      const splashSliders = document.querySelectorAll('#splashDensitySlider');
+      splashSliders.forEach(slider => {
+        slider.value = splashDensitySliderVal;
+      });
+      
+      const splashValLabels = document.querySelectorAll('#splashDensityVal');
+      splashValLabels.forEach(label => {
+        label.textContent = splashDensitySliderVal.toFixed(0);
+      });
+
+      const densityOptions = document.querySelectorAll('#splashDensityOption');
+      densityOptions.forEach(opt => {
+        opt.style.display = splashEnabled ? 'flex' : 'none';
+      });
+
+      // Inject SplashCursor script dynamically if it hasn't been loaded already
+      if (!document.getElementById('splashCursorScript')) {
+        const splashScript = document.createElement('script');
+        splashScript.id = 'splashCursorScript';
+        splashScript.src = prefix + 'js/SplashCursor.js';
+        document.body.appendChild(splashScript);
+      }
       
       // 4. Identify role and check authentication
       const isLanding = !isRecruiter && !isSeeker;
@@ -200,12 +231,18 @@ document.addEventListener("DOMContentLoaded", () => {
             floatingBtn.style.opacity = '1';
             floatingBtn.style.pointerEvents = 'auto';
           }
+          if (window.resetAboutPhysics) {
+            window.resetAboutPhysics();
+          }
         } else {
           header.classList.add('about-active');
           lockScroll();
           if (floatingBtn) {
             floatingBtn.style.opacity = '0';
             floatingBtn.style.pointerEvents = 'none';
+          }
+          if (window.initAboutPhysics) {
+            window.initAboutPhysics();
           }
         }
       }
@@ -226,6 +263,9 @@ document.addEventListener("DOMContentLoaded", () => {
             if (floatingBtn) {
               floatingBtn.style.opacity = '1';
               floatingBtn.style.pointerEvents = 'auto';
+            }
+            if (window.resetAboutPhysics) {
+              window.resetAboutPhysics();
             }
           }
         }
@@ -280,6 +320,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const dockScript = document.createElement('script');
         dockScript.src = `${prefix}js/Dock.js?v=${Date.now()}`;
         document.head.appendChild(dockScript);
+      }
+      
+      // Inject AboutPhysics JS dynamically with cache busting
+      if (!document.querySelector('script[src*="AboutPhysics.js"]')) {
+        const physicsScript = document.createElement('script');
+        physicsScript.src = `${prefix}js/AboutPhysics.js?v=${Date.now()}`;
+        document.body.appendChild(physicsScript);
       }
 
       // Dispatch a custom event to notify components that header is loaded

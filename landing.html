@@ -13,12 +13,11 @@
   <link rel="stylesheet" href="css/landing.css">
   <link rel="stylesheet" href="css/VariableProximity.css">
   <link rel="stylesheet" href="css/LogoLoop.css">
-  <link rel="stylesheet" href="css/Aurora.css?v=1.0.3">
 
   <style>
     /* Specific layouts and alignments for landing page components */
     .landing-body {
-      background-color: transparent !important;
+      background-color: var(--bg-primary);
       position: relative;
       min-height: 100vh;
       overflow-x: hidden;
@@ -589,9 +588,6 @@
 
 <body class="landing-body">
 
-  <!-- Aurora Static Animated Background -->
-  <div id="auroraBackground"></div>
-
   <!-- Liquid Glass Backdrop Blobs -->
   <div class="liquid-blob-container">
     <div class="liquid-blob blob-1"></div>
@@ -1017,7 +1013,7 @@
   </div>
 
   <!-- Unified Floating Sarthi AI Pill & Panel -->
-  <div id="floatingSarthiBtn" onclick="onFloatingSarthiClick(event)" class="gemini-pill-border"
+  <div id="floatingSarthiBtn" onclick="onFloatingSarthiClick(event)" class="gemini-pill-border glare-hover glare-hover--play-once"
     style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); transition: background-color 0.3s, border-radius 0.3s;">
     <!-- Small State Content -->
     <div id="floatingSmallContent"
@@ -1646,9 +1642,11 @@
             if (sarthiMode === 'minimized') {
               floatingBtnEl.style.borderRadius = '27px';
               floatingBtnEl.style.background = 'var(--sarthi-bg-minimized)';
+              floatingBtnEl.classList.remove('pane-open');
             } else {
               floatingBtnEl.style.borderRadius = '24px';
               floatingBtnEl.style.background = 'var(--sarthi-bg-expanded)';
+              floatingBtnEl.classList.add('pane-open');
             }
           }
 
@@ -2084,8 +2082,6 @@
       <script src="js/SplitText.js"></script>
       <script src="js/VariableProximity.js"></script>
       <script src="js/LogoLoop.js"></script>
-      <!-- Aurora ES Module Script -->
-      <script type="module" src="js/Aurora.js?v=1.0.3"></script>
 
       <!-- JobSarthi Shared Header Script -->
       <script src="js/header.js"></script>
