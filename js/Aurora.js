@@ -149,9 +149,13 @@ class Aurora {
       delete geometry.attributes.uv;
     }
 
-    this.colorStopsArray = this.colorStops.map(hex => {
+    // Flatten color stops into a single 1D Float32Array (WebGL requirement)
+    this.colorStopsArray = new Float32Array(9);
+    this.colorStops.forEach((hex, i) => {
       const c = new Color(hex);
-      return [c.r, c.g, c.b];
+      this.colorStopsArray[i * 3 + 0] = c.r;
+      this.colorStopsArray[i * 3 + 1] = c.g;
+      this.colorStopsArray[i * 3 + 2] = c.b;
     });
 
     this.program = new Program(this.gl, {
