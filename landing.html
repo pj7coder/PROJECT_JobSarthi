@@ -1937,12 +1937,12 @@
           setupCarousel('finder');
           setupCarousel('recruiter');
 
-          // Smooth scroll navigation with offset for sticky header
-          const scrollLinks = document.querySelectorAll('a[href^="#"]');
-          scrollLinks.forEach(link => {
-            const targetId = link.getAttribute('href');
-            if (targetId && targetId.startsWith('#') && targetId.length > 1) {
-              link.addEventListener('click', (e) => {
+          // Smooth scroll navigation with event delegation (handles dynamic elements like Dock links)
+          document.addEventListener('click', (e) => {
+            const link = e.target.closest('a[href^="#"]');
+            if (link) {
+              const targetId = link.getAttribute('href');
+              if (targetId && targetId.startsWith('#') && targetId.length > 1) {
                 e.preventDefault();
                 const targetSection = document.querySelector(targetId);
                 if (targetSection) {
@@ -1955,7 +1955,7 @@
                     behavior: 'smooth'
                   });
                 }
-              });
+              }
             }
           });
 
