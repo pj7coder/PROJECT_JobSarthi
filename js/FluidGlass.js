@@ -211,6 +211,9 @@
   function onMouseEnter() {
     if (window.FluidGlassConfig.ENABLED) {
       lens.style.opacity = '1';
+      if (!animFrameId) {
+        physicsRenderLoop();
+      }
     }
   }
 
@@ -237,6 +240,29 @@
     currentY += vy;
 
     const speed = Math.sqrt(vx * vx + vy * vy);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // If the lens has completely settled close to target and returned to circular shape, pause the loop to reduce CPU load!
+    if (dist < 0.1 && speed < 0.05 && Math.abs(currentAngle) < 0.005 && Math.abs(currentStretch - 1) < 0.005) {
+      currentX = mouseX;
+      currentY = mouseY;
+      currentAngle = 0;
+      currentStretch = 1;
+      currentSquash = 1;
+      vx = 0;
+      vy = 0;
+
+      lens.style.left = `${currentX}px`;
+      lens.style.top = `${currentY}px`;
+      lens.style.transform = `translate(-50%, -50%) rotate(0rad) scale(1, 1)`;
+
+      lens.style.setProperty('--sheen-x', '0px');
+      lens.style.setProperty('--sheen-y', '0px');
+      lens.style.setProperty('--aberration-opacity', '0');
+
+      animFrameId = null; // Mark loop as paused
+      return;
+    }
 
     // Apply fluid warp stretch based on speed vector with smooth lerp interpolation
     let targetStretch = 1;

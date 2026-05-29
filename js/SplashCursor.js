@@ -648,12 +648,24 @@
   }
 
   let lastUpdateTime = Date.now();
+  let lastInputTime = Date.now();
   let colorUpdateTimer = 0.0;
 
   function updateFrame() {
     if (!isActive) return;
     const dt = calcDeltaTime();
     if (resizeCanvas()) initFramebuffers();
+
+    // Pause WebGL rendering loop if idle for over 3 seconds to reduce CPU/GPU load!
+    if (Date.now() - lastInputTime > 3000) {
+      if (gl) {
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+      }
+      animationFrameId = null; // Mark loop as paused
+      return;
+    }
+
     updateColors(dt);
     applyInputs();
     step(dt);
@@ -950,7 +962,16 @@
     return hash;
   }
 
+  function registerInput() {
+    lastInputTime = Date.now();
+    if (!animationFrameId && isActive) {
+      lastUpdateTime = Date.now();
+      updateFrame();
+    }
+  }
+
   function handleMouseDown(e) {
+    registerInput();
     let pointer = pointers[0];
     let posX = scaleByPixelRatio(e.clientX);
     let posY = scaleByPixelRatio(e.clientY);
@@ -960,6 +981,7 @@
 
   let firstMouseMoveHandled = false;
   function handleMouseMove(e) {
+    registerInput();
     let pointer = pointers[0];
     let posX = scaleByPixelRatio(e.clientX);
     let posY = scaleByPixelRatio(e.clientY);
@@ -973,6 +995,7 @@
   }
 
   function handleTouchStart(e) {
+    registerInput();
     const touches = e.targetTouches;
     let pointer = pointers[0];
     for (let i = 0; i < touches.length; i++) {
@@ -983,6 +1006,7 @@
   }
 
   function handleTouchMove(e) {
+    registerInput();
     const touches = e.targetTouches;
     let pointer = pointers[0];
     for (let i = 0; i < touches.length; i++) {
