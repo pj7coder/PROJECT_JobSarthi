@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/landing.css">
   <link rel="stylesheet" href="css/VariableProximity.css">
   <link rel="stylesheet" href="css/LogoLoop.css">
+  <link rel="stylesheet" href="css/Aurora.css">
 
   <style>
     /* Specific layouts and alignments for landing page components */
@@ -587,6 +588,9 @@
 </head>
 
 <body class="landing-body">
+
+  <!-- Aurora Static Animated Background -->
+  <div id="auroraBackground"></div>
 
   <!-- Liquid Glass Backdrop Blobs -->
   <div class="liquid-blob-container">
@@ -2080,6 +2084,9 @@
       <script src="js/SplitText.js"></script>
       <script src="js/VariableProximity.js"></script>
       <script src="js/LogoLoop.js"></script>
+      <!-- OGL WebGL Library and Aurora Script -->
+      <script src="https://cdn.jsdelivr.net/npm/ogl@0.0.116/dist/ogl.umd.js"></script>
+      <script src="js/Aurora.js"></script>
 
       <!-- JobSarthi Shared Header Script -->
       <script src="js/header.js"></script>
@@ -2087,6 +2094,17 @@
       <!-- Initialize SplitText & VariableProximity for Hero introductory text -->
       <script>
         document.addEventListener('DOMContentLoaded', () => {
+          // Initialize Aurora Background
+          const auroraEl = document.getElementById('auroraBackground');
+          if (auroraEl) {
+            new Aurora(auroraEl, {
+              colorStops: ["#6784ff", "#b575f2", "#ff27f3"],
+              blend: 0.5,
+              amplitude: 1.0,
+              speed: 0.5
+            });
+          }
+
           const headlineEl = document.getElementById('heroHeadline');
           const subtitleEl = document.getElementById('heroSubtitle');
 
