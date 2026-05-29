@@ -612,7 +612,7 @@
           style="font-size: 3.5rem; line-height: 1.1; margin-bottom: 24px; font-weight: 800; width: 100%; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
           Welcome to JobSarthi
         </h1>
-        <p id="heroSubtitle" class="hero-subtitle variable-proximity"
+        <p id="heroSubtitle" class="hero-subtitle"
           style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 36px; max-width: 680px; text-align: center; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
           Your intelligent companion in navigating modern careers. Powered by Sarthi AI, connecting talented seekers
           with top company recruiter pipelines.
@@ -1449,16 +1449,16 @@
           }
         });
 
-        // 6. Liquid glass spotlight coordinates tracking
+        // 6. Liquid glass spotlight coordinates tracking (Optimized: targets only hovered element)
         document.addEventListener('mousemove', (e) => {
-          const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card');
-          cards.forEach(card => {
+          const card = e.target.closest('.glass-panel, .glass-card, .portal-side, .deck-card');
+          if (card) {
             const rect = card.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             card.style.setProperty('--mouse-x', `${x}px`);
             card.style.setProperty('--mouse-y', `${y}px`);
-          });
+          }
         });
 
         // 7. Dynamic video rotation loop (Checks as many videos as are added in sequence)
@@ -2108,16 +2108,7 @@
               duration: 0.8,
               ease: 'power3.out',
               from: { opacity: 0, y: 20 },
-              to: { opacity: 1, y: 0 },
-              onLetterAnimationComplete: () => {
-                new VariableProximity(subtitleEl, {
-                  fromFontVariationSettings: "'wght' 400, 'opsz' 9",
-                  toFontVariationSettings: "'wght' 800, 'opsz' 30",
-                  container: document.querySelector('.hero-left'),
-                  radius: 100,
-                  falloff: 'linear'
-                });
-              }
+              to: { opacity: 1, y: 0 }
             });
           }
 
