@@ -1,4 +1,4 @@
-import { Renderer, Program, Mesh, Color, Triangle } from 'https://unpkg.com/ogl';
+import { Renderer, Program, Mesh, Color, Triangle } from 'https://cdn.jsdelivr.net/npm/ogl/dist/ogl.mjs';
 
 /**
  * Aurora - Vanilla JS Component
@@ -205,3 +205,22 @@ class Aurora {
 }
 
 window.Aurora = Aurora;
+
+// Auto-initialize Aurora background safely when the DOM is ready
+function startAurora() {
+  const auroraEl = document.getElementById('auroraBackground');
+  if (auroraEl) {
+    new Aurora(auroraEl, {
+      colorStops: ["#6784ff", "#b575f2", "#ff27f3"],
+      blend: 0.5,
+      amplitude: 1.0,
+      speed: 0.5
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startAurora);
+} else {
+  startAurora();
+}
