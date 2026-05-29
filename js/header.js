@@ -269,16 +269,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.body.appendChild(mobileNavContainer);
       }
-      // Inject Dock CSS & JS dynamically
+      // Inject Dock CSS & JS dynamically with cache busting
       if (!document.querySelector('link[href*="Dock.css"]')) {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = `${prefix}css/Dock.css`;
+        link.href = `${prefix}css/Dock.css?v=${Date.now()}`;
         document.head.appendChild(link);
       }
       if (!document.querySelector('script[src*="Dock.js"]')) {
         const dockScript = document.createElement('script');
-        dockScript.src = `${prefix}js/Dock.js`;
+        dockScript.src = `${prefix}js/Dock.js?v=${Date.now()}`;
         document.head.appendChild(dockScript);
       }
 
@@ -294,9 +294,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (window.aboutContentHTML && window[headerVarName]) {
     initializeHeader();
   } else {
-    // Dynamically load the JS templates file (bypasses CORS on file:///)
+    // Dynamically load the JS templates file with cache busting
     const script = document.createElement('script');
-    script.src = `${prefix}commonelements/headers.js`;
+    script.src = `${prefix}commonelements/headers.js?v=${Date.now()}`;
     script.onload = initializeHeader;
     script.onerror = () => {
       console.error("Failed to load header templates script from " + script.src);
