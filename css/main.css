@@ -701,6 +701,11 @@ body.light-theme .slider-round {
 
 .switch-toggle input:checked+.slider-round:before {
   transform: translateX(16px);
+  background-color: var(--bg-primary);
+}
+
+body.light-theme .switch-toggle input:checked+.slider-round:before {
+  background-color: white;
 }
 
 /* Profile Dropdown Specifics */
