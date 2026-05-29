@@ -3,10 +3,10 @@
 document.addEventListener("DOMContentLoaded", () => {
   const isRecruiter = window.location.pathname.includes('/recruiter/');
   const isSeeker = window.location.pathname.includes('/seeker/');
-  
+
   let prefix = './';
   let headerVarName = 'headerLandingHTML';
-  
+
   if (isRecruiter) {
     prefix = '../';
     headerVarName = 'headerRecruiterHTML';
@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     prefix = '../';
     headerVarName = 'headerSeekerHTML';
   }
-  
+
   const headerWrapper = document.querySelector('.header-wrapper');
   if (!headerWrapper) return;
 
@@ -26,16 +26,16 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(`Template variable ${headerVarName} is not defined.`);
       }
       headerTemplate = headerTemplate.replaceAll('[PREFIX]', prefix);
-      
+
       // Inject template
       headerWrapper.innerHTML = headerTemplate;
-      
+
       // 2. Inject shared About panel content
       const aboutContentContainer = document.getElementById('aboutContent');
       if (aboutContentContainer && window.aboutContentHTML) {
         aboutContentContainer.innerHTML = window.aboutContentHTML.replaceAll('[PREFIX]', prefix);
       }
-      
+
       // 3. Initialize theme state
       if (localStorage.getItem('theme') === 'light') {
         document.documentElement.classList.add('light-theme');
@@ -50,13 +50,13 @@ document.addEventListener("DOMContentLoaded", () => {
       splashCheckboxes.forEach(cb => {
         cb.checked = splashEnabled;
       });
-      
+
       const splashDensitySliderVal = parseFloat(localStorage.getItem('splash_cursor_density_slider') || '7');
       const splashSliders = document.querySelectorAll('#splashDensitySlider');
       splashSliders.forEach(slider => {
         slider.value = splashDensitySliderVal;
       });
-      
+
       const splashValLabels = document.querySelectorAll('#splashDensityVal');
       splashValLabels.forEach(label => {
         label.textContent = splashDensitySliderVal.toFixed(0);
@@ -73,13 +73,13 @@ document.addEventListener("DOMContentLoaded", () => {
       fluidGlassCheckboxes.forEach(cb => {
         cb.checked = fluidGlassEnabled;
       });
-      
+
       const fluidGlassRadiusSliderVal = parseFloat(localStorage.getItem('fluid_glass_radius_slider') || '5');
       const fluidGlassSliders = document.querySelectorAll('#fluidGlassRadiusSlider');
       fluidGlassSliders.forEach(slider => {
         slider.value = fluidGlassRadiusSliderVal;
       });
-      
+
       const fluidGlassValLabels = document.querySelectorAll('#fluidGlassRadiusVal');
       fluidGlassValLabels.forEach(label => {
         label.textContent = fluidGlassRadiusSliderVal.toFixed(0);
@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
         glassScript.src = prefix + 'js/FluidGlass.js';
         document.body.appendChild(glassScript);
       }
-      
+
       // 4. Identify role and check authentication
       const isLanding = !isRecruiter && !isSeeker;
       if (!isLanding) {
@@ -115,23 +115,23 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
       }
-      
+
       // 5. Setup User Profile Name & Initials
-      const userName = isRecruiter 
+      const userName = isRecruiter
         ? (localStorage.getItem('recruiter_company') || 'Recruiter')
         : (localStorage.getItem('seeker_name') || 'Candidate User');
       const userEmail = isRecruiter
         ? (localStorage.getItem('recruiter_email') || 'recruiter@jobsarthi.ai')
         : (localStorage.getItem('seeker_email') || 'candidate@jobsarthi.ai');
-        
+
       const initial = userName.charAt(0).toUpperCase();
-      
+
       // Populate header profile
       const headerInitials = document.getElementById('headerProfileInitials');
       const headerName = document.getElementById('headerProfileName');
       if (headerInitials) headerInitials.textContent = initial;
       if (headerName) headerName.textContent = userName;
-      
+
       // Populate popup profile
       const popupInitials = document.getElementById('popupProfileInitials');
       const popupName = document.getElementById('popupProfileName');
@@ -139,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (popupInitials) popupInitials.textContent = initial;
       if (popupName) popupName.textContent = userName;
       if (popupEmail) popupEmail.textContent = userEmail;
-      
+
       // Populate any page sidebar items if they exist
       const sidebarAvatar = document.getElementById('sidebarAvatar');
       const sidebarName = document.getElementById('sidebarName');
@@ -147,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sidebarAvatar) sidebarAvatar.textContent = initial;
       if (sidebarName) sidebarName.textContent = userName;
       if (welcomeName) welcomeName.textContent = userName;
-      
+
       // Function to render avatar image over initials
       function updateAvatarUI(avatarUrl) {
         if (!avatarUrl) return;
@@ -185,7 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
           })
           .catch(err => console.error("Error fetching avatar:", err));
       }
-      
+
       // 6. Dropdown Interactions
       const triggers = headerWrapper.querySelectorAll('.dropdown-trigger');
       triggers.forEach(trigger => {
@@ -193,30 +193,30 @@ document.addEventListener("DOMContentLoaded", () => {
           e.stopPropagation();
           const parent = trigger.parentElement;
           const menu = parent.querySelector('.header-dropdown-menu');
-          
+
           // Close other dropdowns
           headerWrapper.querySelectorAll('.header-dropdown-menu').forEach(m => {
             if (m !== menu) m.classList.remove('active');
           });
-          
+
           if (menu) {
             menu.classList.toggle('active');
           }
         });
       });
-      
+
       // Close dropdowns on clicking outside
       document.addEventListener('click', () => {
         headerWrapper.querySelectorAll('.header-dropdown-menu').forEach(m => m.classList.remove('active'));
       });
-      
+
       // Prevent clicks inside dropdown menu from closing it
       headerWrapper.querySelectorAll('.header-dropdown-menu').forEach(menu => {
         menu.addEventListener('click', (e) => {
           e.stopPropagation();
         });
       });
-      
+
       // 7. Set active navigation tab dynamically
       const currentPath = window.location.pathname.split('/').pop() || 'index.html';
       const navLinks = headerWrapper.querySelectorAll('.nav-link');
@@ -230,24 +230,24 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
       });
-      
+
       // 8. About Panel Toggle (Vertical Pill Expansion)
       const logoLink = document.getElementById('logoLink');
       const closeAboutBtn = document.getElementById('closeAboutBtn');
       const header = document.getElementById('mainHeader');
       const floatingBtn = document.getElementById('floatingSarthiBtn');
-      
+
       function lockScroll() {
         const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
         document.body.style.overflow = 'hidden';
         document.body.style.paddingRight = `${scrollBarWidth}px`;
       }
-      
+
       function unlockScroll() {
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
       }
-      
+
       function toggleAbout(e) {
         if (e) {
           e.preventDefault();
@@ -277,14 +277,14 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
       }
-      
+
       if (logoLink) {
         logoLink.addEventListener('click', toggleAbout);
       }
       if (closeAboutBtn) {
         closeAboutBtn.addEventListener('click', toggleAbout);
       }
-      
+
       // Close About panel when clicking outside of it
       document.addEventListener('click', (e) => {
         if (header && header.classList.contains('about-active')) {
@@ -309,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const mobileNavContainer = document.createElement('div');
         mobileNavContainer.className = 'mobile-bottom-nav';
-        
+
         let navItems = [];
         if (isSeeker) {
           navItems = [
@@ -352,7 +352,7 @@ document.addEventListener("DOMContentLoaded", () => {
         dockScript.src = `${prefix}js/Dock.js?v=${Date.now()}`;
         document.head.appendChild(dockScript);
       }
-      
+
       // Inject AboutPhysics JS dynamically with cache busting
       if (!document.querySelector('script[src*="AboutPhysics.js"]')) {
         const physicsScript = document.createElement('script');
@@ -362,7 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Dispatch a custom event to notify components that header is loaded
       document.dispatchEvent(new CustomEvent('headerLoaded', { detail: { prefix, isRecruiter, isSeeker } }));
-      
+
     } catch (err) {
       console.error("Error initializing common header components:", err);
     }
@@ -384,14 +384,14 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Global Toggle Theme Function
-window.toggleTheme = function() {
+window.toggleTheme = function () {
   const isLight = document.body.classList.toggle('light-theme');
   document.documentElement.classList.toggle('light-theme', isLight);
   localStorage.setItem('theme', isLight ? 'light' : 'dark');
 };
 
 // Global Logout Function
-window.logout = function() {
+window.logout = function () {
   const isRecruiter = window.location.pathname.includes('/recruiter/');
   if (isRecruiter) {
     localStorage.removeItem('recruiter_logged_in');
