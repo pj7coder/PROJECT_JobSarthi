@@ -98,6 +98,26 @@ window.headerLandingHTML = `
               </div>
               <input type="range" min="1" max="10" step="1" value="7" style="width: 100%; cursor: pointer;" id="splashDensitySlider" oninput="updateSplashDensity(this.value)">
             </div>
+            <div class="setting-option" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+              <div class="setting-info" style="text-align: left;">
+                <span class="setting-title" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Fluid Glass Cursor</span>
+                <span class="setting-desc" style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Toggle premium 3D glass lens cursor</span>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="fluidGlassToggleCheckbox" onclick="toggleFluidGlass(this.checked)">
+                <span class="slider-round"></span>
+              </label>
+            </div>
+            <div class="setting-option" id="fluidGlassRadiusOption" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 8px;">
+              <div class="setting-info" style="text-align: left; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div>
+                  <span class="setting-title" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Glass Lens Radius</span>
+                  <span class="setting-desc" style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Adjust 3D lens magnifying size</span>
+                </div>
+                <span id="fluidGlassRadiusVal" style="font-size: 0.8rem; font-weight: 700; color: var(--accent-tertiary) !important;">5</span>
+              </div>
+              <input type="range" min="1" max="10" step="1" value="5" style="width: 100%; cursor: pointer;" id="fluidGlassRadiusSlider" oninput="updateFluidGlassRadius(this.value)">
+            </div>
           </div>
         </div>
       </div>
@@ -208,6 +228,26 @@ window.headerSeekerHTML = `
                 <span id="splashDensityVal" style="font-weight: 700; color: var(--accent-secondary) !important;">7</span>
               </div>
               <input type="range" min="1" max="10" step="1" value="7" style="width: 100%; cursor: pointer;" id="splashDensitySlider" oninput="updateSplashDensity(this.value)">
+            </div>
+            <div class="setting-option" style="border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: 12px;">
+              <div class="setting-info">
+                <span class="setting-title">Fluid Glass Cursor</span>
+                <span class="setting-desc">Toggle premium 3D glass lens cursor</span>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="fluidGlassToggleCheckbox" onclick="toggleFluidGlass(this.checked)">
+                <span class="slider-round"></span>
+              </label>
+            </div>
+            <div class="setting-option" id="fluidGlassRadiusOption" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 8px;">
+              <div class="setting-info" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div>
+                  <span class="setting-title">Glass Lens Radius</span>
+                  <span class="setting-desc">Adjust 3D lens magnifying size</span>
+                </div>
+                <span id="fluidGlassRadiusVal" style="font-weight: 700; color: var(--accent-tertiary) !important;">5</span>
+              </div>
+              <input type="range" min="1" max="10" step="1" value="5" style="width: 100%; cursor: pointer;" id="fluidGlassRadiusSlider" oninput="updateFluidGlassRadius(this.value)">
             </div>
           </div>
         </div>
@@ -335,6 +375,26 @@ window.headerRecruiterHTML = `
                 <span id="splashDensityVal" style="font-weight: 700; color: var(--accent-secondary) !important;">7</span>
               </div>
               <input type="range" min="1" max="10" step="1" value="7" style="width: 100%; cursor: pointer;" id="splashDensitySlider" oninput="updateSplashDensity(this.value)">
+            </div>
+            <div class="setting-option" style="border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: 12px;">
+              <div class="setting-info">
+                <span class="setting-title">Fluid Glass Cursor</span>
+                <span class="setting-desc">Toggle premium 3D glass lens cursor</span>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="fluidGlassToggleCheckbox" onclick="toggleFluidGlass(this.checked)">
+                <span class="slider-round"></span>
+              </label>
+            </div>
+            <div class="setting-option" id="fluidGlassRadiusOption" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 8px;">
+              <div class="setting-info" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div>
+                  <span class="setting-title">Glass Lens Radius</span>
+                  <span class="setting-desc">Adjust 3D lens magnifying size</span>
+                </div>
+                <span id="fluidGlassRadiusVal" style="font-weight: 700; color: var(--accent-tertiary) !important;">5</span>
+              </div>
+              <input type="range" min="1" max="10" step="1" value="5" style="width: 100%; cursor: pointer;" id="fluidGlassRadiusSlider" oninput="updateFluidGlassRadius(this.value)">
             </div>
           </div>
         </div>
