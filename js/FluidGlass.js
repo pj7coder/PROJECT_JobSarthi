@@ -183,6 +183,10 @@
   let isMoving = false;
   let fadeTimeout = null;
 
+  let currentAngle = 0;
+  let currentStretch = 1;
+  let currentSquash = 1;
+
   // Tracker events
   function onMouseMove(e) {
     mouseX = e.clientX;
@@ -234,21 +238,35 @@
 
     const speed = Math.sqrt(vx * vx + vy * vy);
 
-    // Apply fluid warp stretch based on speed vector only if active motion is detected
-    let stretch = 1;
-    let squash = 1;
-    let angle = 0;
+    // Apply fluid warp stretch based on speed vector with smooth lerp interpolation
+    let targetStretch = 1;
+    let targetSquash = 1;
+    let targetAngle = currentAngle;
 
     if (speed > 0.15) {
-      stretch = Math.min(1 + speed * 0.012, 1.35);
-      squash = Math.max(1 - speed * 0.007, 0.8);
-      angle = Math.atan2(vy, vx);
+      targetStretch = Math.min(1 + speed * 0.012, 1.35);
+      targetSquash = Math.max(1 - speed * 0.007, 0.8);
+      targetAngle = Math.atan2(vy, vx);
+    } else {
+      // Return to base circular form and orientation when speed approaches 0
+      targetStretch = 1;
+      targetSquash = 1;
+      targetAngle = 0;
     }
+
+    // Normalize angle difference to prevent spinning around the long way
+    let angleDiff = targetAngle - currentAngle;
+    angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+
+    // Linear interpolate to smooth out any tiny visual jitters or snaps
+    currentAngle += angleDiff * 0.15;
+    currentStretch += (targetStretch - currentStretch) * 0.15;
+    currentSquash += (targetSquash - currentSquash) * 0.15;
 
     // Update coordinates and 3D squash transformations
     lens.style.left = `${currentX}px`;
     lens.style.top = `${currentY}px`;
-    lens.style.transform = `translate(-50%, -50%) rotate(${angle}rad) scale(${stretch}, ${squash})`;
+    lens.style.transform = `translate(-50%, -50%) rotate(${currentAngle}rad) scale(${currentStretch}, ${currentSquash})`;
 
     // Specular sheen shift based on lag vector
     lens.style.setProperty('--sheen-x', `${-vx * 0.28}px`);
