@@ -1,3 +1,5 @@
+import { Renderer, Program, Mesh, Color, Triangle } from 'https://unpkg.com/ogl';
+
 /**
  * Aurora - Vanilla JS Component
  * Renders an animated WebGL gradient mesh using OGL.
@@ -17,13 +19,6 @@ class Aurora {
   }
 
   init() {
-    if (typeof OGL === 'undefined') {
-      console.error('OGL library is not loaded. Please load the OGL library script first.');
-      return;
-    }
-
-    const { Renderer, Program, Mesh, Color, Triangle } = OGL;
-
     this.renderer = new Renderer({
       alpha: true,
       premultipliedAlpha: true,
