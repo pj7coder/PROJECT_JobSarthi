@@ -234,10 +234,16 @@
 
     const speed = Math.sqrt(vx * vx + vy * vy);
 
-    // Apply fluid warp stretch based on speed vector
-    const stretch = Math.min(1 + speed * 0.012, 1.35);
-    const squash = Math.max(1 - speed * 0.007, 0.8);
-    const angle = Math.atan2(vy, vx);
+    // Apply fluid warp stretch based on speed vector only if active motion is detected
+    let stretch = 1;
+    let squash = 1;
+    let angle = 0;
+
+    if (speed > 0.15) {
+      stretch = Math.min(1 + speed * 0.012, 1.35);
+      squash = Math.max(1 - speed * 0.007, 0.8);
+      angle = Math.atan2(vy, vx);
+    }
 
     // Update coordinates and 3D squash transformations
     lens.style.left = `${currentX}px`;
