@@ -67,43 +67,12 @@ document.addEventListener("DOMContentLoaded", () => {
         opt.style.display = splashEnabled ? 'flex' : 'none';
       });
 
-      // 3c. Initialize fluid glass cursor settings state
-      const fluidGlassEnabled = localStorage.getItem('fluid_glass_enabled') !== 'false';
-      const fluidGlassCheckboxes = document.querySelectorAll('#fluidGlassToggleCheckbox');
-      fluidGlassCheckboxes.forEach(cb => {
-        cb.checked = fluidGlassEnabled;
-      });
-
-      const fluidGlassRadiusSliderVal = parseFloat(localStorage.getItem('fluid_glass_radius_slider') || '5');
-      const fluidGlassSliders = document.querySelectorAll('#fluidGlassRadiusSlider');
-      fluidGlassSliders.forEach(slider => {
-        slider.value = fluidGlassRadiusSliderVal;
-      });
-
-      const fluidGlassValLabels = document.querySelectorAll('#fluidGlassRadiusVal');
-      fluidGlassValLabels.forEach(label => {
-        label.textContent = fluidGlassRadiusSliderVal.toFixed(0);
-      });
-
-      const radiusOptions = document.querySelectorAll('#fluidGlassRadiusOption');
-      radiusOptions.forEach(opt => {
-        opt.style.display = fluidGlassEnabled ? 'flex' : 'none';
-      });
-
       // Inject SplashCursor script dynamically if it hasn't been loaded already
       if (!document.getElementById('splashCursorScript')) {
         const splashScript = document.createElement('script');
         splashScript.id = 'splashCursorScript';
         splashScript.src = prefix + 'js/SplashCursor.js';
         document.body.appendChild(splashScript);
-      }
-
-      // Inject FluidGlass script dynamically if it hasn't been loaded already
-      if (!document.getElementById('fluidGlassScript')) {
-        const glassScript = document.createElement('script');
-        glassScript.id = 'fluidGlassScript';
-        glassScript.src = prefix + 'js/FluidGlass.js';
-        document.body.appendChild(glassScript);
       }
 
       // 4. Identify role and check authentication
