@@ -2067,6 +2067,8 @@
       <script src="js/SplitText.js"></script>
       <script src="js/VariableProximity.js"></script>
       <script src="js/LogoLoop.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/ogl@0.0.32/dist/ogl.umd.js"></script>
+      <script src="js/Aurora.js"></script>
 
       <!-- JobSarthi Shared Header Script -->
       <script src="js/header.js"></script>
@@ -2118,16 +2120,10 @@
               fadeOut: true
             });
           }
-        });
-      </script>
 
-      <!-- Initialize WebGL Aurora Background Component -->
-      <script type="module">
-        import Aurora from './js/Aurora.js';
-
-        document.addEventListener('DOMContentLoaded', () => {
+          // Initialize WebGL Aurora Background Component
           const container = document.getElementById('auroraBg');
-          if (container) {
+          if (container && window.Aurora) {
             new Aurora(container, {
               colorStops: ["#6784ff", "#b575f2", "#ff27f3"],
               blend: 0.5,

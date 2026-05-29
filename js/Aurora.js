@@ -1,5 +1,3 @@
-import { Renderer, Program, Mesh, Color, Triangle } from 'https://cdn.jsdelivr.net/npm/ogl@0.0.32/dist/ogl.mjs';
-
 const VERT = `#version 300 es
 in vec2 position;
 void main() {
@@ -106,24 +104,24 @@ void main() {
 }
 `;
 
-export default class Aurora {
+class Aurora {
   constructor(ctn, options = {}) {
-    if (!ctn) return;
+    if (!ctn || !window.OGL) {
+      console.warn("Aurora background initialization failed: container or OGL library not found.");
+      return;
+    }
     this.ctn = ctn;
-    this.colorStops = options.colorStops || ['#070B19', '#1A1B35', '#0A1128']; // curated premium dark theme colorStop fallback
+    this.colorStops = options.colorStops || ['#070B19', '#1A1B35', '#0A1128'];
     this.amplitude = options.amplitude !== undefined ? options.amplitude : 1.0;
     this.blend = options.blend !== undefined ? options.blend : 0.5;
     this.speed = options.speed !== undefined ? options.speed : 0.5;
-    
-    // User requested colorStops: ["#6784ff","#b575f2","#ff27f3"]
-    if (options.colorStops) {
-      this.colorStops = options.colorStops;
-    }
     
     this.init();
   }
 
   init() {
+    const { Renderer, Program, Mesh, Color, Triangle } = window.OGL;
+
     this.renderer = new Renderer({
       alpha: true,
       premultipliedAlpha: true,
@@ -183,6 +181,7 @@ export default class Aurora {
     this.animateId = requestAnimationFrame(this.update);
     const time = t * 0.01;
     this.program.uniforms.uTime.value = time * this.speed * 0.1;
+    this.renderer.setSize(this.ctn.offsetWidth, this.ctn.offsetHeight); // dynamic redraw support
     this.renderer.render({ scene: this.mesh });
   }
 
@@ -192,6 +191,10 @@ export default class Aurora {
     if (this.ctn && this.renderer.gl.canvas.parentNode === this.ctn) {
       this.ctn.removeChild(this.renderer.gl.canvas);
     }
-    this.gl.getExtension('WEBGL_lose_context')?.loseContext();
+    const loseCtx = this.gl.getExtension('WEBGL_lose_context');
+    if (loseCtx) loseCtx.loseContext();
   }
 }
+
+// Bind to window context
+window.Aurora = Aurora;
