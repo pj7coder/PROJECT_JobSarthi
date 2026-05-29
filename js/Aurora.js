@@ -1,4 +1,4 @@
-import { Renderer, Program, Mesh, Color, Triangle } from 'https://cdn.jsdelivr.net/npm/ogl/dist/ogl.mjs';
+import { Renderer, Program, Mesh, Color, Triangle } from './ogl.js';
 
 /**
  * Aurora - Vanilla JS Component
