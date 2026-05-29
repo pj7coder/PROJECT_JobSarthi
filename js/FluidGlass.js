@@ -26,31 +26,35 @@
         transform-origin: center center;
         transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         
-        /* Metallic / Glossy outer rim border */
-        border: 1.5px solid rgba(255, 255, 255, 0.3);
-        background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 65%, rgba(255, 255, 255, 0) 100%);
+        /* High ior (Index of Refraction) glass visual depth & 0x5227ff Clear Tint */
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.18) 0%, rgba(82, 39, 255, 0.08) 50%, rgba(82, 39, 255, 0.03) 100%);
         
         /* Refracting Glass Blur and Saturation multiplier */
         backdrop-filter: blur(5px) saturate(180%) contrast(105%);
         -webkit-backdrop-filter: blur(5px) saturate(180%) contrast(105%);
         
-        /* Glass Drop Shadows and Inner Specular Highlights */
+        /* Thickness: 5 Glass Edge Shadows and Inner Specular Highlights */
         box-shadow: 
-          inset 0 0 15px rgba(255, 255, 255, 0.35),
-          0 12px 36px rgba(0, 0, 0, 0.25),
-          0 0 1px 1px rgba(255, 255, 255, 0.1) inset;
+          inset 0 0 25px 4px rgba(255, 255, 255, 0.35),
+          inset 0 0 10px 1px rgba(82, 39, 255, 0.25),
+          0 0 0 2px rgba(255, 255, 255, 0.25),
+          0 15px 35px rgba(0, 0, 0, 0.3),
+          0 5px 15px rgba(82, 39, 255, 0.15);
         will-change: left, top, transform;
       }
       
       body.light-theme .fluid-glass-lens {
-        border-color: rgba(0, 0, 0, 0.15);
-        background: radial-gradient(circle at 30% 30%, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.01) 70%, rgba(0, 0, 0, 0) 100%);
-        backdrop-filter: blur(5px) saturate(160%) contrast(95%);
-        -webkit-backdrop-filter: blur(5px) saturate(160%) contrast(95%);
+        border-color: rgba(0, 0, 0, 0.18);
+        background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.3) 0%, rgba(82, 39, 255, 0.06) 55%, rgba(82, 39, 255, 0.02) 100%);
+        backdrop-filter: blur(5px) saturate(160%) contrast(98%);
+        -webkit-backdrop-filter: blur(5px) saturate(160%) contrast(98%);
         box-shadow: 
-          inset 0 0 15px rgba(255, 255, 255, 0.7),
-          0 10px 24px rgba(0, 0, 0, 0.12),
-          0 0 1px 1px rgba(0, 0, 0, 0.05) inset;
+          inset 0 0 25px 4px rgba(255, 255, 255, 0.85),
+          inset 0 0 10px 1px rgba(82, 39, 255, 0.12),
+          0 0 0 2px rgba(0, 0, 0, 0.08),
+          0 12px 28px rgba(0, 0, 0, 0.12),
+          0 4px 12px rgba(82, 39, 255, 0.06);
       }
 
       /* Specular Light Reflection sheen */
@@ -62,30 +66,31 @@
         width: 100%;
         height: 100%;
         border-radius: 50%;
-        background: radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 45%);
+        background: radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 45%);
         pointer-events: none;
         transform: translate(var(--sheen-x, 0px), var(--sheen-y, 0px));
         will-change: transform;
       }
       
       body.light-theme .fluid-glass-lens::after {
-        background: radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 45%);
+        background: radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 45%);
       }
 
-      /* Chromatic Aberration glow offsets on high speed */
+      /* Chromatic Aberration 0.1 split red/cyan shadows on high speed */
       .fluid-glass-lens::before {
         content: '';
         position: absolute;
-        top: -1px;
-        left: -1px;
-        right: -1px;
-        bottom: -1px;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         border-radius: 50%;
-        border: 1px solid rgba(59, 130, 246, 0.45); /* Blue/Cyan offset ring */
         pointer-events: none;
         opacity: var(--aberration-opacity, 0);
-        transform: translate(var(--aberration-offset-x, 0px), var(--aberration-offset-y, 0px));
-        will-change: opacity, transform;
+        box-shadow: 
+          calc(var(--aberration-offset-x, 0px) * -1) calc(var(--aberration-offset-y, 0px) * -1) 3px rgba(255, 75, 75, 0.6),
+          var(--aberration-offset-x, 0px) var(--aberration-offset-y, 0px) 3px rgba(34, 211, 238, 0.6);
+        will-change: opacity;
       }
     `;
     document.head.appendChild(style);
