@@ -7,7 +7,69 @@
  */
 
 (function () {
-  // Inject Premium CSS styles for Fluid Glass Lens
+  // 1. Generate 256x256 Spherical Displacement Map Texture for genuine 3D Refraction
+  function generateDisplacementMap() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(256, 256);
+    const data = imgData.data;
+
+    for (let y = 0; y < 256; y++) {
+      for (let x = 0; x < 256; x++) {
+        const idx = (y * 256 + x) * 4;
+        const dx = x - 128;
+        const dy = y - 128;
+        const r = Math.sqrt(dx * dx + dy * dy);
+
+        if (r < 128) {
+          // Spherical refraction profile - curves backdrop pixels inward to magnify/refract
+          const factor = Math.sin((r / 128) * Math.PI);
+          const rx = 128 + (dx / r) * factor * 127;
+          const ry = 128 + (dy / r) * factor * 127;
+
+          data[idx] = Math.max(0, Math.min(255, rx));     // Red channel handles X displacement
+          data[idx + 1] = Math.max(0, Math.min(255, ry)); // Green channel handles Y displacement
+          data[idx + 2] = 0;                              // Blue unused
+          data[idx + 3] = 255;                            // Alpha
+        } else {
+          // Neutral grey outside the boundary (zero displacement)
+          data[idx] = 128;
+          data[idx + 1] = 128;
+          data[idx + 2] = 0;
+          data[idx + 3] = 255;
+        }
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    return canvas.toDataURL();
+  }
+
+  // 2. Inject SVG displacement filter definition into body
+  if (!document.getElementById('fluidGlassSvgFilter')) {
+    const mapDataUrl = generateDisplacementMap();
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.id = 'fluidGlassSvgFilter';
+    svg.style.position = "absolute";
+    svg.style.width = "0";
+    svg.style.height = "0";
+    svg.style.pointerEvents = "none";
+    
+    svg.innerHTML = `
+      <defs>
+        <filter id="fluidGlassRefraction" x="-30%" y="-30%" width="160%" height="160%">
+          <feImage id="fluidGlassMapImg" href="${mapDataUrl}" result="map" />
+          <feDisplacementMap in="SourceGraphic" in2="map" scale="35" xChannelSelector="R" yChannelSelector="G" result="refracted" />
+        </filter>
+      </defs>
+    `;
+    document.body.appendChild(svg);
+  }
+
+  // 3. Inject Premium CSS styles for Fluid Glass Lens
   if (!document.getElementById('fluidGlassStyles')) {
     const style = document.createElement('style');
     style.id = 'fluidGlassStyles';
@@ -26,35 +88,35 @@
         transform-origin: center center;
         transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         
-        /* High ior (Index of Refraction) glass visual depth & 0x5227ff Clear Tint */
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.18) 0%, rgba(82, 39, 255, 0.08) 50%, rgba(82, 39, 255, 0.03) 100%);
+        /* Realistic 3D glass sphere gradient (specular high to shadow drop edge) */
+        border: 1.5px solid rgba(255, 255, 255, 0.45);
+        background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.28) 0%, rgba(82, 39, 255, 0.15) 35%, rgba(0, 0, 0, 0.35) 75%, rgba(0, 0, 0, 0.75) 100%);
         
-        /* Refracting Glass Blur and Saturation multiplier */
-        backdrop-filter: blur(5px) saturate(180%) contrast(105%);
-        -webkit-backdrop-filter: blur(5px) saturate(180%) contrast(105%);
+        /* Premium hardware-accelerated 3D spherical displacement backdrop refraction */
+        backdrop-filter: url(#fluidGlassRefraction) blur(1px) saturate(180%) contrast(105%);
+        -webkit-backdrop-filter: url(#fluidGlassRefraction) blur(1px) saturate(180%) contrast(105%);
         
-        /* Thickness: 5 Glass Edge Shadows and Inner Specular Highlights */
+        /* Thickness 5 profile: thick glass rim inset, neon Fresnel ring, deep projection shadow */
         box-shadow: 
-          inset 0 0 25px 4px rgba(255, 255, 255, 0.35),
-          inset 0 0 10px 1px rgba(82, 39, 255, 0.25),
-          0 0 0 2px rgba(255, 255, 255, 0.25),
-          0 15px 35px rgba(0, 0, 0, 0.3),
-          0 5px 15px rgba(82, 39, 255, 0.15);
+          inset 0 0 20px 3px rgba(255, 255, 255, 0.4),
+          inset -10px -10px 25px rgba(0, 0, 0, 0.75),
+          0 0 0 1px rgba(82, 39, 255, 0.3),
+          0 20px 45px rgba(0, 0, 0, 0.45),
+          0 4px 15px rgba(82, 39, 255, 0.2);
         will-change: left, top, transform;
       }
       
       body.light-theme .fluid-glass-lens {
         border-color: rgba(0, 0, 0, 0.18);
-        background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.3) 0%, rgba(82, 39, 255, 0.06) 55%, rgba(82, 39, 255, 0.02) 100%);
-        backdrop-filter: blur(5px) saturate(160%) contrast(98%);
-        -webkit-backdrop-filter: blur(5px) saturate(160%) contrast(98%);
+        background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.45) 0%, rgba(82, 39, 255, 0.1) 40%, rgba(0, 0, 0, 0.15) 75%, rgba(0, 0, 0, 0.4) 100%);
+        backdrop-filter: url(#fluidGlassRefraction) blur(1px) saturate(160%) contrast(98%);
+        -webkit-backdrop-filter: url(#fluidGlassRefraction) blur(1px) saturate(160%) contrast(98%);
         box-shadow: 
-          inset 0 0 25px 4px rgba(255, 255, 255, 0.85),
-          inset 0 0 10px 1px rgba(82, 39, 255, 0.12),
-          0 0 0 2px rgba(0, 0, 0, 0.08),
-          0 12px 28px rgba(0, 0, 0, 0.12),
-          0 4px 12px rgba(82, 39, 255, 0.06);
+          inset 0 0 20px 3px rgba(255, 255, 255, 0.8),
+          inset -10px -10px 25px rgba(0, 0, 0, 0.25),
+          0 0 0 1px rgba(82, 39, 255, 0.15),
+          0 15px 32px rgba(0, 0, 0, 0.15),
+          0 4px 12px rgba(82, 39, 255, 0.08);
       }
 
       /* Specular Light Reflection sheen */
@@ -88,8 +150,8 @@
         pointer-events: none;
         opacity: var(--aberration-opacity, 0);
         box-shadow: 
-          calc(var(--aberration-offset-x, 0px) * -1) calc(var(--aberration-offset-y, 0px) * -1) 3px rgba(255, 75, 75, 0.6),
-          var(--aberration-offset-x, 0px) var(--aberration-offset-y, 0px) 3px rgba(34, 211, 238, 0.6);
+          calc(var(--aberration-offset-x, 0px) * -1.2) calc(var(--aberration-offset-y, 0px) * -1.2) 3px rgba(255, 75, 75, 0.65),
+          calc(var(--aberration-offset-x, 0px) * 1.2) calc(var(--aberration-offset-y, 0px) * 1.2) 3px rgba(34, 211, 238, 0.65);
         will-change: opacity;
       }
     `;
@@ -253,6 +315,13 @@
     // Apply diameter sizing
     lens.style.width = `${diameter}px`;
     lens.style.height = `${diameter}px`;
+
+    // Dynamically adjust SVG displacement filter mapping scale based on lens radius!
+    const dispMapEl = document.querySelector('#fluidGlassRefraction feDisplacementMap');
+    if (dispMapEl) {
+      const refScale = Math.round(diameter * 0.42);
+      dispMapEl.setAttribute('scale', refScale);
+    }
   };
 
   // Bind mouse coordinates listeners
