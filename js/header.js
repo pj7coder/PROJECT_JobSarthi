@@ -7,7 +7,7 @@
     // Check if we are running on Vercel or locally opening file:// protocol
     if (window.location.hostname.includes('vercel') || window.location.protocol === 'file:') {
       // REPLACE WITH YOUR ACTUAL LIVE RENDER URL
-      return 'https://jobsarthi-backend.onrender.com';
+      return 'https://project-jobsarthi.onrender.com';
     }
     return '';
   };
