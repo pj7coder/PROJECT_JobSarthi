@@ -35,64 +35,28 @@
       visibility: hidden;
       pointer-events: none;
     }
-    .preloader-glow {
-      position: absolute;
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 70%);
-      pointer-events: none;
-      animation: pulse-glow 2s infinite alternate;
-    }
-    .preloader-spinner {
-      width: 60px;
-      height: 60px;
-      position: relative;
-      background: conic-gradient(from 0deg, transparent 35%, #ff3366, #ff9933, #33cc66, #3399ff, #9933ff);
-      border-radius: 50%;
-      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), black 0);
-      mask: radial-gradient(farthest-side, transparent calc(100% - 4px), black 0);
-      animation: spin-preloader 1.2s linear infinite;
-      filter: drop-shadow(0 0 10px rgba(129, 140, 248, 0.4));
-    }
-    .preloader-brand {
-      margin-top: 28px;
+    .shiny-text {
       font-family: 'Roboto Flex', sans-serif;
-      font-size: 2rem;
-      font-weight: 900;
+      font-size: 0.95rem;
+      font-weight: 700;
       letter-spacing: 0.08em;
-      background-image: linear-gradient(
-        120deg,
-        rgba(255, 255, 255, 0.3) 0%,
-        rgba(255, 255, 255, 0.3) 30%,
-        #ff3366 40%,
-        #ff9933 46%,
-        #33cc66 52%,
-        #3399ff 58%,
-        #9933ff 64%,
-        rgba(255, 255, 255, 0.3) 74%,
-        rgba(255, 255, 255, 0.3) 100%
-      );
+      text-transform: uppercase;
+      display: inline-block;
+      background-image: linear-gradient(120deg, #494949 0%, #494949 35%, #ffffff 50%, #494949 65%, #494949 100%);
       background-size: 200% auto;
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-transform: uppercase;
-      animation: rainbow-shine 3s linear infinite;
+      animation: shine 2.5s linear infinite;
     }
-    @keyframes spin-preloader {
-      to { transform: rotate(360deg); }
-    }
-    @keyframes rainbow-shine {
+
+    @keyframes shine {
       0% {
-        background-position: 200% center;
+        background-position: 150% center;
       }
       100% {
-        background-position: -200% center;
+        background-position: -50% center;
       }
-    }
-    @keyframes pulse-glow {
-      from { transform: scale(0.9); opacity: 0.5; }
-      to { transform: scale(1.15); opacity: 0.9; }
     }
 
     /* Specific layouts and alignments for landing page components */
@@ -670,9 +634,7 @@
 
   <!-- Page Preloader Screen to prevent Flash of Unstyled Content (FOUC) -->
   <div id="page-preloader">
-    <div class="preloader-glow"></div>
-    <div class="preloader-spinner"></div>
-    <div class="preloader-brand">JobSarthi</div>
+    <span class="shiny-text">JobSarthi</span>
   </div>
   <script>
     // Fade out preloader when all assets are fully loaded
