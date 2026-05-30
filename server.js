@@ -1035,12 +1035,12 @@ app.post("/api/seeker/parse-certificate", async (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "landing.html"));
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Fallback to landing.html for undefined frontend routes
+// Fallback to index.html for undefined frontend routes
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "landing.html"));
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 initDB().then(() => {

@@ -1,14 +1,2141 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=./landing.html" />
-  <title>Redirecting to JobSarthi...</title>
-  <script type="text/javascript">
-    window.location.replace("./landing.html");
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobSarthi - AI-Powered Career & Recruitment Ecosystem</title>
+  <meta name="description"
+    content="Welcome to JobSarthi, an AI-powered career companion and recruiter platform that connects talented job seekers with industry-leading employers.">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <link rel="stylesheet" href="css/VariableProximity.css">
+  <link rel="stylesheet" href="css/LogoLoop.css">
+
+  <style>
+    /* Specific layouts and alignments for landing page components */
+    .landing-body {
+      background-color: var(--bg-primary);
+      position: relative;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .hero-layout {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      align-items: center;
+      gap: 48px;
+      min-height: calc(100vh - 120px);
+      position: relative;
+      z-index: 5;
+      padding: 10px 0 40px 0;
+    }
+
+    @media (max-width: 900px) {
+      .hero-layout {
+        grid-template-columns: 1fr;
+        padding-top: 40px;
+        text-align: center;
+        gap: 32px;
+      }
+    }
+
+    .mini-chat-preview {
+      bottom: 90px !important;
+      right: 30px !important;
+      display: none;
+    }
+
+    .hero-pretitle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: var(--radius-full);
+      color: #818cf8;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 24px;
+    }
+
+    .hero-headline {
+      font-size: 3.5rem;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      font-weight: 800;
+    }
+
+    .hero-subtitle {
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      line-height: 1.6;
+      margin-bottom: 36px;
+      max-width: 580px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-subtitle {
+        margin: 0 auto 36px auto;
+      }
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-ctas {
+        justify-content: center;
+      }
+    }
+
+    .section-title-wrap {
+      text-align: center;
+      margin-bottom: 40px;
+      margin-top: 80px;
+    }
+
+    .section-title-wrap h2 {
+      font-size: 2.2rem;
+      margin-bottom: 12px;
+    }
+
+    .section-title-wrap p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      max-width: 550px;
+      margin: 0 auto;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--neon-cyan);
+      box-shadow: 0 0 10px var(--neon-cyan);
+      animation: core-pulsate 1.5s infinite alternate;
+    }
+
+    @keyframes core-pulsate {
+      0% {
+        transform: scale(0.8);
+        opacity: 0.5;
+      }
+
+      100% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
+    }
+
+    /* Animated Portal Cards */
+    .portal-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 320px;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portal-card:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .portal-card-glow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.08), transparent 50%);
+      pointer-events: none;
+      transition: opacity 0.3s;
+      opacity: 0.5;
+    }
+
+    .portal-card:hover .portal-card-glow {
+      opacity: 1;
+    }
+
+    /* Expanding Pill Section */
+    .sarthi-sticky-trigger {
+      position: sticky;
+      top: 100px;
+      height: 500px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .feature-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      transition: all 0.2s ease;
+    }
+
+    .feature-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--border-focus);
+      transform: translateY(-2px);
+    }
+
+    /* Header Wrapper to prevent page content reflow on expansion */
+    .header-wrapper {
+      position: sticky;
+      top: 16px;
+      margin: 0 auto 12px auto;
+      width: calc(100% - 80px);
+      max-width: 1300px;
+      height: 54px;
+      z-index: 1000;
+    }
+
+    /* Override header to position absolute inside wrapper */
+    .header {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      margin: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 100%;
+      border-radius: 27px !important;
+      /* Match collapsed height / 2 to avoid ballooning bug */
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
+      overflow: hidden;
+      transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.4s, box-shadow 0.4s;
+    }
+
+    .header-main-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+      width: 100%;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    /* Fade out standard nav and actions when About is active */
+    .header.about-active nav,
+    .header.about-active .header-actions {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Fade in Close Button */
+    #closeAboutBtn {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, background-color 0.2s ease, color 0.2s ease;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      outline: none !important;
+      box-shadow: none !important;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+
+    #closeAboutBtn:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: var(--text-main) !important;
+    }
+
+    body.light-theme #closeAboutBtn:hover {
+      background: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .header.about-active #closeAboutBtn {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Expanded About State */
+    .header.about-active {
+      height: 85vh !important;
+      border-radius: 27px !important;
+      /* Keep border-radius identical to collapsed state to avoid ballooning curves */
+      background: rgba(9, 9, 11, 0.96) !important;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+      border-color: var(--border-focus) !important;
+    }
+
+    body.light-theme .header.about-active {
+      background: rgba(255, 255, 255, 0.98) !important;
+    }
+
+    /* About Content Area */
+    .about-content {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      width: 100%;
+      overflow-y: auto;
+      flex-grow: 1;
+      padding: 40px 24px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-subtle) transparent;
+    }
+
+    .about-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .about-content::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: var(--radius-full);
+    }
+
+    .header.about-active .about-content {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+      transition-delay: 0.2s;
+    }
+
+    .about-grid {
+      max-width: 800px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+      margin: auto 0;
+    }
+
+    .about-hero {
+      text-align: center;
+    }
+
+    .about-hero h2 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--text-main), var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.04em;
+    }
+
+    .about-hero p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    .about-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .about-columns {
+        grid-template-columns: 1fr;
+      }
+
+      .about-hero h2 {
+        font-size: 1.8rem;
+      }
+    }
+
+    .about-col {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: all 0.3s ease;
+    }
+
+    .about-col:hover {
+      border-color: var(--border-focus);
+      background: rgba(255, 255, 255, 0.04);
+      transform: translateY(-2px);
+    }
+
+    .about-col h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text-main);
+    }
+
+    .about-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .about-col ul li {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      position: relative;
+      padding-left: 20px;
+      line-height: 1.5;
+    }
+
+    .about-col ul li::before {
+      content: "✦";
+      position: absolute;
+      left: 0;
+      color: var(--accent-tertiary);
+    }
+
+    .about-footer {
+      text-align: center;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .about-footer p {
+      color: var(--text-dark);
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+
+    .team-credit {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .team-credit .highlight {
+      color: var(--text-main);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #a5b4fc, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Portal row and carousel layouts */
+    .portal-row {
+      transition: border-color 0.3s ease;
+    }
+
+    .portal-row.finder-row:hover {
+      border-color: #3b82f6 !important;
+    }
+
+    .portal-row.recruiter-row:hover {
+      border-color: #d946ef !important;
+    }
+
+    @media (max-width: 900px) {
+      .portal-row {
+        grid-template-columns: 1fr !important;
+        gap: 24px !important;
+        padding: 24px !important;
+      }
+    }
+
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/10;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: rgba(24, 24, 27, 0.4);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .carousel-slides {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .carousel-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .carousel-slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .carousel-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .carousel-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(24, 24, 27, 0.95), rgba(9, 9, 11, 0.98));
+      color: var(--text-main);
+      gap: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .placeholder-icon {
+      font-size: 3rem;
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
+    }
+
+    .placeholder-text {
+      font-weight: 500;
+      font-size: 1.05rem;
+      color: var(--text-muted);
+    }
+
+    .carousel-dots-container {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .carousel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    [data-carousel="finder"] .carousel-dot.active {
+      width: 24px;
+      background: #3b82f6;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+    }
+
+    [data-carousel="recruiter"] .carousel-dot.active {
+      width: 24px;
+      background: #d946ef;
+      box-shadow: 0 0 8px rgba(217, 70, 239, 0.6);
+    }
+
+    /* Review Card styles */
+    .review-card {
+      padding: 32px;
+      transition: all 0.3s ease;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+
+    .review-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-focus);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    }
+  </style>
 </head>
-<body>
-  <p>Redirecting you to <a href="./landing.html">JobSarthi</a>...</p>
+
+<body class="landing-body">
+
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <!-- Interactive Subtle Network Background -->
+  <canvas id="networkCanvas" style="opacity: 0.22;"></canvas>
+
+  <!-- Header Wrapper (loaded dynamically via js/header.js) -->
+  <div class="header-wrapper"></div>
+
+  <!-- Container -->
+  <main class="container">
+
+    <!-- Hero Area -->
+    <section id="hero" class="hero-layout">
+      <div class="hero-left"
+        style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <h1 id="heroHeadline" class="hero-headline variable-proximity"
+          style="font-size: 3.5rem; line-height: 1.1; margin-bottom: 24px; font-weight: 800; width: 100%; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
+          Welcome to JobSarthi
+        </h1>
+        <p id="heroSubtitle" class="hero-subtitle"
+          style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 36px; max-width: 680px; text-align: center; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
+          Your intelligent companion in navigating modern careers. Powered by Sarthi AI, connecting talented seekers
+          with top company recruiter pipelines.
+        </p>
+        <div class="hero-ctas" style="display: flex; justify-content: center; width: 100%;">
+          <a href="#portal" class="btn btn-primary" style="padding: 12px 28px; border-radius: var(--radius-full);">Get
+            Started</a>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="video-container"
+          style="border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-secondary); aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); position: relative;">
+          <video id="introVideo" src="assets/video1.mp4" autoplay muted playsinline
+            style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </div>
+    </section>
+
+    <!-- Choose Your Journey portals -->
+    <section id="portal" style="padding: 80px 0; border-top: 1px solid var(--border-subtle);">
+      <div style="text-align: center; margin-bottom: 60px;">
+        <h2 style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">Choose Your Journey</h2>
+        <p style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Select one of our
+          customized dashboards below to begin.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 48px; max-width: 1100px; margin: 0 auto;">
+
+        <!-- Finder Row (Up) -->
+        <div class="portal-row finder-row"
+          style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: stretch; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 32px; position: relative; overflow: hidden;">
+          <div class="portal-card-glow"
+            style="background: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08), transparent 50%);"></div>
+
+          <!-- Image Section (Left) -->
+          <div class="carousel-container" data-carousel="finder">
+            <div class="carousel-slides">
+              <div class="carousel-slide active">
+                <img src="assets/finderimage1 (1).jpg" alt="Finder Preview 1"
+                  onerror="this.onerror=null; this.src='assets/finderimage1.jpg';">
+              </div>
+              <div class="carousel-slide">
+                <img src="assets/finderimage2.jpg" alt="Finder Preview 2">
+              </div>
+              <div class="carousel-slide">
+                <img src="assets/finderimage3.jpg" alt="Finder Preview 3">
+              </div>
+            </div>
+            <div class="carousel-dots-container">
+              <span class="carousel-dot active" data-index="0"></span>
+              <span class="carousel-dot" data-index="1"></span>
+              <span class="carousel-dot" data-index="2"></span>
+            </div>
+          </div>
+
+          <!-- Card content (Right) -->
+          <div class="portal-card seeker-card" onclick="window.location.href='seeker/login_signup.html'"
+            style="cursor: pointer; border: none; padding: 0; min-height: auto; background: transparent; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none"
+                stroke="url(#cyanGlow)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                style="margin-bottom: 24px; filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.45));">
+                <defs>
+                  <linearGradient id="cyanGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#22d3ee" />
+                    <stop offset="100%" stop-color="#0891b2" />
+                  </linearGradient>
+                </defs>
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <circle cx="18" cy="18" r="3" />
+                <line x1="22" y1="22" x2="20" y2="20" />
+              </svg>
+              <h3 style="font-size: 1.8rem; margin-bottom: 12px; font-weight: 700; color: var(--text-main);">Want to
+                Find a Job</h3>
+              <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 24px;">
+                Create your profile, complete assessments, earn skills validation, and talk to your career companion
+                Sarthi AI.
+              </p>
+            </div>
+            <div
+              style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--neon-cyan); margin-top: auto;">
+              Enter Seeker Portal <span class="arrow" style="transition: transform 0.3s ease;">&rarr;</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recruiter Row (Down) -->
+        <div class="portal-row recruiter-row"
+          style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: stretch; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 32px; position: relative; overflow: hidden;">
+          <div class="portal-card-glow"
+            style="background: radial-gradient(circle at 10% 20%, rgba(217, 70, 239, 0.08), transparent 50%);"></div>
+
+          <!-- Image Section (Left) -->
+          <div class="carousel-container" data-carousel="recruiter">
+            <div class="carousel-slides">
+              <div class="carousel-slide active">
+                <img src="assets/recruiterimage1.jpg" alt="Recruiter Preview 1"
+                  onerror="this.onerror=null; this.src='assets/recrutierimage1.jpg';">
+              </div>
+              <div class="carousel-slide">
+                <img src="assets/recruiterimage2.jpg" alt="Recruiter Preview 2"
+                  onerror="this.onerror=null; this.src='assets/recrutierimage2.jpg';">
+              </div>
+              <div class="carousel-slide">
+                <img src="assets/recruiterimage3.jpg" alt="Recruiter Preview 3"
+                  onerror="this.onerror=null; this.src='assets/recrutierimage3.jpg';">
+              </div>
+            </div>
+            <div class="carousel-dots-container">
+              <span class="carousel-dot active" data-index="0"></span>
+              <span class="carousel-dot" data-index="1"></span>
+              <span class="carousel-dot" data-index="2"></span>
+            </div>
+          </div>
+
+          <!-- Card content (Right) -->
+          <div class="portal-card recruiter-card" onclick="window.location.href='recruiter/login_signup.html'"
+            style="cursor: pointer; border: none; padding: 0; min-height: auto; background: transparent; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none"
+                stroke="url(#purpleGlow)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                style="margin-bottom: 24px; filter: drop-shadow(0 0 12px rgba(217, 70, 239, 0.45));">
+                <defs>
+                  <linearGradient id="purpleGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#d946ef" />
+                    <stop offset="100%" stop-color="#a21caf" />
+                  </linearGradient>
+                </defs>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                <path d="M12 11v4" />
+                <path d="M10 13h4" />
+              </svg>
+              <h3 style="font-size: 1.8rem; margin-bottom: 12px; font-weight: 700; color: var(--text-main);">Need an
+                Employee</h3>
+              <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 24px;">
+                Post listings, manage active applicant pools, view verified skill assessments, and optimize hiring
+                pipelines.
+              </p>
+            </div>
+            <div
+              style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--neon-purple); margin-top: auto;">
+              Enter Recruiter Portal <span class="arrow" style="transition: transform 0.3s ease;">&rarr;</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Success Reviews Section -->
+    <section id="reviews" style="padding: 80px 0; border-top: 1px solid var(--border-subtle);">
+      <div style="text-align: center; margin-bottom: 50px;">
+        <h2 style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">User Success Reviews</h2>
+        <p style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Hear from both finders
+          and recruiters who rely on JobSarthi.</p>
+      </div>
+
+      <div id="reviewsLoopContainer" style="max-width: 100%; margin: 0 auto; overflow: hidden; position: relative;">
+        <!-- Review 1 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "Sarthi AI helped me rebuild my resume and prepare for technical interviews. The skill assessment badges
+              gave me the edge I needed to land my dream job!"
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              AP
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Aisha Patel</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Full Stack Engineer</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 2 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "Hiring has never been so seamless. The skill-verified applicants saved us countless hours of screening.
+              The matchmaking scoring is incredibly accurate."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #d946ef); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              DC
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">David Chen</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Director of Talent, InnovateTech</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 3 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The conversational companion, Sarthi, guided me through career roadmap recommendations that perfectly
+              matched my portfolio. Extremely helpful!"
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #3b82f6); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              MT
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Marcus Thompson</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">UX Designer</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 4 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "JobSarthi's automated pipeline is pure gold. It matches high-intent seekers directly with our stack requirements, cutting time-to-hire by 50%."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #ec4899); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              RM
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Rohan Malhotra</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Engineering Lead, FinSphere</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 5 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The mock AI interviews are extremely realistic. The constructive, real-time feedback helped me overcome my interview anxiety and land my current role."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              PS
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Priya Sharma</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Product Manager</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 6 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "We hired three senior developers through JobSarthi in under two weeks. The platform's automated skills verification makes it a game-changer for engineering teams."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #d946ef); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              LG
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Liam Gallagher</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Talent Acquisition Lead, CloudNexus</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 7 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The personalized job recommendations are spot on. I didn't have to scroll through hundreds of irrelevant postings; JobSarthi matched me directly to fitting roles."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #3b82f6); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              AS
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Ananya Sen</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Data Analyst</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 8 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The recruiter interface is simple yet powerful. Seeing pre-assessed candidates with transparent breakdown scores is exactly what modern hiring needs."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #10b981); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              SJ
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Sarah Jenkins</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">HR Director, CoreTech Solutions</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scroll-driven Sarthi Feature Panel Expansion -->
+    <section id="sarthi-scroll-section"
+      style="min-height: 300vh; position: relative; padding: 60px 0; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box;">
+    </section>
+
+  </main>
+
+  <!-- Live Mini Sarthi Chat Widget -->
+  <div class="glass-panel mini-chat-preview" id="miniChatWidget" style="display: none;">
+    <div class="mini-chat-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></div>
+        <span style="font-weight: 700; font-size: 0.85rem;">Sarthi AI Assistant</span>
+      </div>
+      <span style="cursor: pointer; font-size: 0.8rem; color: var(--text-muted);" onclick="toggleMiniChat()">✕</span>
+    </div>
+
+    <div class="mini-chat-messages" id="miniChatBody">
+      <div class="mini-bubble mini-bubble-ai">
+        Hi there! I am **Sarthi AI**. How can I help you explore this landing page? Choose a question below!
+      </div>
+    </div>
+
+    <div class="mini-chat-actions">
+      <button class="mini-btn" onclick="sendMiniQuestion('Why is JobSarthi unique?')">Why JobSarthi?</button>
+      <button class="mini-btn" onclick="sendMiniQuestion('Where is the Skill Test?')">Where is Skill Test?</button>
+      <button class="mini-btn" onclick="sendMiniQuestion('How to register as Recruiter?')">Recruiter Login?</button>
+      <button class="mini-btn" onclick="sendMiniQuestion('Tell me a joke!')">Tell me a joke!</button>
+    </div>
+  </div>
+
+  <!-- Unified Floating Sarthi AI Pill & Panel -->
+  <div id="floatingSarthiBtn" onclick="onFloatingSarthiClick(event)" class="gemini-pill-border glare-hover glare-hover--play-once"
+    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); transition: background-color 0.3s, border-radius 0.3s;">
+    <!-- Small State Content -->
+    <div id="floatingSmallContent"
+      style="position: absolute; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.95rem; white-space: nowrap; transition: opacity 0.3s ease; z-index: 10;">
+      Sarthi
+    </div>
+
+    <!-- Click Expanded Content (4 Vertical Cards) -->
+    <div id="clickExpandedContent"
+      style="position: absolute; inset: 0; opacity: 0; pointer-events: none; display: flex; flex-direction: column; color: var(--text-main); transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px 24px; justify-content: space-between; overflow: hidden; z-index: 10;">
+      
+      <!-- Panel Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.15rem;">✨</span>
+          <span style="font-weight: 700; font-size: 1.05rem; letter-spacing: 0.5px;">Sarthi AI Tools</span>
+        </div>
+        <button id="clickCloseBtn" onclick="closeClickPanel(event)" style="background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s;">✕</button>
+      </div>
+
+      <!-- Vertical Card Stack -->
+      <div style="display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: center;">
+        
+        <!-- Card 1: Interview Mode -->
+        <a href="seeker/aiinterview.html" onclick="event.stopPropagation();" class="sarthi-tool-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(6,182,212,0.05)); border: 1px solid rgba(6,182,212,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">🎙️</div>
+          <div style="flex: 1; text-align: left;">
+            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Interview Mode</h4>
+            <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Real-time voice mock trials</p>
+          </div>
+          <span class="tool-arrow" style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        </a>
+
+        <!-- Card 2: Resume Analyser -->
+        <a href="seeker/index.html#skills" onclick="event.stopPropagation();" class="sarthi-tool-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(217,70,239,0.2), rgba(217,70,239,0.05)); border: 1px solid rgba(217,70,239,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">📄</div>
+          <div style="flex: 1; text-align: left;">
+            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Resume Analyser</h4>
+            <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Instant ATS score & tips</p>
+          </div>
+          <span class="tool-arrow" style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        </a>
+
+        <!-- Card 3: Job Tracker -->
+        <a href="seeker/index.html#applications" onclick="event.stopPropagation();" class="sarthi-tool-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.05)); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">📈</div>
+          <div style="flex: 1; text-align: left;">
+            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Job Tracker</h4>
+            <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Visual application pipeline</p>
+          </div>
+          <span class="tool-arrow" style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        </a>
+
+        <!-- Card 4: Career Guide -->
+        <a href="seeker/sarthi.html?mode=career" onclick="event.stopPropagation();" class="sarthi-tool-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.05)); border: 1px solid rgba(99,102,241,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">🗺️</div>
+          <div style="flex: 1; text-align: left;">
+            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Career Guide</h4>
+            <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">AI roadmap recommendations</p>
+          </div>
+          <span class="tool-arrow" style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- Large State Content (Feature Panel) - Hidden initially -->
+    <div id="floatingExpandedContent"
+      style="position: absolute; inset: 0; opacity: 0; pointer-events: none; display: flex; flex-direction: column; color: var(--text-main); transition: opacity 0.3s ease; box-sizing: border-box; overflow: hidden; z-index: 10;">
+
+      <!-- Panel Header -->
+      <div
+        style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 18px 24px 10px 24px; border-bottom: 1px solid var(--border-subtle); box-sizing: border-box; flex-shrink: 0; background: var(--sarthi-header-bg); z-index: 10;">
+        <div style="text-align: left;">
+          <h3
+            style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            Sarthi AI
+          </h3>
+          <p style="margin: 2px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Scroll down or up to slide through
+            features</p>
+        </div>
+        <!-- Dot Navigation Indicators inside panel -->
+        <div style="display: flex; gap: 10px; z-index: 20; align-items: center;" id="sarthiPanelDots">
+          <div class="sarthi-dot active" data-index="0"
+            style="width: 28px; height: 10px; border-radius: 5px; background: #06b6d4; box-shadow: 0 0 10px rgba(6, 182, 212, 0.8); transition: all 0.3s; cursor: pointer;">
+          </div>
+          <div class="sarthi-dot" data-index="1"
+            style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+          </div>
+          <div class="sarthi-dot" data-index="2"
+            style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+          </div>
+          <div class="sarthi-dot" data-index="3"
+            style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Slides Container -->
+      <div style="width: 100%; flex: 1; overflow: hidden; position: relative; box-sizing: border-box;">
+        <div id="sarthiSlideTrack" style="width: 100%; height: 100%; position: relative; box-sizing: border-box;">
+
+          <!-- Slide 1: Interview Mode -->
+          <div class="sarthi-slide" data-slide-index="0"
+            style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 1; pointer-events: auto; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+            <!-- Left: Video Panel -->
+            <div
+              style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+              <video src="assets/sarthivideo1.mp4" autoplay loop muted playsinline
+                style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+              <span
+                style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(6,182,212,0.6)); pointer-events: none; z-index: 1;">🎙️</span>
+            </div>
+            <!-- Right: Details -->
+            <div
+              style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+              <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Interview Mode</h4>
+              <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+                Practice real-time mock interviews with Sarthi AI. Get verbal feedback, score assessments, and refine
+                your speaking confidence for top tech roles.
+              </p>
+              <button class="btn btn-glow"
+                onclick="event.stopPropagation(); window.location.href='seeker/aiinterview.html'"
+                style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: linear-gradient(135deg, #06b6d4, #0891b2); border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+                Launch Simulator
+              </button>
+            </div>
+          </div>
+
+          <!-- Slide 2: Resume Analyser -->
+          <div class="sarthi-slide" data-slide-index="1"
+            style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+            <!-- Left: Video Panel -->
+            <div
+              style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(217,70,239,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+              <video src="assets/sarthivideo2.mp4" autoplay loop muted playsinline
+                style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+              <span
+                style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(217,70,239,0.6)); pointer-events: none; z-index: 1;">📄</span>
+            </div>
+            <!-- Right: Details -->
+            <div
+              style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+              <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Resume Analyser</h4>
+              <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+                Get instant resume scores, structural assessments, and tailored bullet point revisions to optimize your
+                visibility for company pipelines.
+              </p>
+              <button class="btn btn-glow"
+                onclick="event.stopPropagation(); window.location.href='seeker/index.html#skills'"
+                style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: linear-gradient(135deg, #d946ef, #c084fc); border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+                Analyse Portfolio
+              </button>
+            </div>
+          </div>
+
+          <!-- Slide 3: Job Tracker -->
+          <div class="sarthi-slide" data-slide-index="2"
+            style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+            <!-- Left: Video Panel -->
+            <div
+              style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+              <video src="assets/sarthivideo3.mp4" autoplay loop muted playsinline
+                style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+              <span
+                style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(245,158,11,0.6)); pointer-events: none; z-index: 1;">📈</span>
+            </div>
+            <!-- Right: Details -->
+            <div
+              style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+              <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Job Tracker</h4>
+              <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+                Monitor your application stages with our interactive Kanban tracking board. Stay on top of interviews,
+                offers, and follow-ups.
+              </p>
+              <button class="btn btn-glow"
+                onclick="event.stopPropagation(); window.location.href='seeker/index.html#applications'"
+                style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+                Open Tracker
+              </button>
+            </div>
+          </div>
+
+          <!-- Slide 4: Career Guide -->
+          <div class="sarthi-slide" data-slide-index="3"
+            style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+            <!-- Left: Video Panel -->
+            <div
+              style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+              <video src="assets/sarthivideo4.mp4" autoplay loop muted playsinline
+                style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+              <span
+                style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(99,102,241,0.6)); pointer-events: none; z-index: 1;">🗺️</span>
+            </div>
+            <!-- Right: Details -->
+            <div
+              style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+              <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Career Guide</h4>
+              <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+                Generate customized fullstack roadmaps, track skill acquisition milestones, and explore target learning
+                modules designed for your career progression.
+              </p>
+              <button class="btn btn-glow"
+                onclick="event.stopPropagation(); window.location.href='seeker/chatbot.html?mode=career'"
+                style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+                Generate Roadmap
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer
+        style="border-top: 1px solid var(--glass-border); padding: 40px 0; text-align: center; color: var(--text-dark); font-size: 0.85rem; position: relative; z-index: 5;">
+        <p>&copy; 2026 JobSarthi Platform. Created with advanced UI animations. All rights reserved.</p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Script logics for background Canvas nodes and HUD triggers -->
+  <script>
+        // 1. Background Network Canvas Script
+        const canvas = document.getElementById('networkCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let particles = [];
+        const maxParticles = 65;
+        let mouse = { x: null, y: null, radius: 150 };
+
+        window.addEventListener('resize', resizeCanvas);
+        function resizeCanvas() {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+
+        window.addEventListener('mousemove', (e) => {
+          mouse.x = e.x;
+          mouse.y = e.y;
+        });
+
+        window.addEventListener('mouseleave', () => {
+          mouse.x = null;
+          mouse.y = null;
+        });
+
+        class Particle {
+          constructor(x, y, vx, vy, radius, color) {
+            this.x = x || Math.random() * canvas.width;
+            this.y = y || Math.random() * canvas.height;
+            this.vx = vx || (Math.random() - 0.5) * 1.0;
+            this.vy = vy || (Math.random() - 0.5) * 1.0;
+            this.radius = radius || Math.random() * 3 + 2;
+            this.color = color || (Math.random() > 0.5 ? '#06b6d4' : '#d946ef');
+          }
+
+          draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.color;
+            ctx.fill();
+            ctx.shadowBlur = 0; // reset
+          }
+
+          update() {
+            // Wall bounce
+            if (this.x < 0 || this.x > canvas.width) this.vx = -this.vx;
+            if (this.y < 0 || this.y > canvas.height) this.vy = -this.vy;
+
+            // Mouse attraction
+            if (mouse.x != null) {
+              let dx = mouse.x - this.x;
+              let dy = mouse.y - this.y;
+              let dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < mouse.radius) {
+                let force = (mouse.radius - dist) / mouse.radius;
+                this.x += (dx / dist) * force * 1.2;
+                this.y += (dy / dist) * force * 1.2;
+              }
+            }
+
+            this.x += this.vx;
+            this.y += this.vy;
+            this.draw();
+          }
+        }
+
+        function initParticles() {
+          particles = [];
+          for (let i = 0; i < maxParticles; i++) {
+            particles.push(new Particle());
+          }
+        }
+        initParticles();
+
+        function drawLines() {
+          for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+              let dx = particles[i].x - particles[j].x;
+              let dy = particles[i].y - particles[j].y;
+              let dist = Math.sqrt(dx * dx + dy * dy);
+
+              if (dist < 110) {
+                let alpha = (110 - dist) / 110 * 0.25;
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+              }
+            }
+          }
+        }
+
+        function animate() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          particles.forEach(p => p.update());
+          drawLines();
+          requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Core Click Burst effect
+        function emitCoreBurst() {
+          // Trigger scaling animation
+          const core = document.getElementById('sarthiCore');
+          core.style.transform = 'scale(1.3)';
+          setTimeout(() => core.style.transform = '', 300);
+
+          // Generate burst particles on canvas
+          const rect = core.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+
+          for (let i = 0; i < 20; i++) {
+            let angle = Math.random() * Math.PI * 2;
+            let speed = Math.random() * 4 + 2;
+            let vx = Math.cos(angle) * speed;
+            let vy = Math.sin(angle) * speed;
+            particles.push(new Particle(cx, cy, vx, vy, Math.random() * 4 + 3, '#06b6d4'));
+          }
+
+          // Remove excess particles
+          if (particles.length > 120) {
+            particles.splice(maxParticles, particles.length - maxParticles);
+          }
+        }
+
+        // 2. Mini Chat Widget logic
+        function toggleMiniChat() {
+          const widget = document.getElementById('miniChatWidget');
+          widget.style.display = widget.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        function openDemoChat() {
+          const widget = document.getElementById('miniChatWidget');
+          widget.style.display = 'flex';
+          widget.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        const miniHistory = [];
+
+        async function sendMiniQuestion(question) {
+          const body = document.getElementById('miniChatBody');
+
+          // Add user message
+          const userBubble = document.createElement('div');
+          userBubble.className = 'mini-bubble mini-bubble-user';
+          userBubble.textContent = question;
+          body.appendChild(userBubble);
+          body.scrollTop = body.scrollHeight;
+
+          // Add loading dots
+          const loading = document.createElement('div');
+          loading.className = 'mini-bubble mini-bubble-ai';
+          loading.id = 'miniLoading';
+          loading.innerHTML = `
+        <div class="typing-indicator" style="padding: 2px 4px;">
+          <span class="dot" style="width:4px; height:4px;"></span>
+          <span class="dot" style="width:4px; height:4px;"></span>
+          <span class="dot" style="width:4px; height:4px;"></span>
+        </div>
+      `;
+          body.appendChild(loading);
+          body.scrollTop = body.scrollHeight;
+
+          miniHistory.push({ role: 'user', content: question });
+
+          try {
+            const response = await fetch((window.API_BASE_URL || '') + '/api/sarthi/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: question, chatHistory: miniHistory })
+            });
+
+            const result = await response.json();
+            const loadingEl = document.getElementById('miniLoading');
+            if (loadingEl) loadingEl.remove();
+
+            const reply = result.reply || "I'm having trouble connecting right now.";
+            miniHistory.push({ role: 'assistant', content: reply });
+
+            const aiBubble = document.createElement('div');
+            aiBubble.className = 'mini-bubble mini-bubble-ai';
+            aiBubble.innerHTML = reply;
+            body.appendChild(aiBubble);
+            body.scrollTop = body.scrollHeight;
+          } catch (err) {
+            console.error("Mini chat error:", err);
+            const loadingEl = document.getElementById('miniLoading');
+            if (loadingEl) loadingEl.remove();
+
+            const aiBubble = document.createElement('div');
+            aiBubble.className = 'mini-bubble mini-bubble-ai';
+            aiBubble.innerHTML = "Oops! Connection error. Please verify that the backend is running.";
+            body.appendChild(aiBubble);
+            body.scrollTop = body.scrollHeight;
+          }
+        }
+
+        // 5. Shrink pill header on scroll
+        window.addEventListener('scroll', () => {
+          const header = document.querySelector('.header');
+          if (header) {
+            if (window.scrollY > 40) {
+              header.classList.add('scrolled');
+            } else {
+              header.classList.remove('scrolled');
+            }
+          }
+        });
+
+        // 6. Liquid glass spotlight coordinates tracking (Optimized: targets only hovered element)
+        document.addEventListener('mousemove', (e) => {
+          const card = e.target.closest('.glass-panel, .glass-card, .portal-side, .deck-card');
+          if (card) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
+          }
+        });
+
+        // 7. Dynamic video rotation loop (Checks as many videos as are added in sequence)
+        let currentVideoIndex = 1;
+        const videoElement = document.getElementById('introVideo');
+        if (videoElement) {
+          videoElement.addEventListener('ended', () => {
+            currentVideoIndex++;
+            loadVideoByIndex(currentVideoIndex);
+          });
+
+          videoElement.addEventListener('error', () => {
+            // If index is higher than 1, it means we hit a non-existent index (e.g. tried video5.mp4 but only 4 exist)
+            if (currentVideoIndex > 1) {
+              console.log(`Video index ${currentVideoIndex} not found. Reverting sequence to video1.`);
+              currentVideoIndex = 1;
+              loadVideoByIndex(currentVideoIndex);
+            }
+          });
+
+          function loadVideoByIndex(index) {
+            videoElement.src = `assets/video${index}.mp4`;
+            videoElement.load();
+            videoElement.play().catch(err => {
+              console.log(`Playback started/blocked for video${index}:`, err);
+            });
+          }
+        }
+
+        // 8. Scroll-driven expanding Sarthi AI pill interaction
+        let sarthiMode = 'minimized'; // 'minimized', 'clickExpanded', 'scrollExpanded'
+        let currentWidth = 140;
+        let currentHeight = 54;
+        let currentX = 0;
+        let currentY = 0;
+        let currentSmallOpacity = 1;
+        let currentScrollOpacity = 0;
+        let currentClickOpacity = 0;
+        let isLoopRunning = false;
+
+        // Cached DOM Elements
+        let cachedSlides = [];
+        let cachedDots = [];
+        let sarthiScrollSectionEl = null;
+        let floatingBtnEl = null;
+        let smallContentEl = null;
+        let expandedContentEl = null;
+        let clickContentEl = null;
+
+        // Cached Dimensions
+        let cachedWindowWidth = window.innerWidth;
+        let cachedWindowHeight = window.innerHeight;
+        let cachedSectionTopDoc = 0;
+        let cachedMaxScroll = 0;
+
+        function updateCachedSarthiDimensions() {
+          cachedWindowWidth = window.innerWidth;
+          cachedWindowHeight = window.innerHeight;
+          sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
+          if (sarthiScrollSectionEl) {
+            const rect = sarthiScrollSectionEl.getBoundingClientRect();
+            cachedSectionTopDoc = rect.top + window.scrollY;
+          }
+          cachedMaxScroll = document.documentElement.scrollHeight - cachedWindowHeight;
+        }
+
+        function cacheSarthiElements() {
+          cachedSlides = Array.from(document.querySelectorAll('#sarthiSlideTrack .sarthi-slide'));
+          cachedDots = Array.from(document.querySelectorAll('#sarthiPanelDots .sarthi-dot'));
+          sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
+          floatingBtnEl = document.getElementById('floatingSarthiBtn');
+          smallContentEl = document.getElementById('floatingSmallContent');
+          expandedContentEl = document.getElementById('floatingExpandedContent');
+          clickContentEl = document.getElementById('clickExpandedContent');
+        }
+
+        function updateSarthiSlideMobile(index) {
+          index = Math.max(0, Math.min(3, index));
+          cachedSlides.forEach((slide, idx) => {
+            if (idx === index) {
+              slide.style.opacity = '1';
+              slide.style.pointerEvents = 'auto';
+            } else {
+              slide.style.opacity = '0';
+              slide.style.pointerEvents = 'none';
+            }
+          });
+
+          cachedDots.forEach((dot, idx) => {
+            if (idx === index) {
+              dot.classList.add('active');
+              dot.style.width = '28px';
+              dot.style.height = '10px';
+              dot.style.borderRadius = '5px';
+              dot.style.background = '#06b6d4';
+              dot.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.8)';
+            } else {
+              dot.classList.remove('active');
+              dot.style.width = '10px';
+              dot.style.height = '10px';
+              dot.style.borderRadius = '5px';
+              dot.style.background = 'var(--sarthi-dot-inactive)';
+              dot.style.boxShadow = 'none';
+            }
+          });
+        }
+
+        function onFloatingSarthiClick(event) {
+          if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          if (sarthiScrollSectionEl) {
+            sarthiScrollSectionEl.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+
+        function closeClickPanel(event) {
+          if (event) event.stopPropagation();
+          sarthiMode = 'minimized';
+          if (!isLoopRunning) {
+            isLoopRunning = true;
+            requestAnimationFrame(updateSarthiScrollAnimation);
+          }
+        }
+
+        const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
+
+        function updateSarthiScrollAnimation() {
+          const W = cachedWindowWidth;
+          const H = cachedWindowHeight;
+
+          let targetWidth, targetHeight, targetX, targetY;
+          let targetSmallOpacity = 0;
+          let targetScrollOpacity = 0;
+          let targetClickOpacity = 0;
+
+          if (sarthiMode === 'minimized') {
+            targetWidth = 140;
+            targetHeight = 54;
+            targetX = 0;
+            targetY = 0;
+            targetSmallOpacity = 1;
+          } else if (sarthiMode === 'clickExpanded') {
+            targetWidth = Math.min(350, W - 40);
+            targetHeight = Math.min(460, H - 80);
+            targetX = 0;
+            targetY = 0;
+            targetClickOpacity = 1;
+          } else if (sarthiMode === 'scrollExpanded') {
+            targetWidth = Math.min(950, W - 80);
+            targetHeight = Math.min(480, Math.max(400, H - 120));
+
+            const X_b = W - 30 - (targetWidth / 2);
+            const Y_b = H - 30 - (targetHeight / 2);
+            const X_c = W / 2;
+            let Y_c = H / 2;
+            if (Y_c - targetHeight / 2 < 80) {
+              Y_c = 80 + targetHeight / 2;
+            }
+            targetX = X_c - X_b;
+            targetY = Y_c - Y_b;
+
+            targetScrollOpacity = 1;
+          }
+
+          currentWidth = lerp(currentWidth, targetWidth, 0.32);
+          currentHeight = lerp(currentHeight, targetHeight, 0.32);
+          currentX = lerp(currentX, targetX, 0.32);
+          currentY = lerp(currentY, targetY, 0.32);
+
+          currentSmallOpacity = lerp(currentSmallOpacity, targetSmallOpacity, 0.32);
+          currentScrollOpacity = lerp(currentScrollOpacity, targetScrollOpacity, 0.32);
+          currentClickOpacity = lerp(currentClickOpacity, targetClickOpacity, 0.32);
+
+          if (floatingBtnEl) {
+            floatingBtnEl.style.width = `${currentWidth}px`;
+            floatingBtnEl.style.height = `${currentHeight}px`;
+            floatingBtnEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+
+            if (sarthiMode === 'minimized') {
+              floatingBtnEl.style.borderRadius = '27px';
+              floatingBtnEl.style.background = 'var(--sarthi-bg-minimized)';
+              floatingBtnEl.classList.remove('pane-open');
+            } else {
+              floatingBtnEl.style.borderRadius = '24px';
+              floatingBtnEl.style.background = 'var(--sarthi-bg-expanded)';
+              floatingBtnEl.classList.add('pane-open');
+            }
+          }
+
+          if (smallContentEl) {
+            smallContentEl.style.opacity = currentSmallOpacity;
+            smallContentEl.style.pointerEvents = currentSmallOpacity > 0.5 ? 'auto' : 'none';
+          }
+          if (expandedContentEl) {
+            expandedContentEl.style.opacity = currentScrollOpacity;
+            expandedContentEl.style.pointerEvents = currentScrollOpacity > 0.5 ? 'auto' : 'none';
+          }
+          if (clickContentEl) {
+            clickContentEl.style.opacity = currentClickOpacity;
+            clickContentEl.style.pointerEvents = currentClickOpacity > 0.5 ? 'auto' : 'none';
+          }
+
+          // Slide track fading logic during scroll mode
+          if (sarthiMode === 'scrollExpanded') {
+            const start = cachedSectionTopDoc - H + 200;
+            const end = cachedMaxScroll - 30;
+
+            if (end > start) {
+              const totalScrollDistance = end - start;
+              const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
+              const expansionThreshold = 380;
+
+              if (scrollOffset > expansionThreshold) {
+                const remaining = totalScrollDistance - expansionThreshold;
+                const slideProgress = Math.max(0, Math.min(0.99, (scrollOffset - expansionThreshold) / remaining));
+                const activeIdx = Math.floor(slideProgress * 4);
+
+                cachedSlides.forEach((slide, idx) => {
+                  if (idx === activeIdx) {
+                    slide.style.opacity = '1';
+                    slide.style.pointerEvents = 'auto';
+                  } else {
+                    slide.style.opacity = '0';
+                    slide.style.pointerEvents = 'none';
+                  }
+                });
+
+                cachedDots.forEach((dot, idx) => {
+                  if (idx === activeIdx) {
+                    dot.style.width = '28px';
+                    dot.style.height = '10px';
+                    dot.style.borderRadius = '5px';
+                    dot.style.background = '#06b6d4';
+                    dot.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.8)';
+                  } else {
+                    dot.style.width = '10px';
+                    dot.style.height = '10px';
+                    dot.style.borderRadius = '5px';
+                    dot.style.background = 'var(--sarthi-dot-inactive)';
+                    dot.style.boxShadow = 'none';
+                  }
+                });
+              }
+            }
+          }
+
+          const threshold = 0.5;
+          const isWidthDone = Math.abs(currentWidth - targetWidth) < threshold;
+          const isHeightDone = Math.abs(currentHeight - targetHeight) < threshold;
+          const isXDone = Math.abs(currentX - targetX) < threshold;
+          const isYDone = Math.abs(currentY - targetY) < threshold;
+          const isSmallDone = Math.abs(currentSmallOpacity - targetSmallOpacity) < 0.01;
+          const isScrollDone = Math.abs(currentScrollOpacity - targetScrollOpacity) < 0.01;
+          const isClickDone = Math.abs(currentClickOpacity - targetClickOpacity) < 0.01;
+
+          if (!isWidthDone || !isHeightDone || !isXDone || !isYDone || !isSmallDone || !isScrollDone || !isClickDone) {
+            requestAnimationFrame(updateSarthiScrollAnimation);
+          } else {
+            currentWidth = targetWidth;
+            currentHeight = targetHeight;
+            currentX = targetX;
+            currentY = targetY;
+            currentSmallOpacity = targetSmallOpacity;
+            currentScrollOpacity = targetScrollOpacity;
+            currentClickOpacity = targetClickOpacity;
+            isLoopRunning = false;
+          }
+        }
+
+        window.addEventListener('scroll', () => {
+          const isMobile = cachedWindowWidth <= 768;
+          if (isMobile) {
+            if (sarthiScrollSectionEl && floatingBtnEl) {
+              const rectTop = cachedSectionTopDoc - window.scrollY;
+              if (rectTop < cachedWindowHeight - 100) {
+                floatingBtnEl.style.opacity = '0';
+                floatingBtnEl.style.pointerEvents = 'none';
+              } else {
+                floatingBtnEl.style.opacity = '1';
+                floatingBtnEl.style.pointerEvents = 'auto';
+              }
+            }
+            return;
+          }
+
+          if (sarthiMode === 'clickExpanded') {
+            sarthiMode = 'minimized';
+            if (!isLoopRunning) {
+              isLoopRunning = true;
+              requestAnimationFrame(updateSarthiScrollAnimation);
+            }
+            return;
+          }
+
+          if (cachedMaxScroll > 0) {
+            const start = cachedSectionTopDoc - cachedWindowHeight + 200;
+            const end = cachedMaxScroll - 30;
+
+            if (end > start) {
+              const totalScrollDistance = end - start;
+              const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
+
+              if (scrollOffset > 0) {
+                sarthiMode = 'scrollExpanded';
+              } else {
+                sarthiMode = 'minimized';
+              }
+            } else {
+              sarthiMode = 'minimized';
+            }
+          } else {
+            sarthiMode = 'minimized';
+          }
+
+          if (!isLoopRunning) {
+            isLoopRunning = true;
+            requestAnimationFrame(updateSarthiScrollAnimation);
+          }
+        }, { passive: true });
+
+        window.addEventListener('resize', () => {
+          updateCachedSarthiDimensions();
+        }, { passive: true });
+
+        window.addEventListener('DOMContentLoaded', () => {
+          cacheSarthiElements();
+          updateCachedSarthiDimensions();
+
+          const isMobile = cachedWindowWidth <= 768;
+          if (isMobile) {
+            // Move sarthi panel below review section statically
+            const panel = expandedContentEl;
+            if (sarthiScrollSectionEl && panel) {
+              panel.style.position = 'relative';
+              panel.style.width = '100%';
+              panel.style.maxWidth = '850px';
+              panel.style.height = '480px';
+              panel.style.opacity = '1';
+              panel.style.pointerEvents = 'auto';
+              panel.style.borderRadius = 'var(--radius-lg)';
+              panel.style.background = 'var(--sarthi-bg-expanded)';
+              panel.style.border = '1px solid var(--border-subtle)';
+              panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
+              panel.style.margin = '0 auto';
+              panel.style.overflow = 'hidden';
+              
+              // Add Gemini border class
+              panel.classList.add('gemini-pill-border');
+
+              sarthiScrollSectionEl.innerHTML = '';
+              sarthiScrollSectionEl.appendChild(panel);
+              sarthiScrollSectionEl.style.minHeight = 'auto';
+              sarthiScrollSectionEl.style.height = 'auto';
+              sarthiScrollSectionEl.style.padding = '40px 0';
+              
+              // Ensure minimized state elements on floatingSarthiBtn are visible
+              if (smallContentEl) {
+                smallContentEl.style.opacity = '1';
+                smallContentEl.style.pointerEvents = 'auto';
+              }
+            }
+          } else {
+            setTimeout(() => {
+              window.dispatchEvent(new Event('scroll'));
+            }, 100);
+          }
+
+          cachedDots.forEach(dot => {
+            dot.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const targetIdx = parseInt(dot.getAttribute('data-index'));
+              if (isNaN(targetIdx)) return;
+
+              if (cachedWindowWidth <= 768) {
+                updateSarthiSlideMobile(targetIdx);
+                return;
+              }
+
+              if (cachedMaxScroll > 0) {
+                const start = cachedSectionTopDoc - cachedWindowHeight + 200;
+                const end = cachedMaxScroll - 30;
+
+                if (end > start) {
+                  const totalScrollDistance = end - start;
+                  const expansionThreshold = 380;
+                  const remaining = totalScrollDistance - expansionThreshold;
+
+                  const targetSlideProgress = targetIdx * 0.25 + 0.125;
+                  const targetScrollOffset = expansionThreshold + targetSlideProgress * remaining;
+                  const targetScrollY = start + targetScrollOffset;
+
+                  window.scrollTo({
+                    top: targetScrollY,
+                    behavior: 'smooth'
+                  });
+                }
+              }
+            });
+          });
+
+          // Swipe gestures for sarthiSlideTrack on mobile
+          const slideTrack = document.getElementById('sarthiSlideTrack');
+          if (slideTrack) {
+            let touchStartX = 0;
+            let touchEndX = 0;
+
+            slideTrack.addEventListener('touchstart', (e) => {
+              touchStartX = e.changedTouches[0].clientX;
+            }, { passive: true });
+
+            slideTrack.addEventListener('touchend', (e) => {
+              touchEndX = e.changedTouches[0].clientX;
+              const diffX = touchEndX - touchStartX;
+              
+              if (Math.abs(diffX) > 50) {
+                if (cachedWindowWidth <= 768) {
+                  const activeDot = document.querySelector('#sarthiPanelDots .sarthi-dot.active');
+                  let currentIdx = activeDot ? parseInt(activeDot.getAttribute('data-index')) : 0;
+                  if (isNaN(currentIdx)) currentIdx = 0;
+                  
+                  let targetIdx = currentIdx;
+                  if (diffX < -50) { // Swiped left -> Next slide
+                    if (targetIdx < 3) targetIdx++;
+                  } else if (diffX > 50) { // Swiped right -> Previous slide
+                    if (targetIdx > 0) targetIdx--;
+                  }
+                  
+                  if (targetIdx !== currentIdx) {
+                    updateSarthiSlideMobile(targetIdx);
+                  }
+                  return;
+                }
+
+                if (cachedMaxScroll > 0) {
+                  const start = cachedSectionTopDoc - cachedWindowHeight + 200;
+                  const end = cachedMaxScroll - 30;
+
+                  if (end > start) {
+                    const totalScrollDistance = end - start;
+                    const expansionThreshold = 380;
+                    const remaining = totalScrollDistance - expansionThreshold;
+                    const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
+                    
+                    let currentIdx = 0;
+                    if (scrollOffset > expansionThreshold) {
+                      const slideProgress = Math.max(0, Math.min(0.99, (scrollOffset - expansionThreshold) / remaining));
+                      currentIdx = Math.floor(slideProgress * 4);
+                    }
+                    
+                    let targetIdx = currentIdx;
+                    if (diffX < -50) { // Swiped left -> Next slide
+                      if (targetIdx < 3) targetIdx++;
+                    } else if (diffX > 50) { // Swiped right -> Previous slide
+                      if (targetIdx > 0) targetIdx--;
+                    }
+                    
+                    if (targetIdx !== currentIdx) {
+                      const targetSlideProgress = targetIdx * 0.25 + 0.125;
+                      const targetScrollOffset = expansionThreshold + targetSlideProgress * remaining;
+                      const targetScrollY = start + targetScrollOffset;
+
+                      window.scrollTo({
+                        top: targetScrollY,
+                        behavior: 'smooth'
+                      });
+                    }
+                  }
+                }
+              }
+            }, { passive: true });
+          }
+        });
+
+        // 9. Portal Carousels Logic
+        document.addEventListener('DOMContentLoaded', () => {
+          setupCarousel('finder');
+          setupCarousel('recruiter');
+
+          // Smooth scroll navigation with event delegation (handles dynamic elements like Dock links)
+          document.addEventListener('click', (e) => {
+            const link = e.target.closest('a[href^="#"]');
+            if (link) {
+              const targetId = link.getAttribute('href');
+              if (targetId && targetId.startsWith('#') && targetId.length > 1) {
+                e.preventDefault();
+                const targetSection = document.querySelector(targetId);
+                if (targetSection) {
+                  const headerOffset = targetId === '#hero' ? 0 : 90;
+                  const elementPosition = targetSection.getBoundingClientRect().top;
+                  const offsetPosition = targetId === '#hero' ? 0 : (elementPosition + window.scrollY - headerOffset);
+
+                  window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                  });
+                }
+              }
+            }
+          });
+
+          // Update active nav link on scroll using high-performance cached offsets
+          let sectionOffsets = {};
+          function updateSectionOffsets() {
+            ['hero', 'portal', 'reviews', 'sarthi-scroll-section'].forEach(id => {
+              const section = document.getElementById(id);
+              if (section) {
+                const rect = section.getBoundingClientRect();
+                sectionOffsets[id] = rect.top + window.scrollY;
+              }
+            });
+            runScrollUpdate();
+          }
+          window.addEventListener('resize', updateSectionOffsets, { passive: true });
+          window.addEventListener('load', updateSectionOffsets, { passive: true });
+          
+          updateSectionOffsets();
+          setTimeout(updateSectionOffsets, 250);
+
+          function runScrollUpdate() {
+            let currentSectionId = 'hero';
+            const currentScroll = window.scrollY;
+
+            ['hero', 'portal', 'reviews', 'sarthi-scroll-section'].forEach(id => {
+              if (sectionOffsets[id] !== undefined) {
+                const offset = sectionOffsets[id];
+                if (currentScroll >= offset - 150) {
+                  currentSectionId = id;
+                }
+              }
+            });
+
+            const activeLinks = document.querySelectorAll('.dock-item, .nav-link');
+            activeLinks.forEach(link => {
+              if (link.getAttribute('href') === `#${currentSectionId}`) {
+                link.classList.add('active');
+              } else {
+                link.classList.remove('active');
+              }
+            });
+          }
+
+          let navTicking = false;
+          window.addEventListener('scroll', () => {
+            if (!navTicking) {
+              window.requestAnimationFrame(() => {
+                runScrollUpdate();
+                navTicking = false;
+              });
+              navTicking = true;
+            }
+          }, { passive: true });
+
+          function setupCarousel(type) {
+            const container = document.querySelector(`.carousel-container[data-carousel="${type}"]`);
+            if (!container) return;
+
+            const slides = container.querySelectorAll('.carousel-slide');
+            const dots = container.querySelectorAll('.carousel-dot');
+            let currentIndex = 0;
+            let intervalId = null;
+
+            function showSlide(index) {
+              slides.forEach((slide, i) => {
+                if (i === index) {
+                  slide.classList.add('active');
+                } else {
+                  slide.classList.remove('active');
+                }
+              });
+
+              dots.forEach((dot, i) => {
+                if (i === index) {
+                  dot.classList.add('active');
+                } else {
+                  dot.classList.remove('active');
+                }
+              });
+
+              currentIndex = index;
+            }
+
+            function nextSlide() {
+              let nextIndex = (currentIndex + 1) % slides.length;
+              showSlide(nextIndex);
+            }
+
+            function startAutoPlay() {
+              stopAutoPlay();
+              intervalId = setInterval(nextSlide, 5000);
+            }
+
+            function stopAutoPlay() {
+              if (intervalId) {
+                clearInterval(intervalId);
+              }
+            }
+
+            // Add click events to dots
+            dots.forEach(dot => {
+              dot.addEventListener('click', () => {
+                const index = parseInt(dot.getAttribute('data-index'));
+                showSlide(index);
+                startAutoPlay(); // Restart timer on user interaction
+              });
+            });
+
+            // Initialize
+            showSlide(0);
+            startAutoPlay();
+          }
+        });
+      </script>
+
+      <!-- GSAP and ScrollTrigger -->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+      <!-- Custom SplitText and VariableProximity Scripts -->
+      <script src="js/SplitText.js"></script>
+      <script src="js/VariableProximity.js"></script>
+      <script src="js/LogoLoop.js"></script>
+
+      <!-- JobSarthi Shared Header Script -->
+      <script src="js/header.js"></script>
+
+      <!-- Initialize SplitText & VariableProximity for Hero introductory text -->
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          const headlineEl = document.getElementById('heroHeadline');
+          const subtitleEl = document.getElementById('heroSubtitle');
+
+          if (headlineEl) {
+            new SplitText(headlineEl, {
+              delay: 45,
+              duration: 0.8,
+              ease: 'power3.out',
+              from: { opacity: 0, y: 30 },
+              to: { opacity: 1, y: 0 },
+              onLetterAnimationComplete: () => {
+                new VariableProximity(headlineEl, {
+                  fromFontVariationSettings: "'wght' 400, 'opsz' 9",
+                  toFontVariationSettings: "'wght' 1000, 'opsz' 40",
+                  container: document.querySelector('.hero-left'),
+                  radius: 120,
+                  falloff: 'linear'
+                });
+              }
+            });
+          }
+
+          if (subtitleEl) {
+            new SplitText(subtitleEl, {
+              delay: 12,
+              duration: 0.8,
+              ease: 'power3.out',
+              from: { opacity: 0, y: 20 },
+              to: { opacity: 1, y: 0 }
+            });
+          }
+
+          // Initialize LogoLoop for Success Reviews ticker
+          const reviewsContainer = document.getElementById('reviewsLoopContainer');
+          if (reviewsContainer) {
+            new LogoLoop(reviewsContainer, {
+              speed: 45,
+              gap: 24,
+              itemWidth: 340,
+              hoverSpeed: 0,
+              scaleOnHover: true,
+              fadeOut: true
+            });
+          }
+        });
+      </script>
+
 </body>
+
 </html>

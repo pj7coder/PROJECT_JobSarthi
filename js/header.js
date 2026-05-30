@@ -399,5 +399,5 @@ window.logout = function () {
   }
   const isLanding = !window.location.pathname.includes('/seeker/') && !window.location.pathname.includes('/recruiter/');
   const prefix = isLanding ? './' : '../';
-  window.location.href = `${prefix}landing.html`;
+  window.location.href = `${prefix}index.html`;
 };
