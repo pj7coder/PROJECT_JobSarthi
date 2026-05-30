@@ -15,146 +15,145 @@
   <link rel="stylesheet" href="css/LogoLoop.css">
 
   <style>
-    /* Seamless Concentric 3D Orbit Loader */
+    /* Preloader CSS to prevent Flash of Unstyled Content (FOUC) */
     #page-preloader {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: #09090b; /* Match deep dark background */
+      background-color: #09090b;
       z-index: 999999;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.5s;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
     }
     #page-preloader.fade-out {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
     }
-    
-    .loader-bg-glow {
+    .preloader-glow {
       position: absolute;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, rgba(0,0,0,0) 70%);
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(0,0,0,0) 70%);
       pointer-events: none;
-      animation: ambient-pulse 3s ease-in-out infinite alternate;
+      animation: pulse-glow 3s infinite alternate;
     }
-
-    .orbit-container {
+    
+    /* Unique & Attractive Code-only Animation Scene */
+    .loader-scene {
       position: relative;
-      width: 120px;
-      height: 120px;
-      perspective: 800px;
+      width: 160px;
+      height: 160px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-
-    .orbit-ring {
+    .morphing-blob {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, #06b6d4 0%, #4f46e5 50%, #d946ef 100%);
+      border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+      animation: morph-blob 6s ease-in-out infinite, rotate-blob 12s linear infinite;
+      filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.5));
+      position: relative;
+      z-index: 2;
+    }
+    .orbit-track {
       position: absolute;
-      width: 100%;
-      height: 100%;
+      border: 1px dashed rgba(255, 255, 255, 0.08);
       border-radius: 50%;
-      border: 2px solid transparent;
+      pointer-events: none;
+      z-index: 1;
     }
-
-    .ring-1 {
-      border-top-color: var(--accent-secondary, #06b6d4);
-      animation: rotate-ring-1 2s linear infinite;
-      transform: rotateX(35deg) rotateY(-45deg);
-      filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.5));
+    .track-1 {
+      width: 130px;
+      height: 130px;
+      animation: orbit-spin 5s linear infinite;
     }
-
-    .ring-2 {
-      width: 80%;
-      height: 80%;
-      border-right-color: var(--accent-tertiary, #d946ef);
-      animation: rotate-ring-2 1.5s linear infinite;
-      transform: rotateX(50deg) rotateY(15deg);
-      filter: drop-shadow(0 0 8px rgba(217, 70, 239, 0.5));
+    .track-2 {
+      width: 100px;
+      height: 100px;
+      animation: orbit-spin-reverse 3.5s linear infinite;
     }
-
-    .ring-3 {
-      width: 60%;
-      height: 60%;
-      border-bottom-color: #818cf8;
-      animation: rotate-ring-3 1s linear infinite;
-      transform: rotateX(35deg) rotateY(55deg);
-      filter: drop-shadow(0 0 8px rgba(129, 140, 248, 0.5));
-    }
-
-    .loader-core {
+    .orbiting-dot {
       position: absolute;
-      width: 14px;
-      height: 14px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 0 20px 4px rgba(99, 102, 241, 0.8), 0 0 4px 1px #fff;
-      animation: core-glowing 1.5s ease-in-out infinite alternate;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
-
-    .loader-text {
-      margin-top: 36px;
-      font-family: 'Roboto Flex', sans-serif;
-      font-size: 1.6rem;
-      font-weight: 800;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+    .dot-cyan {
+      background-color: #22d3ee;
+      box-shadow: 0 0 10px #22d3ee, 0 0 20px #22d3ee;
+    }
+    .dot-purple {
+      background-color: #d946ef;
+      box-shadow: 0 0 10px #d946ef, 0 0 20px #d946ef;
+    }
+    
+    /* JobSarthi Wave Brand Text */
+    .preloader-brand {
+      margin-top: 24px;
       display: flex;
       gap: 3px;
+      font-family: 'Roboto Flex', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      z-index: 3;
     }
-
-    .loader-text span {
-      background: linear-gradient(135deg, #ffffff 40%, #a5b4fc 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: letter-glow 1.6s ease-in-out infinite;
+    .preloader-brand .letter {
+      color: rgba(255, 255, 255, 0.6);
+      animation: letter-glow 2s ease-in-out infinite;
     }
+    .preloader-brand .letter:nth-child(1) { animation-delay: 0.0s; }
+    .preloader-brand .letter:nth-child(2) { animation-delay: 0.1s; }
+    .preloader-brand .letter:nth-child(3) { animation-delay: 0.2s; }
+    .preloader-brand .letter:nth-child(4) { animation-delay: 0.3s; }
+    .preloader-brand .letter:nth-child(5) { animation-delay: 0.4s; }
+    .preloader-brand .letter:nth-child(6) { animation-delay: 0.5s; }
+    .preloader-brand .letter:nth-child(7) { animation-delay: 0.6s; }
+    .preloader-brand .letter:nth-child(8) { animation-delay: 0.7s; }
+    .preloader-brand .letter:nth-child(9) { animation-delay: 0.8s; }
 
-    /* Staggered letter animations */
-    .loader-text span:nth-child(1) { animation-delay: 0.0s; }
-    .loader-text span:nth-child(2) { animation-delay: 0.1s; }
-    .loader-text span:nth-child(3) { animation-delay: 0.2s; }
-    .loader-text span:nth-child(4) { animation-delay: 0.3s; }
-    .loader-text span:nth-child(5) { animation-delay: 0.4s; }
-    .loader-text span:nth-child(6) { animation-delay: 0.5s; }
-    .loader-text span:nth-child(7) { animation-delay: 0.6s; }
-    .loader-text span:nth-child(8) { animation-delay: 0.7s; }
-    .loader-text span:nth-child(9) { animation-delay: 0.8s; }
-
-    @keyframes rotate-ring-1 {
-      0% { transform: rotateX(35deg) rotateY(-45deg) rotateZ(0deg); }
-      100% { transform: rotateX(35deg) rotateY(-45deg) rotateZ(360deg); }
+    @keyframes morph-blob {
+      0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+      50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
     }
-
-    @keyframes rotate-ring-2 {
-      0% { transform: rotateX(50deg) rotateY(15deg) rotateZ(360deg); }
-      100% { transform: rotateX(50deg) rotateY(15deg) rotateZ(0deg); }
+    @keyframes rotate-blob {
+      to { transform: rotate(360deg); }
     }
-
-    @keyframes rotate-ring-3 {
-      0% { transform: rotateX(35deg) rotateY(55deg) rotateZ(0deg); }
-      100% { transform: rotateX(35deg) rotateY(55deg) rotateZ(360deg); }
+    @keyframes orbit-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
-
-    @keyframes core-glowing {
-      0% { transform: scale(0.9); box-shadow: 0 0 15px 2px rgba(99, 102, 241, 0.6), 0 0 4px 1px #fff; }
-      100% { transform: scale(1.15); box-shadow: 0 0 25px 6px rgba(6, 182, 212, 0.9), 0 0 6px 2px #fff; }
+    @keyframes orbit-spin-reverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
     }
-
-    @keyframes ambient-pulse {
-      0% { transform: scale(0.95); opacity: 0.6; }
-      100% { transform: scale(1.05); opacity: 1; }
+    @keyframes pulse-glow {
+      from { transform: scale(0.95); opacity: 0.6; }
+      to { transform: scale(1.1); opacity: 1; }
     }
-
     @keyframes letter-glow {
-      0%, 100% { opacity: 0.45; filter: blur(0px); }
-      50% { opacity: 1; filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.6)); }
+      0%, 100% {
+        color: rgba(255, 255, 255, 0.4);
+        text-shadow: none;
+        transform: translateY(0);
+      }
+      50% {
+        color: #ffffff;
+        text-shadow: 0 0 8px rgba(34, 211, 238, 0.6), 0 0 15px rgba(217, 70, 239, 0.4);
+        transform: translateY(-4px);
+      }
     }
 
     /* Specific layouts and alignments for landing page components */
@@ -732,15 +731,26 @@
 
   <!-- Page Preloader Screen to prevent Flash of Unstyled Content (FOUC) -->
   <div id="page-preloader">
-    <div class="loader-bg-glow"></div>
-    <div class="orbit-container">
-      <div class="orbit-ring ring-1"></div>
-      <div class="orbit-ring ring-2"></div>
-      <div class="orbit-ring ring-3"></div>
-      <div class="loader-core"></div>
+    <div class="preloader-glow"></div>
+    <div class="loader-scene">
+      <div class="orbit-track track-1">
+        <div class="orbiting-dot dot-cyan"></div>
+      </div>
+      <div class="orbit-track track-2">
+        <div class="orbiting-dot dot-purple"></div>
+      </div>
+      <div class="morphing-blob"></div>
     </div>
-    <div class="loader-text">
-      <span>J</span><span>o</span><span>b</span><span>S</span><span>a</span><span>r</span><span>t</span><span>h</span><span>i</span>
+    <div class="preloader-brand">
+      <span class="letter">J</span>
+      <span class="letter">o</span>
+      <span class="letter">b</span>
+      <span class="letter">S</span>
+      <span class="letter">a</span>
+      <span class="letter">r</span>
+      <span class="letter">t</span>
+      <span class="letter">h</span>
+      <span class="letter">i</span>
     </div>
   </div>
   <script>
@@ -751,7 +761,7 @@
         preloader.classList.add('fade-out');
         setTimeout(() => {
           preloader.remove();
-        }, 400);
+        }, 500);
       }
     });
   </script>
