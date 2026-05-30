@@ -15,65 +15,146 @@
   <link rel="stylesheet" href="css/LogoLoop.css">
 
   <style>
-    /* Preloader CSS to prevent Flash of Unstyled Content (FOUC) */
+    /* Seamless Concentric 3D Orbit Loader */
     #page-preloader {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: #09090b;
+      background-color: #09090b; /* Match deep dark background */
       z-index: 999999;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.4s ease, visibility 0.4s ease;
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.5s;
     }
     #page-preloader.fade-out {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
     }
-    .preloader-glow {
+    
+    .loader-bg-glow {
       position: absolute;
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 70%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, rgba(0,0,0,0) 70%);
       pointer-events: none;
-      animation: pulse-glow 2s infinite alternate;
+      animation: ambient-pulse 3s ease-in-out infinite alternate;
     }
-    .preloader-spinner {
-      width: 50px;
-      height: 50px;
-      border: 3px solid rgba(255, 255, 255, 0.05);
+
+    .orbit-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      perspective: 800px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .orbit-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
       border-radius: 50%;
-      border-top-color: #818cf8;
-      animation: spin-preloader 0.8s ease-in-out infinite;
-      box-shadow: 0 0 15px rgba(129, 140, 248, 0.25);
+      border: 2px solid transparent;
     }
-    .preloader-brand {
-      margin-top: 24px;
+
+    .ring-1 {
+      border-top-color: var(--accent-secondary, #06b6d4);
+      animation: rotate-ring-1 2s linear infinite;
+      transform: rotateX(35deg) rotateY(-45deg);
+      filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.5));
+    }
+
+    .ring-2 {
+      width: 80%;
+      height: 80%;
+      border-right-color: var(--accent-tertiary, #d946ef);
+      animation: rotate-ring-2 1.5s linear infinite;
+      transform: rotateX(50deg) rotateY(15deg);
+      filter: drop-shadow(0 0 8px rgba(217, 70, 239, 0.5));
+    }
+
+    .ring-3 {
+      width: 60%;
+      height: 60%;
+      border-bottom-color: #818cf8;
+      animation: rotate-ring-3 1s linear infinite;
+      transform: rotateX(35deg) rotateY(55deg);
+      filter: drop-shadow(0 0 8px rgba(129, 140, 248, 0.5));
+    }
+
+    .loader-core {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 20px 4px rgba(99, 102, 241, 0.8), 0 0 4px 1px #fff;
+      animation: core-glowing 1.5s ease-in-out infinite alternate;
+    }
+
+    .loader-text {
+      margin-top: 36px;
       font-family: 'Roboto Flex', sans-serif;
-      font-size: 1.4rem;
+      font-size: 1.6rem;
       font-weight: 800;
-      letter-spacing: 0.06em;
-      background: linear-gradient(135deg, #ffffff 30%, #818cf8 100%);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: flex;
+      gap: 3px;
+    }
+
+    .loader-text span {
+      background: linear-gradient(135deg, #ffffff 40%, #a5b4fc 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-transform: uppercase;
-      animation: text-pulse 1.5s infinite alternate;
+      animation: letter-glow 1.6s ease-in-out infinite;
     }
-    @keyframes spin-preloader {
-      to { transform: rotate(360deg); }
+
+    /* Staggered letter animations */
+    .loader-text span:nth-child(1) { animation-delay: 0.0s; }
+    .loader-text span:nth-child(2) { animation-delay: 0.1s; }
+    .loader-text span:nth-child(3) { animation-delay: 0.2s; }
+    .loader-text span:nth-child(4) { animation-delay: 0.3s; }
+    .loader-text span:nth-child(5) { animation-delay: 0.4s; }
+    .loader-text span:nth-child(6) { animation-delay: 0.5s; }
+    .loader-text span:nth-child(7) { animation-delay: 0.6s; }
+    .loader-text span:nth-child(8) { animation-delay: 0.7s; }
+    .loader-text span:nth-child(9) { animation-delay: 0.8s; }
+
+    @keyframes rotate-ring-1 {
+      0% { transform: rotateX(35deg) rotateY(-45deg) rotateZ(0deg); }
+      100% { transform: rotateX(35deg) rotateY(-45deg) rotateZ(360deg); }
     }
-    @keyframes pulse-glow {
-      from { transform: scale(0.9); opacity: 0.5; }
-      to { transform: scale(1.15); opacity: 0.9; }
+
+    @keyframes rotate-ring-2 {
+      0% { transform: rotateX(50deg) rotateY(15deg) rotateZ(360deg); }
+      100% { transform: rotateX(50deg) rotateY(15deg) rotateZ(0deg); }
     }
-    @keyframes text-pulse {
-      from { opacity: 0.7; }
-      to { opacity: 1; }
+
+    @keyframes rotate-ring-3 {
+      0% { transform: rotateX(35deg) rotateY(55deg) rotateZ(0deg); }
+      100% { transform: rotateX(35deg) rotateY(55deg) rotateZ(360deg); }
+    }
+
+    @keyframes core-glowing {
+      0% { transform: scale(0.9); box-shadow: 0 0 15px 2px rgba(99, 102, 241, 0.6), 0 0 4px 1px #fff; }
+      100% { transform: scale(1.15); box-shadow: 0 0 25px 6px rgba(6, 182, 212, 0.9), 0 0 6px 2px #fff; }
+    }
+
+    @keyframes ambient-pulse {
+      0% { transform: scale(0.95); opacity: 0.6; }
+      100% { transform: scale(1.05); opacity: 1; }
+    }
+
+    @keyframes letter-glow {
+      0%, 100% { opacity: 0.45; filter: blur(0px); }
+      50% { opacity: 1; filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.6)); }
     }
 
     /* Specific layouts and alignments for landing page components */
@@ -651,9 +732,16 @@
 
   <!-- Page Preloader Screen to prevent Flash of Unstyled Content (FOUC) -->
   <div id="page-preloader">
-    <div class="preloader-glow"></div>
-    <div class="preloader-spinner"></div>
-    <div class="preloader-brand">JobSarthi</div>
+    <div class="loader-bg-glow"></div>
+    <div class="orbit-container">
+      <div class="orbit-ring ring-1"></div>
+      <div class="orbit-ring ring-2"></div>
+      <div class="orbit-ring ring-3"></div>
+      <div class="loader-core"></div>
+    </div>
+    <div class="loader-text">
+      <span>J</span><span>o</span><span>b</span><span>S</span><span>a</span><span>r</span><span>t</span><span>h</span><span>i</span>
+    </div>
   </div>
   <script>
     // Fade out preloader when all assets are fully loaded
