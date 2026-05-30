@@ -7,152 +7,262 @@
   <title>Recruiter Authentication - JobSarthi</title>
   <meta name="description" content="Sign in or register for an employer account on JobSarthi to start recruiting.">
   <link rel="stylesheet" href="../css/main.css">
+  <script>
+    // Theme initializer
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.add('light-theme');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('light-theme');
+      });
+    }
+  </script>
   <style>
     .auth-body {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      background: radial-gradient(circle at top right, #1f122e 0%, #06050a 100%);
-      padding: 20px;
+      background-color: var(--bg-primary);
+      font-family: var(--font-sans);
+      padding: 24px;
+      margin: 0;
     }
 
     .auth-container {
-      max-width: 480px;
       width: 100%;
+      max-width: 384px; /* w-full max-w-sm */
+      display: flex;
+      flex-direction: column;
+      gap: 24px; /* gap-6 */
       position: relative;
     }
 
     .back-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       color: var(--text-muted);
-      font-size: 0.9rem;
-      margin-bottom: 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
       transition: var(--transition-fast);
+      align-self: flex-start;
     }
 
     .back-btn:hover {
-      color: var(--accent-tertiary);
+      color: var(--text-main);
       transform: translateX(-4px);
     }
 
-    .auth-panel {
-      padding: 0;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-    }
-
-    /* Animate UI Tabs & Card Redesign */
-    .tabs-container {
+    .logo-container {
       display: flex;
-      flex-direction: column;
-      gap: 20px;
-      width: 100%;
-    }
-
-    .tabs-list {
-      display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--glass-border);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .logo-icon {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 0.85rem;
+    }
+
+    .logo-text {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+
+    .logo-badge {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(162, 28, 175, 0.1);
+      color: var(--accent-tertiary);
+      font-weight: 600;
+    }
+
+    /* Tabs List Pill Row */
+    .tabs-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      background-color: var(--bg-secondary);
+      border-radius: 8px;
       padding: 4px;
-      border-radius: var(--radius-full);
       width: 100%;
-      position: relative;
     }
 
     .tabs-trigger {
-      flex: 1;
-      text-align: center;
-      padding: 10px 16px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      color: var(--text-muted);
-      border-radius: var(--radius-full);
-      transition: color 0.3s ease;
-      position: relative;
-      z-index: 2;
-      border: none;
       background: transparent;
-      outline: none;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      outline: none !important;
     }
 
     .tabs-trigger.active {
+      background-color: var(--bg-primary);
       color: var(--text-main);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
     }
 
-    .tabs-indicator {
-      position: absolute;
-      top: 4px;
-      bottom: 4px;
-      left: 4px;
-      width: calc(50% - 4px);
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(217, 70, 239, 0.25);
-      border-radius: var(--radius-full);
-      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      z-index: 1;
-      pointer-events: none;
+    body.light-theme .tabs-trigger.active {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
-    .animate-card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-lg);
+    /* Card Styling */
+    .card {
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      background-color: var(--bg-primary);
+      box-shadow: none; /* shadow-none */
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      width: 100%;
+    }
+
+    .tabs-contents {
+      padding: 24px;
+    }
+
+    .tabs-content {
+      display: none;
+      flex-direction: column;
+      gap: 24px; /* gap-6 */
+    }
+
+    .tabs-content.active {
+      display: flex;
+      animation: tabFadeIn 0.2s ease-out;
+    }
+
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .card-header {
-      padding: 32px 32px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
     .card-title {
-      font-size: 1.4rem;
-      font-weight: 700;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      line-height: 1;
       color: var(--text-main);
-      margin-bottom: 6px;
+      margin: 0;
     }
 
     .card-description {
-      font-size: 0.85rem;
+      font-size: 0.875rem;
       color: var(--text-muted);
-      line-height: 1.5;
+      line-height: 1.4;
+      margin: 0;
     }
 
     .card-content {
-      padding: 12px 32px;
-      display: flex;
-      flex-direction: column;
+      display: grid;
       gap: 16px;
     }
 
     .card-footer {
-      padding: 16px 32px 32px 32px;
+      display: flex;
+      align-items: center;
+      margin-top: 8px;
     }
 
-    /* Form Transitions */
-    .tabs-content {
-      display: none;
-      opacity: 0;
-      transform: translateY(8px);
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
-    .tabs-content.active {
-      display: block;
-      animation: tabFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    .form-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-main);
+      line-height: 1;
     }
 
-    @keyframes tabFadeIn {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .form-control {
+      height: 36px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background-color: transparent;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+
+    .form-control::placeholder {
+      color: var(--text-dark);
+      opacity: 0.8;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--text-muted);
+      box-shadow: 0 0 0 2px var(--border-subtle);
+    }
+
+    .forgot-link {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: var(--transition-fast);
+    }
+
+    .forgot-link:hover {
+      color: var(--text-main);
+      text-decoration: underline;
+    }
+
+    /* Primary solid button */
+    .btn-primary-solid {
+      height: 36px;
+      width: 100%;
+      background-color: var(--text-main); /* Inverted color */
+      color: var(--bg-primary);
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s ease, opacity 0.2s ease;
+      outline: none;
+    }
+
+    .btn-primary-solid:hover {
+      opacity: 0.9;
+    }
+
+    .btn-primary-solid:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -178,105 +288,93 @@
       Back to Portal Choice
     </a>
 
-    <div class="logo" style="justify-content: center; margin-bottom: 30px;">
-      <div class="logo-icon"
-        style="background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-tertiary) 100%);">S</div>
-      JobSarthi <span
-        style="font-size: 0.85rem; padding: 2px 8px; border-radius: 99px; background: rgba(217,70,239,0.1); color: var(--accent-tertiary); margin-left: 5px; font-weight:600;">Recruiter</span>
+    <div class="logo-container">
+      <div class="logo-icon">S</div>
+      <span class="logo-text">JobSarthi</span>
+      <span class="logo-badge">Recruiter</span>
     </div>
 
-    <div class="tabs-container">
-      <div class="tabs-list">
-        <button class="tabs-trigger active" onclick="switchTab('login')">Log In</button>
-        <button class="tabs-trigger" onclick="switchTab('signup')">Sign Up</button>
-        <div class="tabs-indicator" id="tabsIndicator"></div>
-      </div>
+    <!-- Tabs List Pill Container -->
+    <div class="tabs-list">
+      <button class="tabs-trigger active" onclick="switchTab('login')">Sign In</button>
+      <button class="tabs-trigger" onclick="switchTab('signup')">Sign Up</button>
+    </div>
 
-      <div class="glass-panel animate-card">
-        <div class="tabs-contents">
-
-          <!-- Login Form -->
-          <div id="loginForm" class="tabs-content active">
-            <form onsubmit="handleAuth(event, 'login')">
-              <div class="card-header">
-                <div class="card-title">Employer Log In</div>
-                <div class="card-description">
-                  Sign in to post jobs, review applicants, and access verified hiring metrics.
-                </div>
-              </div>
-              <div class="card-content">
-                <div class="form-group">
-                  <label class="form-label" for="loginEmail">Work Email Address</label>
-                  <input type="email" id="loginEmail" class="form-control" placeholder="hr@company.com"
-                    value="recruiter@jobsarthi.ai">
-                </div>
-                <div class="form-group">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <label class="form-label" for="loginPassword">Password</label>
-                    <a href="#" style="font-size: 0.8rem; color: var(--accent-tertiary);">Forgot Password?</a>
-                  </div>
-                  <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="password123">
-                </div>
-              </div>
-              <div class="card-footer">
-                <button type="submit" class="btn btn-primary"
-                  style="width: 100%; background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%); box-shadow: 0 4px 15px rgba(217,70,239,0.3);">Sign In as Recruiter</button>
-              </div>
-            </form>
+    <!-- Main Card containing forms -->
+    <div class="card">
+      <div class="tabs-contents">
+        
+        <!-- Login Form Panel -->
+        <div id="loginForm" class="tabs-content active">
+          <div class="card-header">
+            <h2 class="card-title">Sign In</h2>
+            <p class="card-description">Enter your credentials to access your recruiter dashboard.</p>
           </div>
-
-          <!-- Sign Up Form -->
-          <div id="signupForm" class="tabs-content">
-            <form onsubmit="handleAuth(event, 'signup')">
-              <div class="card-header">
-                <div class="card-title">Create Business Account</div>
-                <div class="card-description">
-                  Get instant access to JobSarthi's AI assessment pipelines and verified applicant networks.
-                </div>
+          <form onsubmit="handleAuth(event, 'login')">
+            <div class="card-content">
+              <div class="form-group">
+                <label class="form-label" for="loginEmail">Work Email Address</label>
+                <input type="email" id="loginEmail" class="form-control" placeholder="hr@company.com" required value="recruiter@jobsarthi.ai">
               </div>
-              <div class="card-content">
-                <div class="form-group">
-                  <label class="form-label" for="companyName">Company Name</label>
-                  <input type="text" id="companyName" class="form-control" placeholder="Acme Corporation">
+              <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label class="form-label" for="loginPassword">Password</label>
+                  <a href="#" class="forgot-link">Forgot Password?</a>
                 </div>
-                <div class="form-group">
-                  <label class="form-label" for="signupEmail">Work Email Address</label>
-                  <input type="email" id="signupEmail" class="form-control" placeholder="name@company.com">
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="signupPassword">Password</label>
-                  <input type="password" id="signupPassword" class="form-control" placeholder="Minimum 8 characters">
-                </div>
+                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required value="password123">
               </div>
-              <div class="card-footer">
-                <button type="submit" class="btn btn-primary"
-                  style="width: 100%; background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%); box-shadow: 0 4px 15px rgba(217,70,239,0.3);">Create Recruiter Account</button>
-              </div>
-            </form>
-          </div>
-
+            </div>
+            <div class="card-footer">
+              <button type="submit" class="btn-primary-solid">Sign In</button>
+            </div>
+          </form>
         </div>
+
+        <!-- Sign Up Form Panel -->
+        <div id="signupForm" class="tabs-content">
+          <div class="card-header">
+            <h2 class="card-title">Create Account</h2>
+            <p class="card-description">Create your business/employer account on JobSarthi.</p>
+          </div>
+          <form onsubmit="handleAuth(event, 'signup')">
+            <div class="card-content">
+              <div class="form-group">
+                <label class="form-label" for="companyName">Company Name</label>
+                <input type="text" id="companyName" class="form-control" placeholder="Acme Corporation" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="signupEmail">Work Email Address</label>
+                <input type="email" id="signupEmail" class="form-control" placeholder="name@company.com" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="signupPassword">Password</label>
+                <input type="password" id="signupPassword" class="form-control" placeholder="At least 8 characters" required>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button type="submit" class="btn-primary-solid">Create Account</button>
+            </div>
+          </form>
+        </div>
+
       </div>
     </div>
   </div>
 
   <script>
     function switchTab(tab) {
-      const triggers = document.querySelectorAll('.tabs-trigger');
+      const tabs = document.querySelectorAll('.tabs-trigger');
       const loginForm = document.getElementById('loginForm');
       const signupForm = document.getElementById('signupForm');
-      const indicator = document.getElementById('tabsIndicator');
 
-      triggers.forEach(t => t.classList.remove('active'));
+      tabs.forEach(t => t.classList.remove('active'));
 
       if (tab === 'login') {
-        triggers[0].classList.add('active');
-        indicator.style.transform = 'translateX(0)';
+        tabs[0].classList.add('active');
         loginForm.classList.add('active');
         signupForm.classList.remove('active');
       } else {
-        triggers[1].classList.add('active');
-        indicator.style.transform = 'translateX(100%)';
+        tabs[1].classList.add('active');
         signupForm.classList.add('active');
         loginForm.classList.remove('active');
       }
