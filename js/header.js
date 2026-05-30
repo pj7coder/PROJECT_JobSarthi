@@ -1,5 +1,28 @@
 // JobSarthi Shared Header Script
 // Dynamically loads the templates from commonelements/headers.js to bypass CORS issues on local filesystem.
+
+// Dynamic API Base URL configuration (Vercel/file:// compatibility)
+(function() {
+  const getApiBaseUrl = () => {
+    // Check if we are running on Vercel or locally opening file:// protocol
+    if (window.location.hostname.includes('vercel') || window.location.protocol === 'file:') {
+      // REPLACE WITH YOUR ACTUAL LIVE RENDER URL
+      return 'https://jobsarthi-backend.onrender.com';
+    }
+    return '';
+  };
+  window.API_BASE_URL = getApiBaseUrl();
+
+  // Background ping to wake up Render instance from cold-start sleep
+  if (window.API_BASE_URL) {
+    console.log("[JobSarthi] Pinging Render backend to wake it up...");
+    fetch(window.API_BASE_URL + '/api/ping')
+      .then(res => res.json())
+      .then(data => console.log("[JobSarthi] Backend status: awake", data))
+      .catch(err => console.warn("[JobSarthi] Wake-up ping failed:", err));
+  }
+})();
+
 document.addEventListener("DOMContentLoaded", () => {
   const isRecruiter = window.location.pathname.includes('/recruiter/');
   const isSeeker = window.location.pathname.includes('/seeker/');
@@ -142,7 +165,10 @@ document.addEventListener("DOMContentLoaded", () => {
           updateAvatarUI(storedAvatar);
         }
         // Async update
-        fetch(`${prefix}api/seeker/profile?email=${encodeURIComponent(userEmail)}`)
+        const profileUrl = window.API_BASE_URL
+          ? `${window.API_BASE_URL}/api/seeker/profile?email=${encodeURIComponent(userEmail)}`
+          : `${prefix}api/seeker/profile?email=${encodeURIComponent(userEmail)}`;
+        fetch(profileUrl)
           .then(res => res.json())
           .then(profile => {
             if (profile && profile.avatarUrl) {

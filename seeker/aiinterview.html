@@ -1362,7 +1362,7 @@
       document.getElementById("questionDisplay").textContent = firstCall ? "Connecting to Sarthi AI..." : "Evaluating response & generating next question...";
 
       try {
-        const response = await fetch("/api/sarthi/interview/next", {
+        const response = await fetch((window.API_BASE_URL || '') + "/api/sarthi/interview/next", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1648,7 +1648,7 @@
         setTimeout(async () => {
           // Process final feedback for the last answer
           try {
-            await fetch("/api/sarthi/interview/next", {
+            await fetch((window.API_BASE_URL || '') + "/api/sarthi/interview/next", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({

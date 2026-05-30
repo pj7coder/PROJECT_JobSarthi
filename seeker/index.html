@@ -523,12 +523,12 @@
 
       try {
         // 1. Fetch Profile
-        const profileRes = await fetch(`/api/seeker/profile?email=${encodeURIComponent(email)}`);
+        const profileRes = await fetch((window.API_BASE_URL || '') + `/api/seeker/profile?email=${encodeURIComponent(email)}`);
         if (!profileRes.ok) throw new Error("Failed to load profile");
         const profile = await profileRes.json();
 
         // 2. Fetch Applications to count
-        const appsRes = await fetch(`/api/recruiter/applicants`);
+        const appsRes = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants`);
         let applications = [];
         if (appsRes.ok) {
           const allApps = await appsRes.json();

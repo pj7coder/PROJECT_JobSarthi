@@ -315,7 +315,7 @@
 
     async function loadApplicants(companyName) {
       try {
-        const response = await fetch(`/api/recruiter/applicants?company=${encodeURIComponent(companyName)}`);
+        const response = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(companyName)}`);
         if (!response.ok) throw new Error("Failed to fetch");
         applicantsList = await response.json();
         renderApplicants();
@@ -491,7 +491,7 @@
       if (!selectedCandidate) return;
 
       try {
-        const response = await fetch(`/api/recruiter/applicants/${selectedCandidate.id}/status`, {
+        const response = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants/${selectedCandidate.id}/status`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status })

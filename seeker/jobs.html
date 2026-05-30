@@ -453,7 +453,7 @@
 
     async function loadJobs() {
       try {
-        const response = await fetch('/api/jobs');
+        const response = await fetch((window.API_BASE_URL || '') + '/api/jobs');
         if (!response.ok) throw new Error("Failed to fetch jobs");
         dbJobs = await response.json();
         if (!dbJobs || dbJobs.length === 0) {
@@ -605,7 +605,7 @@
       const candidateEmail = localStorage.getItem('seeker_email') || 'candidate@jobsarthi.ai';
 
       try {
-        const response = await fetch(`/api/jobs/${currentSelectedJob.id}/apply`, {
+        const response = await fetch((window.API_BASE_URL || '') + `/api/jobs/${currentSelectedJob.id}/apply`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ candidateName, candidateEmail })

@@ -7,9 +7,6 @@ import { fileURLToPath } from "url";
 // GoogleGenerativeAI removed (migrating to Groq)
 import { MongoClient } from "mongodb";
 import { v2 as cloudinary } from "cloudinary";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const pdf = require("pdf-parse");
 
 dotenv.config();
 
@@ -386,6 +383,11 @@ Your goal is to guide job seekers with career advice, resume analysis, mock inte
 Keep your answers brief, encouraging, professional, and directly actionable.
 `;
 
+// --- Server Wake-up API ---
+app.get("/api/ping", (req, res) => {
+  res.json({ status: "ok", time: new Date().toISOString() });
+});
+
 // --- Authentication APIs ---
 
 app.post("/api/auth/signup", async (req, res) => {
@@ -692,15 +694,13 @@ app.post("/api/sarthi/interview/next", async (req, res) => {
     const currentDiff = difficulty || "Intermediate";
     const isFirstQuestion = !currentQuestion || history.length === 0;
 
-    if (genAI) {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    if (GROQ_API_KEY) {
       let promptText = "";
-
       if (isFirstQuestion) {
         promptText = `You are Sarthi, an expert tech interviewer for the role: ${currentRole}. 
 Generate the first interview question. The difficulty level is ${currentDiff}. 
 Focus on key concepts for this role.
-Return ONLY a raw JSON object (do not include markdown block markers, no \`\`\`json) matching this schema:
+Return ONLY a raw JSON object matching this schema:
 {
   "nextQuestion": "The first interview question to ask."
 }`;
@@ -714,7 +714,7 @@ Analyze the answer. Formulate the next question. Adjust difficulty level if appr
 - If they answered well (score >= 7), increase the difficulty slightly or ask a deeper follow-up question.
 - If they struggled (score < 5), explain the concept briefly and ask a slightly easier or foundational question.
 - Otherwise, maintain the current level.
-Return ONLY a raw JSON object (do not include markdown block markers, no \`\`\`json) matching this schema:
+Return ONLY a raw JSON object matching this schema:
 {
   "feedback": "1-2 sentence constructive feedback on their previous answer.",
   "score": 8, // integer score from 0 to 10
@@ -723,14 +723,75 @@ Return ONLY a raw JSON object (do not include markdown block markers, no \`\`\`j
 }`;
       }
 
-      const result = await model.generateContent(promptText);
-      let responseText = result.response.text().trim();
+      const messages = [
+        { role: "system", content: "You are Sarthi, an expert tech interviewer on the JobSarthi platform. Return only valid JSON." },
+        { role: "user", content: promptText }
+      ];
 
-      // Clean up markdown block if model added it
-      if (responseText.startsWith("```")) {
-        responseText = responseText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+      const responseText = await callGroq(messages, true);
+      let cleanText = responseText.trim();
+      if (cleanText.startsWith("```")) {
+        const lines = cleanText.split("\n");
+        if (lines[0].startsWith("```")) lines.shift();
+        if (lines[lines.length - 1].startsWith("```")) lines.pop();
+        cleanText = lines.join("\n").trim();
+      }
+      const responseJSON = JSON.parse(cleanText);
+      return res.json(responseJSON);
+    } else if (process.env.GEMINI_API_KEY) {
+      const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+      let promptText = "";
+      if (isFirstQuestion) {
+        promptText = `You are Sarthi, an expert tech interviewer for the role: ${currentRole}. 
+Generate the first interview question. The difficulty level is ${currentDiff}. 
+Focus on key concepts for this role.
+Return ONLY a raw JSON object matching this schema:
+{
+  "nextQuestion": "The first interview question to ask."
+}`;
+      } else {
+        promptText = `You are Sarthi, an expert tech interviewer for the role: ${currentRole}.
+Evaluate the candidate's last answer to the current question:
+- Question: "${currentQuestion}"
+- Candidate Answer: "${userAnswer || ""}" ${timerExpired ? "(Note: The user's answer was skipped due to response timer expiring)" : ""}
+
+Analyze the answer. Formulate the next question. Adjust difficulty level if appropriate:
+- If they answered well (score >= 7), increase the difficulty slightly or ask a deeper follow-up question.
+- If they struggled (score < 5), explain the concept briefly and ask a slightly easier or foundational question.
+- Otherwise, maintain the current level.
+Return ONLY a raw JSON object matching this schema:
+{
+  "feedback": "1-2 sentence constructive feedback on their previous answer.",
+  "score": 8, // integer score from 0 to 10
+  "difficultyChange": "increase" | "decrease" | "maintain",
+  "nextQuestion": "The next question to ask the candidate."
+}`;
       }
 
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const payload = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      let responseText = result.candidates[0].content.parts[0].text.trim();
+      if (responseText.startsWith("```")) {
+        const lines = responseText.split("\n");
+        if (lines[0].startsWith("```")) lines.shift();
+        if (lines[lines.length - 1].startsWith("```")) lines.pop();
+        responseText = lines.join("\n").trim();
+      }
       const responseJSON = JSON.parse(responseText);
       return res.json(responseJSON);
     }

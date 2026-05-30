@@ -257,8 +257,26 @@
       }
     }
 
+    const getApiBaseUrl = () => {
+      if (window.location.hostname.includes('vercel') || window.location.protocol === 'file:') {
+        return 'https://jobsarthi-backend.onrender.com';
+      }
+      return '';
+    };
+    const API_BASE_URL = getApiBaseUrl();
+
     async function handleAuth(event, type) {
       event.preventDefault();
+
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Connecting...';
+
+      // Cold start warning indicator
+      const warningTimer = setTimeout(() => {
+        submitBtn.textContent = 'Waking up server (takes up to 30s)...';
+      }, 3500);
 
       let body = {};
       let endpoint = '';
@@ -269,13 +287,13 @@
         const password = document.getElementById('signupPassword').value;
 
         body = { fullName, email, password, role: 'jobseeker' };
-        endpoint = '/api/auth/signup';
+        endpoint = API_BASE_URL + '/api/auth/signup';
       } else {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
         body = { email, password };
-        endpoint = '/api/auth/login';
+        endpoint = API_BASE_URL + '/api/auth/login';
       }
 
       try {
@@ -286,9 +304,12 @@
         });
 
         const result = await response.json();
+        clearTimeout(warningTimer);
 
         if (!response.ok) {
           alert(result.error || 'Authentication failed. Please check your credentials.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
           return;
         }
 
@@ -300,6 +321,9 @@
         // Redirect to home dashboard
         window.location.href = 'index.html';
       } catch (err) {
+        clearTimeout(warningTimer);
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
         console.warn('Backend server offline. Falling back to local simulation for UI testing:', err);
         localStorage.setItem('seeker_logged_in', 'true');
         localStorage.setItem('seeker_name', body.fullName || (body.email ? body.email.split('@')[0] : "Candidate"));

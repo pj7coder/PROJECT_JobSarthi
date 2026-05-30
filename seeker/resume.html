@@ -355,7 +355,7 @@
       if (!email) return;
 
       try {
-        const response = await fetch(`/api/seeker/profile?email=${encodeURIComponent(email)}`);
+        const response = await fetch((window.API_BASE_URL || '') + `/api/seeker/profile?email=${encodeURIComponent(email)}`);
         if (!response.ok) throw new Error("Failed to load");
         const profile = await response.json();
 
@@ -447,7 +447,7 @@
         document.getElementById('resumeLoader').style.display = 'flex';
 
         try {
-          const response = await fetch('/api/seeker/parse-resume', {
+          const response = await fetch((window.API_BASE_URL || '') + '/api/seeker/parse-resume', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -584,7 +584,7 @@
       };
 
       try {
-        const response = await fetch('/api/seeker/profile', {
+        const response = await fetch((window.API_BASE_URL || '') + '/api/seeker/profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

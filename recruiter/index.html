@@ -274,7 +274,7 @@
     async function loadDashboardApplicants(companyName) {
       const container = document.getElementById('dashboardApplicantsContainer');
       try {
-        const response = await fetch(`/api/recruiter/applicants?company=${encodeURIComponent(companyName)}`);
+        const response = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(companyName)}`);
         if (!response.ok) throw new Error("Failed to fetch");
         const list = await response.json();
         
