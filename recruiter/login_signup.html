@@ -39,48 +39,116 @@
     }
 
     .auth-panel {
-      padding: 40px;
-      border-color: rgba(217, 70, 239, 0.15);
+      padding: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
     }
 
-    .auth-tabs {
+    /* Animate UI Tabs & Card Redesign */
+    .tabs-container {
       display: flex;
-      border-bottom: 1px solid var(--glass-border);
-      margin-bottom: 30px;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
     }
 
-    .auth-tab {
+    .tabs-list {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      padding: 4px;
+      border-radius: var(--radius-full);
+      width: 100%;
+      position: relative;
+    }
+
+    .tabs-trigger {
       flex: 1;
       text-align: center;
-      padding: 12px;
-      font-family: var(--font-display);
+      padding: 10px 16px;
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
       color: var(--text-muted);
-      transition: var(--transition-fast);
-      border-bottom: 2px solid transparent;
+      border-radius: var(--radius-full);
+      transition: color 0.3s ease;
+      position: relative;
+      z-index: 2;
+      border: none;
+      background: transparent;
+      outline: none;
     }
 
-    .auth-tab.active {
+    .tabs-trigger.active {
       color: var(--text-main);
-      border-bottom-color: var(--accent-tertiary);
     }
 
-    .form-wrapper {
+    .tabs-indicator {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 4px;
+      width: calc(50% - 4px);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(217, 70, 239, 0.25);
+      border-radius: var(--radius-full);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .animate-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-header {
+      padding: 32px 32px 16px 32px;
+    }
+
+    .card-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .card-description {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .card-content {
+      padding: 12px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-footer {
+      padding: 16px 32px 32px 32px;
+    }
+
+    /* Form Transitions */
+    .tabs-content {
       display: none;
+      opacity: 0;
+      transform: translateY(8px);
     }
 
-    .form-wrapper.active {
+    .tabs-content.active {
       display: block;
-      animation: slideIn 0.3s ease-out;
+      animation: tabFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-
+    @keyframes tabFadeIn {
       to {
         opacity: 1;
         transform: translateY(0);
@@ -110,78 +178,105 @@
       Back to Portal Choice
     </a>
 
-    <div class="glass-panel auth-panel">
-      <div class="logo"
-        style="justify-content: center; margin-bottom: 30px; background: linear-gradient(135deg, var(--text-main) 30%, var(--accent-tertiary) 100%); -webkit-background-clip: text;">
-        <div class="logo-icon"
-          style="background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-tertiary) 100%);">S</div>
-        JobSarthi <span
-          style="font-size: 0.85rem; padding: 2px 8px; border-radius: 99px; background: rgba(217,70,239,0.1); color: var(--accent-tertiary); margin-left: 5px; font-weight:600;">Recruiter</span>
+    <div class="logo" style="justify-content: center; margin-bottom: 30px;">
+      <div class="logo-icon"
+        style="background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-tertiary) 100%);">S</div>
+      JobSarthi <span
+        style="font-size: 0.85rem; padding: 2px 8px; border-radius: 99px; background: rgba(217,70,239,0.1); color: var(--accent-tertiary); margin-left: 5px; font-weight:600;">Recruiter</span>
+    </div>
+
+    <div class="tabs-container">
+      <div class="tabs-list">
+        <button class="tabs-trigger active" onclick="switchTab('login')">Log In</button>
+        <button class="tabs-trigger" onclick="switchTab('signup')">Sign Up</button>
+        <div class="tabs-indicator" id="tabsIndicator"></div>
       </div>
 
-      <div class="auth-tabs">
-        <div class="auth-tab active" onclick="switchTab('login')">Employer Log In</div>
-        <div class="auth-tab" onclick="switchTab('signup')">Create Business Account</div>
-      </div>
+      <div class="glass-panel animate-card">
+        <div class="tabs-contents">
 
-      <!-- Login Form -->
-      <div id="loginForm" class="form-wrapper active">
-        <form onsubmit="handleAuth(event, 'login')">
-          <div class="form-group">
-            <label class="form-label" for="loginEmail">Work Email Address</label>
-            <input type="email" id="loginEmail" class="form-control" placeholder="hr@company.com"
-              value="recruiter@jobsarthi.ai">
+          <!-- Login Form -->
+          <div id="loginForm" class="tabs-content active">
+            <form onsubmit="handleAuth(event, 'login')">
+              <div class="card-header">
+                <div class="card-title">Employer Log In</div>
+                <div class="card-description">
+                  Sign in to post jobs, review applicants, and access verified hiring metrics.
+                </div>
+              </div>
+              <div class="card-content">
+                <div class="form-group">
+                  <label class="form-label" for="loginEmail">Work Email Address</label>
+                  <input type="email" id="loginEmail" class="form-control" placeholder="hr@company.com"
+                    value="recruiter@jobsarthi.ai">
+                </div>
+                <div class="form-group">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="form-label" for="loginPassword">Password</label>
+                    <a href="#" style="font-size: 0.8rem; color: var(--accent-tertiary);">Forgot Password?</a>
+                  </div>
+                  <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="password123">
+                </div>
+              </div>
+              <div class="card-footer">
+                <button type="submit" class="btn btn-primary"
+                  style="width: 100%; background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%); box-shadow: 0 4px 15px rgba(217,70,239,0.3);">Sign In as Recruiter</button>
+              </div>
+            </form>
           </div>
-          <div class="form-group">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <label class="form-label" for="loginPassword">Password</label>
-              <a href="#" style="font-size: 0.8rem; color: var(--accent-tertiary);">Forgot Password?</a>
-            </div>
-            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="password123">
-          </div>
-          <button type="submit" class="btn btn-primary"
-            style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%); box-shadow: 0 4px 15px rgba(217,70,239,0.3);">Sign
-            In as Recruiter</button>
-        </form>
-      </div>
 
-      <!-- Sign Up Form -->
-      <div id="signupForm" class="form-wrapper">
-        <form onsubmit="handleAuth(event, 'signup')">
-          <div class="form-group">
-            <label class="form-label" for="companyName">Company Name</label>
-            <input type="text" id="companyName" class="form-control" placeholder="Acme Corporation">
+          <!-- Sign Up Form -->
+          <div id="signupForm" class="tabs-content">
+            <form onsubmit="handleAuth(event, 'signup')">
+              <div class="card-header">
+                <div class="card-title">Create Business Account</div>
+                <div class="card-description">
+                  Get instant access to JobSarthi's AI assessment pipelines and verified applicant networks.
+                </div>
+              </div>
+              <div class="card-content">
+                <div class="form-group">
+                  <label class="form-label" for="companyName">Company Name</label>
+                  <input type="text" id="companyName" class="form-control" placeholder="Acme Corporation">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="signupEmail">Work Email Address</label>
+                  <input type="email" id="signupEmail" class="form-control" placeholder="name@company.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="signupPassword">Password</label>
+                  <input type="password" id="signupPassword" class="form-control" placeholder="Minimum 8 characters">
+                </div>
+              </div>
+              <div class="card-footer">
+                <button type="submit" class="btn btn-primary"
+                  style="width: 100%; background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%); box-shadow: 0 4px 15px rgba(217,70,239,0.3);">Create Recruiter Account</button>
+              </div>
+            </form>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="signupEmail">Work Email Address</label>
-            <input type="email" id="signupEmail" class="form-control" placeholder="name@company.com">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="signupPassword">Password</label>
-            <input type="password" id="signupPassword" class="form-control" placeholder="Minimum 8 characters">
-          </div>
-          <button type="submit" class="btn btn-primary"
-            style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%); box-shadow: 0 4px 15px rgba(217,70,239,0.3);">Create
-            Recruiter Account</button>
-        </form>
+
+        </div>
       </div>
     </div>
   </div>
 
   <script>
     function switchTab(tab) {
-      const tabs = document.querySelectorAll('.auth-tab');
+      const triggers = document.querySelectorAll('.tabs-trigger');
       const loginForm = document.getElementById('loginForm');
       const signupForm = document.getElementById('signupForm');
+      const indicator = document.getElementById('tabsIndicator');
 
-      tabs.forEach(t => t.classList.remove('active'));
+      triggers.forEach(t => t.classList.remove('active'));
 
       if (tab === 'login') {
-        tabs[0].classList.add('active');
+        triggers[0].classList.add('active');
+        indicator.style.transform = 'translateX(0)';
         loginForm.classList.add('active');
         signupForm.classList.remove('active');
       } else {
-        tabs[1].classList.add('active');
+        triggers[1].classList.add('active');
+        indicator.style.transform = 'translateX(100%)';
         signupForm.classList.add('active');
         loginForm.classList.remove('active');
       }
