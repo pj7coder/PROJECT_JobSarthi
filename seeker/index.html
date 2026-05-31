@@ -334,67 +334,8 @@
               &rarr;</a>
           </div>
 
-          <div class="job-cards-list">
-            <!-- Job Card 1 -->
-            <div class="glass-card job-card">
-              <div class="job-card-logo">⚛️</div>
-              <div class="job-card-info">
-                <h3>Frontend Developer (React/Vue)</h3>
-                <div style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">InnovateTech Solutions</div>
-                <div class="job-card-meta">
-                  <div class="job-card-meta-item">📍 Remote (India)</div>
-                  <div class="job-card-meta-item">💰 ₹8,000,000 - ₹12,000,000 / year</div>
-                  <div class="job-card-meta-item">🕒 Full-time</div>
-                </div>
-              </div>
-              <div class="job-card-actions">
-                <span class="match-score">94% Match</span>
-                <a href="jobs.html" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">View
-                  Details</a>
-              </div>
-            </div>
-
-            <!-- Job Card 2 -->
-            <div class="glass-card job-card">
-              <div class="job-card-logo">🐍</div>
-              <div class="job-card-info">
-                <h3>Python Software Engineer</h3>
-                <div style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">DeepScale Corp</div>
-                <div class="job-card-meta">
-                  <div class="job-card-meta-item">📍 Bangalore, India (Hybrid)</div>
-                  <div class="job-card-meta-item">💰 ₹12,000,000 - ₹16,000,000 / year</div>
-                  <div class="job-card-meta-item">🕒 Full-time</div>
-                </div>
-              </div>
-              <div class="job-card-actions">
-                <span class="match-score"
-                  style="color: var(--accent-primary); border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.1);">87%
-                  Match</span>
-                <a href="jobs.html" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">View
-                  Details</a>
-              </div>
-            </div>
-
-            <!-- Job Card 3 -->
-            <div class="glass-card job-card">
-              <div class="job-card-logo">🎨</div>
-              <div class="job-card-info">
-                <h3>UI/UX Designer & Prototyper</h3>
-                <div style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">PixelPerfect Labs</div>
-                <div class="job-card-meta">
-                  <div class="job-card-meta-item">📍 Remote</div>
-                  <div class="job-card-meta-item">💰 ₹6,000,000 - ₹9,000,000 / year</div>
-                  <div class="job-card-meta-item">🕒 Part-time</div>
-                </div>
-              </div>
-              <div class="job-card-actions">
-                <span class="match-score"
-                  style="color: var(--accent-tertiary); border-color: rgba(217,70,239,0.3); background: rgba(217,70,239,0.1);">82%
-                  Match</span>
-                <a href="jobs.html" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">View
-                  Details</a>
-              </div>
-            </div>
+          <div class="job-cards-list" id="recommendedJobsList">
+            <!-- Dynamically populated from Database -->
           </div>
         </div>
 
@@ -590,6 +531,65 @@
               <a href="resume.html" class="btn btn-secondary" style="display: inline-block; padding: 6px 12px; font-size: 0.85rem;">Edit Profile & Add Skills</a>
             </div>
           `;
+        }
+
+        // 3. Fetch Jobs and Populate Recommended Matches
+        let jobs = [];
+        try {
+          const jobsRes = await fetch((window.API_BASE_URL || '') + '/api/jobs');
+          if (jobsRes.ok) {
+            jobs = await jobsRes.json();
+          }
+        } catch (jobErr) {
+          console.warn("Failed to load jobs for dashboard:", jobErr);
+        }
+
+        const recommendedContainer = document.getElementById('recommendedJobsList');
+        if (recommendedContainer) {
+          recommendedContainer.innerHTML = '';
+          if (jobs && jobs.length > 0) {
+            // Display top 3 matching jobs
+            const topMatches = jobs.slice(0, 3);
+            topMatches.forEach(job => {
+              const card = document.createElement('div');
+              card.className = 'glass-card job-card';
+              card.innerHTML = `
+                <div class="job-card-logo">${job.logo || '⚛️'}</div>
+                <div class="job-card-info">
+                  <h3>${job.title}</h3>
+                  <div style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">${job.company}</div>
+                  <div class="job-card-meta">
+                    <div class="job-card-meta-item">📍 ${job.location || 'Remote'}</div>
+                    <div class="job-card-meta-item">💰 ${job.salary.split(' / ')[0]}</div>
+                    <div class="job-card-meta-item">🕒 ${job.type || 'Full-time'}</div>
+                  </div>
+                </div>
+                <div class="job-card-actions">
+                  <span class="match-score">${job.match || 90}% Match</span>
+                  <a href="jobs.html" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">View Details</a>
+                </div>
+              `;
+              recommendedContainer.appendChild(card);
+            });
+
+            // Update welcome card text dynamically
+            const welcomeTextP = document.querySelector('.welcome-text p');
+            if (welcomeTextP) {
+              welcomeTextP.textContent = `Sarthi AI has analyzed the open market and found ${jobs.length} roles matching your profile.`;
+            }
+          } else {
+            recommendedContainer.innerHTML = `
+              <div class="glass-panel" style="grid-column: 1 / -1; padding: 20px; text-align: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
+                <p style="color: var(--text-dark); margin-bottom: 12px; font-size: 0.9rem;">No jobs match your profile yet. Add more skills to improve matches.</p>
+                <a href="jobs.html" class="btn btn-secondary" style="display: inline-block; padding: 6px 12px; font-size: 0.85rem;">Browse All Jobs</a>
+              </div>
+            `;
+            
+            const welcomeTextP = document.querySelector('.welcome-text p');
+            if (welcomeTextP) {
+              welcomeTextP.textContent = `Sarthi AI is scanning the market. Fill out your profile to get instant matches!`;
+            }
+          }
         }
 
       } catch (err) {

@@ -175,23 +175,23 @@
     <section class="stats-grid">
       <div class="glass-panel stat-card">
         <span class="stat-subtext">Active Job Openings</span>
-        <div class="stat-number">5</div>
-        <span class="stat-subtext" style="color: var(--accent-tertiary);">2 post promotions active</span>
+        <div class="stat-number" id="recruiterActiveJobs">0</div>
+        <span class="stat-subtext" style="color: var(--accent-tertiary);" id="recruiterActiveJobsSubtext">0 promotions active</span>
       </div>
       <div class="glass-panel stat-card">
         <span class="stat-subtext">Total Candidates Screened</span>
-        <div class="stat-number">124</div>
-        <span class="stat-subtext" style="color: var(--success);">+14 new applicants today</span>
+        <div class="stat-number" id="recruiterTotalCandidates">0</div>
+        <span class="stat-subtext" style="color: var(--success);" id="recruiterTotalCandidatesSubtext">No new applicants today</span>
       </div>
       <div class="glass-panel stat-card">
         <span class="stat-subtext">Pending AI Profile Reviews</span>
-        <div class="stat-number">38</div>
-        <span class="stat-subtext" style="color: var(--warning);">Needs immediate screening</span>
+        <div class="stat-number" id="recruiterPendingReviews">0</div>
+        <span class="stat-subtext" style="color: var(--warning);" id="recruiterPendingReviewsSubtext">Needs immediate screening</span>
       </div>
       <div class="glass-panel stat-card">
         <span class="stat-subtext">Interviews Scheduled</span>
-        <div class="stat-number">8</div>
-        <span class="stat-subtext" style="color: var(--accent-secondary);">4 scheduled this week</span>
+        <div class="stat-number" id="recruiterInterviews">0</div>
+        <span class="stat-subtext" style="color: var(--accent-secondary);" id="recruiterInterviewsSubtext">0 scheduled this week</span>
       </div>
     </section>
 
@@ -277,6 +277,35 @@
         const response = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(companyName)}`);
         if (!response.ok) throw new Error("Failed to fetch");
         const list = await response.json();
+
+        // 2. Fetch Jobs to count active ones
+        let jobsCount = 0;
+        try {
+          const jobsRes = await fetch((window.API_BASE_URL || '') + '/api/jobs');
+          if (jobsRes.ok) {
+            const jobsList = await jobsRes.json();
+            const companyJobs = jobsList.filter(j => j.company.toLowerCase() === companyName.toLowerCase());
+            jobsCount = companyJobs.length;
+          }
+        } catch (jobErr) {
+          console.warn("Failed to fetch jobs for recruiter stats:", jobErr);
+        }
+
+        // Update Stats UI
+        document.getElementById('recruiterActiveJobs').textContent = jobsCount;
+        document.getElementById('recruiterActiveJobsSubtext').textContent = `${jobsCount} postings active`;
+
+        const totalScreened = list.length;
+        document.getElementById('recruiterTotalCandidates').textContent = totalScreened;
+        document.getElementById('recruiterTotalCandidatesSubtext').textContent = totalScreened > 0 ? `+${totalScreened} candidates total` : 'No candidates registered yet';
+
+        const pendingReviews = list.filter(c => c.status === 'Applied' || c.status === 'Reviewing').length;
+        document.getElementById('recruiterPendingReviews').textContent = pendingReviews;
+        document.getElementById('recruiterPendingReviewsSubtext').textContent = pendingReviews > 0 ? `${pendingReviews} pending screening` : 'No pending reviews';
+
+        const interviews = list.filter(c => c.status === 'Interviewing').length;
+        document.getElementById('recruiterInterviews').textContent = interviews;
+        document.getElementById('recruiterInterviewsSubtext').textContent = `${interviews} scheduled overall`;
         
         container.innerHTML = '';
 

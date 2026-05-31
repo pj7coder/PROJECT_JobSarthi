@@ -410,44 +410,6 @@
   </div>
 
   <script>
-    // Raw Mock Job Data
-    const mockJobsFallback = [
-      {
-        id: "job_fallback_1",
-        title: "Frontend Developer (React/Vue)",
-        company: "InnovateTech Solutions",
-        logo: "⚛️",
-        category: "tech",
-        type: "Full-time",
-        location: "Remote (India)",
-        salary: "₹8,000,000 - ₹12,000,000 / year",
-        match: 94,
-        description: "Join our expanding UI team to deliver elegant, fast user experiences in React and Vue.js. You'll build core responsive elements and optimize performance across our web applications.",
-        reqs: [
-          "3+ years experience with modern React (hooks, context, state management)",
-          "Strong understanding of CSS/JS, layout design systems, and grids",
-          "Experience with micro-frontends is a plus"
-        ]
-      },
-      {
-        id: "job_fallback_2",
-        title: "Python Software Engineer",
-        company: "DeepScale Corp",
-        logo: "🐍",
-        category: "tech",
-        type: "Full-time",
-        location: "Bangalore, India (Hybrid)",
-        salary: "₹12,000,000 - ₹16,000,000 / year",
-        match: 87,
-        description: "Develop scalable microservices and process massive datasets using Python, Fast API, and PostgreSQL. Help scale our predictive analytical engines.",
-        reqs: [
-          "Proficiency in Python (OOP, decorators, asyncio)",
-          "Hands-on experience with SQL databases and database indexing",
-          "Familiarity with cloud microservices (AWS or GCP)"
-        ]
-      }
-    ];
-
     let dbJobs = [];
     let currentSelectedJob = null;
 
@@ -456,12 +418,9 @@
         const response = await fetch((window.API_BASE_URL || '') + '/api/jobs');
         if (!response.ok) throw new Error("Failed to fetch jobs");
         dbJobs = await response.json();
-        if (!dbJobs || dbJobs.length === 0) {
-          dbJobs = mockJobsFallback;
-        }
       } catch (err) {
-        console.error("Failed to fetch jobs from server, using fallback:", err);
-        dbJobs = mockJobsFallback;
+        console.error("Failed to fetch jobs from server:", err);
+        dbJobs = [];
       }
       filterJobs();
     }

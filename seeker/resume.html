@@ -506,20 +506,7 @@
         alert("Please enter a valid LinkedIn Profile URL or username.");
         return;
       }
-
-      alert("Simulating LinkedIn Profile Integration via Sarthi AI API...");
-
-      // Set values mockingly
-      document.getElementById('collegeName').value = "Veermata Jijabai Technological Institute (VJTI)";
-      document.getElementById('degreeName').value = "Bachelor of Technology in Information Technology";
-      document.getElementById('cgpa').value = "8.9/10";
-      document.getElementById('experienceSummary').value = "Software Engineering Intern at Google (3 months). Assisted the Search team in maintaining microservice deployment endpoints.";
-
-      const suggestedSkills = ["Java", "Docker", "Node.js", "System Design"];
-      suggestedSkills.forEach(s => {
-        if (!mySkillsList.includes(s)) mySkillsList.push(s);
-      });
-      renderSkillTags();
+      alert("LinkedIn profile integration is under development. Please input your credentials manually or upload a resume PDF for AI autofill.");
     }
 
     // Clear all form inputs including profile image

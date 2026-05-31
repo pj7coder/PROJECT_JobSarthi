@@ -1079,6 +1079,7 @@ window.logout = function () {
     localStorage.removeItem('seeker_logged_in');
     localStorage.removeItem('seeker_name');
     localStorage.removeItem('seeker_email');
+    localStorage.removeItem('seeker_avatar_url');
   }
   const isLanding = !window.location.pathname.includes('/seeker/') && !window.location.pathname.includes('/recruiter/');
   const prefix = isLanding ? './' : '../';
