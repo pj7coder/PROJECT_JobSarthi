@@ -56,8 +56,8 @@
       }
       .interviewer-avatar-panel,
       .camera-container {
-        height: 180px;
-        flex-shrink: 0;
+        flex: 1;
+        min-height: 0;
       }
       .controls-row {
         width: 100% !important;
@@ -65,16 +65,13 @@
         flex-shrink: 0;
       }
       .proctor-panel {
-        flex: 1;
-        min-height: 0;
+        flex-shrink: 0;
         display: flex;
         flex-direction: column;
-        padding: 15px !important;
+        padding: 10px 15px !important;
       }
-      .proctor-logs {
-        flex: 1;
-        height: auto !important;
-        max-height: none !important;
+      .proctor-panel .proctor-bar-bg {
+        margin-bottom: 0 !important;
       }
       .interview-card {
         height: 100%;
@@ -1000,20 +997,13 @@
         </div>
 
         <!-- Proctor Panel -->
-        <div class="proctor-panel">
-          <div class="proctor-header">
-            <span>Proctor AI Shield</span>
-            <span class="suspicion-score-text">
-              Suspicion score: <span id="suspicionVal" class="suspicion-score-val">0</span>/100
-            </span>
-          </div>
-          <div class="proctor-bar-bg">
+        <div class="proctor-panel" style="padding: 10px 15px; background: rgba(10, 11, 15, 0.45); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
+          <div class="proctor-bar-bg" style="margin: 0; height: 8px;">
             <div id="proctorBarFill" class="proctor-bar-fill"></div>
           </div>
-
-          <!-- Proctor Warning Logs -->
-          <div id="proctorLogs" class="proctor-logs">
-          </div>
+          <!-- Hidden tracking elements to preserve JS telemetry updates without visual clutter -->
+          <div id="proctorLogs" style="display: none;"></div>
+          <span id="suspicionVal" style="display: none;">0</span>
         </div>
         
         <!-- Camera Stream Box -->
