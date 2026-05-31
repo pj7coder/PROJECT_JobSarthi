@@ -54,8 +54,12 @@
         gap: 16px;
         min-height: 0;
       }
+      .interviewer-avatar-panel {
+        height: 180px;
+        flex-shrink: 0;
+      }
       .camera-container {
-        height: 240px;
+        height: 180px;
         flex-shrink: 0;
       }
       .controls-row {
@@ -791,9 +795,25 @@
     body.light-theme .report-metric-card {
       background: rgba(0, 0, 0, 0.02);
     }
-    @keyframes orbFloat {
-      0%, 100% { transform: translateY(0) scale(1); opacity: 0.25; }
-      50% { transform: translateY(-10px) scale(1.1); opacity: 0.35; }
+
+    /* Interactive SVG Avatar Animations */
+    @keyframes avatarPulse {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      50% { opacity: 0.4; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+    @keyframes visorBlink {
+      0%, 96%, 100% { transform: scaleY(1); }
+      98% { transform: scaleY(0.1); }
+    }
+    @keyframes mouthWave {
+      0%, 100% { d: path("M 45 47 Q 50 47 55 47"); }
+      25% { d: path("M 45 45 Q 50 49 55 45"); }
+      50% { d: path("M 45 48 Q 50 44 55 48"); }
+      75% { d: path("M 45 45 Q 50 49 55 45"); }
+    }
+    .talking-mouth {
+      animation: mouthWave 0.25s infinite ease-in-out;
     }
   </style>
 </head>
@@ -929,6 +949,52 @@
       <!-- Left Column: Camera, Controls, Proctor -->
       <div class="proctor-sidebar">
         
+        <!-- Interviewer Avatar Panel -->
+        <div class="glass-panel interviewer-avatar-panel" id="interviewerPanel" style="position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(10, 11, 15, 0.45); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);">
+          <!-- Holographic grid effect lines -->
+          <div style="position: absolute; inset: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 6px 100%; pointer-events: none; z-index: 3;"></div>
+          
+          <!-- Status Indicator Tag -->
+          <div style="position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 99px; font-size: 0.7rem; font-weight: 700; color: var(--accent-secondary); display: flex; align-items: center; gap: 6px; letter-spacing: 0.5px; z-index: 4;">
+            <span id="interviewerStatusPulse" style="width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent-secondary); display: inline-block; animation: pulseMic 1.5s infinite;"></span>
+            <span id="interviewerStatusText">SARTHI AI</span>
+          </div>
+
+          <!-- Placeholder SVG or interactive avatar container -->
+          <div id="avatarContainer" style="position: relative; z-index: 2; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+            <svg id="interviewerSvg" width="90" height="90" viewBox="0 0 100 100" style="overflow: visible;">
+              <defs>
+                <radialGradient id="headGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="var(--accent-secondary)" stop-opacity="0.5" />
+                  <stop offset="100%" stop-color="var(--accent-secondary)" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--accent-primary)" />
+                  <stop offset="100%" stop-color="var(--accent-secondary)" />
+                </linearGradient>
+              </defs>
+              
+              <!-- Background Pulse Ring -->
+              <circle id="avatarPulseRing" cx="50%" cy="50%" r="35" fill="none" stroke="var(--accent-secondary)" stroke-width="1.5" opacity="0.3" style="transform-origin: 50px 50px; animation: avatarPulse 2s infinite ease-out;"></circle>
+              
+              <!-- Glowing background -->
+              <circle cx="50%" cy="45%" r="22" fill="url(#headGlow)" opacity="0.6"></circle>
+              
+              <!-- Body/Shoulders -->
+              <path d="M 28 80 C 28 67, 36 62, 50 62 C 64 62, 72 67, 72 80 Z" fill="url(#bodyGrad)" opacity="0.85"></path>
+              
+              <!-- Head / Face Outer Orb -->
+              <circle cx="50%" cy="42%" r="15" fill="rgba(15, 23, 42, 0.85)" stroke="var(--accent-secondary)" stroke-width="2" style="filter: drop-shadow(0 0 5px rgba(6,182,212,0.5));"></circle>
+              
+              <!-- Dynamic Eyes / Visor -->
+              <rect id="avatarVisor" x="41" y="39" width="18" height="5" rx="2.5" fill="var(--accent-secondary)" style="animation: visorBlink 4s infinite ease-in-out;"></rect>
+              
+              <!-- Mouth/Audio wave line inside face -->
+              <path id="avatarMouth" d="M 45 47 Q 50 47 55 47" stroke="var(--accent-secondary)" stroke-width="1.5" stroke-linecap="round" fill="none"></path>
+            </svg>
+          </div>
+        </div>
+        
         <!-- Camera Stream Box -->
         <div class="camera-container">
           <video id="webcamVideo" autoplay muted playsinline></video>
@@ -983,30 +1049,6 @@
       <!-- Right Column: Question Card & Answer Panel -->
       <div class="interview-card">
         
-        <!-- Interactive AI Interviewer Visualizer Card -->
-        <div class="glass-panel" style="height: 320px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(10, 11, 15, 0.45); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);">
-          <!-- Waveform / Glowing orb background animation that represents AI presence -->
-          <div class="ai-avatar-glow-pulse" style="
-            position: absolute;
-            width: 150px;
-            height: 150px;
-            background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, rgba(217, 70, 239, 0.05) 50%, rgba(0,0,0,0) 70%);
-            filter: blur(10px);
-            border-radius: 50%;
-            animation: orbFloat 4s ease-in-out infinite;
-          "></div>
-          
-          <canvas id="interviewerCanvas" style="width: 100%; height: 100%; display: block; position: relative; z-index: 2;"></canvas>
-          
-          <!-- Holographic grid effect lines -->
-          <div style="position: absolute; inset: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 6px 100%; pointer-events: none; z-index: 3;"></div>
-          
-          <div style="position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.08); padding: 5px 12px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; color: var(--accent-secondary); display: flex; align-items: center; gap: 6px; letter-spacing: 0.5px; z-index: 4;">
-            <span id="interviewerStatusPulse" style="width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent-secondary); display: inline-block; animation: pulseMic 1.5s infinite;"></span>
-            <span id="interviewerStatusText">SARTHI AI INTERVIEWER</span>
-          </div>
-        </div>
-
         <!-- Question Box -->
         <div id="questionBox" class="glass-panel question-box">
           <div class="question-tag">
@@ -1054,7 +1096,7 @@
               </div>
 
               <button id="startAnsweringBtn" class="btn btn-glow" style="display: none; padding: 10px 20px; background: linear-gradient(135deg, var(--accent-secondary), var(--accent-tertiary)); color: white; border: none; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">Start Answering</button>
-              <button id="submitAnswerBtn" class="btn btn-primary" style="padding: 10px 20px;">
+              <button id="submitAnswerBtn" class="btn btn-primary" style="padding: 10px 22px; border-radius: var(--radius-full); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);">
                 Submit Answer
               </button>
             </div>
@@ -1211,193 +1253,6 @@
       textInput.addEventListener("input", () => {
         resetAutoSubmitTimer();
       });
-    }
-
-    // --- INTERACTIVE AI AVATAR VISUALIZER ---
-    let visualizerAnimationId = null;
-    function initInterviewerVisualizer() {
-      const canvas = document.getElementById("interviewerCanvas");
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      if (visualizerAnimationId) {
-        cancelAnimationFrame(visualizerAnimationId);
-      }
-
-      const resizeCanvas = () => {
-        canvas.width = canvas.clientWidth * window.devicePixelRatio;
-        canvas.height = canvas.clientHeight * window.devicePixelRatio;
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-      };
-      resizeCanvas();
-      
-      // Remove old listener if exists to prevent duplication
-      window.removeEventListener("resize", resizeCanvas);
-      window.addEventListener("resize", resizeCanvas);
-
-      let particleAngle = 0;
-
-      function drawVisualizer() {
-        visualizerAnimationId = requestAnimationFrame(drawVisualizer);
-        const w = canvas.width / window.devicePixelRatio;
-        const h = canvas.height / window.devicePixelRatio;
-        ctx.clearRect(0, 0, w, h);
-
-        const time = Date.now() * 0.001;
-        const centerX = w / 2;
-        const centerY = h / 2;
-
-        // Fetch mic volume (for listening reactivity)
-        let micVolume = 0;
-        if (audioAnalyser && !isAiSpeaking && !isInterviewPaused && !isThinkTimeActive) {
-          const bufferLength = audioAnalyser.frequencyBinCount;
-          const dataArray = new Uint8Array(bufferLength);
-          audioAnalyser.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
-          micVolume = sum / bufferLength;
-        }
-
-        // Base float animation
-        const floatY = Math.sin(time * 2.5) * 8;
-
-        // Update status text elements in the header overlay
-        const statusPulse = document.getElementById("interviewerStatusPulse");
-        const statusText = document.getElementById("interviewerStatusText");
-
-        if (statusPulse && statusText) {
-          if (isInterviewPaused) {
-            statusText.textContent = "SARTHI AI - PAUSED";
-            statusPulse.style.backgroundColor = "var(--warning)";
-          } else if (isAiSpeaking) {
-            statusText.textContent = "SARTHI AI - SPEAKING";
-            statusPulse.style.backgroundColor = "var(--accent-secondary)";
-          } else if (isThinkTimeActive) {
-            statusText.textContent = "SARTHI AI - PREPARING";
-            statusPulse.style.backgroundColor = "var(--accent-tertiary)";
-          } else {
-            statusText.textContent = "SARTHI AI - LISTENING";
-            statusPulse.style.backgroundColor = "var(--success)";
-          }
-        }
-
-        // --- DRAW ANIMATED AVATAR CORE ---
-        
-        // 1. Draw background outer rings
-        ctx.strokeStyle = "rgba(6, 182, 212, 0.08)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY + floatY, 90, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.strokeStyle = "rgba(217, 70, 239, 0.05)";
-        ctx.beginPath();
-        ctx.arc(centerX, centerY + floatY, 110, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // 2. Draw rotating orbit rings
-        ctx.strokeStyle = "rgba(6, 182, 212, 0.25)";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY + floatY, 75, time, time + Math.PI * 0.4);
-        ctx.stroke();
-
-        ctx.strokeStyle = "rgba(217, 70, 239, 0.25)";
-        ctx.beginPath();
-        ctx.arc(centerX, centerY + floatY, 80, -time * 0.8, -time * 0.8 + Math.PI * 0.3);
-        ctx.stroke();
-
-        // 3. Draw AI Brain core
-        let coreRadius = 45;
-        let glowColor1 = "rgba(6, 182, 212, 0.8)";
-        let glowColor2 = "rgba(59, 130, 246, 0.2)";
-
-        if (isInterviewPaused) {
-          glowColor1 = "rgba(245, 158, 11, 0.5)";
-          glowColor2 = "rgba(245, 158, 11, 0.1)";
-          coreRadius = 40 + Math.sin(time * 0.5) * 2;
-        } else if (isAiSpeaking) {
-          // Dynamic scaling representing voice synthesis frequency peaks
-          const speakMod = 8 + Math.sin(time * 25) * 6 + Math.cos(time * 12) * 4;
-          coreRadius = 45 + speakMod;
-          glowColor1 = "rgba(6, 182, 212, 0.95)";
-          glowColor2 = "rgba(217, 70, 239, 0.4)";
-        } else if (isThinkTimeActive) {
-          coreRadius = 42 + Math.sin(time * 4) * 2;
-          glowColor1 = "rgba(139, 92, 246, 0.8)";
-          glowColor2 = "rgba(59, 130, 246, 0.2)";
-        } else {
-          // Listening: react to user's speech microphone amplitude
-          const micMod = Math.min(25, micVolume * 0.8);
-          coreRadius = 44 + micMod;
-          glowColor1 = "rgba(16, 185, 129, 0.9)";
-          glowColor2 = "rgba(6, 182, 212, 0.35)";
-        }
-
-        const gradient = ctx.createRadialGradient(
-          centerX, centerY + floatY, 2,
-          centerX, centerY + floatY, coreRadius
-        );
-        gradient.addColorStop(0, "#ffffff");
-        gradient.addColorStop(0.2, glowColor1);
-        gradient.addColorStop(0.7, glowColor2);
-        gradient.addColorStop(1, "rgba(0,0,0,0)");
-
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY + floatY, coreRadius, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 4. Draw interactive overlay graphics
-        if (isAiSpeaking) {
-          // Voice Oscillations (Soundwaves)
-          ctx.strokeStyle = "rgba(6, 182, 212, 0.7)";
-          ctx.lineWidth = 2.5;
-          ctx.beginPath();
-          for (let i = -50; i <= 50; i += 5) {
-            const progress = (i + 50) / 100;
-            const amp = Math.sin(time * 18 + progress * Math.PI * 4) * (18 + Math.sin(time * 30) * 10) * Math.sin(progress * Math.PI);
-            if (i === -50) ctx.moveTo(centerX + i, centerY + floatY + amp);
-            else ctx.lineTo(centerX + i, centerY + floatY + amp);
-          }
-          ctx.stroke();
-        } else if (isThinkTimeActive) {
-          // Progress preparation countdown ring
-          const startAngle = -Math.PI / 2;
-          const progressPercent = timerSecondsRemaining / timerLimit;
-          const endAngle = startAngle + (Math.PI * 2 * progressPercent);
-
-          ctx.strokeStyle = "rgba(139, 92, 246, 0.85)";
-          ctx.lineWidth = 3.5;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.arc(centerX, centerY + floatY, 58, startAngle, endAngle);
-          ctx.stroke();
-
-          // Text timer display inside
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 14px monospace";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(`${timerSecondsRemaining}s`, centerX, centerY + floatY);
-        } else if (!isInterviewPaused) {
-          // Listening indicator - soft pulsing particle dots
-          particleAngle += 0.015;
-          ctx.fillStyle = "rgba(16, 185, 129, 0.75)";
-          for (let i = 0; i < 4; i++) {
-            const angle = particleAngle + (i * Math.PI / 2);
-            const radius = 55 + Math.sin(time * 3 + i) * 4 + micVolume * 0.4;
-            const px = centerX + Math.cos(angle) * radius;
-            const py = centerY + floatY + Math.sin(angle) * radius;
-            ctx.beginPath();
-            ctx.arc(px, py, 3, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-      }
-
-      drawVisualizer();
     }
 
     // --- UPDATE STATE OF THE CONTROL BAR ICONS ---
@@ -1557,7 +1412,6 @@
         }
       }, 55000);
 
-      setTimeout(initInterviewerVisualizer, 100);
       fetchNextQuestion(true);
     }
 
@@ -1965,18 +1819,65 @@
             voiceBorderEl.style.setProperty('--voice-width', `${voiceWidth}%`);
           }
 
-          // Display current microphone indicators
-          const audioHudVal = document.getElementById("hudAudioActivity");
-          if (audioHudVal) {
-            if (averageVolume > 40) {
-              audioHudVal.textContent = "MIC LEVEL: SPEAKING";
-              audioHudVal.style.color = "var(--success)";
-            } else if (averageVolume > 10) {
-              audioHudVal.textContent = "MIC LEVEL: AMBIENT / LOW";
-              audioHudVal.style.color = "var(--warning)";
+          // Live dynamic updates to SVG avatar visual state
+          const statusPulse = document.getElementById("interviewerStatusPulse");
+          const statusText = document.getElementById("interviewerStatusText");
+          const avatarPulseRing = document.getElementById("avatarPulseRing");
+          const avatarVisor = document.getElementById("avatarVisor");
+          const avatarMouth = document.getElementById("avatarMouth");
+
+          if (statusPulse && statusText) {
+            if (isInterviewPaused) {
+              statusText.textContent = "SARTHI AI - PAUSED";
+              statusPulse.style.backgroundColor = "var(--warning)";
+              if (avatarPulseRing) {
+                avatarPulseRing.setAttribute("stroke", "var(--warning)");
+                avatarPulseRing.style.animationPlayState = "paused";
+              }
+              if (avatarVisor) avatarVisor.setAttribute("fill", "var(--warning)");
+              if (avatarMouth) {
+                avatarMouth.setAttribute("d", "M 45 47 Q 50 47 55 47");
+                avatarMouth.classList.remove("talking-mouth");
+              }
+            } else if (isAiSpeaking) {
+              statusText.textContent = "SARTHI AI - SPEAKING";
+              statusPulse.style.backgroundColor = "var(--accent-secondary)";
+              if (avatarPulseRing) {
+                avatarPulseRing.setAttribute("stroke", "var(--accent-secondary)");
+                avatarPulseRing.style.animationPlayState = "running";
+              }
+              if (avatarVisor) avatarVisor.setAttribute("fill", "var(--accent-secondary)");
+              if (avatarMouth) {
+                avatarMouth.classList.add("talking-mouth");
+              }
+            } else if (isThinkTimeActive) {
+              statusText.textContent = "SARTHI AI - PREPARING";
+              statusPulse.style.backgroundColor = "var(--accent-tertiary)";
+              if (avatarPulseRing) {
+                avatarPulseRing.setAttribute("stroke", "var(--accent-tertiary)");
+                avatarPulseRing.style.animationPlayState = "running";
+              }
+              if (avatarVisor) avatarVisor.setAttribute("fill", "var(--accent-tertiary)");
+              if (avatarMouth) {
+                avatarMouth.setAttribute("d", "M 45 47 Q 50 47 55 47");
+                avatarMouth.classList.remove("talking-mouth");
+              }
             } else {
-              audioHudVal.textContent = "MIC LEVEL: SILENT";
-              audioHudVal.style.color = "var(--text-muted)";
+              // Listening mode
+              statusText.textContent = "SARTHI AI - LISTENING";
+              statusPulse.style.backgroundColor = "var(--success)";
+              if (avatarPulseRing) {
+                avatarPulseRing.setAttribute("stroke", "var(--success)");
+                avatarPulseRing.style.animationPlayState = "running";
+                // Modulate pulse ring scale based on candidate speech amplitude
+                const volumeScale = 1 + Math.min(0.4, averageVolume / 100);
+                avatarPulseRing.style.transform = `scale(${volumeScale})`;
+              }
+              if (avatarVisor) avatarVisor.setAttribute("fill", "var(--success)");
+              if (avatarMouth) {
+                avatarMouth.setAttribute("d", "M 45 47 Q 50 47 55 47");
+                avatarMouth.classList.remove("talking-mouth");
+              }
             }
           }
 
@@ -1985,7 +1886,7 @@
             if (averageVolume < 8) {
               if (!candidateSilenceStartTime) {
                 candidateSilenceStartTime = Date.now();
-              } else if (Date.now() - candidateSilenceStartTime > 7500) {
+              } else if (Date.now() - candidateSilenceStartTime > 8000) {
                 candidateSilenceStartTime = Date.now(); // reset window
                 
                 isAiSpeaking = true;
@@ -2007,6 +1908,21 @@
             }
           } else {
             candidateSilenceStartTime = null;
+          }
+
+          // Display current microphone indicators
+          const audioHudVal = document.getElementById("hudAudioActivity");
+          if (audioHudVal) {
+            if (averageVolume > 40) {
+              audioHudVal.textContent = "MIC LEVEL: SPEAKING";
+              audioHudVal.style.color = "var(--success)";
+            } else if (averageVolume > 10) {
+              audioHudVal.textContent = "MIC LEVEL: AMBIENT / LOW";
+              audioHudVal.style.color = "var(--warning)";
+            } else {
+              audioHudVal.textContent = "MIC LEVEL: SILENT";
+              audioHudVal.style.color = "var(--text-muted)";
+            }
           }
 
           // Whispering detection: active noise when user should NOT be speaking 
