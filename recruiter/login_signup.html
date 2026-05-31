@@ -493,7 +493,7 @@
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
-        body = { email, password };
+        body = { email, password, role: 'recruiter' };
         endpoint = API_BASE_URL + '/api/auth/login';
       }
 

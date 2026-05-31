@@ -766,12 +766,17 @@ app.post("/api/auth/signup", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
     const finalEmail = (email || "").toLowerCase();
     const finalPassword = password || "";
 
     const user = await dbService.findUserByCredentials(finalEmail, finalPassword);
     if (!user) {
+      return res.status(401).json({ error: "Invalid email or password." });
+    }
+
+    // Portal verification
+    if (role && user.role !== role) {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
