@@ -54,10 +54,7 @@
         gap: 16px;
         min-height: 0;
       }
-      .interviewer-avatar-panel {
-        height: 180px;
-        flex-shrink: 0;
-      }
+      .interviewer-avatar-panel,
       .camera-container {
         height: 180px;
         flex-shrink: 0;
@@ -152,14 +149,18 @@
       gap: 20px;
     }
 
+    .interviewer-avatar-panel,
     .camera-container {
       position: relative;
       width: 100%;
       height: 240px;
       border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .camera-container {
       background: #000;
       border: 1px solid var(--border-subtle);
-      overflow: hidden;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
@@ -1012,7 +1013,6 @@
 
           <!-- Proctor Warning Logs -->
           <div id="proctorLogs" class="proctor-logs">
-            <div class="proctor-log-item">[System] Proctor initialized. Gaze and tab tracking active.</div>
           </div>
         </div>
         
