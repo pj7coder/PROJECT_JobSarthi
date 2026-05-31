@@ -602,6 +602,9 @@
         toast.style.display = 'block';
         setTimeout(() => {
           toast.style.display = 'none';
+          if (currentSelectedJob.applyUrl && currentSelectedJob.applyUrl.startsWith('http')) {
+            window.open(currentSelectedJob.applyUrl, '_blank');
+          }
         }, 3000);
 
         closeDrawer(null);

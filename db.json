@@ -1,6 +1,267 @@
 {
   "users": [],
-  "jobs": [],
+  "jobs": [
+    {
+      "id": "job_local_13",
+      "title": "Frontend Engineer (React)",
+      "company": "Tech Startups",
+      "logo": "🚀",
+      "category": "Software Engineering",
+      "type": "Remote",
+      "location": "Remote, India",
+      "salary": "₹8,00,000 - ₹13,00,000 / year",
+      "match": 85,
+      "description": "Develop clean, user-friendly SaaS client dashboards. You will implement modular React UI components, integrate APIs, and maximize rendering speeds for global customers.",
+      "skills": "React, CSS, JavaScript, HTML, REST APIs",
+      "reqs": [
+        "1.5+ years of frontend React developer experience.",
+        "Proficiency in responsive CSS layouts (Flexbox, Grid) and modular UI designs.",
+        "Experience using REST APIs and state management libs (Redux/Zustand).",
+        "Comfortable working asynchronously in a fully remote setup."
+      ],
+      "applyUrl": "https://jobsarthi.ai"
+    },
+    {
+      "id": "job_local_12",
+      "title": "Backend Engineer (Node.js)",
+      "company": "CRED",
+      "logo": "💎",
+      "category": "Software Engineering",
+      "type": "Full-time",
+      "location": "Bengaluru, Karnataka",
+      "salary": "₹18,00,000 - ₹26,00,000 / year",
+      "match": 92,
+      "description": "Work on CRED's highly secure fintech backend. You will engineer microservices using Node.js/TypeScript, optimize Redis configurations for millisecond latency, and build fail-safe event architectures.",
+      "skills": "Node.js, TypeScript, Redis, gRPC, Microservices",
+      "reqs": [
+        "3+ years building high-availability backends.",
+        "Advanced proficiency in TypeScript/Node.js.",
+        "Experience with microservices orchestration, Redis caching, and NoSQL databases.",
+        "Eagerness to solve complex transactional scalability issues."
+      ],
+      "applyUrl": "https://careers.cred.club/"
+    },
+    {
+      "id": "job_local_11",
+      "title": "Data Analyst",
+      "company": "Wipro",
+      "logo": "📊",
+      "category": "Data & Analytics",
+      "type": "Full-time",
+      "location": "Hyderabad, Telangana",
+      "salary": "₹5,00,000 - ₹7,50,000 / year",
+      "match": 80,
+      "description": "Wipro is seeking a Data Analyst to compile and evaluate complex business datasets. You will write SQL queries, construct PowerBI charts, and present reports to international client stakeholders.",
+      "skills": "SQL, Excel, Python, PowerBI, Data Visualization",
+      "reqs": [
+        "Degree in Mathematics, Statistics, Computer Science, or similar.",
+        "Strong SQL scripting capabilities and experience with relational schemas.",
+        "Proficiency in building clear data stories with Tableau or PowerBI.",
+        "Good mathematical capabilities and communication skills."
+      ],
+      "applyUrl": "https://careers.wipro.com/"
+    },
+    {
+      "id": "job_local_10",
+      "title": "UI/UX Designer",
+      "company": "Swiggy",
+      "logo": "🎨",
+      "category": "Design",
+      "type": "Full-time",
+      "location": "Bengaluru, Karnataka",
+      "salary": "₹10,00,000 - ₹16,00,000 / year",
+      "match": 87,
+      "description": "Design delightful experience paths for Swiggy users. You will create modern interface wireframes, build high-fidelity interactive components, and lead product discovery usability tests.",
+      "skills": "Figma, Wireframing, Prototyping, Visual Design, Usability",
+      "reqs": [
+        "2+ years of product design experience (Figma portfolio required).",
+        "Solid comprehension of mobile and desktop user interface aesthetics.",
+        "Experience working with design systems and engineering components handoff.",
+        "Empathy for users and database-driven design approaches."
+      ],
+      "applyUrl": "https://careers.swiggy.com/"
+    },
+    {
+      "id": "job_local_9",
+      "title": "Associate Web Developer",
+      "company": "Zoho Corporation",
+      "logo": "⚙️",
+      "category": "Software Engineering",
+      "type": "Full-time",
+      "location": "Chennai, Tamil Nadu",
+      "salary": "₹6,00,000 - ₹9,00,000 / year",
+      "match": 82,
+      "description": "Join Zoho's SaaS products division. Work on developing interactive dashboard widgets and building clean client interfaces using modern JavaScript frameworks.",
+      "skills": "JavaScript, HTML5, CSS3, VueJS, REST APIs",
+      "reqs": [
+        "Bachelor's degree in Computer Science or related fields.",
+        "Strong understanding of JS fundamentals, closures, asynchronous flows, and DOM operations.",
+        "Familiarity with Vue.js, React, or Angular.",
+        "Excellent collaboration capabilities and eye for detailed web aesthetics."
+      ],
+      "applyUrl": "https://www.zoho.com/careers/"
+    },
+    {
+      "id": "job_local_8",
+      "title": "Backend Engineer (Python/Django)",
+      "company": "Flipkart",
+      "logo": "🛒",
+      "category": "Software Engineering",
+      "type": "Full-time",
+      "location": "Bengaluru, Karnataka",
+      "salary": "₹15,00,000 - ₹22,00,000 / year",
+      "match": 89,
+      "description": "Build scalable warehouse logistics systems and catalog pipelines. You will design clean REST endpoints, write performant database queries, and integrate messaging queues for heavy background tasks.",
+      "skills": "Python, Django, PostgreSQL, Redis, RabbitMQ",
+      "reqs": [
+        "2.5+ years of software design experience in Python.",
+        "Strong database schema modeling, indexing optimization, and SQL performance tuning.",
+        "Experience using asynchronous workers like Celery and message brokers (RabbitMQ/Kafka).",
+        "Understanding of web application security principles."
+      ],
+      "applyUrl": "https://www.flipkartcareers.com/"
+    },
+    {
+      "id": "job_local_7",
+      "title": "DevOps Engineer",
+      "company": "Zomato",
+      "logo": "🛵",
+      "category": "Software Engineering",
+      "type": "Full-time",
+      "location": "Gurugram, Haryana",
+      "salary": "₹14,00,000 - ₹20,00,000 / year",
+      "match": 85,
+      "description": "Support the deployment pipeline for one of India's largest food-delivery apps. You will maintain Kubernetes clusters, configure CI/CD automations, and manage zero-downtime microservices configurations.",
+      "skills": "AWS, Docker, Kubernetes, Jenkins, Terraform",
+      "reqs": [
+        "3+ years managing production deployments and containerized infrastructures.",
+        "Extensive scripting capabilities in Bash or Python.",
+        "Proficiency in setting up Jenkins pipelines and writing Terraform config files.",
+        "Solid knowledge of server diagnostics, log aggregation (ELK), and alert metrics (Prometheus)."
+      ],
+      "applyUrl": "https://www.zomato.com/careers"
+    },
+    {
+      "id": "job_local_6",
+      "title": "React Native Developer",
+      "company": "Paytm",
+      "logo": "📱",
+      "category": "Software Engineering",
+      "type": "Full-time",
+      "location": "Noida, Uttar Pradesh",
+      "salary": "₹9,00,000 - ₹14,00,000 / year",
+      "match": 86,
+      "description": "Paytm is building advanced mobile microservices. You will construct high-fidelity iOS and Android widgets and workflows on React Native, improving page load speeds and responsiveness.",
+      "skills": "React Native, Redux, Mobile Performance, JavaScript, Git",
+      "reqs": [
+        "2+ years of experience delivering cross-platform mobile apps using React Native.",
+        "Strong proficiency in JavaScript, TypeScript, and state management frameworks like Redux.",
+        "Familiarity with publishing applications to Apple App Store and Google Play Store.",
+        "Basic understanding of native modules and bridges."
+      ],
+      "applyUrl": "https://www.paytm.com/careers"
+    },
+    {
+      "id": "job_local_5",
+      "title": "Software Associate",
+      "company": "Infosys",
+      "logo": "💻",
+      "category": "Software Engineering",
+      "type": "Full-time",
+      "location": "Pune, Maharashtra",
+      "salary": "₹4,00,000 - ₹6,00,000 / year",
+      "match": 80,
+      "description": "Infosys is onboarding Software Associates to work on cloud migration and business applications. Training will be provided in advanced frameworks and full-stack methodologies.",
+      "skills": "Python, SQL, HTML, JavaScript",
+      "reqs": [
+        "B.E./B.Tech/M.E./M.Tech/MCA/M.Sc in computer science streams.",
+        "Academic or internship project experience in programming.",
+        "Strong logical reasoning, algorithmic design capabilities, and basic database querying.",
+        "Capable of working effectively in a fast-paced team structure."
+      ],
+      "applyUrl": "https://www.infosys.com/careers.html"
+    },
+    {
+      "id": "job_local_4",
+      "title": "Cloud Solutions Architect",
+      "company": "Microsoft India",
+      "logo": "☁️",
+      "category": "Software Engineering",
+      "type": "Full-time",
+      "location": "Hyderabad, Telangana",
+      "salary": "₹28,00,000 - ₹40,00,000 / year",
+      "match": 91,
+      "description": "Empower partners and clients by architecting hybrid-cloud infrastructures utilizing Microsoft Azure. You will collaborate with engineering teams to guide systems migration and security designs.",
+      "skills": "Azure, Cloud Architecture, DevOps, Kubernetes, Security",
+      "reqs": [
+        "Degree in Computer Science or equivalent experience.",
+        "Deep technical understanding of cloud computing services, containers (Docker/Kubernetes), and infrastructure-as-code.",
+        "Experience architecting scalable, resilient, and highly secure cloud environments.",
+        "Active cloud certifications (Azure Solutions Architect or AWS Professional) are highly preferred."
+      ],
+      "applyUrl": "https://careers.microsoft.com/"
+    },
+    {
+      "id": "job_local_3",
+      "title": "System Engineer",
+      "company": "Tata Consultancy Services (TCS)",
+      "logo": "🏢",
+      "category": "Software Engineering",
+      "type": "Full-time",
+      "location": "Mumbai, Maharashtra",
+      "salary": "₹4,50,000 - ₹6,50,000 / year",
+      "match": 78,
+      "description": "TCS is seeking talented developers to work on international enterprise projects. You will participate in development, client discussions, testing, and continuous maintenance of core software systems.",
+      "skills": "Java, Spring Boot, SQL, Git, Linux",
+      "reqs": [
+        "Bachelor of Engineering / Bachelor of Technology / MCA degree.",
+        "Fundamental knowledge of Java programming and database principles.",
+        "Familiarity with standard software lifecycle stages (SDLC) and version control tools like Git.",
+        "Good analytical, written, and presentation skills."
+      ],
+      "applyUrl": "https://www.tcs.com/careers"
+    },
+    {
+      "id": "job_local_2",
+      "title": "Full Stack Engineer",
+      "company": "Razorpay",
+      "logo": "💳",
+      "category": "Software Engineering",
+      "type": "Full-time",
+      "location": "Bengaluru, Karnataka",
+      "salary": "₹12,00,000 - ₹18,00,000 / year",
+      "match": 88,
+      "description": "At Razorpay, we're building the future of payments. You will be responsible for engineering secure, robust payment workflows on our Node.js and React stack, handling high throughput transactions daily.",
+      "skills": "Node.js, Express, MongoDB, React, Payment Gateways",
+      "reqs": [
+        "1.5+ years of professional backend or full-stack software development experience.",
+        "Solid knowledge of Node.js, asynchronous programming paradigms, and database designs (MongoDB/MySQL).",
+        "Experience implementing RESTful API structures and securing endpoints.",
+        "Excellent communication skills and eagerness to collaborate in a high-growth environment."
+      ],
+      "applyUrl": "https://razorpay.com/jobs/"
+    },
+    {
+      "id": "job_local_1",
+      "title": "Software Engineer (Frontend)",
+      "company": "Google India",
+      "logo": "🌐",
+      "category": "Software Engineering",
+      "type": "Full-time",
+      "location": "Bengaluru, Karnataka",
+      "salary": "₹25,00,000 - ₹35,00,000 / year",
+      "match": 94,
+      "description": "Join Google India's Core Engineering team in building scalable frontend solutions for millions of active users. You will work on designing, developing, and deploying highly performant, accessible React applications.",
+      "skills": "React, JavaScript, CSS, HTML5, Web Performance",
+      "reqs": [
+        "Bachelor's degree in Computer Science, a related technical field, or equivalent practical experience.",
+        "2+ years of experience with software development in JavaScript/TypeScript.",
+        "Strong experience building single page applications (SPAs) with React/Redux.",
+        "Familiarity with modern web standards, accessibility requirements (WCAG), and responsive UI layouts."
+      ],
+      "applyUrl": "https://careers.google.com/"
+    }
+  ],
   "applications": [],
   "messages": []
 }
