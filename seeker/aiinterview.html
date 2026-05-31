@@ -7,6 +7,7 @@
   <title>AI Interview Simulator - JobSarthi Seeker</title>
   <meta name="description" content="Take an interactive, real-time AI mock interview with advanced proctoring and custom configurations.">
   <link rel="stylesheet" href="../css/main.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   
   <style>
     /* Globally hide header on this page */
@@ -980,13 +981,21 @@
       <div class="interview-card">
         
         <!-- Question Box -->
-        <div id="questionBox" class="glass-panel question-box">
-          <div class="question-tag">
-            <span id="diffTag" class="badge" style="background: rgba(99, 102, 241, 0.1); color: var(--accent-tertiary); font-weight: 700;">Intermediate</span>
-            <span>Question <span id="questionNum">1</span></span>
+        <div id="questionBox" class="glass-panel question-box" style="display: flex; flex-direction: row; align-items: center; gap: 25px; padding: 20px 25px;">
+          <!-- 3D Avatar Canvas Container -->
+          <div id="interviewerAvatarContainer" style="width: 110px; height: 110px; flex-shrink: 0; position: relative; border-radius: 50%; overflow: hidden; background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.6);">
+            <canvas id="avatarCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+            <div id="avatarStatusDot" style="position: absolute; bottom: 8px; right: 8px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #18181b; box-shadow: 0 0 8px #3b82f6; transition: background-color 0.3s, box-shadow 0.3s;"></div>
           </div>
-          <div id="questionDisplay" class="question-text">
-            Initializing Sarthi AI Mock Interview. Please wait...
+          <!-- Question Details -->
+          <div style="flex: 1;">
+            <div class="question-tag">
+              <span id="diffTag" class="badge" style="background: rgba(99, 102, 241, 0.1); color: var(--accent-tertiary); font-weight: 700;">Intermediate</span>
+              <span>Question <span id="questionNum">1</span></span>
+            </div>
+            <div id="questionDisplay" class="question-text">
+              Initializing Sarthi AI Mock Interview. Please wait...
+            </div>
           </div>
         </div>
 
@@ -1103,6 +1112,13 @@
     let audioContext = null;
     let audioAnalyser = null;
     let audioSource = null;
+
+    // Three.js Avatar Globals
+    let avatarRenderer, avatarScene, avatarCamera, avatarMesh, avatarClock;
+    let originalAvatarGeometryPositions;
+    let avatarState = "idle";
+    let avatarLights = [];
+    let silenceCount = 0;
     
     // Customization config
     let selectedRole = "Full Stack Developer";
@@ -1318,6 +1334,7 @@
       initSpeechRecognition();
       initGazeMonitoring();
       initTabMonitoring();
+      initAvatarThreeJS();
 
       updateControlIcons();
 
@@ -1480,6 +1497,8 @@
         return;
       }
 
+      setAvatarState('speaking');
+
       window.speechSynthesis.cancel(); // Terminate existing speakers
       const utterance = new SpeechSynthesisUtterance(text);
       
@@ -1510,8 +1529,10 @@
       document.getElementById("answerTextarea").value = "";
       
       if (timerLimit > 0) {
+        setAvatarState('thinking');
         startThinkTimer();
       } else {
+        setAvatarState('listening');
         startListeningMode();
       }
     }
@@ -1565,6 +1586,8 @@
       if (responseTimer) clearInterval(responseTimer);
       isThinkTimeActive = false;
       
+      setAvatarState('listening');
+
       // Hide timer HUD and update button displays
       document.getElementById("timerContainer").style.display = "none";
       document.getElementById("startAnsweringBtn").style.display = "none";
@@ -1737,6 +1760,22 @@
             sum += dataArray[i];
           }
           const averageVolume = sum / dataArray.length;
+          window.lastMicVolume = averageVolume;
+
+          // Silence check when in listening state
+          if (avatarState === 'listening') {
+            if (averageVolume < 6) {
+              silenceCount++;
+              if (silenceCount > 300) { // ~5-6 seconds
+                silenceCount = 0;
+                playSilenceAlert();
+              }
+            } else {
+              silenceCount = 0;
+            }
+          } else {
+            silenceCount = 0;
+          }
           
           // Update user speaking voice border width
           let voiceWidth = 0;
@@ -2022,6 +2061,180 @@
           auditBox.appendChild(item);
         });
       }
+    }
+
+    // --- 3D INTERVIEWER AVATAR (THREE.JS) ---
+    function initAvatarThreeJS() {
+      const container = document.getElementById("interviewerAvatarContainer");
+      const canvas = document.getElementById("avatarCanvas");
+      if (!canvas || !container) return;
+
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      // Scene setup
+      avatarScene = new THREE.Scene();
+      
+      // Camera
+      avatarCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+      avatarCamera.position.z = 4.2;
+
+      // Renderer
+      avatarRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      avatarRenderer.setSize(width, height);
+      avatarRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Geometry & Material (Flat shaded crystalline facet look)
+      const geometry = new THREE.IcosahedronGeometry(1.2, 4);
+      originalAvatarGeometryPositions = geometry.attributes.position.clone();
+
+      const material = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        roughness: 0.15,
+        metalness: 0.9,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
+        transmission: 0.3,
+        thickness: 0.5,
+        flatShading: true
+      });
+
+      avatarMesh = new THREE.Mesh(geometry, material);
+      avatarScene.add(avatarMesh);
+
+      // Lights (3 Rotating Colorful Lights inside/around the mesh)
+      const ambientLight = new THREE.AmbientLight(0x222222);
+      avatarScene.add(ambientLight);
+
+      const lightColors = [0x06b6d4, 0xec4899, 0xf59e0b]; // Cyan, Pink, Orange
+      avatarLights = lightColors.map(color => {
+        const pLight = new THREE.PointLight(color, 2.5, 10);
+        avatarScene.add(pLight);
+        return pLight;
+      });
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+      dirLight.position.set(5, 5, 5);
+      avatarScene.add(dirLight);
+
+      avatarClock = new THREE.Clock();
+
+      function animateAvatar() {
+        requestAnimationFrame(animateAvatar);
+        if (isInterviewPaused) return;
+
+        const time = avatarClock.getElapsedTime();
+
+        // Rotate lights in orbits
+        avatarLights[0].position.set(
+          Math.sin(time * 1.2) * 2.5,
+          Math.cos(time * 0.8) * 2.5,
+          Math.sin(time * 1.5) * 1.5
+        );
+        avatarLights[1].position.set(
+          Math.cos(time * 0.9) * 2.5,
+          Math.sin(time * 1.1) * 2.5,
+          Math.cos(time * 0.7) * 1.5
+        );
+        avatarLights[2].position.set(
+          Math.sin(time * 0.7 + 2) * 2.5,
+          Math.cos(time * 1.3) * 2.5,
+          Math.sin(time * 1.0) * 2.5
+        );
+
+        avatarMesh.rotation.y = time * 0.15;
+        avatarMesh.rotation.x = time * 0.08;
+
+        let speed = 1.2;
+        let amplitude = 0.06;
+
+        if (avatarState === 'speaking') {
+          speed = 4.5;
+          amplitude = 0.28;
+        } else if (avatarState === 'listening') {
+          const micVal = window.lastMicVolume || 0;
+          speed = 2.5;
+          amplitude = 0.05 + micVal * 0.035;
+        } else if (avatarState === 'thinking') {
+          speed = 6.0;
+          amplitude = 0.18;
+        }
+
+        // Deform vertices along normal vectors
+        const positionAttribute = geometry.attributes.position;
+        const tempPos = new THREE.Vector3();
+        const originalPos = new THREE.Vector3();
+
+        for (let i = 0; i < positionAttribute.count; i++) {
+          originalPos.fromBufferAttribute(originalAvatarGeometryPositions, i);
+          
+          const wave = Math.sin(originalPos.x * 2.8 + time * speed) * 
+                       Math.cos(originalPos.y * 2.8 + time * speed) * 
+                       Math.sin(originalPos.z * 2.8 + time * speed);
+
+          const scale = 1.0 + wave * amplitude;
+          tempPos.copy(originalPos).multiplyScalar(scale);
+
+          positionAttribute.setXYZ(i, tempPos.x, tempPos.y, tempPos.z);
+        }
+
+        positionAttribute.needsUpdate = true;
+        geometry.computeVertexNormals();
+
+        avatarRenderer.render(avatarScene, avatarCamera);
+      }
+
+      animateAvatar();
+
+      window.addEventListener('resize', () => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        avatarCamera.aspect = w / h;
+        avatarCamera.updateProjectionMatrix();
+        avatarRenderer.setSize(w, h);
+      });
+    }
+
+    function setAvatarState(state) {
+      avatarState = state;
+      const dot = document.getElementById("avatarStatusDot");
+      if (dot) {
+        if (state === 'speaking') {
+          dot.style.backgroundColor = '#ec4899'; // Pink
+          dot.style.boxShadow = '0 0 10px #ec4899';
+        } else if (state === 'listening') {
+          dot.style.backgroundColor = '#10b981'; // Green
+          dot.style.boxShadow = '0 0 10px #10b981';
+        } else if (state === 'thinking') {
+          dot.style.backgroundColor = '#f59e0b'; // Orange
+          dot.style.boxShadow = '0 0 10px #f59e0b';
+        } else {
+          dot.style.backgroundColor = '#3b82f6'; // Blue
+          dot.style.boxShadow = '0 0 10px #3b82f6';
+        }
+      }
+    }
+
+    function playSilenceAlert() {
+      if (isAiSpeaking || isInterviewPaused || isThinkTimeActive) return;
+      
+      // Temporary stop recognition while speaking
+      if (speechRecognition) {
+        try { speechRecognition.stop(); } catch(e){}
+      }
+      
+      isAiSpeaking = true;
+      setAvatarState('speaking');
+      
+      const utterance = new SpeechSynthesisUtterance("I can't hear you. Please speak clearly or type your response.");
+      utterance.onend = () => {
+        isAiSpeaking = false;
+        setAvatarState('listening');
+        if (speechRecognition && !isInterviewPaused) {
+          try { speechRecognition.start(); } catch(e){}
+        }
+      };
+      window.speechSynthesis.speak(utterance);
     }
   </script>
 </body>
