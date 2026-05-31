@@ -122,6 +122,9 @@
       .camera-container {
         height: 200px;
       }
+      .interviewer-avatar-panel {
+        height: 200px;
+      }
       .controls-row {
         width: 100% !important;
         max-width: 360px;
@@ -994,6 +997,24 @@
             </svg>
           </div>
         </div>
+
+        <!-- Proctor Panel -->
+        <div class="proctor-panel">
+          <div class="proctor-header">
+            <span>Proctor AI Shield</span>
+            <span class="suspicion-score-text">
+              Suspicion score: <span id="suspicionVal" class="suspicion-score-val">0</span>/100
+            </span>
+          </div>
+          <div class="proctor-bar-bg">
+            <div id="proctorBarFill" class="proctor-bar-fill"></div>
+          </div>
+
+          <!-- Proctor Warning Logs -->
+          <div id="proctorLogs" class="proctor-logs">
+            <div class="proctor-log-item">[System] Proctor initialized. Gaze and tab tracking active.</div>
+          </div>
+        </div>
         
         <!-- Camera Stream Box -->
         <div class="camera-container">
@@ -1025,24 +1046,6 @@
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
           </button>
           <button id="exitBtn" class="exit-pill-btn" title="Exit Interview">Exit</button>
-        </div>
-
-        <!-- Proctor Panel -->
-        <div class="proctor-panel">
-          <div class="proctor-header">
-            <span>Proctor AI Shield</span>
-            <span class="suspicion-score-text">
-              Suspicion score: <span id="suspicionVal" class="suspicion-score-val">0</span>/100
-            </span>
-          </div>
-          <div class="proctor-bar-bg">
-            <div id="proctorBarFill" class="proctor-bar-fill"></div>
-          </div>
-
-          <!-- Proctor Warning Logs -->
-          <div id="proctorLogs" class="proctor-logs">
-            <div class="proctor-log-item">[System] Proctor initialized. Gaze and tab tracking active.</div>
-          </div>
         </div>
       </div>
 
