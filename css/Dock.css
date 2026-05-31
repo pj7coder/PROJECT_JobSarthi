@@ -12,8 +12,8 @@
   align-items: center;
   justify-content: center;
   padding: 4px 8px;
-  gap: 12px;
-  height: 46px;
+  gap: 22px; /* Increased gap to prevent overlaps */
+  height: 100%;
   box-sizing: border-box;
 }
 
@@ -26,42 +26,51 @@ body.light-theme .dock-panel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-full);
-  width: 54px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  width: 46px; /* Pill width compressed */
+  height: 32px; /* Pill height compressed */
   cursor: pointer;
   outline: none;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  will-change: width, height;
 }
 
-body.light-theme .dock-item {
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+.dock-item-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px; /* Perfect pill shape (height / 2) */
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 0;
+  pointer-events: none;
+  transition: background-color 0.25s ease, 
+              border-color 0.25s ease;
+  will-change: transform;
 }
 
-.dock-item:hover {
+body.light-theme .dock-item-bg {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.dock-item:hover .dock-item-bg {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.15);
 }
 
-body.light-theme .dock-item:hover {
+body.light-theme .dock-item:hover .dock-item-bg {
   background: rgba(0, 0, 0, 0.06);
   border-color: rgba(0, 0, 0, 0.1);
 }
 
-.dock-item.active {
+.dock-item.active .dock-item-bg {
   background: rgba(255, 255, 255, 0.12) !important;
   border-color: var(--accent-tertiary) !important;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.35);
 }
 
-body.light-theme .dock-item.active {
+body.light-theme .dock-item.active .dock-item-bg {
   background: rgba(0, 0, 0, 0.08) !important;
   border-color: var(--accent-secondary) !important;
-  box-shadow: 0 0 8px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
 }
 
 .dock-icon {
@@ -70,45 +79,62 @@ body.light-theme .dock-item.active {
   justify-content: center;
   width: 18px;
   height: 18px;
+  position: relative;
+  z-index: 1;
   pointer-events: none;
+  will-change: transform;
 }
 
 .dock-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 100%;
+  height: 100%;
   stroke: var(--text-muted);
   fill: none;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: stroke 0.2s, transform 0.2s;
+  transition: stroke 0.2s ease;
 }
 
 .dock-item:hover .dock-icon svg {
   stroke: var(--text-main);
-  transform: scale(1.1);
 }
 
 .dock-item.active .dock-icon svg {
   stroke: var(--text-main);
 }
 
-/* Dock item label style inside the pill */
-.dock-name {
-  font-size: 0.71rem;
+/* Tooltip expanding downward */
+.dock-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  background-color: rgba(9, 9, 11, 0.95);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: var(--text-muted);
-  margin-left: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: color 0.2s ease;
+  opacity: 0;
   pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 100;
 }
 
-.dock-item:hover .dock-name,
-.dock-item.active .dock-name {
-  color: var(--text-main);
+body.light-theme .dock-tooltip {
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #09090b;
+}
+
+.dock-item:hover .dock-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /* Unique Action Buttons Micro-Animations */
@@ -165,3 +191,81 @@ body.light-theme .dock-item.active {
   padding: 8px 24px !important;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
+
+/* Custom Text-based Dock Pills */
+.dock-item.text-dock-item {
+  width: auto !important;
+  min-width: 54px;
+  padding: 0 12px !important;
+}
+
+.dock-icon.text-label {
+  width: auto !important;
+  height: auto !important;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dock-item.text-dock-item:hover .dock-icon.text-label {
+  color: var(--text-main);
+}
+
+.dock-item.text-dock-item.active .dock-icon.text-label {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+/* Custom Both (Icon + Text) Dock Pills */
+.dock-item.both-dock-item {
+  width: auto !important;
+  min-width: 72px;
+  padding: 0 12px !important;
+}
+
+.dock-icon.both-label {
+  width: auto !important;
+  height: auto !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dock-icon.both-label svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-muted);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.2s ease;
+}
+
+.dock-item.both-dock-item:hover .dock-icon.both-label {
+  color: var(--text-main);
+}
+
+.dock-item.both-dock-item:hover .dock-icon.both-label svg {
+  stroke: var(--text-main);
+}
+
+.dock-item.both-dock-item.active .dock-icon.both-label {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.dock-item.both-dock-item.active .dock-icon.both-label svg {
+  stroke: var(--text-main);
+}
+
+

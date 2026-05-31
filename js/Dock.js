@@ -23,41 +23,88 @@ class HeaderDock {
   constructor(navElement, options = {}) {
     if (!navElement) return;
     this.nav = navElement;
-    this.baseWidth = options.baseWidth || 100;
-    this.baseHeight = options.baseHeight || 32;
-    this.magnifiedWidth = options.magnifiedWidth || 125;
-    this.magnifiedHeight = options.magnifiedHeight || 36;
-    this.distance = options.distance || 120;
+    this.baseWidth = options.baseWidth || 40;
+    this.baseHeight = options.baseHeight || 40;
+    this.magnifiedWidth = options.magnifiedWidth || 50; // Compressed from 60
+    this.magnifiedHeight = options.magnifiedHeight || 50; // Compressed from 60
+    this.distance = options.distance || 85;
     this.active = false;
+    
+    this.originalNavHTML = null;
+    this.originalClassName = null;
     
     this.transformNav();
   }
   
   transformNav() {
-    // 1. Identify container structures
+    // 1. Save or restore original nav structures
+    if (!this.originalNavHTML) {
+      this.originalNavHTML = this.nav.innerHTML;
+      this.originalClassName = this.nav.className;
+    } else {
+      // Revert to original template structure to perform a clean transformation
+      this.nav.innerHTML = this.originalNavHTML;
+      this.nav.className = this.originalClassName;
+    }
+
     const navLinksList = this.nav.querySelector('.nav-links');
     if (!navLinksList) return;
     
     // Find all anchors inside list items
     const anchors = Array.from(navLinksList.querySelectorAll('a.nav-link'));
     if (anchors.length === 0) return;
+
+    // Apply active class based on current URL path
+    const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+    anchors.forEach(a => {
+      const href = a.getAttribute('href');
+      if (href && href === currentPath) {
+        a.classList.add('active');
+      }
+    });
     
     // Create new pill-shape panel
     const panel = document.createElement('div');
     panel.className = 'dock-panel';
     
+    const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') !== 'false';
+    const navStyle = isAdvancedUI ? (localStorage.getItem('header_navigation_style') || 'text') : 'text';
+    
     // Map original anchors and update contents in place to preserve listeners
     anchors.forEach(a => {
-      const labelText = a.textContent.trim();
-      const key = labelText.toLowerCase();
+      const labelText = a.textContent.trim() || a.getAttribute('data-label') || '';
+      if (!a.getAttribute('data-label')) {
+        a.setAttribute('data-label', labelText);
+      }
+      const finalLabel = a.getAttribute('data-label');
+      const key = finalLabel.toLowerCase();
       const iconSvg = DOCK_ICON_MAP[key] || `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
       
-      // Update element layout
-      a.className = a.classList.contains('active') ? 'dock-item active' : 'dock-item';
-      a.innerHTML = `
-        <span class="dock-icon">${iconSvg}</span>
-        <span class="dock-name">${labelText}</span>
-      `;
+      if (navStyle === 'icon') {
+        a.className = a.classList.contains('active') ? 'dock-item active' : 'dock-item';
+        a.innerHTML = `
+          <span class="dock-item-bg"></span>
+          <span class="dock-icon">${iconSvg}</span>
+          <span class="dock-tooltip">${finalLabel}</span>
+        `;
+      } else if (navStyle === 'both') {
+        // Both style: Icon + Text
+        a.className = a.classList.contains('active') ? 'dock-item active both-dock-item' : 'dock-item both-dock-item';
+        a.innerHTML = `
+          <span class="dock-item-bg"></span>
+          <span class="dock-icon both-label">
+            ${iconSvg}
+            <span>${finalLabel}</span>
+          </span>
+        `;
+      } else {
+        // Text style pill nav
+        a.className = a.classList.contains('active') ? 'dock-item active text-dock-item' : 'dock-item text-dock-item';
+        a.innerHTML = `
+          <span class="dock-item-bg"></span>
+          <span class="dock-icon text-label">${finalLabel}</span>
+        `;
+      }
       
       panel.appendChild(a);
     });
@@ -75,36 +122,75 @@ class HeaderDock {
   }
   
   bindInteractions() {
+    this.destroy(); // Unbind any prior listeners before re-binding
+    
     this.boundOnMouseMove = this.onMouseMove.bind(this);
     this.boundOnMouseLeave = this.onMouseLeave.bind(this);
+    this.boundCache = () => this.cachePositions();
     
     this.panel.addEventListener('mousemove', this.boundOnMouseMove, { passive: true });
     this.panel.addEventListener('mouseleave', this.boundOnMouseLeave, { passive: true });
+    this.panel.addEventListener('mouseenter', this.boundCache, { passive: true });
+    window.addEventListener('resize', this.boundCache, { passive: true });
     
+    this.cachePositions();
     this.resetSizes();
     this.active = true;
   }
   
+  cachePositions() {
+    this.itemPositions = this.items.map(item => {
+      const rect = item.getBoundingClientRect();
+      return {
+        element: item,
+        centerX: rect.left + rect.width / 2
+      };
+    });
+  }
+  
   onMouseMove(e) {
+    if (!this.itemPositions) return;
+    
+    // Disable dock physics / magnification if Dynamic Header (or Advanced UI) is disabled
+    const isHeaderEnabled = localStorage.getItem('advanced_ui_enabled') !== 'false' && localStorage.getItem('dynamic_header_enabled') !== 'false';
+    if (!isHeaderEnabled) {
+      this.resetSizes();
+      return;
+    }
+    
     const mouseX = e.clientX;
     
-    this.items.forEach(item => {
-      const rect = item.getBoundingClientRect();
-      const itemCenterX = rect.left + rect.width / 2;
-      const dist = Math.abs(mouseX - itemCenterX);
+    this.itemPositions.forEach(pos => {
+      const dist = Math.abs(mouseX - pos.centerX);
+      const item = pos.element;
+      const bg = item.querySelector('.dock-item-bg');
+      const icon = item.querySelector('.dock-icon');
+      
+      if (!bg || !icon) return;
       
       if (dist < this.distance) {
-        const factor = 1 - (dist / this.distance); // 0 to 1
-        const smoothFactor = Math.sin(factor * Math.PI / 2); // Cosine easing
+        const factor = 1 - (dist / this.distance);
+        const smoothFactor = Math.sin(factor * Math.PI / 2);
         
-        const width = this.baseWidth + (this.magnifiedWidth - this.baseWidth) * smoothFactor;
-        const height = this.baseHeight + (this.magnifiedHeight - this.baseHeight) * smoothFactor;
+        const targetWidth = this.baseWidth + (this.magnifiedWidth - this.baseWidth) * smoothFactor;
+        const targetHeight = this.baseHeight + (this.magnifiedHeight - this.baseHeight) * smoothFactor;
         
-        item.style.width = `${width}px`;
-        item.style.height = `${height}px`;
+        const scaleX = targetWidth / this.baseWidth;
+        const scaleY = targetHeight / this.baseHeight;
+        const translateY = 10 * smoothFactor;
+        
+        // Dynamically compute border-radius: goes from 16px (pill) to 10px (rounded square)
+        const borderRadius = 16 - (16 - 10) * smoothFactor;
+        
+        bg.style.transform = `scale(${scaleX}, ${scaleY}) translateY(${translateY}px)`;
+        bg.style.borderRadius = `${borderRadius}px`;
+        icon.style.transform = `scale(${1 + 0.12 * smoothFactor}) translateY(${translateY}px)`;
+        item.style.zIndex = Math.round(10 + smoothFactor * 10);
       } else {
-        item.style.width = `${this.baseWidth}px`;
-        item.style.height = `${this.baseHeight}px`;
+        bg.style.transform = 'scale(1, 1) translateY(0)';
+        bg.style.borderRadius = '16px';
+        icon.style.transform = 'scale(1) translateY(0)';
+        item.style.zIndex = '1';
       }
     });
   }
@@ -115,21 +201,36 @@ class HeaderDock {
   
   resetSizes() {
     this.items.forEach(item => {
-      item.style.width = `${this.baseWidth}px`;
-      item.style.height = `${this.baseHeight}px`;
-      item.style.transition = 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1), height 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+      const bg = item.querySelector('.dock-item-bg');
+      const icon = item.querySelector('.dock-icon');
+      item.style.zIndex = '1';
       
-      // Remove quick transition after returning to base size
+      if (bg) {
+        bg.style.transform = 'scale(1, 1) translateY(0)';
+        bg.style.borderRadius = '16px';
+        bg.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+      }
+      if (icon) {
+        icon.style.transform = 'scale(1) translateY(0)';
+        icon.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+      }
+      
       setTimeout(() => {
-        item.style.transition = '';
+        if (bg) bg.style.transition = '';
+        if (icon) icon.style.transition = '';
       }, 250);
     });
   }
   
   destroy() {
     if (!this.active) return;
-    this.panel.removeEventListener('mousemove', this.boundOnMouseMove);
-    this.panel.removeEventListener('mouseleave', this.boundOnMouseLeave);
+    if (this.panel) {
+      this.panel.removeEventListener('mousemove', this.boundOnMouseMove);
+      this.panel.removeEventListener('mouseleave', this.boundOnMouseLeave);
+      this.panel.removeEventListener('mouseenter', this.boundCache);
+    }
+    window.removeEventListener('resize', this.boundCache);
+    this.active = false;
   }
 }
 
@@ -137,7 +238,7 @@ class HeaderDock {
 document.addEventListener('headerLoaded', (e) => {
   const nav = document.querySelector('.header nav');
   if (nav) {
-    new HeaderDock(nav);
+    window.headerDockInstance = new HeaderDock(nav);
   }
 });
 
@@ -145,6 +246,6 @@ document.addEventListener('headerLoaded', (e) => {
 (function() {
   const nav = document.querySelector('.header nav');
   if (nav) {
-    new HeaderDock(nav);
+    window.headerDockInstance = new HeaderDock(nav);
   }
 })();

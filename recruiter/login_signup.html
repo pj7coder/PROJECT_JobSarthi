@@ -34,8 +34,20 @@
       max-width: 384px; /* w-full max-w-sm */
       display: flex;
       flex-direction: column;
-      gap: 24px; /* gap-6 */
+      gap: 16px; /* reduced from 24px */
       position: relative;
+    }
+
+    .auth-bg-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 550px;
+      height: 550px;
+      background: radial-gradient(circle, rgba(217, 70, 239, 0.16) 0%, rgba(162, 28, 175, 0.06) 45%, rgba(0,0,0,0) 70%);
+      z-index: -1;
+      pointer-events: none;
     }
 
     .back-btn {
@@ -91,17 +103,45 @@
       font-weight: 600;
     }
 
-    /* Tabs List Pill Row */
     .tabs-list {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      background-color: var(--bg-secondary);
+      display: flex;
+      background-color: rgba(24, 24, 27, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 8px;
       padding: 4px;
       width: 100%;
+      position: relative;
+    }
+
+    body.light-theme .tabs-list {
+      background-color: rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .tabs-slider {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 4px;
+      width: calc(50% - 4px);
+      background-color: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body.light-theme .tabs-slider {
+      background-color: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 
     .tabs-trigger {
+      flex: 1;
+      text-align: center;
       background: transparent;
       border: none;
       border-radius: 6px;
@@ -111,43 +151,80 @@
       font-weight: 500;
       color: var(--text-muted);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: color 0.2s ease;
       outline: none !important;
+      position: relative;
+      z-index: 1;
     }
 
     .tabs-trigger.active {
-      background-color: var(--bg-primary);
       color: var(--text-main);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-    }
-
-    body.light-theme .tabs-trigger.active {
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
     /* Card Styling */
     .card {
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      background-color: var(--bg-primary);
-      box-shadow: none; /* shadow-none */
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      background: rgba(24, 24, 27, 0.45);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 
+                  inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+      width: 100%;
+      position: relative;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.04) 0%,
+        rgba(255, 255, 255, 0.01) 50%,
+        transparent 100%
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    body.light-theme .card {
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06),
+                  inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .tabs-contents {
+      padding: 0;
       overflow: hidden;
       width: 100%;
     }
 
-    .tabs-contents {
-      padding: 24px;
+    .forms-slider {
+      display: flex;
+      width: 200%;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .tabs-content {
-      display: none;
+      width: 50%;
+      flex-shrink: 0;
+      display: flex;
       flex-direction: column;
-      gap: 24px; /* gap-6 */
+      justify-content: center;
+      gap: 16px;
+      padding: 20px;
+      opacity: 0.35;
+      transition: opacity 0.35s ease;
     }
 
     .tabs-content.active {
-      display: flex;
-      animation: tabFadeIn 0.2s ease-out;
+      opacity: 1;
     }
 
     @keyframes tabFadeIn {
@@ -241,23 +318,24 @@
     .btn-primary-solid {
       height: 36px;
       width: 100%;
-      background-color: var(--text-main); /* Inverted color */
-      color: var(--bg-primary);
+      background: linear-gradient(135deg, #a21caf, #d946ef);
+      color: #ffffff;
       font-family: var(--font-sans);
       font-size: 0.875rem;
-      font-weight: 500;
+      font-weight: 600;
       border-radius: 6px;
       border: none;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background-color 0.2s ease, opacity 0.2s ease;
+      transition: opacity 0.2s ease;
       outline: none;
     }
 
     .btn-primary-solid:hover {
-      opacity: 0.9;
+      opacity: 0.95;
+      box-shadow: 0 4px 12px rgba(217, 70, 239, 0.35);
     }
 
     .btn-primary-solid:disabled {
@@ -275,34 +353,35 @@
     <div class="liquid-blob blob-3"></div>
   </div>
 
-  <div class="bg-glow-1" style="background: radial-gradient(circle, rgba(217, 70, 239, 0.15) 0%, rgba(0,0,0,0) 70%);">
-  </div>
+  <div class="auth-bg-glow"></div>
 
   <div class="auth-container">
-    <a href="../index.html" class="back-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <line x1="19" y1="12" x2="5" y2="12"></line>
-        <polyline points="12 19 5 12 12 5"></polyline>
-      </svg>
-      Back to Portal Choice
-    </a>
-
-    <div class="logo-container">
-      <div class="logo-icon">S</div>
-      <span class="logo-text">JobSarthi</span>
-      <span class="logo-badge">Recruiter</span>
+    <div class="logo-container" style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 4px;">
+      <a href="../index.html" class="back-btn" style="margin-bottom: 0; align-self: center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Back to Portal
+      </a>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="logo-text">JobSarthi</span>
+        <span class="logo-badge">Recruiter</span>
+      </div>
     </div>
 
     <!-- Tabs List Pill Container -->
     <div class="tabs-list">
-      <button class="tabs-trigger active" onclick="switchTab('login')">Sign In</button>
-      <button class="tabs-trigger" onclick="switchTab('signup')">Sign Up</button>
+      <div class="tabs-slider"></div>
+      <button class="tabs-trigger active" onclick="switchTab('login', this)">Sign In</button>
+      <button class="tabs-trigger" onclick="switchTab('signup', this)">Sign Up</button>
     </div>
 
     <!-- Main Card containing forms -->
     <div class="card">
       <div class="tabs-contents">
+        <div class="forms-slider">
         
         <!-- Login Form Panel -->
         <div id="loginForm" class="tabs-content active">
@@ -356,37 +435,36 @@
             </div>
           </form>
         </div>
-
       </div>
     </div>
   </div>
 
+  <script src="../js/header.js"></script>
   <script>
-    function switchTab(tab) {
+    function switchTab(tab, btn) {
       const tabs = document.querySelectorAll('.tabs-trigger');
+      tabs.forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+
+      const slider = document.querySelector('.tabs-slider');
+      const formsSlider = document.querySelector('.forms-slider');
       const loginForm = document.getElementById('loginForm');
       const signupForm = document.getElementById('signupForm');
 
-      tabs.forEach(t => t.classList.remove('active'));
-
       if (tab === 'login') {
-        tabs[0].classList.add('active');
+        slider.style.transform = 'translateX(0)';
+        formsSlider.style.transform = 'translateX(0)';
         loginForm.classList.add('active');
         signupForm.classList.remove('active');
       } else {
-        tabs[1].classList.add('active');
+        slider.style.transform = 'translateX(100%)';
+        formsSlider.style.transform = 'translateX(-50%)';
         signupForm.classList.add('active');
         loginForm.classList.remove('active');
       }
     }
 
-    const getApiBaseUrl = () => {
-      if (window.location.hostname.includes('vercel') || window.location.protocol === 'file:') {
-        return 'https://jobsarthi-backend.onrender.com';
-      }
-      return '';
-    };
-    const API_BASE_URL = getApiBaseUrl();
+    const API_BASE_URL = window.API_BASE_URL || '';
 
     async function handleAuth(event, type) {
       event.preventDefault();

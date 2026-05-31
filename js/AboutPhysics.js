@@ -125,6 +125,12 @@
     const container = document.getElementById('aboutContent');
     if (!container) return;
 
+    const isHeaderEnabled = localStorage.getItem('dynamic_header_enabled') !== 'false' && localStorage.getItem('advanced_ui_enabled') !== 'false';
+    const isFallingTextEnabled = localStorage.getItem('falling_text_enabled') !== 'false';
+    if (!isHeaderEnabled || !isFallingTextEnabled) {
+      return;
+    }
+
     // Reset state and capture original HTML if not done already
     window.resetAboutPhysics();
     if (!originalAboutHTML) {
@@ -135,7 +141,7 @@
     const warningLabel = document.createElement('div');
     warningLabel.className = 'about-warning-label';
     warningLabel.id = 'aboutWarningLabel';
-    warningLabel.innerHTML = '⚠️ Do not shake cursor very fast';
+    warningLabel.innerHTML = '⚠️ Do not shake the cursor';
     container.insertBefore(warningLabel, container.firstChild);
 
     // Setup mouse shake tracking inside the about box using distance comparison

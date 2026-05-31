@@ -27,6 +27,9 @@
   if (localStorage.getItem('splash_cursor_density') !== null) {
     window.SplashCursorConfig.DENSITY_DISSIPATION = parseFloat(localStorage.getItem('splash_cursor_density'));
   }
+  if (localStorage.getItem('advanced_ui_enabled') === 'false') {
+    window.SplashCursorConfig.ENABLED = false;
+  }
 
   let canvas = null;
   let animationFrameId = null;
@@ -1095,15 +1098,17 @@
     pressure = null;
   };
 
-  // Controller APIs called from Settings UI
   window.toggleSplashCursor = function (enabled) {
-    window.SplashCursorConfig.ENABLED = enabled;
+    const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') !== 'false';
+    const actualEnabled = enabled && isAdvancedUI;
+
+    window.SplashCursorConfig.ENABLED = actualEnabled;
     localStorage.setItem('splash_cursor_enabled', enabled ? 'true' : 'false');
     
     // Toggle slider display visibility for all header dropdown panels
     const densityOptions = document.querySelectorAll('#splashDensityOption');
     densityOptions.forEach(opt => {
-      opt.style.display = enabled ? 'flex' : 'none';
+      opt.style.display = actualEnabled ? 'flex' : 'none';
     });
 
     // Synchronize all checkboxes on the page
@@ -1114,7 +1119,7 @@
       }
     });
 
-    if (enabled) {
+    if (actualEnabled) {
       window.initSplashCursor();
     } else {
       window.disableSplashCursor();
