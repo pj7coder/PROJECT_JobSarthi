@@ -224,7 +224,7 @@ window.headerSeekerHTML = `
             <div class="profile-avatar-circle" id="popupProfileInitials">C</div>
             <div class="profile-info-block">
               <h4 id="popupProfileName">Candidate</h4>
-              <p id="popupProfileEmail">candidate@jobsarthi.ai</p>
+              <p id="popupProfileEmail">user@jobsarthi.ai</p>
             </div>
           </div>
           <div class="dropdown-body">
@@ -351,7 +351,7 @@ window.headerRecruiterHTML = `
             <div class="profile-avatar-circle" id="popupProfileInitials">R</div>
             <div class="profile-info-block">
               <h4 id="popupProfileName">Recruiter</h4>
-              <p id="popupProfileEmail">recruiter@jobsarthi.ai</p>
+              <p id="popupProfileEmail">hr@jobsarthi.ai</p>
             </div>
           </div>
           <div class="dropdown-body">

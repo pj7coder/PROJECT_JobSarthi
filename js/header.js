@@ -110,11 +110,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // 5. Setup User Profile Name & Initials
       const userName = isRecruiter
-        ? (localStorage.getItem('recruiter_company') || 'Recruiter')
-        : (localStorage.getItem('seeker_name') || 'Candidate User');
+        ? (localStorage.getItem('recruiter_company') || 'Employer')
+        : (localStorage.getItem('seeker_name') || 'Candidate');
       const userEmail = isRecruiter
-        ? (localStorage.getItem('recruiter_email') || 'recruiter@jobsarthi.ai')
-        : (localStorage.getItem('seeker_email') || 'candidate@jobsarthi.ai');
+        ? (localStorage.getItem('recruiter_email') || 'hr@jobsarthi.ai')
+        : (localStorage.getItem('seeker_email') || 'user@jobsarthi.ai');
 
       const initial = userName.charAt(0).toUpperCase();
 

@@ -560,8 +560,13 @@
     async function applyToCurrentJob() {
       if (!currentSelectedJob) return;
       
-      const candidateName = localStorage.getItem('seeker_name') || 'Candidate User';
-      const candidateEmail = localStorage.getItem('seeker_email') || 'candidate@jobsarthi.ai';
+      const candidateName = localStorage.getItem('seeker_name') || 'Guest';
+      const candidateEmail = localStorage.getItem('seeker_email');
+      if (!candidateEmail) {
+        alert("Please log in to apply for this job.");
+        window.location.href = "login_signup.html";
+        return;
+      }
 
       try {
         const response = await fetch((window.API_BASE_URL || '') + `/api/jobs/${currentSelectedJob.id}/apply`, {

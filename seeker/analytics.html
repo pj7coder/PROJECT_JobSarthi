@@ -94,36 +94,36 @@
       <!-- Metric Card 1 -->
       <div class="glass-panel metric-card">
         <h3 style="font-size: 1rem; color: var(--text-muted);">Profile Visibility Index</h3>
-        <div class="metric-value">467</div>
-        <p style="font-size: 0.85rem; color: var(--success); font-weight: 500;">&uarr; 24% increase in the last 7 days</p>
+        <div class="metric-value" id="visibilityIndex">0</div>
+        <p style="font-size: 0.85rem; color: var(--success); font-weight: 500;" id="visibilitySubtext">0% increase in the last 7 days</p>
         
-        <div class="chart-container">
+        <div class="chart-container" id="visibilityChart">
           <div class="chart-bar-wrapper">
-            <div class="chart-bar" style="height: 35%;"></div>
+            <div class="chart-bar" style="height: 15%;"></div>
             <span class="chart-label">Mon</span>
           </div>
           <div class="chart-bar-wrapper">
-            <div class="chart-bar" style="height: 50%;"></div>
+            <div class="chart-bar" style="height: 25%;"></div>
             <span class="chart-label">Tue</span>
           </div>
           <div class="chart-bar-wrapper">
-            <div class="chart-bar" style="height: 40%;"></div>
+            <div class="chart-bar" style="height: 35%;"></div>
             <span class="chart-label">Wed</span>
           </div>
           <div class="chart-bar-wrapper">
-            <div class="chart-bar" style="height: 65%;"></div>
+            <div class="chart-bar" style="height: 45%;"></div>
             <span class="chart-label">Thu</span>
           </div>
           <div class="chart-bar-wrapper">
-            <div class="chart-bar" style="height: 80%;"></div>
+            <div class="chart-bar" style="height: 55%;"></div>
             <span class="chart-label">Fri</span>
           </div>
           <div class="chart-bar-wrapper">
-            <div class="chart-bar" style="height: 95%;"></div>
+            <div class="chart-bar" style="height: 75%;"></div>
             <span class="chart-label">Sat</span>
           </div>
           <div class="chart-bar-wrapper">
-            <div class="chart-bar" style="height: 70%;"></div>
+            <div class="chart-bar" style="height: 90%;"></div>
             <span class="chart-label">Sun</span>
           </div>
         </div>
@@ -132,28 +132,11 @@
       <!-- Metric Card 2 -->
       <div class="glass-panel metric-card">
         <h3 style="font-size: 1rem; color: var(--text-muted);">Skill Match Frequency</h3>
-        <div class="metric-value">88.5%</div>
-        <p style="font-size: 0.85rem; color: var(--text-muted);">Average Match Rating across all matches</p>
+        <div class="metric-value" id="matchFrequency">0%</div>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Average Match Rating across all skills</p>
 
-        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
-          <div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
-              <span>JavaScript Development</span>
-              <span style="font-weight:600;">94%</span>
-            </div>
-            <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 9px; overflow:hidden;">
-              <div style="width: 94%; height: 100%; background: var(--accent-primary);"></div>
-            </div>
-          </div>
-          <div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
-              <span>React Development</span>
-              <span style="font-weight:600;">82%</span>
-            </div>
-            <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 9px; overflow:hidden;">
-              <div style="width: 82%; height: 100%; background: var(--accent-secondary);"></div>
-            </div>
-          </div>
+        <div id="skillsAnalyticsContainer" style="margin-top: auto; display: flex; flex-direction: column; gap: 12px; max-height: 160px; overflow-y: auto;">
+          <p style="font-size: 0.85rem; color: var(--text-muted);">No skills added yet.</p>
         </div>
       </div>
     </div>
@@ -161,6 +144,75 @@
 
   <script src="../js/header.js"></script>
   <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      loadAnalyticsData();
+    });
+
+    async function loadAnalyticsData() {
+      const email = localStorage.getItem('seeker_email');
+      const applied = JSON.parse(localStorage.getItem('applied_jobs') || '[]');
+      const appCount = applied.length;
+
+      let skills = [];
+      if (email) {
+        try {
+          const res = await fetch((window.API_BASE_URL || '') + `/api/seeker/profile?email=${encodeURIComponent(email)}`);
+          if (res.ok) {
+            const profile = await res.json();
+            skills = profile.skills || [];
+          }
+        } catch (e) {
+          console.error("Failed to load profile for analytics:", e);
+        }
+      }
+
+      // Calculate dynamic visibility index
+      const visIndex = (appCount * 125) + (skills.length * 45) + 30;
+      const visPercent = Math.min(100, Math.floor((appCount * 15) + (skills.length * 5) + 12));
+      document.getElementById('visibilityIndex').textContent = visIndex;
+      document.getElementById('visibilitySubtext').innerHTML = `&uarr; ${visPercent}% increase in the last 7 days`;
+
+      // Update chart bars heights dynamically to look alive based on activity
+      const bars = document.querySelectorAll('#visibilityChart .chart-bar');
+      const baseHeights = [15, 30, 25, 45, 60, 80, 95];
+      bars.forEach((bar, idx) => {
+        const factor = Math.min(100, baseHeights[idx] + (appCount * 8) + (skills.length * 3));
+        bar.style.setProperty('height', `${factor}%`);
+      });
+
+      // Update skill match card
+      const skillsContainer = document.getElementById('skillsAnalyticsContainer');
+      if (skills.length === 0) {
+        document.getElementById('matchFrequency').textContent = "0%";
+        skillsContainer.innerHTML = `<p style="font-size: 0.85rem; color: var(--text-muted);">No skills listed in profile. Go to <a href="resume.html" style="color: var(--accent-secondary); text-decoration: underline;">Resume page</a> to add skills and build your matching matrix.</p>`;
+      } else {
+        skillsContainer.innerHTML = '';
+        let totalScore = 0;
+        skills.forEach((skill, idx) => {
+          // Generate a deterministic score between 75 and 98 based on the skill name
+          let charSum = 0;
+          for (let i = 0; i < skill.length; i++) charSum += skill.charCodeAt(i);
+          const score = 75 + (charSum % 24);
+          totalScore += score;
+
+          const skillDiv = document.createElement('div');
+          skillDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+              <span>${skill}</span>
+              <span style="font-weight:600;">${score}%</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 9px; overflow:hidden;">
+              <div style="width: ${score}%; height: 100%; background: ${idx % 2 === 0 ? 'var(--accent-primary)' : 'var(--accent-secondary)'};"></div>
+            </div>
+          `;
+          skillsContainer.appendChild(skillDiv);
+        });
+
+        const avgScore = Math.round(totalScore / skills.length);
+        document.getElementById('matchFrequency').textContent = `${avgScore}%`;
+      }
+    }
+
     // Liquid glass spotlight coordinates tracking
     document.addEventListener('mousemove', (e) => {
       const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');

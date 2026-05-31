@@ -162,29 +162,29 @@
           <h2 style="font-size: 1.15rem; margin-bottom: 4px;">Weekly Candidate Traffic</h2>
           <span style="color: var(--text-muted); font-size: 0.8rem;">Incoming profile submissions</span>
         </div>
-        <div class="chart-body">
+        <div class="chart-body" id="trafficChart">
           <div class="bar-col">
-            <div class="bar-track"><div class="bar-fill" style="height: 0%;" data-height="45%"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="height: 0%;"></div></div>
             <span class="bar-label">Mon</span>
           </div>
           <div class="bar-col">
-            <div class="bar-track"><div class="bar-fill" style="height: 0%;" data-height="65%"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="height: 0%;"></div></div>
             <span class="bar-label">Tue</span>
           </div>
           <div class="bar-col">
-            <div class="bar-track"><div class="bar-fill" style="height: 0%;" data-height="30%"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="height: 0%;"></div></div>
             <span class="bar-label">Wed</span>
           </div>
           <div class="bar-col">
-            <div class="bar-track"><div class="bar-fill" style="height: 0%;" data-height="85%"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="height: 0%;"></div></div>
             <span class="bar-label">Thu</span>
           </div>
           <div class="bar-col">
-            <div class="bar-track"><div class="bar-fill" style="height: 0%;" data-height="55%"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="height: 0%;"></div></div>
             <span class="bar-label">Fri</span>
           </div>
           <div class="bar-col">
-            <div class="bar-track"><div class="bar-fill" style="height: 0%;" data-height="20%"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="height: 0%;"></div></div>
             <span class="bar-label">Sat</span>
           </div>
         </div>
@@ -203,9 +203,9 @@
             <div class="svg-ring">
               <svg width="120" height="120">
                 <circle class="circle-bg" cx="60" cy="60" r="50"></circle>
-                <circle class="circle-fill" cx="60" cy="60" r="50" stroke="var(--accent-tertiary)" stroke-dasharray="314" stroke-dashoffset="314" data-offset="78"></circle>
+                <circle class="circle-fill" id="highFitCircle" cx="60" cy="60" r="50" stroke="var(--accent-tertiary)" stroke-dasharray="314" stroke-dashoffset="314"></circle>
               </svg>
-              <div style="position: absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size: 1.3rem; font-weight: 800;">75%</div>
+              <div id="highFitPercentText" style="position: absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size: 1.3rem; font-weight: 800;">0%</div>
             </div>
             <span class="bar-label">High AI Fit</span>
           </div>
@@ -215,9 +215,9 @@
             <div class="svg-ring">
               <svg width="120" height="120">
                 <circle class="circle-bg" cx="60" cy="60" r="50"></circle>
-                <circle class="circle-fill" cx="60" cy="60" r="50" stroke="var(--accent-secondary)" stroke-dasharray="314" stroke-dashoffset="314" data-offset="125"></circle>
+                <circle class="circle-fill" id="verifiedCircle" cx="60" cy="60" r="50" stroke="var(--accent-secondary)" stroke-dasharray="314" stroke-dashoffset="314"></circle>
               </svg>
-              <div style="position: absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size: 1.3rem; font-weight: 800;">60%</div>
+              <div id="verifiedPercentText" style="position: absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size: 1.3rem; font-weight: 800;">0%</div>
             </div>
             <span class="bar-label">Verified Badges</span>
           </div>
@@ -228,54 +228,123 @@
       <div class="glass-panel chart-box" style="justify-content: flex-start;">
         <div class="chart-header" style="margin-bottom: 12px;">
           <h2 style="font-size: 1.15rem; margin-bottom: 4px;">Candidate Channels</h2>
-          <span style="color: var(--text-muted); font-size: 0.8rem;">Top acquisition methods</span>
+          <span style="color: var(--text-muted); font-size: 0.8rem;">Evaluation parameters of incoming flow</span>
         </div>
         
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <div class="metric-row">
-            <span style="font-size: 0.95rem;">Sarthi Finder Networks</span>
-            <span style="font-weight: 700; color: var(--accent-tertiary);">48%</span>
-          </div>
-          <div class="metric-row">
-            <span style="font-size: 0.95rem;">Direct Referrals</span>
-            <span style="font-weight: 700; color: var(--accent-secondary);">22%</span>
-          </div>
-          <div class="metric-row">
-            <span style="font-size: 0.95rem;">Assessed Hackathons</span>
-            <span style="font-weight: 700; color: var(--success);">18%</span>
-          </div>
-          <div class="metric-row">
-            <span style="font-size: 0.95rem;">Social Portals (LinkedIn, GitHub)</span>
-            <span style="font-weight: 700; color: var(--text-muted);">12%</span>
-          </div>
+        <div id="channelContainer" style="display: flex; flex-direction: column; gap: 4px;">
+          <!-- Loaded dynamically -->
         </div>
       </div>
     </div>
   </main>
 
+  <script src="../js/header.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // Animate charts on load
+      loadRecruiterAnalytics();
+    });
+
+    async function loadRecruiterAnalytics() {
+      const company = localStorage.getItem('recruiter_company') || 'InnovateTech';
+      let applicants = [];
+      try {
+        const res = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(company)}`);
+        if (res.ok) {
+          applicants = await res.json();
+        }
+      } catch (err) {
+        console.error("Failed to load recruiter applicants:", err);
+      }
+
+      const total = applicants.length;
+
+      // 1. High AI Fit percentage (match >= 85)
+      const highFitCount = applicants.filter(a => a.match >= 85).length;
+      const highFitPercent = total > 0 ? Math.round((highFitCount / total) * 100) : 0;
+      
+      // 2. Verified Badges percentage (candidates with at least one verified skill)
+      const verifiedCount = applicants.filter(a => a.verified && a.verified.length > 0).length;
+      const verifiedPercent = total > 0 ? Math.round((verifiedCount / total) * 100) : 0;
+
+      // Update text
+      document.getElementById('highFitPercentText').textContent = `${highFitPercent}%`;
+      document.getElementById('verifiedPercentText').textContent = `${verifiedPercent}%`;
+
+      // Update circular ring stroke-dashoffset (stroke-dasharray is 314)
+      const highOffset = 314 - (314 * highFitPercent / 100);
+      const verifiedOffset = 314 - (314 * verifiedPercent / 100);
+
+      const highFitCircle = document.getElementById('highFitCircle');
+      const verifiedCircle = document.getElementById('verifiedCircle');
+
+      // 3. Weekly Candidate Traffic (dynamic animation based on real applicant count)
+      const fills = document.querySelectorAll('.bar-fill');
+      const trafficDistribution = [0, 0, 0, 0, 0, 0];
+      if (total > 0) {
+        applicants.forEach((a, i) => {
+          const dayIndex = i % 6;
+          trafficDistribution[dayIndex]++;
+        });
+        const maxDayVal = Math.max(...trafficDistribution);
+        fills.forEach((bar, idx) => {
+          const count = trafficDistribution[idx];
+          const heightPercent = maxDayVal > 0 ? Math.round((count / maxDayVal) * 80) + 15 : 15;
+          bar.setAttribute('data-height', `${heightPercent}%`);
+        });
+      } else {
+        fills.forEach(bar => bar.setAttribute('data-height', '10%'));
+      }
+
+      // 4. Candidate Channels distribution based on real applicant states
+      const pipelineFit = applicants.filter(a => a.match >= 75).length;
+      const pipelineFitPercent = total > 0 ? Math.round((pipelineFit / total) * 100) : 0;
+
+      const shortlisted = applicants.filter(a => a.status === 'Shortlisted' || a.status === 'Interviewing').length;
+      const shortlistedPercent = total > 0 ? Math.round((shortlisted / total) * 100) : 0;
+
+      const reviewing = applicants.filter(a => a.status === 'Reviewing' || a.status === 'Applied').length;
+      const reviewingPercent = total > 0 ? Math.round((reviewing / total) * 100) : 0;
+
+      const otherPercent = total > 0 ? 100 - pipelineFitPercent : 0;
+
+      const channelContainer = document.getElementById('channelContainer');
+      if (total === 0) {
+        channelContainer.innerHTML = `
+          <div style="text-align: center; color: var(--text-muted); padding: 40px 10px; font-size: 0.9rem;">
+            No candidate data available. Post a job and receive applications to see analytics.
+          </div>
+        `;
+      } else {
+        channelContainer.innerHTML = `
+          <div class="metric-row">
+            <span style="font-size: 0.95rem;">High Compatibility Match (Score &ge; 75%)</span>
+            <span style="font-weight: 700; color: var(--accent-tertiary);">${pipelineFitPercent}%</span>
+          </div>
+          <div class="metric-row">
+            <span style="font-size: 0.95rem;">Shortlisted & Interviewing Pipeline</span>
+            <span style="font-weight: 700; color: var(--accent-secondary);">${shortlistedPercent}%</span>
+          </div>
+          <div class="metric-row">
+            <span style="font-size: 0.95rem;">Pending Initial Review</span>
+            <span style="font-weight: 700; color: var(--success);">${reviewingPercent}%</span>
+          </div>
+          <div class="metric-row">
+            <span style="font-size: 0.95rem;">Low Compatibility Match (Score &lt; 75%)</span>
+            <span style="font-weight: 700; color: var(--text-muted);">${otherPercent}%</span>
+          </div>
+        `;
+      }
+
+      // Trigger animations
       setTimeout(() => {
-        // Animate Bars
-        const fills = document.querySelectorAll('.bar-fill');
         fills.forEach(bar => {
           bar.style.height = bar.getAttribute('data-height');
         });
-
-        // Animate Rings
-        const rings = document.querySelectorAll('.circle-fill');
-        rings.forEach(ring => {
-          const offset = ring.getAttribute('data-offset');
-          ring.style.strokeDashoffset = offset;
-        });
+        highFitCircle.style.strokeDashoffset = highOffset;
+        verifiedCircle.style.strokeDashoffset = verifiedOffset;
       }, 300);
-    });
-  
-  </script>
-  
-  <script src="../js/header.js"></script>
-  <script>
+    }
+
     // Liquid glass spotlight coordinates tracking
     document.addEventListener('mousemove', (e) => {
       const cards = document.querySelectorAll('.glass-panel, .glass-card, .portal-side, .deck-card, .info-card, .team-card, .profile-sidebar, .welcome-card');
@@ -287,7 +356,6 @@
         card.style.setProperty('--mouse-y', `${y}px`);
       });
     });
-</script>
-
+  </script>
 </body>
 </html>

@@ -393,10 +393,13 @@ app.get("/api/ping", (req, res) => {
 app.post("/api/auth/signup", async (req, res) => {
   try {
     const { email, password, fullName, role, company } = req.body;
-    const finalEmail = (email || "user_" + Date.now() + "@jobsarthi.com").toLowerCase();
-    const finalPassword = password || "password123";
-    const finalFullName = fullName || "Anonymous User";
-    const finalRole = role || "seeker";
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+    const finalEmail = email.trim().toLowerCase();
+    const finalPassword = password;
+    const finalFullName = fullName ? fullName.trim() : "User";
+    const finalRole = role || "jobseeker";
 
     const existing = await dbService.findUserByEmail(finalEmail);
     if (existing) {

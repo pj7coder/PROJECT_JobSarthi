@@ -393,14 +393,14 @@
             <div class="card-content">
               <div class="form-group">
                 <label class="form-label" for="loginEmail">Work Email Address</label>
-                <input type="email" id="loginEmail" class="form-control" placeholder="hr@company.com" required value="recruiter@jobsarthi.ai">
+                <input type="email" id="loginEmail" class="form-control" placeholder="hr@company.com" required>
               </div>
               <div class="form-group">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <label class="form-label" for="loginPassword">Password</label>
                   <a href="#" class="forgot-link">Forgot Password?</a>
                 </div>
-                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required value="password123">
+                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
               </div>
             </div>
             <div class="card-footer">
@@ -483,15 +483,15 @@
       let endpoint = '';
 
       if (type === 'signup') {
-        const companyName = document.getElementById('companyName').value || "InnovateTech";
-        const email = document.getElementById('signupEmail').value || "recruiter_" + Date.now() + "@jobsarthi.ai";
-        const password = document.getElementById('signupPassword').value || "password123";
+        const companyName = document.getElementById('companyName').value;
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
 
         body = { fullName: companyName + " HR", email, password, role: 'recruiter', company: companyName };
         endpoint = API_BASE_URL + '/api/auth/signup';
       } else {
-        const email = document.getElementById('loginEmail').value || "recruiter@jobsarthi.ai";
-        const password = document.getElementById('loginPassword').value || "password123";
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
 
         body = { email, password };
         endpoint = API_BASE_URL + '/api/auth/login';
