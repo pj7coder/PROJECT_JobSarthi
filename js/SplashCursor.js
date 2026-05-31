@@ -27,7 +27,7 @@
   if (localStorage.getItem('splash_cursor_density') !== null) {
     window.SplashCursorConfig.DENSITY_DISSIPATION = parseFloat(localStorage.getItem('splash_cursor_density'));
   }
-  if (localStorage.getItem('advanced_ui_enabled') === 'false') {
+  if (localStorage.getItem('advanced_ui_enabled') === 'false' || window.DISABLE_SPLASH_CURSOR === true || window.location.pathname.includes('aiinterview.html')) {
     window.SplashCursorConfig.ENABLED = false;
   }
 
