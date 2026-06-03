@@ -457,6 +457,101 @@ async function autoAggregateJobs() {
           "Comfortable working asynchronously in a fully remote setup."
         ],
         applyUrl: "https://jobsarthi.ai"
+      },
+      {
+        id: "job_local_14",
+        title: "AI Engineer",
+        company: "Tata Elxsi",
+        logo: "🧠",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹14,00,000 - ₹20,00,000 / year",
+        match: 90,
+        description: "Develop, fine-tune, and deploy custom large language models and machine learning pipelines for automated engineering solutions.",
+        skills: "Python, PyTorch, LLMs, Transformers, RAG",
+        reqs: [
+          "Bachelor's or Master's degree in AI, Data Science, or related fields.",
+          "Strong foundation in Deep Learning architectures and LLM fine-tuning.",
+          "Experience building Retrieval-Augmented Generation (RAG) applications."
+        ],
+        applyUrl: "https://tataelxsi.com/careers"
+      },
+      {
+        id: "job_local_15",
+        title: "Cybersecurity Specialist",
+        company: "Reliance Jio",
+        logo: "🛡️",
+        category: "Security",
+        type: "Full-time",
+        location: "Navi Mumbai, Maharashtra",
+        salary: "₹10,00,000 - ₹15,00,000 / year",
+        match: 87,
+        description: "Implement zero-trust security postures, perform active penetration testing, and secure core cloud infrastructure and API endpoints across telecom networks.",
+        skills: "Penetration Testing, OWASP, AWS, Linux, IAM",
+        reqs: [
+          "2+ years of cybersecurity and threat assessment experience.",
+          "Familiarity with network scanning, vulnerability assessment, and encryption protocols.",
+          "Relevant certifications (CEH, OSCP, or CISSP) are highly valued."
+        ],
+        applyUrl: "https://careers.jio.com"
+      },
+      {
+        id: "job_local_16",
+        title: "Data Scientist",
+        company: "Tata Consultancy Services (TCS)",
+        logo: "📈",
+        category: "Data & Analytics",
+        type: "Full-time",
+        location: "Chennai, Tamil Nadu",
+        salary: "₹9,00,000 - ₹14,00,000 / year",
+        match: 86,
+        description: "Analyze large-scale customer telemetry and transaction data to discover business trends and train predictive machine learning models.",
+        skills: "SQL, Python, Pandas, Scikit-learn, Tableau",
+        reqs: [
+          "Strong background in probability, statistics, and machine learning models.",
+          "Proficiency in building clean ETL pipelines and dashboard reports.",
+          "Effective communication to convey statistical insights to business leaders."
+        ],
+        applyUrl: "https://www.tcs.com/careers"
+      },
+      {
+        id: "job_local_17",
+        title: "Mobile App Engineer",
+        company: "PhonePe",
+        logo: "📱",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹15,00,000 - ₹22,00,000 / year",
+        match: 89,
+        description: "Engineer highly performant, modular payment features inside PhonePe's mobile applications, ensuring zero packet drops and seamless offline caching.",
+        skills: "React Native, TypeScript, iOS, Android, Redux",
+        reqs: [
+          "2+ years of mobile app development with React Native or Native SDKs.",
+          "Solid understanding of offline data persistence and state management.",
+          "Experience optimizing application bundle sizes and native bridge communication."
+        ],
+        applyUrl: "https://www.phonepe.com/careers/"
+      },
+      {
+        id: "job_local_18",
+        title: "Product Manager",
+        company: "Swiggy",
+        logo: "🍔",
+        category: "Product Management",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹18,00,000 - ₹25,00,000 / year",
+        match: 91,
+        description: "Define product requirements, lead agile sprints, and coordinate cross-functionally between engineering and UX design to launch new food delivery experience features.",
+        skills: "PRD writing, RICE framework, Agile, Product Analytics, UX",
+        reqs: [
+          "2+ years of product management experience at a consumer tech product company.",
+          "Ability to write detailed PRDs and manage feature prioritizations.",
+          "Excellent collaboration, user empathy, and data-driven decision-making."
+        ],
+        applyUrl: "https://careers.swiggy.com/"
       }
     ];
 
@@ -1032,50 +1127,210 @@ const FALLBACK_QUESTIONS = {
       "How do you design a high-throughput distributed task queue system using Redis or RabbitMQ?",
       "How would you handle distributed database transactions across multiple microservices?"
     ]
+  },
+  "Data Scientist": {
+    "Beginner": [
+      "What is the difference between supervised and unsupervised learning?",
+      "What is overfitting and how can it be prevented?",
+      "What is the difference between a list and a tuple in Python?"
+    ],
+    "Intermediate": [
+      "Explain the difference between L1 and L2 regularization.",
+      "How does a Random Forest classifier work and what are its advantages?",
+      "How do you handle imbalanced datasets when training a model?"
+    ],
+    "Expert": [
+      "How would you design a distributed machine learning pipeline to process terabytes of data daily?",
+      "Can you explain the mathematical derivation or intuition behind Gradient Boosting?",
+      "Explain how transformer self-attention mechanisms work and why they scale better than LSTMs."
+    ]
+  },
+  "DevOps Engineer": {
+    "Beginner": [
+      "What is Continuous Integration and Continuous Deployment (CI/CD)?",
+      "What is Docker and how does it differ from a Virtual Machine?",
+      "What is the purpose of version control systems like Git?"
+    ],
+    "Intermediate": [
+      "Explain the difference between a rolling update and a blue-green deployment strategy.",
+      "What is Infrastructure as Code (IaC) and how does Terraform manage state?",
+      "How would you secure a Kubernetes cluster in a production environment?"
+    ],
+    "Expert": [
+      "How would you design a multi-region, highly available, active-active cloud infrastructure on AWS/Azure?",
+      "Explain how you would debug high latency or packet loss in a Kubernetes service mesh like Istio.",
+      "Describe a custom GitOps pipeline you built to manage stateful sets in microservices."
+    ]
+  },
+  "Product Manager": {
+    "Beginner": [
+      "What is a Product Requirement Document (PRD) and what are its key components?",
+      "How do you prioritize features using the RICE framework?",
+      "What is the difference between an MVP and a prototype?"
+    ],
+    "Intermediate": [
+      "How do you handle conflicting feedback from engineering, design, and business stakeholders?",
+      "Describe how you would measure the success of a newly launched notifications feature.",
+      "What key product metrics would you track for a subscription-based SaaS app?"
+    ],
+    "Expert": [
+      "How would you design a product strategy to launch JobSarthi in a highly competitive market like India?",
+      "Explain a time you made a high-stakes pivot based on negative user telemetry data.",
+      "How do you balance tech debt reduction with new feature development on a core platform team?"
+    ]
+  },
+  "Mobile Developer": {
+    "Beginner": [
+      "What is the difference between native and cross-platform mobile development?",
+      "What is the lifecycle of an Activity in Android or a View Controller in iOS?",
+      "What is the purpose of state management in mobile applications?"
+    ],
+    "Intermediate": [
+      "How do you optimize mobile app startup time and minimize battery consumption?",
+      "Describe how you've handled offline synchronization and local caching in React Native or Native iOS.",
+      "How do you secure API tokens and sensitive credentials stored on mobile devices?"
+    ],
+    "Expert": [
+      "How would you design a modular, scalable architecture for a mobile super-app containing multiple sub-services?",
+      "Explain how react-native's new architecture (Fabric and TurboModules) improves performance over the bridge.",
+      "How do you debug memory leaks and profile frame rates (FPS) in an iOS/Android production build?"
+    ]
+  },
+  "UI/UX Designer": {
+    "Beginner": [
+      "What is the difference between UI and UX design?",
+      "What are the core principles of visual hierarchy and contrast?",
+      "How do you use Figma components and auto-layout to build reusable designs?"
+    ],
+    "Intermediate": [
+      "Explain how you conduct a usability test and translate insights into design revisions.",
+      "How do you design for accessibility (WCAG AA/AAA standards) in a complex web dashboard?",
+      "Describe your process for handing off assets and design systems to developers."
+    ],
+    "Expert": [
+      "How would you design a design system that scales across multiple web, mobile, and desktop portals?",
+      "Describe a time you used A/B testing data to completely redesign a core checkout or onboarding flow.",
+      "How do you maintain design consistency when designing for dark mode and light mode across diverse screens?"
+    ]
+  },
+  "AI / ML Engineer": {
+    "Beginner": [
+      "What is a neural network and what is the role of an activation function?",
+      "What is the difference between training, validation, and test datasets?",
+      "What are common evaluation metrics for regression and classification tasks?"
+    ],
+    "Intermediate": [
+      "How do you fine-tune a pre-trained LLM like Llama or GPT on a custom domain-specific dataset?",
+      "Explain how optimization algorithms like Adam and SGD adjust model weights during backpropagation.",
+      "How do you handle prompt injection vulnerabilities in a production LLM application?"
+    ],
+    "Expert": [
+      "How would you design a low-latency RAG (Retrieval-Augmented Generation) pipeline handling millions of document chunks?",
+      "Explain how you would optimize LLM inference speed using quantization, speculative decoding, and vLLM.",
+      "How would you design a real-time anomaly detection system for fraud detection with strict latency limits (<10ms)?"
+    ]
   }
 };
 
 app.post("/api/sarthi/interview/next", async (req, res) => {
   try {
-    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired } = req.body;
+    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility } = req.body;
     const currentRole = role || "Full Stack Developer";
     const currentDiff = difficulty || "Intermediate";
-    const isFirstQuestion = !currentQuestion || history.length === 0;
+    const isFirstQuestion = !currentQuestion || !history || history.length === 0;
 
-    if (GROQ_API_KEY) {
-      let promptText = "";
-      if (isFirstQuestion) {
-        promptText = `You are Sarthi, an expert tech interviewer for the role: ${currentRole}. 
-Generate the first interview question. The difficulty level is ${currentDiff}. 
-Focus on key concepts for this role.
-Return ONLY a raw JSON object matching this schema:
+    // Build the system prompt
+    let systemPrompt = `You are Sarthi, a friendly, extremely professional, and realistic 2D tech interviewer on the JobSarthi platform.
+Your target role is: ${currentRole}. The starting difficulty is: ${currentDiff}.
+Maintain a professional, conversational tone. Do not ask repetitive questions. 
+Actively listen to the candidate's responses. Your next question MUST be a direct follow-up or build upon their previous answer to keep the conversation natural and authentic, rather than just generating disjointed technical questions.`;
+
+    if (interviewerAbility === "vikram") {
+      systemPrompt += `\nAbility Active: You are Prof. Vikram, an aged expert who asks questions at a VERY deep technical level. Focus intensely on low-level mechanics, internal architecture patterns, memory limits, and complex algorithms rather than simple high-level concepts.`;
+    } else if (interviewerAbility === "ananya") {
+      systemPrompt += `\nAbility Active: You are Dr. Ananya. You conduct evaluations with extreme scrutiny and rigor. Grade responses strictly, and offer granular critical critiques rather than general praise.`;
+    }
+
+    systemPrompt += `\nYou must return your output ONLY as a valid JSON object matching the following schemas.
+
+If it is the FIRST question:
 {
-  "nextQuestion": "The first interview question to ask."
-}`;
-      } else {
-        promptText = `You are Sarthi, an expert tech interviewer for the role: ${currentRole}.
-Evaluate the candidate's last answer to the current question:
-- Question: "${currentQuestion}"
-- Candidate Answer: "${userAnswer || ""}" ${timerExpired ? "(Note: The user's answer was skipped due to response timer expiring)" : ""}
+  "nextQuestion": "The first interview question to ask the candidate, personalized to their background if profile details are provided."
+}
 
-Analyze the answer. Formulate the next question. Adjust difficulty level if appropriate:
-- If they answered well (score >= 7), increase the difficulty slightly or ask a deeper follow-up question.
-- If they struggled (score < 5), explain the concept briefly and ask a slightly easier or foundational question.
-- Otherwise, maintain the current level.
-Return ONLY a raw JSON object matching this schema:
+If it is a SUBSEQUENT question:
 {
   "feedback": "1-2 sentence constructive feedback on their previous answer.",
-  "score": 8, // integer score from 0 to 10
+  "score": 8, // integer score from 0 to 10 evaluating their last answer
   "difficultyChange": "increase" | "decrease" | "maintain",
-  "nextQuestion": "The next question to ask the candidate."
+  "nextQuestion": "The next follow-up question to ask the candidate, directly engaging with what they just said."
 }`;
+
+    // Build conversation context
+    let profileContext = `Candidate Name: ${candidateName || "Candidate"}\n`;
+    if (candidateProfile) {
+      if (candidateProfile.skills) {
+        profileContext += `Skills: ${Array.isArray(candidateProfile.skills) ? candidateProfile.skills.join(", ") : candidateProfile.skills}\n`;
       }
+      if (candidateProfile.college) {
+        profileContext += `College: ${candidateProfile.college}\n`;
+      }
+      if (candidateProfile.degree) {
+        profileContext += `Degree: ${candidateProfile.degree}\n`;
+      }
+      if (candidateProfile.experience) {
+        profileContext += `Experience: ${candidateProfile.experience}\n`;
+      }
+    }
 
-      const messages = [
-        { role: "system", content: "You are Sarthi, an expert tech interviewer on the JobSarthi platform. Return only valid JSON." },
-        { role: "user", content: promptText }
-      ];
+    const messages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `Hello, I'm ready to start the interview for the ${currentRole} position at ${currentDiff} difficulty. Here is my profile background:\n${profileContext}` }
+    ];
 
+    if (!isFirstQuestion && history && history.length > 0) {
+      // Reconstruct conversation history
+      for (let i = 0; i < history.length; i++) {
+        const item = history[i];
+        // AI asks question
+        messages.push({
+          role: "assistant",
+          content: JSON.stringify({ nextQuestion: item.question })
+        });
+        // User responds
+        messages.push({
+          role: "user",
+          content: item.answer || "[No Answer / Skipped]"
+        });
+        // AI feedback and next question
+        const nextQVal = (i < history.length - 1) ? history[i+1].question : currentQuestion;
+        messages.push({
+          role: "assistant",
+          content: JSON.stringify({
+            feedback: item.feedback,
+            score: item.score,
+            difficultyChange: "maintain",
+            nextQuestion: nextQVal
+          })
+        });
+      }
+    }
+
+    if (!isFirstQuestion) {
+      // Add current active question and current userAnswer
+      messages.push({
+        role: "assistant",
+        content: JSON.stringify({ nextQuestion: currentQuestion })
+      });
+      messages.push({
+        role: "user",
+        content: userAnswer || (timerExpired ? "[Skipped due to response timer expiring]" : "[No Answer]")
+      });
+    }
+
+    // Call LLM
+    if (GROQ_API_KEY) {
+      console.log(`[Sarthi AI] Generating question using Groq... isFirstQuestion: ${isFirstQuestion}`);
       const responseText = await callGroq(messages, true);
       let cleanText = responseText.trim();
       if (cleanText.startsWith("```")) {
@@ -1086,39 +1341,28 @@ Return ONLY a raw JSON object matching this schema:
       }
       const responseJSON = JSON.parse(cleanText);
       return res.json(responseJSON);
+
     } else if (process.env.GEMINI_API_KEY) {
+      console.log(`[Sarthi AI] Generating question using Gemini... isFirstQuestion: ${isFirstQuestion}`);
       const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-      let promptText = "";
-      if (isFirstQuestion) {
-        promptText = `You are Sarthi, an expert tech interviewer for the role: ${currentRole}. 
-Generate the first interview question. The difficulty level is ${currentDiff}. 
-Focus on key concepts for this role.
-Return ONLY a raw JSON object matching this schema:
-{
-  "nextQuestion": "The first interview question to ask."
-}`;
-      } else {
-        promptText = `You are Sarthi, an expert tech interviewer for the role: ${currentRole}.
-Evaluate the candidate's last answer to the current question:
-- Question: "${currentQuestion}"
-- Candidate Answer: "${userAnswer || ""}" ${timerExpired ? "(Note: The user's answer was skipped due to response timer expiring)" : ""}
-
-Analyze the answer. Formulate the next question. Adjust difficulty level if appropriate:
-- If they answered well (score >= 7), increase the difficulty slightly or ask a deeper follow-up question.
-- If they struggled (score < 5), explain the concept briefly and ask a slightly easier or foundational question.
-- Otherwise, maintain the current level.
-Return ONLY a raw JSON object matching this schema:
-{
-  "feedback": "1-2 sentence constructive feedback on their previous answer.",
-  "score": 8, // integer score from 0 to 10
-  "difficultyChange": "increase" | "decrease" | "maintain",
-  "nextQuestion": "The next question to ask the candidate."
-}`;
-      }
-
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+      
+      // Map OpenAI messages format to Gemini contents format
+      const geminiContents = messages.map(msg => {
+        let roleName = "user";
+        if (msg.role === "system") roleName = "user"; // system instructions go in systemInstruction parameter or user prompt
+        else if (msg.role === "assistant") roleName = "model";
+        return {
+          role: roleName,
+          parts: [{ text: msg.content }]
+        };
+      });
+
       const payload = {
-        contents: [{ parts: [{ text: promptText }] }],
+        contents: geminiContents,
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
         generationConfig: { responseMimeType: "application/json" }
       };
 
@@ -1145,11 +1389,16 @@ Return ONLY a raw JSON object matching this schema:
     }
 
     // --- High-Quality Local Fallback Mode ---
+    console.log("[Sarthi AI] Fallback mode triggered.");
     const roleQuestions = FALLBACK_QUESTIONS[currentRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
     const diffQuestions = roleQuestions[currentDiff] || roleQuestions["Intermediate"];
 
     if (isFirstQuestion) {
-      const firstQ = diffQuestions[0];
+      let firstQ = diffQuestions[0];
+      if (interviewerAbility === "vikram") {
+        const expertQuestions = roleQuestions["Expert"] || diffQuestions;
+        firstQ = expertQuestions[0] + " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
+      }
       return res.json({
         nextQuestion: firstQ
       });
@@ -1168,7 +1417,10 @@ Return ONLY a raw JSON object matching this schema:
       const answerLower = userAnswer.toLowerCase();
       // Simple keyword matching for score calculation
       let keywordsMatched = 0;
-      const keyTerms = ["rendering", "server", "client", "state", "components", "index", "query", "database", "middleware", "token", "auth", "flexbox", "grid", "hooks", "dom", "scaling", "api", "load"];
+      const keyTerms = [
+        "rendering", "server", "client", "state", "components", "index", "query", "database", "middleware", "token", "auth", "flexbox", "grid", "hooks", "dom", "scaling", "api", "load",
+        "supervised", "unsupervised", "regression", "model", "ci/cd", "docker", "kubernetes", "rice", "prd", "mvp", "native", "cross-platform", "figma", "accessibility", "quantization", "rag"
+      ];
 
       keyTerms.forEach(term => {
         if (answerLower.includes(term)) keywordsMatched++;
@@ -1189,18 +1441,32 @@ Return ONLY a raw JSON object matching this schema:
       }
     }
 
+    // Apply strict grading/scrutiny from Dr. Ananya
+    if (interviewerAbility === "ananya") {
+      score = Math.max(1, Math.round(score * 0.7));
+      feedback = `Dr. Ananya's strict assessment: ${feedback} Make sure to explain optimization specifics.`;
+    }
+
     // Determine next question index
     let nextIndex = history.length % diffQuestions.length;
     let newDiff = currentDiff;
-    if (difficultyChange === "increase") {
-      newDiff = currentDiff === "Beginner" ? "Intermediate" : "Expert";
-    } else if (difficultyChange === "decrease") {
-      newDiff = currentDiff === "Expert" ? "Intermediate" : "Beginner";
+    if (interviewerAbility === "vikram") {
+      newDiff = "Expert"; // Prof. Vikram always asks expert level questions
+    } else {
+      if (difficultyChange === "increase") {
+        newDiff = currentDiff === "Beginner" ? "Intermediate" : "Expert";
+      } else if (difficultyChange === "decrease") {
+        newDiff = currentDiff === "Expert" ? "Intermediate" : "Beginner";
+      }
     }
 
     const nextRoleQuestions = FALLBACK_QUESTIONS[currentRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
     const nextDiffQuestions = nextRoleQuestions[newDiff] || nextRoleQuestions["Intermediate"];
-    const nextQ = nextDiffQuestions[nextIndex % nextDiffQuestions.length];
+    let nextQ = nextDiffQuestions[nextIndex % nextDiffQuestions.length];
+    
+    if (interviewerAbility === "vikram") {
+      nextQ += " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
+    }
 
     res.json({
       feedback,
