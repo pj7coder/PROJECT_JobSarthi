@@ -1733,7 +1733,8 @@
     function logProctorEvent(eventText, suspicionInc) {
       if (isInterviewPaused) return;
 
-      let scaledSuspVal = Math.round(suspicionInc * (proctorStrictness === "low" ? 0.4 : (proctorStrictness === "hard" ? 1.2 : 0.7)));
+      // Apply zero-suspicion for informational logs (no score change)
+      const scaledSuspVal = Math.round(suspicionInc * 0.5); // All events use 50% strength — relaxed proctor
       suspicionScore += scaledSuspVal;
       if (suspicionScore > 100) suspicionScore = 100;
       if (suspicionScore < 0) suspicionScore = 0;
@@ -1744,11 +1745,10 @@
       const logsBox = document.getElementById("proctorLogs");
       if (logsBox) {
         const logItem = document.createElement("div");
-        logItem.className = `proctor-log-item ${scaledSuspVal > 15 ? 'danger' : (scaledSuspVal > 0 ? 'warning' : 'success')}`;
-        logItem.innerHTML = `[${timeStr}] ${eventText} (${scaledSuspVal >= 0 ? '+' : ''}${scaledSuspVal}%)`;
-        if (scaledSuspVal < 0) {
-          logItem.style.color = "var(--success)";
-        }
+        // Only show positive events as warnings in the log
+        logItem.className = `proctor-log-item ${scaledSuspVal > 8 ? 'danger' : (scaledSuspVal > 0 ? 'warning' : 'success')}`;
+        logItem.innerHTML = `[${timeStr}] ${eventText}`;
+        if (scaledSuspVal < 0) logItem.style.color = "var(--success)";
         logsBox.appendChild(logItem);
         logsBox.scrollTop = logsBox.scrollHeight;
       }
@@ -1765,41 +1765,26 @@
       if (barFill) {
         barFill.style.width = `${suspicionScore}%`;
         barFill.className = "proctor-bar-fill";
-        if (suspicionScore > 60) {
-          barFill.style.backgroundColor = "var(--danger)";
-        } else if (suspicionScore > 30) {
-          barFill.style.backgroundColor = "var(--warning)";
-        } else {
-          barFill.style.backgroundColor = "var(--success)";
-        }
+        if (suspicionScore > 60) barFill.style.backgroundColor = "var(--danger)";
+        else if (suspicionScore > 30) barFill.style.backgroundColor = "var(--warning)";
+        else barFill.style.backgroundColor = "var(--success)";
       }
 
-      // Update HUD risk level labels
       const suspValDisplay = document.getElementById("suspValDisplay");
-      if (suspValDisplay) {
-        suspValDisplay.textContent = `${suspicionScore}%`;
-      }
+      if (suspValDisplay) suspValDisplay.textContent = `${suspicionScore}%`;
 
       const riskBadge = document.getElementById("proctorRiskBadge");
       if (riskBadge) {
         if (suspicionScore >= 70) {
-          riskBadge.textContent = "Very high suspicion";
+          riskBadge.textContent = "High irregularity";
           riskBadge.style.color = "var(--danger)";
           riskBadge.style.background = "rgba(239, 68, 68, 0.15)";
-        } else if (suspicionScore >= 51) {
-          riskBadge.textContent = "High suspicion";
-          riskBadge.style.color = "var(--danger)";
-          riskBadge.style.background = "rgba(239, 68, 68, 0.12)";
-        } else if (suspicionScore >= 31) {
-          riskBadge.textContent = "Moderate suspicion";
+        } else if (suspicionScore >= 40) {
+          riskBadge.textContent = "Some irregularity";
           riskBadge.style.color = "var(--warning)";
           riskBadge.style.background = "rgba(245, 158, 11, 0.15)";
-        } else if (suspicionScore >= 16) {
-          riskBadge.textContent = "Slight suspicion";
-          riskBadge.style.color = "var(--warning)";
-          riskBadge.style.background = "rgba(245, 158, 11, 0.1)";
         } else {
-          riskBadge.textContent = "Normal";
+          riskBadge.textContent = "All Good";
           riskBadge.style.color = "var(--success)";
           riskBadge.style.background = "rgba(16, 185, 129, 0.15)";
         }
@@ -1807,12 +1792,6 @@
 
       if (scaledSuspVal > 0) {
         proctorWarnings.push({ time: timeStr, event: eventText, suspicionInc: scaledSuspVal });
-      }
-
-      if (proctorStrictness === "hard" && suspicionScore >= 95) {
-        proctorStrictness = "terminated";
-        alert("Proctor Alert: Strictly terminated due to multiple cheating indicators.");
-        endInterview();
       }
     }
 
@@ -1845,24 +1824,18 @@
 
       document.getElementById("finishInterviewBtn").style.display = "block";
 
-      setInterval(() => {
-        if (isInterviewFinished) return;
-        if (isAiSpeaking || isInterviewPaused || isThinkTimeActive) return;
-        if (Math.random() < 0.25) {
-          const faceText = document.getElementById("hudFaceText");
-          if (faceText) {
-            faceText.textContent = "FACE DETECTED: 2";
-            faceText.style.color = "var(--danger)";
-            logProctorEvent("Multiple faces detected in camera frame.", 8);
-            setTimeout(() => {
-              if (faceText) {
-                faceText.textContent = "FACE DETECTED: 1";
-                faceText.style.color = "var(--success)";
-              }
-            }, 3500);
-          }
+      // Removed random fake multi-face detection — proctor is informational only
+
+      // Pre-lock the voice immediately so first question doesn't fire with wrong voice
+      // SpeechSynthesis voices may load async; handle both cases
+      if (window.speechSynthesis) {
+        const tryLock = () => selectVoiceForInterviewer();
+        if (window.speechSynthesis.getVoices().length > 0) {
+          tryLock();
+        } else {
+          window.speechSynthesis.addEventListener('voiceschanged', tryLock, { once: true });
         }
-      }, 55000);
+      }
 
       fetchNextQuestion(true);
     }
@@ -2098,6 +2071,60 @@
       }, 3000); // 3 seconds of continuous silence submits response
     }
 
+    // --- SELECT AND LOCK VOICE --- (called early to avoid async first-question miss)
+    function selectVoiceForInterviewer() {
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices || voices.length === 0) return; // voices not loaded yet
+
+      const isFemale = (selectedInterviewer === 'ananya');
+
+      const isVoiceFemale = (v) => {
+        const name = v.name.toLowerCase();
+        return name.includes('female') || name.includes('zira') || name.includes('samantha') ||
+               name.includes('hazel') || name.includes('victoria') || name.includes('veena') ||
+               name.includes('heera') || name.includes('susan') || name.includes('karen') ||
+               name.includes('haruka') || name.includes('moira') || name.includes('tessa') ||
+               name.includes('google us english');
+      };
+
+      const genderVoices = voices.filter(v => isFemale ? isVoiceFemale(v) : !isVoiceFemale(v));
+      let chosen = null;
+
+      // Prefer Indian accent voice for Hindi/Hinglish
+      if (selectedLanguage === 'hi' || selectedLanguage === 'hinglish') {
+        chosen = genderVoices.find(v => v.lang.startsWith('hi-IN'))
+               || genderVoices.find(v => v.lang.startsWith('hi'))
+               || genderVoices.find(v => v.lang.includes('IN'));
+      }
+
+      // Character-specific English fallback
+      if (!chosen) {
+        if (selectedInterviewer === 'vikram') {
+          // Vikram: British English male
+          chosen = genderVoices.find(v => v.lang === 'en-GB')
+                 || genderVoices.find(v => v.lang.includes('GB'))
+                 || genderVoices.find(v => v.lang.startsWith('en'));
+        } else if (selectedInterviewer === 'ananya') {
+          // Ananya: clear US or IN female
+          chosen = genderVoices.find(v => v.lang === 'en-IN')
+                 || genderVoices.find(v => v.lang === 'en-US')
+                 || genderVoices.find(v => v.lang.startsWith('en'));
+        } else {
+          // Sarthi: standard US male
+          chosen = genderVoices.find(v => v.lang === 'en-US')
+                 || genderVoices.find(v => v.lang.startsWith('en'));
+        }
+      }
+
+      if (!chosen && genderVoices.length > 0) chosen = genderVoices[0];
+      if (!chosen && voices.length > 0) chosen = voices.find(v => v.lang.startsWith('en')) || voices[0];
+
+      if (chosen) {
+        lockedVoice = chosen;
+        console.log(`[Voice Locked] ${lockedVoice.name} (${lockedVoice.lang}) for ${selectedInterviewer} / ${selectedLanguage}`);
+      }
+    }
+
     // --- TEXT TO SPEECH (FAST RESPONSE) ---
     function speakQuestion(text) {
       if (isInterviewFinished) return;
@@ -2106,81 +2133,33 @@
         return;
       }
 
-      // Update avatar state to speaking
       updateAvatarExpression('speaking');
+      window.speechSynthesis.cancel();
 
-      window.speechSynthesis.cancel(); // Terminate existing speakers
       const utterance = new SpeechSynthesisUtterance(text);
-      
-      if (!lockedVoice) {
-        const voices = window.speechSynthesis.getVoices();
-        const isFemale = (selectedInterviewer === 'ananya');
-        
-        const isVoiceFemale = (v) => {
-          const name = v.name.toLowerCase();
-          return name.includes('female') || name.includes('zira') || name.includes('samantha') || 
-                 name.includes('hazel') || name.includes('victoria') || name.includes('veena') || 
-                 name.includes('heera') || name.includes('susan') || name.includes('karen') || 
-                 name.includes('haruka') || name.includes('moira') || name.includes('tessa') ||
-                 (name.includes('google us english') && !name.includes('male'));
-        };
 
-        const genderVoices = voices.filter(v => isFemale ? isVoiceFemale(v) : !isVoiceFemale(v));
-        let chosenVoice = null;
+      // Ensure voice is locked before speaking
+      if (!lockedVoice) selectVoiceForInterviewer();
+      if (lockedVoice) utterance.voice = lockedVoice;
 
-        if (selectedLanguage === 'hi' || selectedLanguage === 'hinglish') {
-          const langVoice = genderVoices.find(v => v.lang.startsWith('hi') || v.lang.includes('IN'));
-          if (langVoice) chosenVoice = langVoice;
-        }
-
-        if (!chosenVoice && genderVoices.length > 0) {
-          if (selectedInterviewer === 'vikram') {
-            chosenVoice = genderVoices.find(v => v.lang.includes('GB')) || 
-                          genderVoices.find(v => v.name.toLowerCase().includes('google')) || 
-                          genderVoices[0];
-          } else {
-            chosenVoice = genderVoices.find(v => v.lang.includes('US')) || 
-                          genderVoices.find(v => v.lang.startsWith('en')) || 
-                          genderVoices[0];
-          }
-        }
-
-        if (!chosenVoice && genderVoices.length > 0) {
-          chosenVoice = genderVoices[0];
-        }
-
-        if (!chosenVoice && voices.length > 0) {
-          chosenVoice = voices.find(v => v.lang.includes("en-US") && v.name.includes("Google")) || 
-                        voices.find(v => v.lang.startsWith("en")) || 
-                        voices[0];
-        }
-
-        if (chosenVoice) {
-          lockedVoice = chosenVoice;
-          console.log(`[JobSarthi Voice] Selected and locked voice: ${lockedVoice.name} (${lockedVoice.lang}) for interviewer: ${selectedInterviewer}`);
-        }
-      }
-
-      if (lockedVoice) {
-        utterance.voice = lockedVoice;
-      }
-
-      // Pitch and rate customization
-      if (selectedInterviewer === "vikram") {
-        utterance.rate = 0.95;  // slightly slower
-        utterance.pitch = 0.85; // lower pitch for senior character
+      // Pitch, rate and volume per character and language
+      if (selectedInterviewer === 'vikram') {
+        utterance.rate  = selectedLanguage === 'hi' ? 0.88 : 0.93;
+        utterance.pitch = 0.80; // Deep, authoritative
+        utterance.volume = 1.0;
+      } else if (selectedInterviewer === 'ananya') {
+        utterance.rate  = selectedLanguage === 'hi' ? 0.92 : 1.00;
+        utterance.pitch = selectedLanguage === 'hi' ? 1.10 : 1.05; // Clear feminine
+        utterance.volume = 1.0;
       } else {
-        utterance.rate = 1.08;
-        utterance.pitch = 1.0;
+        // Sarthi
+        utterance.rate  = selectedLanguage === 'hi' ? 0.90 : 1.05;
+        utterance.pitch = selectedLanguage === 'hi' ? 1.00 : 1.0;
+        utterance.volume = 1.0;
       }
-      
-      utterance.onend = () => {
-        onSpeechFinished();
-      };
 
-      utterance.onerror = () => {
-        onSpeechFinished();
-      };
+      utterance.onend = () => { onSpeechFinished(); };
+      utterance.onerror = () => { onSpeechFinished(); };
 
       window.speechSynthesis.speak(utterance);
     }
@@ -2433,47 +2412,45 @@
 
     // --- ANTI-CHEATING TAB FOCUS MONITOR ---
     function initTabMonitoring() {
-      // 1. Page Visibility API
+      // 1. Page Visibility API — tab switch is the real signal
       document.addEventListener("visibilitychange", () => {
         if (document.hidden) {
           tabSwitchCount++;
-          logProctorEvent(`Tab Switch Detected! (Violations: ${tabSwitchCount})`, 5);
+          logProctorEvent(`Tab switch detected (${tabSwitchCount} time${tabSwitchCount > 1 ? 's' : ''}).`, 8);
         }
       });
 
-      // 2. Window Blur (Leaving page window)
+      // 2. Window Blur: do NOT double-log if visibilitychange already fired
+      let lastVisibilityHidden = false;
+      document.addEventListener("visibilitychange", () => {
+        lastVisibilityHidden = document.hidden;
+      });
       window.addEventListener("blur", () => {
-        tabSwitchCount++;
-        logProctorEvent(`Window focus lost! Suspected tab swap.`, 5);
+        if (!lastVisibilityHidden) {
+          // Window blur without tab switch — could be clicking another app or DevTools
+          logProctorEvent("Window focus lost.", 3);
+        }
       });
 
-      // 3. Screen exit fullscreen check
+      // 3. Fullscreen change — informational only, no suspicion score
       document.addEventListener("fullscreenchange", () => {
         const btn = document.getElementById("toggleFullScreenBtn");
         if (!document.fullscreenElement) {
-          logProctorEvent(`Fullscreen mode deactivated.`, 5);
-          if (btn) {
-            btn.innerHTML = FULLSCREEN_ENTER_SVG;
-            btn.title = "Full Screen";
-          }
+          logProctorEvent("Full screen disabled.", 0);
+          if (btn) { btn.innerHTML = FULLSCREEN_ENTER_SVG; btn.title = "Full Screen"; }
         } else {
-          if (btn) {
-            btn.innerHTML = FULLSCREEN_EXIT_SVG;
-            btn.title = "Exit Full Screen";
-          }
+          if (btn) { btn.innerHTML = FULLSCREEN_EXIT_SVG; btn.title = "Exit Full Screen"; }
         }
       });
 
       // 4. Copy-paste detection
-      document.addEventListener("paste", (e) => {
-        logProctorEvent("Copy-paste detected in text response.", 6);
+      document.addEventListener("paste", () => {
+        logProctorEvent("Text paste detected in answer box.", 5);
       });
 
-      // Request fullscreen on start to lock focus
+      // Request fullscreen on start
       try {
-        document.documentElement.requestFullscreen().catch(() => {
-          logProctorEvent("Fullscreen request rejected. Proctor sensitivity calibrated to Standard.", 0);
-        });
+        document.documentElement.requestFullscreen().catch(() => {});
       } catch(e){}
     }
 
@@ -2630,22 +2607,11 @@
             }
           }
 
-          // Whispering detection: active noise when user should NOT be speaking 
-          if (isAiSpeaking && averageVolume > 20) {
+          // Background noise detection: only log if clearly very high sustained noise while AI is speaking
+          if (isAiSpeaking && averageVolume > 35) {
             voiceAlertCount++;
-            if (voiceAlertCount % 200 === 0) { // Throttle alerts
-              logProctorEvent("Anomalous secondary speech or whispering detected.", 15);
-            }
-          }
-
-          // Robotic AI Synthesizer detection
-          if (!isAiSpeaking && averageVolume > 35) {
-            let variance = computeFrequencyVariance(dataArray);
-            if (variance < 1.8) { 
-              voiceAlertCount++;
-              if (voiceAlertCount % 250 === 0) {
-                logProctorEvent("Synthetic audio frequency / AI voice generator detected in background.", 25);
-              }
+            if (voiceAlertCount % 400 === 0) { // Very throttled
+              logProctorEvent("Background noise detected.", 5);
             }
           }
         }
@@ -2729,50 +2695,27 @@
         }
       });
 
-      // 1-second interval to check gaze shifts and apply suspicion additions/reductions
+      // 1-second interval to check gaze shifts — informational only, very relaxed
       setInterval(() => {
         if (isInterviewFinished) return;
         if (isInterviewPaused) return;
 
-        const isLeft = currentXPercent < -0.35;
-        const isRight = currentXPercent > 0.35;
-        const isAway = Math.abs(currentXPercent) > 0.42 || Math.abs(currentYPercent) > 0.42;
+        const isAway = Math.abs(currentXPercent) > 0.50 || Math.abs(currentYPercent) > 0.50;
 
         if (isAway) {
           lookAwayTicks++;
-          if (lookAwayTicks === 5) {
-            logProctorEvent("Looking away for more than 5 seconds.", 3);
+          // Only flag if looking away for >12 consecutive seconds (12 ticks)
+          if (lookAwayTicks === 12) {
+            logProctorEvent("Looking away from screen for extended time.", 3);
           }
           eyeFocusTicks = 0;
         } else {
           lookAwayTicks = 0;
           eyeFocusTicks++;
-          
-          if (eyeFocusTicks % 60 === 0) {
-            logProctorEvent("Maintaining focus for extended periods.", -8);
-          } else if (eyeFocusTicks % 10 === 0) {
-            logProctorEvent("Normal eye contact maintained.", -2);
+          // Reward sustained focus every 90 seconds
+          if (eyeFocusTicks % 90 === 0) {
+            logProctorEvent("Sustained focus on screen.", -5);
           }
-        }
-
-        if (isLeft) {
-          lookLeftTicks++;
-          if (lookLeftTicks === 2) {
-            logProctorEvent("Looking left repeatedly.", 2);
-            lookLeftTicks = 0;
-          }
-        } else {
-          lookLeftTicks = 0;
-        }
-
-        if (isRight) {
-          lookRightTicks++;
-          if (lookRightTicks === 2) {
-            logProctorEvent("Looking right repeatedly.", 2);
-            lookRightTicks = 0;
-          }
-        } else {
-          lookRightTicks = 0;
         }
       }, 1000);
 
@@ -2840,12 +2783,13 @@
         if (videoTrack.enabled) {
           videoTrack.enabled = false;
           btn.classList.add("muted");
-          logProctorEvent("Camera disabled manually.", 10);
+          logProctorEvent("Camera paused.", 0); // no suspicion for pausing camera
         } else {
           videoTrack.enabled = true;
           btn.classList.remove("muted");
-          logProctorEvent("Camera enabled.", 0);
+          logProctorEvent("Camera resumed.", 0);
         }
+        updateControlIcons();
       }
     }
 
@@ -2856,14 +2800,15 @@
         if (audioTrack.enabled) {
           audioTrack.enabled = false;
           btn.classList.add("muted");
-          logProctorEvent("Microphone muted manually.", 10);
+          logProctorEvent("Microphone paused.", 0); // no suspicion for pausing mic
           if (speechRecognition) speechRecognition.stop();
         } else {
           audioTrack.enabled = true;
           btn.classList.remove("muted");
-          logProctorEvent("Microphone active.", 0);
+          logProctorEvent("Microphone resumed.", 0);
           startListening();
         }
+        updateControlIcons();
       }
     }
 
