@@ -96,7 +96,7 @@
       .interview-grid {
         flex: 1;
         display: grid;
-        grid-template-columns: 360px 1fr;
+        grid-template-columns: 300px 1fr;
         gap: 25px;
         margin-top: 10px;
         min-height: 0;
@@ -112,7 +112,7 @@
       .camera-container {
         width: auto !important;
         max-width: 100% !important;
-        aspect-ratio: 4 / 3 !important;
+        aspect-ratio: 16 / 10 !important;
         flex: none !important;
         height: auto !important;
         min-height: 0 !important;
@@ -210,7 +210,7 @@
     .camera-container {
       position: relative;
       width: 100%;
-      aspect-ratio: 4 / 3;
+      aspect-ratio: 16 / 10;
       border-radius: var(--radius-lg);
       overflow: hidden;
     }
@@ -224,7 +224,7 @@
     #webcamVideo {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
       transform: scaleX(-1);
     }
 
@@ -986,15 +986,6 @@
           </select>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="timerSelect">Think/Preparation Time</label>
-          <select id="timerSelect" class="form-control" style="background: var(--bg-secondary);">
-            <option value="10" selected>10 Seconds (Standard)</option>
-            <option value="20">20 Seconds (Extended)</option>
-            <option value="30">30 Seconds (Relaxed)</option>
-            <option value="0">No Timer (Start Answering instantly)</option>
-          </select>
-        </div>
 
         <div class="form-group">
           <label class="form-label" for="proctorStrictnessSelect">Proctor Strictness Mode</label>
@@ -1828,7 +1819,7 @@
     function startInterview() {
       selectedRole = document.getElementById("jobRoleSelect").value;
       selectedDifficulty = document.getElementById("difficultySelect").value;
-      timerLimit = parseInt(document.getElementById("timerSelect").value);
+      timerLimit = 0;
       proctorStrictness = document.getElementById("proctorStrictnessSelect").value;
 
       document.getElementById("setupContainer").style.display = "none";
@@ -1838,18 +1829,6 @@
       const activeVideo = document.getElementById("webcamVideo");
       if (localStream && activeVideo) {
         activeVideo.srcObject = localStream;
-        const setAspect = () => {
-          if (activeVideo.videoWidth && activeVideo.videoHeight) {
-            const aspect = activeVideo.videoWidth / activeVideo.videoHeight;
-            console.log(`[JobSarthi] Camera stream active: ${activeVideo.videoWidth}x${activeVideo.videoHeight} (Aspect: ${aspect})`);
-            document.getElementById("interviewerPanel").style.setProperty("aspect-ratio", aspect, "important");
-            document.querySelector(".camera-container").style.setProperty("aspect-ratio", aspect, "important");
-          }
-        };
-        activeVideo.addEventListener("loadedmetadata", setAspect);
-        if (activeVideo.readyState >= 1) {
-          setAspect();
-        }
       }
 
       document.getElementById("diffTag").textContent = selectedDifficulty;
@@ -1946,11 +1925,12 @@
           // Natural conversation flow reduction: -4
           logProctorEvent("Natural conversation flow maintained.", -4);
 
-          // Display feedback momentarily
+          // Display simple evaluating state
           document.getElementById("questionDisplay").innerHTML = `
-            <div style="color: var(--accent-secondary); font-size: 0.85rem; margin-bottom: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Sarthi Feedback:</div>
-            <div style="font-size: 1.05rem; line-height: 1.4; margin-bottom: 10px; color: var(--text-primary); font-weight: 500;">"${data.feedback}"</div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: ${data.score >= 7 ? 'var(--success)' : (data.score < 5 ? 'var(--danger)' : 'var(--warning)')}">Evaluation Score: ${data.score}/10</div>
+            <div style="display: flex; align-items: center; gap: 10px; color: var(--accent-secondary); font-weight: 700; letter-spacing: 0.5px; animation: pulseMic 1.5s infinite; font-size: 1.05rem;">
+              <span>⚡</span>
+              <span>EVALUATING YOUR ANSWER...</span>
+            </div>
           `;
 
           // React visually based on score rules
@@ -1962,8 +1942,8 @@
             updateAvatarExpression('confused');
           }
 
-          // Let candidate read feedback for 3.5 seconds
-          await new Promise(resolve => setTimeout(resolve, 3500));
+          // Sleek transition delay
+          await new Promise(resolve => setTimeout(resolve, 1200));
           if (isInterviewFinished) return;
 
           if (data.difficultyChange === "increase") {
@@ -1983,7 +1963,7 @@
 
         // Set serious expression prior to speaking questions
         updateAvatarExpression('serious');
-        speakQuestion(currentQuestionText);
+        speakQuestion(data.spokenQuestion || currentQuestionText);
 
       } catch (err) {
         console.error("API error:", err);
@@ -2079,56 +2059,52 @@
       
       const voices = window.speechSynthesis.getVoices();
       const isFemale = (selectedInterviewer === 'ananya');
+      
+      // Helper to identify female voice signatures
+      const isVoiceFemale = (v) => {
+        const name = v.name.toLowerCase();
+        return name.includes('female') || name.includes('zira') || name.includes('samantha') || 
+               name.includes('hazel') || name.includes('victoria') || name.includes('veena') || 
+               name.includes('heera') || name.includes('susan') || name.includes('karen') || 
+               name.includes('haruka') || name.includes('moira') || name.includes('tessa') ||
+               (name.includes('google us english') && !name.includes('male'));
+      };
+
+      // Filter based on character gender
+      const genderVoices = voices.filter(v => isFemale ? isVoiceFemale(v) : !isVoiceFemale(v));
       let chosenVoice = null;
 
-      // 1. Hindi/Hinglish voice selection
+      // 1. Try language match (Hindi/Hinglish)
       if (selectedLanguage === 'hi' || selectedLanguage === 'hinglish') {
-        const hindiVoices = voices.filter(v => v.lang.startsWith('hi'));
-        if (hindiVoices.length > 0) {
-          const genderMatch = hindiVoices.find(v => {
-            const name = v.name.toLowerCase();
-            if (isFemale) {
-              return name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('veena') || name.includes('heera');
-            } else {
-              return name.includes('male') || name.includes('david') || name.includes('rishi') || name.includes('ravi');
-            }
-          });
-          chosenVoice = genderMatch || hindiVoices[0];
-        }
+        const langVoice = genderVoices.find(v => v.lang.startsWith('hi'));
+        if (langVoice) chosenVoice = langVoice;
       }
 
-      // 2. English voice selection fallback
-      if (!chosenVoice && voices.length > 0) {
-        if (isFemale) {
-          chosenVoice = voices.find(v => {
-            const name = v.name.toLowerCase();
-            return (name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('hazel') || name.includes('victoria') || name.includes('veena') || name.includes('susan')) && v.lang.startsWith('en');
-          });
+      // 2. Try English voice matches
+      if (!chosenVoice && genderVoices.length > 0) {
+        if (selectedInterviewer === 'vikram') {
+          // Vikram wants GB (British) or slower/different male voice
+          chosenVoice = genderVoices.find(v => v.lang.includes('GB')) || 
+                        genderVoices.find(v => v.name.toLowerCase().includes('google')) || 
+                        genderVoices[0];
         } else {
-          if (selectedInterviewer === 'vikram') {
-            chosenVoice = voices.find(v => {
-              const name = v.name.toLowerCase();
-              return (name.includes('male') || name.includes('rishi') || name.includes('daniel') || name.includes('george') || name.includes('ravi') || name.includes('mark')) && v.lang.startsWith('en');
-            }) || voices.find(v => v.name.toLowerCase().includes('david') && v.lang.startsWith('en'));
-          } else {
-            chosenVoice = voices.find(v => {
-              const name = v.name.toLowerCase();
-              return (name.includes('david') || name.includes('mark') || name.includes('male') || name.includes('ravi') || name.includes('rishi')) && v.lang.startsWith('en');
-            });
-          }
+          // Sarthi wants standard US English male voice
+          chosenVoice = genderVoices.find(v => v.lang.includes('US')) || 
+                        genderVoices.find(v => v.lang.startsWith('en')) || 
+                        genderVoices[0];
         }
       }
 
-      // 3. Absolute fallbacks
+      // 3. Fallback to any voice within genderVoices
+      if (!chosenVoice && genderVoices.length > 0) {
+        chosenVoice = genderVoices[0];
+      }
+
+      // 4. Absolute fallback to any voice if gender separation yielded nothing
       if (!chosenVoice && voices.length > 0) {
-        chosenVoice = voices.find(v => {
-          const name = v.name.toLowerCase();
-          if (isFemale) {
-            return name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('hazel') || name.includes('veena');
-          } else {
-            return name.includes('male') || name.includes('david') || name.includes('mark') || name.includes('rishi') || name.includes('ravi');
-          }
-        });
+        chosenVoice = voices.find(v => v.lang.includes("en-US") && v.name.includes("Google")) || 
+                      voices.find(v => v.lang.startsWith("en")) || 
+                      voices[0];
       }
 
       if (!chosenVoice && voices.length > 0) {
@@ -2383,22 +2359,8 @@
             });
             accumulatedScore += data.score !== undefined ? data.score : 7;
             
-            // Show feedback
-            document.getElementById("questionDisplay").innerHTML = `
-              <div style="color: var(--accent-secondary); font-size: 0.85rem; margin-bottom: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Sarthi Feedback:</div>
-              <div style="font-size: 1.05rem; line-height: 1.4; margin-bottom: 10px; color: var(--text-primary); font-weight: 500;">"${data.feedback}"</div>
-              <div style="font-weight: 700; font-size: 0.95rem; color: ${data.score >= 7 ? 'var(--success)' : (data.score < 5 ? 'var(--danger)' : 'var(--warning)')}">Evaluation Score: ${data.score}/10</div>
-            `;
-            
-            if (data.score >= 8) {
-              updateAvatarExpression('happy');
-            } else if (data.score >= 5) {
-              updateAvatarExpression('encouraging');
-            } else {
-              updateAvatarExpression('confused');
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 3500));
+            // Do not show marks or feedback, just sleep briefly to finalize
+            await new Promise(resolve => setTimeout(resolve, 1500));
             
           } catch(e) {
             interviewHistory.push({

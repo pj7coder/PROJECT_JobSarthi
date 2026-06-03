@@ -1305,7 +1305,7 @@ Actively listen to the candidate's responses. Your next question MUST be a direc
     if (language === "hi") {
       systemPrompt += `\nLanguage instruction: You MUST ask questions and provide feedback in HINDI language (Devanagari script). Keep the tone professional. Do not use English language script for the question or feedback text fields.`;
     } else if (language === "hinglish") {
-      systemPrompt += `\nLanguage instruction: You MUST ask questions and provide feedback in HINGLISH language (a blend of Hindi and English written in the Latin/English script). For example: "Aap apne standard processes ke baare mein bataiye." or "Aap is problem ko kaise manage karenge?".`;
+      systemPrompt += `\nLanguage instruction: You MUST write the "nextQuestion" and "feedback" fields in standard English language. However, you MUST also add a new string field named "spokenQuestion" containing the exact same question translated into HINGLISH language (a friendly blend of Hindi and English written in Latin/English script, e.g. "Aap is scalability problem ko kaise handle karenge?").`;
     } else {
       systemPrompt += `\nLanguage instruction: You MUST ask questions and provide feedback in ENGLISH language.`;
     }
@@ -1315,6 +1315,7 @@ Actively listen to the candidate's responses. Your next question MUST be a direc
 If it is the FIRST question:
 {
   "nextQuestion": "The first interview question to ask the candidate, personalized to their background if profile details are provided."
+  ${language === "hinglish" ? ',\n  "spokenQuestion": "The first question translated into Hinglish (Hindi/English blend in Latin script)"' : ''}
 }
 
 If it is a SUBSEQUENT question:
@@ -1323,6 +1324,7 @@ If it is a SUBSEQUENT question:
   "score": 8, // integer score from 0 to 10 evaluating their last answer
   "difficultyChange": "increase" | "decrease" | "maintain",
   "nextQuestion": "The next follow-up question to ask the candidate, directly engaging with what they just said."
+  ${language === "hinglish" ? ',\n  "spokenQuestion": "The next question translated into Hinglish (Hindi/English blend in Latin script)"' : ''}
 }`;
 
     // Build conversation context
