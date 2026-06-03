@@ -12,9 +12,10 @@
   align-items: center;
   justify-content: center;
   padding: 4px 8px;
-  gap: 22px; /* Increased gap to prevent overlaps */
+  gap: 22px;
   height: 100%;
   box-sizing: border-box;
+  contain: layout style; /* Isolate paint to dock panel */
 }
 
 body.light-theme .dock-panel {
@@ -26,10 +27,11 @@ body.light-theme .dock-panel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px; /* Pill width compressed */
-  height: 32px; /* Pill height compressed */
+  width: 46px;
+  height: 32px;
   cursor: pointer;
   outline: none;
+  will-change: transform;
 }
 
 .dock-item-bg {

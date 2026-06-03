@@ -123,8 +123,20 @@ class HeaderDock {
   
   bindInteractions() {
     this.destroy(); // Unbind any prior listeners before re-binding
+    this._rafId = null;
+    this._pendingMouseX = null;
     
-    this.boundOnMouseMove = this.onMouseMove.bind(this);
+    this.boundOnMouseMove = (e) => {
+      this._pendingMouseX = e.clientX;
+      if (!this._rafId) {
+        this._rafId = requestAnimationFrame(() => {
+          this._rafId = null;
+          if (this._pendingMouseX !== null) {
+            this._applyMagnification(this._pendingMouseX);
+          }
+        });
+      }
+    };
     this.boundOnMouseLeave = this.onMouseLeave.bind(this);
     this.boundCache = () => this.cachePositions();
     
@@ -148,7 +160,7 @@ class HeaderDock {
     });
   }
   
-  onMouseMove(e) {
+  _applyMagnification(mouseX) {
     if (!this.itemPositions) return;
     
     // Disable dock physics / magnification if Dynamic Header (or Advanced UI) is disabled
@@ -157,8 +169,6 @@ class HeaderDock {
       this.resetSizes();
       return;
     }
-    
-    const mouseX = e.clientX;
     
     this.itemPositions.forEach(pos => {
       const dist = Math.abs(mouseX - pos.centerX);
@@ -178,8 +188,6 @@ class HeaderDock {
         const scaleX = targetWidth / this.baseWidth;
         const scaleY = targetHeight / this.baseHeight;
         const translateY = 10 * smoothFactor;
-        
-        // Dynamically compute border-radius: goes from 16px (pill) to 10px (rounded square)
         const borderRadius = 16 - (16 - 10) * smoothFactor;
         
         bg.style.transform = `scale(${scaleX}, ${scaleY}) translateY(${translateY}px)`;
@@ -194,8 +202,13 @@ class HeaderDock {
       }
     });
   }
-  
+
   onMouseLeave() {
+    this._pendingMouseX = null;
+    if (this._rafId) {
+      cancelAnimationFrame(this._rafId);
+      this._rafId = null;
+    }
     this.resetSizes();
   }
   
@@ -206,24 +219,34 @@ class HeaderDock {
       item.style.zIndex = '1';
       
       if (bg) {
+        bg.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
         bg.style.transform = 'scale(1, 1) translateY(0)';
         bg.style.borderRadius = '16px';
-        bg.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
       }
       if (icon) {
-        icon.style.transform = 'scale(1) translateY(0)';
         icon.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+        icon.style.transform = 'scale(1) translateY(0)';
       }
-      
-      setTimeout(() => {
-        if (bg) bg.style.transition = '';
-        if (icon) icon.style.transition = '';
-      }, 250);
+    });
+    // Clear transitions after animation completes
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.items.forEach(item => {
+          const bg = item.querySelector('.dock-item-bg');
+          const icon = item.querySelector('.dock-icon');
+          if (bg) bg.style.transition = '';
+          if (icon) icon.style.transition = '';
+        });
+      });
     });
   }
   
   destroy() {
     if (!this.active) return;
+    if (this._rafId) {
+      cancelAnimationFrame(this._rafId);
+      this._rafId = null;
+    }
     if (this.panel) {
       this.panel.removeEventListener('mousemove', this.boundOnMouseMove);
       this.panel.removeEventListener('mouseleave', this.boundOnMouseLeave);
