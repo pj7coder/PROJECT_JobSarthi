@@ -1411,6 +1411,7 @@
         function updateCachedSarthiDimensions() {
           cachedWindowWidth = window.innerWidth;
           cachedWindowHeight = window.innerHeight;
+          sizeChanged = true;
           sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
           if (sarthiScrollSectionEl) {
             const rect = sarthiScrollSectionEl.getBoundingClientRect();
@@ -1429,12 +1430,13 @@
           clickContentEl = document.getElementById('clickExpandedContent');
 
           if (floatingBtnEl) {
-            floatingBtnEl.style.transition = 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1), height 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.4s, border-radius 0.4s, opacity 0.3s';
-            floatingBtnEl.style.willChange = 'transform, width, height';
+            floatingBtnEl.style.transition = 'width 0.35s cubic-bezier(0.16, 1, 0.3, 1), height 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease, border-radius 0.35s, opacity 0.25s';
+            floatingBtnEl.style.willChange = 'transform, opacity';
           }
         }
 
-        function updateSarthiState() {
+        let sizeChanged = false;
+        function updateSarthiState(forceUpdate = false) {
           const W = cachedWindowWidth;
           const H = cachedWindowHeight;
 
@@ -1456,19 +1458,27 @@
             targetScrollOpacity = 1;
           }
 
-          if (floatingBtnEl) {
-            floatingBtnEl.style.width = `${targetWidth}px`;
-            floatingBtnEl.style.height = `${targetHeight}px`;
-            floatingBtnEl.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
-            if (sarthiMode === 'minimized') {
-              floatingBtnEl.style.borderRadius = '27px'; floatingBtnEl.style.background = 'var(--sarthi-bg-minimized)'; floatingBtnEl.classList.remove('pane-open');
-            } else {
-              floatingBtnEl.style.borderRadius = '24px'; floatingBtnEl.style.background = 'var(--sarthi-bg-expanded)'; floatingBtnEl.classList.add('pane-open');
+          if (sarthiMode !== lastSarthiMode || forceUpdate || sizeChanged) {
+            if (floatingBtnEl) {
+              floatingBtnEl.style.width = `${targetWidth}px`;
+              floatingBtnEl.style.height = `${targetHeight}px`;
+              floatingBtnEl.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
+              if (sarthiMode === 'minimized') {
+                floatingBtnEl.style.borderRadius = '27px'; 
+                floatingBtnEl.style.background = 'var(--sarthi-bg-minimized)'; 
+                floatingBtnEl.classList.remove('pane-open');
+              } else {
+                floatingBtnEl.style.borderRadius = '24px'; 
+                floatingBtnEl.style.background = 'var(--sarthi-bg-expanded)'; 
+                floatingBtnEl.classList.add('pane-open');
+              }
             }
+            if (smallContentEl) { smallContentEl.style.opacity = targetSmallOpacity; smallContentEl.style.pointerEvents = targetSmallOpacity > 0.5 ? 'auto' : 'none'; }
+            if (expandedContentEl) { expandedContentEl.style.opacity = targetScrollOpacity; expandedContentEl.style.pointerEvents = targetScrollOpacity > 0.5 ? 'auto' : 'none'; }
+            if (clickContentEl) { clickContentEl.style.opacity = targetClickOpacity; clickContentEl.style.pointerEvents = targetClickOpacity > 0.5 ? 'auto' : 'none'; }
+            lastSarthiMode = sarthiMode;
+            sizeChanged = false;
           }
-          if (smallContentEl) { smallContentEl.style.opacity = targetSmallOpacity; smallContentEl.style.pointerEvents = targetSmallOpacity > 0.5 ? 'auto' : 'none'; }
-          if (expandedContentEl) { expandedContentEl.style.opacity = targetScrollOpacity; expandedContentEl.style.pointerEvents = targetScrollOpacity > 0.5 ? 'auto' : 'none'; }
-          if (clickContentEl) { clickContentEl.style.opacity = targetClickOpacity; clickContentEl.style.pointerEvents = targetClickOpacity > 0.5 ? 'auto' : 'none'; }
 
           if (sarthiMode === 'scrollExpanded') {
             const start = cachedSectionTopDoc - H + 200;
@@ -1498,7 +1508,6 @@
               }
             }
           }
-          lastSarthiMode = sarthiMode;
         }
 
         function updateSarthiSlideMobile(index) {
@@ -1519,7 +1528,7 @@
         function closeClickPanel(event) {
           if (event) event.stopPropagation();
           sarthiMode = 'minimized';
-          updateSarthiState();
+          updateSarthiState(true);
         }
 
         let scrollTimeout = null;

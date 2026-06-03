@@ -1491,6 +1491,23 @@ body.light-theme .mobile-bottom-nav {
 
 #floatingSarthiBtn {
   z-index: 1000 !important;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              height 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-radius 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              background-color 0.3s ease, 
+              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 0.25s ease !important;
+  will-change: transform, opacity;
+}
+
+#floatingSarthiBtn.pane-open {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(13, 13, 16, 0.98) !important;
+}
+
+.light-theme #floatingSarthiBtn.pane-open {
+  background: rgba(255, 255, 255, 0.98) !important;
 }
 
 /* --- Global Settings Modal (Neutral Theme) --- */
