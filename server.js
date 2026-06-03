@@ -1251,7 +1251,7 @@ const FALLBACK_QUESTIONS = {
 
 app.post("/api/sarthi/interview/next", async (req, res) => {
   try {
-    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility } = req.body;
+    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language } = req.body;
     const currentRole = role || "Full Stack Developer";
     const currentDiff = difficulty || "Intermediate";
     const isFirstQuestion = !currentQuestion || !history || history.length === 0;
@@ -1300,6 +1300,14 @@ Actively listen to the candidate's responses. Your next question MUST be a direc
       systemPrompt += `\nAbility Active: You are Prof. Vikram, an aged expert who asks questions at a VERY deep technical level. Focus intensely on low-level mechanics, internal architecture patterns, memory limits, and complex algorithms rather than simple high-level concepts.`;
     } else if (interviewerAbility === "ananya") {
       systemPrompt += `\nAbility Active: You are Dr. Ananya. You conduct evaluations with extreme scrutiny and rigor. Grade responses strictly, and offer granular critical critiques rather than general praise.`;
+    }
+
+    if (language === "hi") {
+      systemPrompt += `\nLanguage instruction: You MUST ask questions and provide feedback in HINDI language (Devanagari script). Keep the tone professional. Do not use English language script for the question or feedback text fields.`;
+    } else if (language === "hinglish") {
+      systemPrompt += `\nLanguage instruction: You MUST ask questions and provide feedback in HINGLISH language (a blend of Hindi and English written in the Latin/English script). For example: "Aap apne standard processes ke baare mein bataiye." or "Aap is problem ko kaise manage karenge?".`;
+    } else {
+      systemPrompt += `\nLanguage instruction: You MUST ask questions and provide feedback in ENGLISH language.`;
     }
 
     systemPrompt += `\nYou must return your output ONLY as a valid JSON object matching the following schemas.

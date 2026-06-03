@@ -110,11 +110,14 @@
       }
       .interviewer-avatar-panel,
       .camera-container {
-        width: 100% !important;
+        width: auto !important;
+        max-width: 100% !important;
         aspect-ratio: 4 / 3 !important;
         flex: none !important;
         height: auto !important;
+        min-height: 0 !important;
         max-height: calc((100vh - 220px) / 2) !important;
+        margin: 0 auto !important;
       }
       .controls-row {
         width: 100% !important;
@@ -1002,25 +1005,34 @@
           </select>
         </div>
 
+        <div class="form-group">
+          <label class="form-label" for="languageSelect">Interview Language / स्क्रिप्ट</label>
+          <select id="languageSelect" class="form-control" style="background: var(--bg-secondary);">
+            <option value="en" selected>English</option>
+            <option value="hi">Hindi (हिन्दी)</option>
+            <option value="hinglish">Hinglish (हिन्दी/English)</option>
+          </select>
+        </div>
+
         <div class="form-group" style="grid-column: span 2; margin-top: 10px;">
           <label class="form-label" style="margin-bottom: 8px; display: block;">Select Interviewer Character & Ability</label>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
             <!-- Sarthi Card -->
             <div class="character-card active" id="charCard_sarthi" onclick="selectCharacter('sarthi')">
               <div class="char-avatar-mini" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">🧑‍💼</div>
-              <div class="char-name">Dr. Sarthi (Default)</div>
+              <div class="char-name">Sarthi (Default)</div>
               <div class="char-ability">Balanced Assessment</div>
             </div>
             <!-- Vikram Card -->
             <div class="character-card" id="charCard_vikram" onclick="selectCharacter('vikram')">
               <div class="char-avatar-mini" style="background: linear-gradient(135deg, #64748b, #475569);">👨‍🦳</div>
-              <div class="char-name">Prof. Vikram (Aged)</div>
+              <div class="char-name">Prof. Vikram</div>
               <div class="char-ability">Deep-Dive Questions</div>
             </div>
             <!-- Ananya Card -->
             <div class="character-card" id="charCard_ananya" onclick="selectCharacter('ananya')">
               <div class="char-avatar-mini" style="background: linear-gradient(135deg, #ec4899, #db2777);">👩‍💼</div>
-              <div class="char-name">Dr. Ananya (Female)</div>
+              <div class="char-name">Dr. Ananya</div>
               <div class="char-ability">High Scrutiny Review</div>
             </div>
           </div>
@@ -1039,12 +1051,12 @@
       <div class="proctor-sidebar">
         
         <!-- Interviewer Avatar Panel -->
-        <div class="glass-panel interviewer-avatar-panel" id="interviewerPanel" style="position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); min-height: 220px;">
+        <div class="glass-panel interviewer-avatar-panel" id="interviewerPanel" style="position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);">
           
           <!-- Status Indicator Tag -->
           <div style="position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 99px; font-size: 0.7rem; font-weight: 700; color: var(--accent-secondary); display: flex; align-items: center; gap: 6px; letter-spacing: 0.5px; z-index: 4;">
             <span id="interviewerStatusPulse" style="width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent-secondary); display: inline-block; animation: pulseMic 1.5s infinite;"></span>
-            <span id="interviewerStatusText">DR. SARTHI</span>
+            <span id="interviewerStatusText">SARTHI</span>
           </div>
 
           <!-- Placeholder SVG or interactive avatar container with Off-White Wall and Clock -->
@@ -1069,7 +1081,7 @@
               <div style="position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #dc2626; z-index: 10;"></div>
             </div>
 
-            <svg id="interviewerSvg" width="160" height="160" viewBox="0 0 100 100" style="overflow: visible; z-index: 2;">
+            <svg id="interviewerSvg" viewBox="0 0 100 100" style="width: 45%; height: 45%; max-width: 160px; max-height: 160px; min-width: 110px; min-height: 110px; overflow: visible; z-index: 2;">
               <defs>
                 <radialGradient id="headGlow" cx="50%" cy="50%" r="50%">
                   <stop offset="0%" stop-color="var(--accent-secondary)" stop-opacity="0.3" />
@@ -1424,6 +1436,7 @@
 
     let isInterviewFinished = false;
     let selectedInterviewer = "sarthi";
+    let selectedLanguage = "en";
 
     let candidateProfile = null;
     let candidateName = localStorage.getItem('seeker_name') || 'Candidate';
@@ -1464,7 +1477,7 @@
 
       const statusText = document.getElementById("interviewerStatusText");
       if (statusText) {
-        if (charName === "sarthi") statusText.textContent = "DR. SARTHI";
+        if (charName === "sarthi") statusText.textContent = "SARTHI";
         else if (charName === "vikram") statusText.textContent = "PROF. VIKRAM";
         else if (charName === "ananya") statusText.textContent = "DR. ANANYA";
       }
@@ -1910,7 +1923,8 @@
             timerExpired: wasTimerExpired,
             candidateProfile: candidateProfile,
             candidateName: candidateName,
-            interviewerAbility: selectedInterviewer
+            interviewerAbility: selectedInterviewer,
+            language: selectedLanguage
           })
         });
 
@@ -2016,6 +2030,12 @@
         const audioTrack = localStream ? localStream.getAudioTracks()[0] : null;
         if (audioTrack && !audioTrack.enabled) return;
         
+        if (selectedLanguage === 'hi' || selectedLanguage === 'hinglish') {
+          speechRecognition.lang = 'hi-IN';
+        } else {
+          speechRecognition.lang = 'en-US';
+        }
+
         document.getElementById("speechSupportedTag").textContent = "Listening";
         document.getElementById("speechSupportedTag").style.backgroundColor = "rgba(16, 185, 129, 0.15)";
         document.getElementById("speechSupportedTag").style.color = "var(--success)";
@@ -2058,11 +2078,76 @@
       const utterance = new SpeechSynthesisUtterance(text);
       
       const voices = window.speechSynthesis.getVoices();
-      const usVoice = voices.find(v => v.lang.includes("en-US") && v.name.includes("Google")) || voices.find(v => v.lang.includes("en-US"));
-      if (usVoice) utterance.voice = usVoice;
-      
-      utterance.rate = 1.08;
-      utterance.pitch = 1.0;
+      const isFemale = (selectedInterviewer === 'ananya');
+      let chosenVoice = null;
+
+      // 1. Hindi/Hinglish voice selection
+      if (selectedLanguage === 'hi' || selectedLanguage === 'hinglish') {
+        const hindiVoices = voices.filter(v => v.lang.startsWith('hi'));
+        if (hindiVoices.length > 0) {
+          const genderMatch = hindiVoices.find(v => {
+            const name = v.name.toLowerCase();
+            if (isFemale) {
+              return name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('veena') || name.includes('heera');
+            } else {
+              return name.includes('male') || name.includes('david') || name.includes('rishi') || name.includes('ravi');
+            }
+          });
+          chosenVoice = genderMatch || hindiVoices[0];
+        }
+      }
+
+      // 2. English voice selection fallback
+      if (!chosenVoice && voices.length > 0) {
+        if (isFemale) {
+          chosenVoice = voices.find(v => {
+            const name = v.name.toLowerCase();
+            return (name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('hazel') || name.includes('victoria') || name.includes('veena') || name.includes('susan')) && v.lang.startsWith('en');
+          });
+        } else {
+          if (selectedInterviewer === 'vikram') {
+            chosenVoice = voices.find(v => {
+              const name = v.name.toLowerCase();
+              return (name.includes('male') || name.includes('rishi') || name.includes('daniel') || name.includes('george') || name.includes('ravi') || name.includes('mark')) && v.lang.startsWith('en');
+            }) || voices.find(v => v.name.toLowerCase().includes('david') && v.lang.startsWith('en'));
+          } else {
+            chosenVoice = voices.find(v => {
+              const name = v.name.toLowerCase();
+              return (name.includes('david') || name.includes('mark') || name.includes('male') || name.includes('ravi') || name.includes('rishi')) && v.lang.startsWith('en');
+            });
+          }
+        }
+      }
+
+      // 3. Absolute fallbacks
+      if (!chosenVoice && voices.length > 0) {
+        chosenVoice = voices.find(v => {
+          const name = v.name.toLowerCase();
+          if (isFemale) {
+            return name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('hazel') || name.includes('veena');
+          } else {
+            return name.includes('male') || name.includes('david') || name.includes('mark') || name.includes('rishi') || name.includes('ravi');
+          }
+        });
+      }
+
+      if (!chosenVoice && voices.length > 0) {
+        chosenVoice = voices.find(v => v.lang.includes("en-US") && v.name.includes("Google")) || voices.find(v => v.lang.startsWith("en")) || voices[0];
+      }
+
+      if (chosenVoice) {
+        utterance.voice = chosenVoice;
+        console.log(`[JobSarthi Voice] Using voice: ${chosenVoice.name} (${chosenVoice.lang}) for interviewer: ${selectedInterviewer}`);
+      }
+
+      // Pitch and rate customization
+      if (selectedInterviewer === "vikram") {
+        utterance.rate = 0.95;  // slightly slower
+        utterance.pitch = 0.85; // lower pitch for senior character
+      } else {
+        utterance.rate = 1.08;
+        utterance.pitch = 1.0;
+      }
       
       utterance.onend = () => {
         onSpeechFinished();
@@ -2283,7 +2368,9 @@
                 userAnswer: answerVal,
                 timerExpired: wasTimerExpired,
                 candidateProfile: candidateProfile,
-                candidateName: candidateName
+                candidateName: candidateName,
+                interviewerAbility: selectedInterviewer,
+                language: selectedLanguage
               })
             });
             const data = await response.json();
@@ -2423,9 +2510,12 @@
           const avatarPulseRing = document.getElementById("avatarPulseRing");
           const avatarMouth = document.getElementById("avatarMouth");
 
-          if (statusPulse && statusText) {
+            let charLabel = "SARTHI";
+            if (selectedInterviewer === "vikram") charLabel = "PROF. VIKRAM";
+            else if (selectedInterviewer === "ananya") charLabel = "DR. ANANYA";
+
             if (isInterviewPaused) {
-              statusText.textContent = "SARTHI AI - PAUSED";
+              statusText.textContent = `${charLabel} - PAUSED`;
               statusPulse.style.backgroundColor = "var(--warning)";
               if (avatarPulseRing) {
                 avatarPulseRing.setAttribute("stroke", "var(--warning)");
@@ -2435,7 +2525,7 @@
                 avatarMouth.classList.remove("talking-mouth");
               }
             } else if (isAiSpeaking) {
-              statusText.textContent = "SARTHI AI - SPEAKING";
+              statusText.textContent = `${charLabel} - SPEAKING`;
               statusPulse.style.backgroundColor = "var(--accent-secondary)";
               if (avatarPulseRing) {
                 avatarPulseRing.setAttribute("stroke", "var(--accent-secondary)");
@@ -2445,7 +2535,7 @@
                 avatarMouth.classList.add("talking-mouth");
               }
             } else if (isThinkTimeActive) {
-              statusText.textContent = "SARTHI AI - PREPARING";
+              statusText.textContent = `${charLabel} - PREPARING`;
               statusPulse.style.backgroundColor = "var(--accent-tertiary)";
               if (avatarPulseRing) {
                 avatarPulseRing.setAttribute("stroke", "var(--accent-tertiary)");
@@ -2456,7 +2546,7 @@
               }
             } else {
               // Listening mode
-              statusText.textContent = "SARTHI AI - LISTENING";
+              statusText.textContent = `${charLabel} - LISTENING`;
               statusPulse.style.backgroundColor = "var(--success)";
               if (avatarPulseRing) {
                 avatarPulseRing.setAttribute("stroke", "var(--success)");
@@ -2469,7 +2559,6 @@
                 avatarMouth.classList.remove("talking-mouth");
               }
             }
-          }
 
           // Candidate silence detection: if user stays silent during their turn
           if (!isAiSpeaking && !isInterviewPaused && !isThinkTimeActive) {
