@@ -1229,6 +1229,23 @@ const FALLBACK_QUESTIONS = {
       "Explain how you would optimize LLM inference speed using quantization, speculative decoding, and vLLM.",
       "How would you design a real-time anomaly detection system for fraud detection with strict latency limits (<10ms)?"
     ]
+  },
+  "Economics / Financial Analyst": {
+    "Beginner": [
+      "Can you explain the difference between microeconomics and macroeconomics?",
+      "What is supply and demand, and how does market equilibrium work?",
+      "How do inflation and interest rates relate to each other?"
+    ],
+    "Intermediate": [
+      "Explain the concept of Opportunity Cost and how it applies to business decision-making.",
+      "How do you perform a cost-benefit analysis for a new project or investment?",
+      "Describe the difference between fiscal policy and monetary policy and their impacts on business."
+    ],
+    "Expert": [
+      "How would you model the economic impact of a sudden commodity price shock on a retail supply chain?",
+      "Can you explain game theory and how Nash equilibrium can be applied to competitive market pricing?",
+      "How do you evaluate currency exchange risk and hedge against it in international trade?"
+    ]
   }
 };
 
@@ -1239,11 +1256,45 @@ app.post("/api/sarthi/interview/next", async (req, res) => {
     const currentDiff = difficulty || "Intermediate";
     const isFirstQuestion = !currentQuestion || !history || history.length === 0;
 
+    let resolvedRole = currentRole;
+    if (currentRole === "From your resume") {
+      if (candidateProfile) {
+        const skillsStr = Array.isArray(candidateProfile.skills) ? candidateProfile.skills.join(" ").toLowerCase() : (candidateProfile.skills || "").toLowerCase();
+        const expStr = (candidateProfile.experience || "").toLowerCase();
+        const degStr = (candidateProfile.degree || "").toLowerCase();
+
+        if (degStr.includes("economics") || expStr.includes("economics") || skillsStr.includes("economics") ||
+            degStr.includes("finance") || expStr.includes("finance") || skillsStr.includes("finance") ||
+            degStr.includes("commerce") || expStr.includes("commerce") || skillsStr.includes("commerce")) {
+          resolvedRole = "Economics / Financial Analyst";
+        } else if (skillsStr.includes("react") || skillsStr.includes("javascript") || skillsStr.includes("frontend") || expStr.includes("frontend") || expStr.includes("web developer")) {
+          resolvedRole = "Frontend Developer";
+        } else if (skillsStr.includes("node") || skillsStr.includes("backend") || expStr.includes("backend") || skillsStr.includes("python")) {
+          resolvedRole = "Backend Developer";
+        } else {
+          if (expStr.includes("design") || skillsStr.includes("figma") || skillsStr.includes("ui") || skillsStr.includes("ux")) {
+            resolvedRole = "UI/UX Designer";
+          } else if (expStr.includes("product") || skillsStr.includes("pm") || skillsStr.includes("agile")) {
+            resolvedRole = "Product Manager";
+          } else if (expStr.includes("data scientist") || skillsStr.includes("machine learning")) {
+            resolvedRole = "Data Scientist";
+          } else {
+            resolvedRole = "Candidate's Profile Role";
+          }
+        }
+      }
+      if (resolvedRole === "From your resume") {
+        resolvedRole = "Full Stack Developer";
+      }
+    }
+
     // Build the system prompt
-    let systemPrompt = `You are Sarthi, a friendly, extremely professional, and realistic 2D tech interviewer on the JobSarthi platform.
-Your target role is: ${currentRole}. The starting difficulty is: ${currentDiff}.
+    let systemPrompt = `You are Sarthi, a friendly, extremely professional, and realistic interviewer on the JobSarthi platform.
+Your target role is: ${resolvedRole}. The starting difficulty is: ${currentDiff}.
+Behave and conduct the interview completely based on the user's profile and background. Do NOT assume the candidate is a software engineer or has a developer background unless their target role, skills, or experience explicitly states it.
+For example, if their background is in Economics or Finance, ask relevant questions about Economics/Finance and related analytical methodologies. Do NOT refer to transitions from software unless the resume/profile clearly indicates a software history.
 Maintain a professional, conversational tone. Do not ask repetitive questions. 
-Actively listen to the candidate's responses. Your next question MUST be a direct follow-up or build upon their previous answer to keep the conversation natural and authentic, rather than just generating disjointed technical questions.`;
+Actively listen to the candidate's responses. Your next question MUST be a direct follow-up or build upon their previous answer to keep the conversation natural and authentic.`;
 
     if (interviewerAbility === "vikram") {
       systemPrompt += `\nAbility Active: You are Prof. Vikram, an aged expert who asks questions at a VERY deep technical level. Focus intensely on low-level mechanics, internal architecture patterns, memory limits, and complex algorithms rather than simple high-level concepts.`;
@@ -1390,7 +1441,16 @@ If it is a SUBSEQUENT question:
 
     // --- High-Quality Local Fallback Mode ---
     console.log("[Sarthi AI] Fallback mode triggered.");
-    const roleQuestions = FALLBACK_QUESTIONS[currentRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
+    let fallbackRole = resolvedRole;
+    if (!FALLBACK_QUESTIONS[fallbackRole]) {
+      const lowerRole = fallbackRole.toLowerCase();
+      if (lowerRole.includes("economics") || lowerRole.includes("finance") || lowerRole.includes("business")) {
+        fallbackRole = "Economics / Financial Analyst";
+      } else {
+        fallbackRole = "Full Stack Developer";
+      }
+    }
+    const roleQuestions = FALLBACK_QUESTIONS[fallbackRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
     const diffQuestions = roleQuestions[currentDiff] || roleQuestions["Intermediate"];
 
     if (isFirstQuestion) {

@@ -193,7 +193,7 @@
     .camera-container {
       position: relative;
       width: 100%;
-      height: 240px;
+      aspect-ratio: 4 / 3;
       border-radius: var(--radius-lg);
       overflow: hidden;
     }
@@ -207,7 +207,7 @@
     #webcamVideo {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
       transform: scaleX(-1);
     }
 
@@ -947,6 +947,7 @@
         <div class="form-group">
           <label class="form-label" for="jobRoleSelect">Target Job Role</label>
           <select id="jobRoleSelect" class="form-control" style="background: var(--bg-secondary);">
+            <option value="From your resume" selected>(From your resume)</option>
             <option value="Full Stack Developer">Full Stack Developer</option>
             <option value="Frontend Developer">Frontend Developer</option>
             <option value="Backend Developer">Backend Developer</option>
@@ -1238,6 +1239,9 @@
           <button id="playPauseBtn" class="control-btn" title="Pause Interview">
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
           </button>
+          <button id="toggleFullScreenBtn" class="control-btn" title="Full Screen">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+          </button>
           <button id="exitBtn" class="exit-pill-btn" title="Exit Interview">Exit</button>
         </div>
       </div>
@@ -1364,6 +1368,8 @@
 
     const PAUSE_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
     const PLAY_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+    const FULLSCREEN_ENTER_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>`;
+    const FULLSCREEN_EXIT_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><path d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4"></path></svg>`;
 
     // --- STATE MANAGEMENT ---
     let localStream = null;
@@ -1520,6 +1526,7 @@
       document.getElementById("toggleMicBtn").addEventListener("click", toggleMic);
       document.getElementById("toggleCamBtn").addEventListener("click", toggleCam);
       document.getElementById("playPauseBtn").addEventListener("click", togglePlayPause);
+      document.getElementById("toggleFullScreenBtn").addEventListener("click", toggleFullScreen);
       
       document.getElementById("exitBtn").addEventListener("click", () => {
         if(confirm("Are you sure you want to quit the interview? Your progress won't be saved.")) {
@@ -1804,6 +1811,14 @@
       const activeVideo = document.getElementById("webcamVideo");
       if (localStream && activeVideo) {
         activeVideo.srcObject = localStream;
+        activeVideo.addEventListener("loadedmetadata", () => {
+          if (activeVideo.videoWidth && activeVideo.videoHeight) {
+            const aspect = activeVideo.videoWidth / activeVideo.videoHeight;
+            console.log(`[JobSarthi] Camera stream active: ${activeVideo.videoWidth}x${activeVideo.videoHeight} (Aspect: ${aspect})`);
+            document.getElementById("interviewerPanel").style.setProperty("aspect-ratio", aspect, "important");
+            document.querySelector(".camera-container").style.setProperty("aspect-ratio", aspect, "important");
+          }
+        });
       }
 
       document.getElementById("diffTag").textContent = selectedDifficulty;
@@ -2137,7 +2152,7 @@
       isInterviewPaused = !isInterviewPaused;
       
       if (isInterviewPaused) {
-        btn.textContent = "▶️";
+        btn.innerHTML = PLAY_SVG;
         btn.title = "Resume Interview";
         btn.classList.add("muted");
         logProctorEvent("Interview paused.", 0);
@@ -2158,7 +2173,7 @@
 
         updateAvatarExpression('paused');
       } else {
-        btn.textContent = "⏸️";
+        btn.innerHTML = PAUSE_SVG;
         btn.title = "Pause Interview";
         btn.classList.remove("muted");
         logProctorEvent("Interview resumed.", 0);
@@ -2181,6 +2196,27 @@
             startListening();
           }
         }
+      }
+    }
+
+    function toggleFullScreen() {
+      const btn = document.getElementById("toggleFullScreenBtn");
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen()
+          .then(() => {
+            if (btn) btn.innerHTML = FULLSCREEN_EXIT_SVG;
+          })
+          .catch(err => {
+            console.error("Error attempting to enable full-screen mode:", err);
+          });
+      } else {
+        document.exitFullscreen()
+          .then(() => {
+            if (btn) btn.innerHTML = FULLSCREEN_ENTER_SVG;
+          })
+          .catch(err => {
+            console.error("Error attempting to exit full-screen mode:", err);
+          });
       }
     }
 
@@ -2297,8 +2333,18 @@
 
       // 3. Screen exit fullscreen check
       document.addEventListener("fullscreenchange", () => {
+        const btn = document.getElementById("toggleFullScreenBtn");
         if (!document.fullscreenElement) {
           logProctorEvent(`Fullscreen mode deactivated.`, 5);
+          if (btn) {
+            btn.innerHTML = FULLSCREEN_ENTER_SVG;
+            btn.title = "Full Screen";
+          }
+        } else {
+          if (btn) {
+            btn.innerHTML = FULLSCREEN_EXIT_SVG;
+            btn.title = "Exit Full Screen";
+          }
         }
       });
 
