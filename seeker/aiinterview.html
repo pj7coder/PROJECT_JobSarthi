@@ -7,6 +7,11 @@
   <title>AI Interview Simulator - JobSarthi Seeker</title>
   <meta name="description" content="Take an interactive, real-time AI mock interview with advanced proctoring and custom configurations.">
   <link rel="stylesheet" href="../css/main.css">
+  <script>
+    if (localStorage.getItem('seeker_logged_in') !== 'true') {
+      window.location.href = 'login_signup.html';
+    }
+  </script>
   
   <style>
     /* Globally hide header on this page */
@@ -69,12 +74,18 @@
       .container {
         max-width: 1350px !important;
         margin: 0 auto !important;
-        padding: 20px 24px !important;
-        height: 100vh !important;
+        padding: 40px 24px !important;
+        min-height: 100vh !important;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
         box-sizing: border-box;
+      }
+      body.interview-active .container {
+        height: 100vh !important;
+        min-height: 0 !important;
+        padding: 20px 24px !important;
+        justify-content: center;
       }
       #interviewContainer {
         display: flex;
@@ -99,8 +110,11 @@
       }
       .interviewer-avatar-panel,
       .camera-container {
-        flex: 1;
-        min-height: 0;
+        width: 100% !important;
+        aspect-ratio: 4 / 3 !important;
+        flex: none !important;
+        height: auto !important;
+        max-height: calc((100vh - 220px) / 2) !important;
       }
       .controls-row {
         width: 100% !important;
@@ -1811,14 +1825,18 @@
       const activeVideo = document.getElementById("webcamVideo");
       if (localStream && activeVideo) {
         activeVideo.srcObject = localStream;
-        activeVideo.addEventListener("loadedmetadata", () => {
+        const setAspect = () => {
           if (activeVideo.videoWidth && activeVideo.videoHeight) {
             const aspect = activeVideo.videoWidth / activeVideo.videoHeight;
             console.log(`[JobSarthi] Camera stream active: ${activeVideo.videoWidth}x${activeVideo.videoHeight} (Aspect: ${aspect})`);
             document.getElementById("interviewerPanel").style.setProperty("aspect-ratio", aspect, "important");
             document.querySelector(".camera-container").style.setProperty("aspect-ratio", aspect, "important");
           }
-        });
+        };
+        activeVideo.addEventListener("loadedmetadata", setAspect);
+        if (activeVideo.readyState >= 1) {
+          setAspect();
+        }
       }
 
       document.getElementById("diffTag").textContent = selectedDifficulty;
