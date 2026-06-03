@@ -1821,6 +1821,7 @@
       selectedDifficulty = document.getElementById("difficultySelect").value;
       timerLimit = 0;
       proctorStrictness = document.getElementById("proctorStrictnessSelect").value;
+      selectedLanguage = document.getElementById("languageSelect").value;
 
       document.getElementById("setupContainer").style.display = "none";
       document.getElementById("interviewContainer").style.display = "grid";
@@ -2076,7 +2077,7 @@
 
       // 1. Try language match (Hindi/Hinglish)
       if (selectedLanguage === 'hi' || selectedLanguage === 'hinglish') {
-        const langVoice = genderVoices.find(v => v.lang.startsWith('hi'));
+        const langVoice = genderVoices.find(v => v.lang.startsWith('hi') || v.lang.includes('IN'));
         if (langVoice) chosenVoice = langVoice;
       }
 
