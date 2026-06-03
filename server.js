@@ -642,7 +642,7 @@ const dbService = {
 // Groq AI Config
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-async function callGroq(messages, jsonMode = false) {
+async function callGroq(messages, jsonMode = false, temperature = 0.2) {
   if (!GROQ_API_KEY) {
     throw new Error("GROQ_API_KEY is not configured.");
   }
@@ -650,7 +650,7 @@ async function callGroq(messages, jsonMode = false) {
   const payload = {
     model: "llama-3.3-70b-versatile",
     messages: messages,
-    temperature: 0.2
+    temperature: temperature
   };
 
   if (jsonMode) {
@@ -1342,6 +1342,10 @@ If it is a SUBSEQUENT question:
       }
     }
 
+    // Introduce random variance to prevent repetitive questions
+    const randSeed = Math.random().toString(36).substring(7);
+    systemPrompt += `\nDynamic seed/instruction: Ensure the next question is highly distinct, fresh, and creative. Do not repeat topics, wordings, or questions from previous turns. [Variance Key: ${randSeed}].`;
+
     const messages = [
       { role: "system", content: systemPrompt },
       { role: "user", content: `Hello, I'm ready to start the interview for the ${currentRole} position at ${currentDiff} difficulty. Here is my profile background:\n${profileContext}` }
@@ -1390,7 +1394,7 @@ If it is a SUBSEQUENT question:
     // Call LLM
     if (GROQ_API_KEY) {
       console.log(`[Sarthi AI] Generating question using Groq... isFirstQuestion: ${isFirstQuestion}`);
-      const responseText = await callGroq(messages, true);
+      const responseText = await callGroq(messages, true, 0.85);
       let cleanText = responseText.trim();
       if (cleanText.startsWith("```")) {
         const lines = cleanText.split("\n");
@@ -1422,7 +1426,10 @@ If it is a SUBSEQUENT question:
         systemInstruction: {
           parts: [{ text: systemPrompt }]
         },
-        generationConfig: { responseMimeType: "application/json" }
+        generationConfig: { 
+          responseMimeType: "application/json",
+          temperature: 0.85
+        }
       };
 
       const response = await fetch(url, {

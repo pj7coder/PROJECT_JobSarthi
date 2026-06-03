@@ -1428,6 +1428,7 @@
     let isInterviewFinished = false;
     let selectedInterviewer = "sarthi";
     let selectedLanguage = "en";
+    let lockedVoice = null;
 
     let candidateProfile = null;
     let candidateName = localStorage.getItem('seeker_name') || 'Candidate';
@@ -1822,6 +1823,7 @@
       timerLimit = 0;
       proctorStrictness = document.getElementById("proctorStrictnessSelect").value;
       selectedLanguage = document.getElementById("languageSelect").value;
+      lockedVoice = null;
 
       document.getElementById("setupContainer").style.display = "none";
       document.getElementById("interviewContainer").style.display = "grid";
@@ -1977,6 +1979,54 @@
     }
 
     // --- VOICE TO TEXT ---
+    function transliterateDevanagariToLatin(text) {
+      const mapping = {
+        'अ': 'a', 'आ': 'aa', 'इ': 'i', 'ई': 'ee', 'उ': 'u', 'ऊ': 'oo', 'ऋ': 'ri', 'ए': 'e', 'ऐ': 'ai', 'ओ': 'o', 'औ': 'au',
+        'क': 'k', 'ख': 'kh', 'ग': 'g', 'घ': 'gh', 'ङ': 'n',
+        'च': 'ch', 'छ': 'chh', 'ज': 'j', 'झ': 'jh', 'ञ': 'n',
+        'ट': 't', 'ठ': 'th', 'ड': 'd', 'ढ': 'dh', 'ण': 'n',
+        'त': 't', 'थ': 'th', 'द': 'd', 'ध': 'dh', 'न': 'n',
+        'प': 'p', 'फ': 'ph', 'ब': 'b', 'भ': 'bh', 'म': 'm',
+        'य': 'y', 'र': 'r', 'ल': 'l', 'व': 'v',
+        'श': 'sh', 'ष': 'sh', 'स': 's', 'ह': 'h',
+        'ा': 'a', 'ि': 'i', 'ी': 'ee', 'ु': 'u', 'ू': 'oo', 'ृ': 'ri', 'े': 'e', 'ै': 'ai', 'ो': 'o', 'ौ': 'au',
+        'ं': 'n', 'ः': 'h', 'ँ': 'n', '्': ''
+      };
+      
+      const consonants = new Set([
+        'क', 'ख', 'ग', 'घ', 'ङ',
+        'च', 'छ', 'ज', 'झ', 'ञ',
+        'ट', 'ठ', 'ड', 'ढ', 'ण',
+        'त', 'थ', 'द', 'ध', 'न',
+        'प', 'फ', 'ब', 'भ', 'म',
+        'य', 'र', 'ल', 'व', 'श', 'ष', 'स', 'ह'
+      ]);
+      
+      const matras = new Set([
+        'ा', 'ि', 'ी', 'ु', 'ू', 'ृ', 'े', 'ै', 'ो', 'ौ', '्', 'ं', 'ँ'
+      ]);
+
+      let result = '';
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+        
+        if (mapping[char] !== undefined) {
+          result += mapping[char];
+          if (consonants.has(char)) {
+            if (!nextChar || nextChar === ' ' || !matras.has(nextChar)) {
+              if (nextChar && nextChar !== ' ') {
+                result += 'a';
+              }
+            }
+          }
+        } else {
+          result += char;
+        }
+      }
+      return result;
+    }
+
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -1999,8 +2049,12 @@
         }
         
         if (finalTranscript) {
+          let processedText = finalTranscript;
+          if (selectedLanguage === 'hinglish') {
+            processedText = transliterateDevanagariToLatin(processedText);
+          }
           const textarea = document.getElementById("answerTextarea");
-          textarea.value = (textarea.value + " " + finalTranscript).trim();
+          textarea.value = (textarea.value + " " + processedText).trim();
           resetAutoSubmitTimer();
         }
       };
@@ -2058,63 +2112,57 @@
       window.speechSynthesis.cancel(); // Terminate existing speakers
       const utterance = new SpeechSynthesisUtterance(text);
       
-      const voices = window.speechSynthesis.getVoices();
-      const isFemale = (selectedInterviewer === 'ananya');
-      
-      // Helper to identify female voice signatures
-      const isVoiceFemale = (v) => {
-        const name = v.name.toLowerCase();
-        return name.includes('female') || name.includes('zira') || name.includes('samantha') || 
-               name.includes('hazel') || name.includes('victoria') || name.includes('veena') || 
-               name.includes('heera') || name.includes('susan') || name.includes('karen') || 
-               name.includes('haruka') || name.includes('moira') || name.includes('tessa') ||
-               (name.includes('google us english') && !name.includes('male'));
-      };
+      if (!lockedVoice) {
+        const voices = window.speechSynthesis.getVoices();
+        const isFemale = (selectedInterviewer === 'ananya');
+        
+        const isVoiceFemale = (v) => {
+          const name = v.name.toLowerCase();
+          return name.includes('female') || name.includes('zira') || name.includes('samantha') || 
+                 name.includes('hazel') || name.includes('victoria') || name.includes('veena') || 
+                 name.includes('heera') || name.includes('susan') || name.includes('karen') || 
+                 name.includes('haruka') || name.includes('moira') || name.includes('tessa') ||
+                 (name.includes('google us english') && !name.includes('male'));
+        };
 
-      // Filter based on character gender
-      const genderVoices = voices.filter(v => isFemale ? isVoiceFemale(v) : !isVoiceFemale(v));
-      let chosenVoice = null;
+        const genderVoices = voices.filter(v => isFemale ? isVoiceFemale(v) : !isVoiceFemale(v));
+        let chosenVoice = null;
 
-      // 1. Try language match (Hindi/Hinglish)
-      if (selectedLanguage === 'hi' || selectedLanguage === 'hinglish') {
-        const langVoice = genderVoices.find(v => v.lang.startsWith('hi') || v.lang.includes('IN'));
-        if (langVoice) chosenVoice = langVoice;
-      }
+        if (selectedLanguage === 'hi' || selectedLanguage === 'hinglish') {
+          const langVoice = genderVoices.find(v => v.lang.startsWith('hi') || v.lang.includes('IN'));
+          if (langVoice) chosenVoice = langVoice;
+        }
 
-      // 2. Try English voice matches
-      if (!chosenVoice && genderVoices.length > 0) {
-        if (selectedInterviewer === 'vikram') {
-          // Vikram wants GB (British) or slower/different male voice
-          chosenVoice = genderVoices.find(v => v.lang.includes('GB')) || 
-                        genderVoices.find(v => v.name.toLowerCase().includes('google')) || 
-                        genderVoices[0];
-        } else {
-          // Sarthi wants standard US English male voice
-          chosenVoice = genderVoices.find(v => v.lang.includes('US')) || 
-                        genderVoices.find(v => v.lang.startsWith('en')) || 
-                        genderVoices[0];
+        if (!chosenVoice && genderVoices.length > 0) {
+          if (selectedInterviewer === 'vikram') {
+            chosenVoice = genderVoices.find(v => v.lang.includes('GB')) || 
+                          genderVoices.find(v => v.name.toLowerCase().includes('google')) || 
+                          genderVoices[0];
+          } else {
+            chosenVoice = genderVoices.find(v => v.lang.includes('US')) || 
+                          genderVoices.find(v => v.lang.startsWith('en')) || 
+                          genderVoices[0];
+          }
+        }
+
+        if (!chosenVoice && genderVoices.length > 0) {
+          chosenVoice = genderVoices[0];
+        }
+
+        if (!chosenVoice && voices.length > 0) {
+          chosenVoice = voices.find(v => v.lang.includes("en-US") && v.name.includes("Google")) || 
+                        voices.find(v => v.lang.startsWith("en")) || 
+                        voices[0];
+        }
+
+        if (chosenVoice) {
+          lockedVoice = chosenVoice;
+          console.log(`[JobSarthi Voice] Selected and locked voice: ${lockedVoice.name} (${lockedVoice.lang}) for interviewer: ${selectedInterviewer}`);
         }
       }
 
-      // 3. Fallback to any voice within genderVoices
-      if (!chosenVoice && genderVoices.length > 0) {
-        chosenVoice = genderVoices[0];
-      }
-
-      // 4. Absolute fallback to any voice if gender separation yielded nothing
-      if (!chosenVoice && voices.length > 0) {
-        chosenVoice = voices.find(v => v.lang.includes("en-US") && v.name.includes("Google")) || 
-                      voices.find(v => v.lang.startsWith("en")) || 
-                      voices[0];
-      }
-
-      if (!chosenVoice && voices.length > 0) {
-        chosenVoice = voices.find(v => v.lang.includes("en-US") && v.name.includes("Google")) || voices.find(v => v.lang.startsWith("en")) || voices[0];
-      }
-
-      if (chosenVoice) {
-        utterance.voice = chosenVoice;
-        console.log(`[JobSarthi Voice] Using voice: ${chosenVoice.name} (${chosenVoice.lang}) for interviewer: ${selectedInterviewer}`);
+      if (lockedVoice) {
+        utterance.voice = lockedVoice;
       }
 
       // Pitch and rate customization
