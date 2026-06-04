@@ -1068,113 +1068,18 @@ function getJobLocationsGroup(job) {
   return groups;
 }
 
-// ─── Skill synonym / ecosystem map ────────────────────────────────────────────
-const SKILL_ALIASES = {
-  'react': ['react.js','reactjs','react native'],
-  'react.js': ['react','reactjs'],
-  'vue': ['vue.js','vuejs'],
-  'angular': ['angularjs','angular.js'],
-  'node': ['node.js','nodejs'],
-  'node.js': ['node','nodejs'],
-  'next.js': ['nextjs','next'],
-  'javascript': ['js','ecmascript','es6','es2015'],
-  'typescript': ['ts'],
-  'python': ['py','python3'],
-  'machine learning': ['ml','deep learning','ai','artificial intelligence','nlp'],
-  'deep learning': ['machine learning','neural networks','tensorflow','pytorch'],
-  'sql': ['mysql','postgresql','postgres','oracle sql','sql server','mssql'],
-  'mongodb': ['mongo'],
-  'docker': ['containerization','containers'],
-  'kubernetes': ['k8s'],
-  'aws': ['amazon web services','cloud','ec2','s3','lambda'],
-  'gcp': ['google cloud','firebase'],
-  'azure': ['microsoft azure','cloud'],
-  'graphql': ['graph ql'],
-  'rest api': ['restful','rest','api'],
-  'java': ['spring','spring boot','jvm'],
-  'spring': ['spring boot','java'],
-  'android': ['kotlin','java android'],
-  'ios': ['swift','objective-c'],
-  'flutter': ['dart'],
-  'devops': ['ci/cd','jenkins','github actions','gitlab ci'],
-  'git': ['github','gitlab','bitbucket'],
-  'figma': ['ui design','ux design','sketch'],
-  'data analysis': ['excel','tableau','power bi','data analytics'],
-  'excel': ['ms excel','spreadsheet'],
-  'tableau': ['data visualization','power bi'],
-  'seo': ['search engine optimization'],
-  'digital marketing': ['seo','social media marketing','sem','google ads'],
-  'accounting': ['bookkeeping','tally','gst','taxation'],
-  'finance': ['financial modeling','corporate finance','investment'],
-};
-
-// Return expanded set of skill tokens for a given skill string
-function expandSkillSynonyms(skillStr) {
-  const normalized = skillStr.toLowerCase().trim();
-  const expanded = new Set([normalized]);
-  for (const [key, aliases] of Object.entries(SKILL_ALIASES)) {
-    if (normalized === key || aliases.some(a => normalized === a || normalized.includes(a) || a.includes(normalized))) {
-      expanded.add(key);
-      aliases.forEach(a => expanded.add(a));
-    }
-  }
-  return [...expanded];
-}
-
-// Role-to-keyword domain map (for title matching)
-const ROLE_DOMAINS = [
-  { keywords: ['frontend','front end','front-end','ui developer','web developer'], label: 'frontend' },
-  { keywords: ['backend','back end','back-end','server-side'], label: 'backend' },
-  { keywords: ['fullstack','full stack','full-stack','mern','mean'], label: 'fullstack' },
-  { keywords: ['software engineer','software developer','sde','swe'], label: 'software-engineer' },
-  { keywords: ['data scientist','data science'], label: 'data-science' },
-  { keywords: ['data analyst','business analyst','analytics'], label: 'analyst' },
-  { keywords: ['machine learning','ml engineer','ai engineer','deep learning'], label: 'ml-ai' },
-  { keywords: ['devops','site reliability','sre','platform engineer','cloud engineer'], label: 'devops' },
-  { keywords: ['product manager','product management'], label: 'product-manager' },
-  { keywords: ['designer','ux','ui/ux','ui designer','graphic'], label: 'design' },
-  { keywords: ['android developer','android engineer'], label: 'android' },
-  { keywords: ['ios developer','ios engineer','swift developer'], label: 'ios' },
-  { keywords: ['mobile developer','react native developer','flutter developer'], label: 'mobile' },
-  { keywords: ['qa engineer','quality assurance','tester','sdet','test engineer'], label: 'qa' },
-  { keywords: ['sales','business development','bd'], label: 'sales' },
-  { keywords: ['marketing','digital marketing','growth','content'], label: 'marketing' },
-  { keywords: ['hr','human resources','recruiter','talent acquisition'], label: 'hr' },
-  { keywords: ['finance','accountant','accounting','cfa','chartered accountant'], label: 'finance' },
-  { keywords: ['operations','supply chain','logistics'], label: 'operations' },
-  { keywords: ['security','cybersecurity','infosec','penetration testing'], label: 'security' },
-  { keywords: ['blockchain','web3','solidity','smart contract'], label: 'blockchain' },
-  { keywords: ['database','dba','database administrator'], label: 'database' },
-];
-
-function getJobRoleDomain(titleStr) {
-  const lower = titleStr.toLowerCase();
-  for (const rd of ROLE_DOMAINS) {
-    if (rd.keywords.some(k => lower.includes(k))) {
-      return rd.label;
-    }
-  }
-  return null;
-}
-
-// ─── Main scoring function ─────────────────────────────────────────────────────
 function calculateMatchScore(job, profile) {
   if (!profile) {
     const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return 65 + (stringHash % 20);
+    return 70 + (stringHash % 25);
   }
 
-  // ── Parse user profile fields ────────────────────────────────────────────────
-  let userSkillsRaw = [];
+  let userSkills = [];
   if (Array.isArray(profile.skills)) {
-    userSkillsRaw = profile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+    userSkills = profile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
   } else if (typeof profile.skills === 'string') {
-    userSkillsRaw = profile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    userSkills = profile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   }
-
-  // Expand user skills with synonyms/ecosystem
-  const userSkillsExpanded = new Set();
-  userSkillsRaw.forEach(s => expandSkillSynonyms(s).forEach(e => userSkillsExpanded.add(e)));
 
   let preferredLocs = [];
   if (Array.isArray(profile.preferredLocations)) {
@@ -1183,156 +1088,162 @@ function calculateMatchScore(job, profile) {
     preferredLocs = profile.preferredLocations.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   }
 
-  // Desired roles from profile (can be an array or comma-separated string)
-  let desiredRoles = [];
-  if (Array.isArray(profile.desiredRoles)) {
-    desiredRoles = profile.desiredRoles.map(r => r.trim().toLowerCase()).filter(Boolean);
-  } else if (typeof profile.desiredRoles === 'string' && profile.desiredRoles) {
-    desiredRoles = profile.desiredRoles.split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
-  } else if (typeof profile.role === 'string' && profile.role) {
-    desiredRoles = [profile.role.trim().toLowerCase()];
-  }
-
   const userExp = extractYearsOfExperience(profile.experience);
   const jobExp = getJobRequiredExperience(job);
-  const jobLocLower = (job.location || '').toLowerCase();
-  const isJobRemote = jobLocLower.includes('remote') || ((job.type || '').toLowerCase().includes('remote'));
-  const jobInIndia = jobLocLower.includes('india') ||
-    indianStates.some(s => jobLocLower.includes(s.toLowerCase())) ||
-    indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
-  const userInIndia = preferredLocs.length === 0 || preferredLocs.some(loc =>
-    loc.includes('india') ||
-    indianStates.some(s => s.toLowerCase() === loc) ||
-    indianCities.some(c => c.toLowerCase() === loc)
-  );
 
-  // ── HARD FILTER 1: Experience gap > 4 years → reject ──────────────────────
-  if (jobExp > userExp + 4) return 0;
+  // Skill normalization mapping for smarter overlap
+  const normalizeSkill = (s) => {
+    s = s.toLowerCase().trim();
+    if (s === 'react' || s === 'reactjs') return 'react.js';
+    if (s === 'node' || s === 'nodejs') return 'node.js';
+    if (s === 'js') return 'javascript';
+    if (s === 'ts') return 'typescript';
+    if (s === 'py') return 'python';
+    if (s === 'ml') return 'machine learning';
+    if (s === 'ai') return 'artificial intelligence';
+    if (s === 'mongo') return 'mongodb';
+    return s;
+  };
 
-  // ── HARD FILTER 2: Location mismatch (not India-to-India, not remote) ──────
-  const isLocationMatch = preferredLocs.length === 0 ||
-    isJobRemote ||
-    preferredLocs.some(loc => jobLocLower.includes(loc) || loc.includes(jobLocLower));
-  if (!isJobRemote && !isLocationMatch && !(jobInIndia && userInIndia)) return 0;
+  const normalizedUserSkills = userSkills.map(normalizeSkill);
+  const jobSkills = (job.skills || "").split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const normalizedJobSkills = jobSkills.map(normalizeSkill);
 
-  // ── HARD FILTER 3: Zero skill overlap when both sides have skills ──────────
-  const jobSkillsRaw = (job.skills || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  const jobSkillsExpanded = new Set();
-  jobSkillsRaw.forEach(s => expandSkillSynonyms(s).forEach(e => jobSkillsExpanded.add(e)));
+  // STEP 1: HARD FILTERS
+  if (jobExp > userExp + 3) return 0; // Exceeds experience by more than 3 years
 
-  if (jobSkillsRaw.length > 0 && userSkillsRaw.length > 0) {
-    const hasOverlap = [...jobSkillsExpanded].some(js => userSkillsExpanded.has(js));
-    if (!hasOverlap) return 0;
-  }
+  // Location checks
+  const isJobRemote = job.location.toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
+  const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => job.location.toLowerCase().includes(loc) || loc.includes(job.location.toLowerCase()));
 
-  // ── SCORING ──────────────────────────────────────────────────────────────────
-  // Max points per dimension: skills=35, title/role=25, location=20, exp=10, salary=7, recency=3
-  // Total capped to 100.
+  // If job is not remote and doesn't match location, check if they are in same country (e.g. India)
+  const jobLocLower = job.location.toLowerCase();
+  const jobInIndia = jobLocLower.includes("india") || indianStates.some(s => jobLocLower.includes(s.toLowerCase())) || indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
+  const userInIndia = preferredLocs.length === 0 || preferredLocs.some(loc => loc.includes("india") || indianStates.some(s => s.toLowerCase() === loc) || indianCities.some(c => c.toLowerCase() === loc));
 
-  // ── 1. SKILL SCORE (max 35) ────────────────────────────────────────────────
-  let skill_score = 0;
-  if (jobSkillsRaw.length > 0 && userSkillsRaw.length > 0) {
-    let matchCount = 0;
-    jobSkillsRaw.forEach(js => {
-      const jsExpanded = expandSkillSynonyms(js);
-      if (jsExpanded.some(e => userSkillsExpanded.has(e))) matchCount++;
-    });
-    const ratio = matchCount / jobSkillsRaw.length;
-    if      (ratio >= 0.90) skill_score = 35;
-    else if (ratio >= 0.75) skill_score = 30;
-    else if (ratio >= 0.55) skill_score = 22;
-    else if (ratio >= 0.35) skill_score = 14;
-    else if (ratio >  0   ) skill_score = 7;
-  } else {
-    skill_score = 16; // neutral when skills not specified
-  }
-
-  // ── 2. TITLE / ROLE SCORE (max 25) ────────────────────────────────────────
-  let role_score = 0;
-  const jobTitleLower = (job.title || '').toLowerCase();
-  const jobRoleDomain = getJobRoleDomain(jobTitleLower);
-  const expSummaryLower = (profile.experience || '').toLowerCase();
-  const degreeLower = (profile.degree || '').toLowerCase();
-
-  // Check desired roles (highest priority)
-  if (desiredRoles.length > 0) {
-    const directMatch = desiredRoles.some(dr => jobTitleLower.includes(dr) || dr.includes(jobTitleLower.split(' ')[0]));
-    const domainMatch = jobRoleDomain && desiredRoles.some(dr => {
-      const drDomain = getJobRoleDomain(dr);
-      return drDomain && drDomain === jobRoleDomain;
-    });
-    if (directMatch) role_score = 25;
-    else if (domainMatch) role_score = 18;
-    else role_score = 5;
-  } else {
-    // Fall back to experience + degree matching
-    if (jobRoleDomain) {
-      const expDomain = getJobRoleDomain(expSummaryLower);
-      const degDomain = getJobRoleDomain(degreeLower);
-      if (expDomain === jobRoleDomain) role_score = 22;
-      else if (degDomain === jobRoleDomain) role_score = 16;
-      else if (expSummaryLower.includes(jobTitleLower.split(' ')[0])) role_score = 12;
-      else role_score = 6;
-    } else {
-      role_score = 8;
+  if (!isJobRemote && !isLocationMatch) {
+    if (!(jobInIndia && userInIndia)) {
+      return 0; // Completely different country and not remote
     }
   }
 
-  // ── 3. LOCATION SCORE (max 20) ─────────────────────────────────────────────
-  let location_score = 0;
-  const userWorkMode = (profile.workMode || profile.work_mode || '').toLowerCase();
-  const prefersRemote = userWorkMode.includes('remote') || preferredLocs.includes('remote');
-
-  if (isJobRemote && prefersRemote) {
-    location_score = 20; // exact remote preference match
-  } else if (isJobRemote && !prefersRemote) {
-    location_score = 12; // remote is flexible
-  } else {
-    const hasCity = preferredLocs.some(loc =>
-      indianCities.some(c => c.toLowerCase() === loc) && jobLocLower.includes(loc)
+  // Mandatory skills check (only reject if they have filled skills but match absolutely 0)
+  if (normalizedJobSkills.length > 0 && normalizedUserSkills.length > 0) {
+    const hasAnySkill = normalizedJobSkills.some(js => 
+      normalizedUserSkills.includes(js) || 
+      normalizedUserSkills.some(us => us.includes(js) || js.includes(us))
     );
-    const hasState = preferredLocs.some(loc =>
-      indianStates.some(s => s.toLowerCase() === loc) && jobLocLower.includes(loc)
-    );
-    if (hasCity) location_score = 20;
-    else if (hasState) location_score = 15;
-    else if (jobInIndia && userInIndia) location_score = 10;
-    else location_score = 3;
+    if (!hasAnySkill) return 0;
   }
 
-  // ── 4. EXPERIENCE SCORE (max 10) ───────────────────────────────────────────
+  let location_score = 0;
+  let skill_score = 0;
+  let role_score = 0;
   let experience_score = 0;
-  const expDiff = userExp - jobExp;
-  if (expDiff >= 0 && expDiff <= 1) experience_score = 10;      // ideal – not over/under
-  else if (expDiff >= -1 && expDiff <= 2) experience_score = 8; // slight under/over
-  else if (Math.abs(expDiff) <= 3) experience_score = 5;
-  else experience_score = 2;
-
-  // ── 5. SALARY SCORE (max 7) ────────────────────────────────────────────────
+  let work_mode_score = 0;
   let salary_score = 0;
+
+  // STEP 2: LOCATION SCORING
+  const hasCity = preferredLocs.some(loc => indianCities.some(c => c.toLowerCase() === loc) && jobLocLower.includes(loc));
+  const hasState = preferredLocs.some(loc => indianStates.some(s => s.toLowerCase() === loc) && jobLocLower.includes(loc));
+
+  if (hasCity) {
+    location_score = 30;
+  } else if (hasState) {
+    location_score = 25;
+  } else if (jobInIndia && userInIndia) {
+    if (isJobRemote) {
+      location_score = 35;
+    } else {
+      location_score = 20; // relocation bonus
+    }
+  } else if (isJobRemote) {
+    location_score = 40;
+  } else {
+    location_score = 10;
+  }
+
+  // STEP 3: SKILL MATCH SCORING
+  if (normalizedJobSkills.length > 0 && normalizedUserSkills.length > 0) {
+    let matchCount = 0;
+    normalizedJobSkills.forEach(js => {
+      if (normalizedUserSkills.includes(js) || normalizedUserSkills.some(us => us.includes(js) || js.includes(us))) {
+        matchCount++;
+      }
+    });
+    const skillMatchRatio = matchCount / normalizedJobSkills.length;
+    if (skillMatchRatio >= 0.9) skill_score = 40;
+    else if (skillMatchRatio >= 0.7) skill_score = 35;
+    else if (skillMatchRatio >= 0.5) skill_score = 25;
+    else if (skillMatchRatio >= 0.3) skill_score = 15;
+    else skill_score = 10;
+  } else {
+    skill_score = 20;
+  }
+
+  // STEP 4: ROLE MATCH
+  const jobTitleLower = job.title.toLowerCase();
+  const userDegreeLower = (profile.degree || "").toLowerCase();
+  const expSummaryLower = (profile.experience || "").toLowerCase();
+  
+  let exactRole = false;
+  let relatedRole = false;
+  let sameDomain = false;
+  
+  const rolesList = ["software engineer", "developer", "machine learning", "frontend", "backend", "fullstack", "designer", "data scientist", "analyst", "product manager"];
+  rolesList.forEach(r => {
+    if (jobTitleLower.includes(r)) {
+      if (userDegreeLower.includes(r) || expSummaryLower.includes(r)) {
+        exactRole = true;
+      } else {
+        relatedRole = true;
+      }
+      sameDomain = true;
+    }
+  });
+  
+  if (exactRole) role_score = 30;
+  else if (relatedRole) role_score = 25;
+  else if (sameDomain) role_score = 15;
+  else role_score = 10;
+
+  // STEP 5: EXPERIENCE MATCH
+  const diff = userExp - jobExp;
+  if (diff === 0) {
+    experience_score = 20;
+  } else if (Math.abs(diff) <= 2) {
+    experience_score = 15;
+  } else if (Math.abs(diff) <= 3) {
+    experience_score = 10;
+  } else {
+    experience_score = 5;
+  }
+
+  // STEP 6: WORK MODE MATCH
+  const isUserRemotePreferred = preferredLocs.includes("remote");
+  if (isUserRemotePreferred && isJobRemote) {
+    work_mode_score = 15;
+  } else if (!isUserRemotePreferred && !isJobRemote) {
+    work_mode_score = 15;
+  } else {
+    work_mode_score = 5;
+  }
+
+  // STEP 7: SALARY MATCH
   const userSalary = parseSalaryLPA(profile.expectedCtc);
   const jobSalary = parseSalaryLPA(job.salary);
   if (userSalary === 0 || jobSalary === 0) {
-    salary_score = 4; // unknown – neutral
-  } else if (jobSalary >= userSalary) {
-    salary_score = 7; // meets or exceeds expectation
-  } else if (jobSalary >= userSalary * 0.85) {
-    salary_score = 4; // close enough
+    salary_score = 15;
+  } else if (jobSalary === userSalary) {
+    salary_score = 15;
+  } else if (jobSalary > userSalary) {
+    salary_score = 20;
   } else {
-    salary_score = 1; // below expectation
+    salary_score = 5;
   }
 
-  // ── 6. RECENCY SCORE (max 3) ───────────────────────────────────────────────
-  let recency_score = 0;
-  const postedDate = new Date(job.posted_date || job.created_at || 0);
-  const daysSincePosted = (Date.now() - postedDate.getTime()) / 86400000;
-  if      (daysSincePosted < 3)  recency_score = 3;
-  else if (daysSincePosted < 7)  recency_score = 2;
-  else if (daysSincePosted < 14) recency_score = 1;
-  else                           recency_score = 0;
-
-  const rawScore = skill_score + role_score + location_score + experience_score + salary_score + recency_score;
-  return Math.max(0, Math.min(100, rawScore));
+  const finalScore = location_score + skill_score + role_score + experience_score + work_mode_score + salary_score;
+  return Math.max(0, Math.min(100, finalScore));
 }
 
 app.get("/api/jobs", async (req, res) => {
@@ -1964,11 +1875,7 @@ const FALLBACK_QUESTIONS = {
 
 app.post("/api/sarthi/interview/next", async (req, res) => {
   try {
-    const { 
-      role, difficulty, history, currentQuestion, userAnswer, timerExpired, 
-      candidateProfile, candidateName, interviewerAbility, language,
-      jobTitle, jobCompany, jobReqs, jobDesc
-    } = req.body;
+    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language } = req.body;
     const currentRole = role || "Full Stack Developer";
     const currentDiff = difficulty || "Intermediate";
     const isFirstQuestion = !currentQuestion || !history || history.length === 0;
@@ -2013,13 +1920,6 @@ For example, if their background is in Economics or Finance, ask relevant questi
 Maintain a professional, conversational tone. Do not ask repetitive questions. 
 Actively listen to the candidate's responses. Your next question MUST be a direct follow-up or build upon their previous answer to keep the conversation natural and authentic.`;
 
-    if (jobTitle) {
-      systemPrompt += `\n\nCRITICAL CONTEXT: The candidate is interviewing specifically for the position of "${jobTitle}" at "${jobCompany || 'the company'}".
-Here is the Job Description: ${jobDesc || 'Not specified'}.
-Here are the Job Requirements: ${jobReqs || 'Not specified'}.
-Please tailor your interview questions, technical depth, and scenario checks directly to test their fit and qualifications for this specific job.`;
-    }
-
     if (interviewerAbility === "vikram") {
       systemPrompt += `\nAbility Active: You are Prof. Vikram, an aged expert who asks questions at a VERY deep technical level. Focus intensely on low-level mechanics, internal architecture patterns, memory limits, and complex algorithms rather than simple high-level concepts.`;
     } else if (interviewerAbility === "ananya") {
@@ -2038,7 +1938,7 @@ Please tailor your interview questions, technical depth, and scenario checks dir
 
 If it is the FIRST question:
 {
-  "nextQuestion": "The first interview question to ask the candidate, personalized to their background and the specific job they are applying to if applicable."
+  "nextQuestion": "The first interview question to ask the candidate, personalized to their background if profile details are provided."
 }
 
 If it is a SUBSEQUENT question:
@@ -2046,7 +1946,7 @@ If it is a SUBSEQUENT question:
   "feedback": "1-2 sentence constructive feedback on their previous answer.",
   "score": 8, // integer score from 0 to 10 evaluating their last answer
   "difficultyChange": "increase" | "decrease" | "maintain",
-  "nextQuestion": "The next follow-up question to ask the candidate, directly engaging with what they just said, tailored to the target job if specified."
+  "nextQuestion": "The next follow-up question to ask the candidate, directly engaging with what they just said."
 }`;
 
     // Build conversation context

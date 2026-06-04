@@ -652,10 +652,9 @@
         </div>
       </div>
 
-      <div style="margin-top: 40px; display: flex; gap: 16px; flex-wrap: wrap;">
-        <button id="applyBtn" class="btn btn-glow" style="flex: 1; min-width: 150px;" onclick="applyToCurrentJob()">Apply Now</button>
-        <button id="interviewBtn" class="btn btn-glow" style="flex: 1; min-width: 180px; background: linear-gradient(135deg, var(--accent-secondary), #0891b2);" onclick="startMockInterviewForCurrentJob()">🎙️ AI Mock Interview</button>
-        <button class="btn btn-secondary" style="min-width: 100px;" onclick="closeDrawer(null)">Cancel</button>
+      <div style="margin-top: 40px; display: flex; gap: 16px;">
+        <button id="applyBtn" class="btn btn-glow" style="flex: 1;" onclick="applyToCurrentJob()">Apply Now</button>
+        <button class="btn btn-secondary" onclick="closeDrawer(null)">Cancel</button>
       </div>
     </div>
   </div>
@@ -779,107 +778,18 @@
       return 0;
     }
 
-    // ── Skill synonym / ecosystem map ────────────────────────────────────────
-    const SKILL_ALIASES = {
-      'react': ['react.js','reactjs','react native'],
-      'react.js': ['react','reactjs'],
-      'vue': ['vue.js','vuejs'],
-      'angular': ['angularjs','angular.js'],
-      'node': ['node.js','nodejs'],
-      'node.js': ['node','nodejs'],
-      'next.js': ['nextjs','next'],
-      'javascript': ['js','ecmascript','es6','es2015'],
-      'typescript': ['ts'],
-      'python': ['py','python3'],
-      'machine learning': ['ml','deep learning','ai','artificial intelligence','nlp'],
-      'deep learning': ['machine learning','neural networks','tensorflow','pytorch'],
-      'sql': ['mysql','postgresql','postgres','oracle sql','sql server','mssql'],
-      'mongodb': ['mongo'],
-      'docker': ['containerization','containers'],
-      'kubernetes': ['k8s'],
-      'aws': ['amazon web services','cloud','ec2','s3','lambda'],
-      'gcp': ['google cloud','firebase'],
-      'azure': ['microsoft azure','cloud'],
-      'graphql': ['graph ql'],
-      'rest api': ['restful','rest','api'],
-      'java': ['spring','spring boot','jvm'],
-      'spring': ['spring boot','java'],
-      'android': ['kotlin','java android'],
-      'ios': ['swift','objective-c'],
-      'flutter': ['dart'],
-      'devops': ['ci/cd','jenkins','github actions','gitlab ci'],
-      'git': ['github','gitlab','bitbucket'],
-      'figma': ['ui design','ux design','sketch'],
-      'data analysis': ['excel','tableau','power bi','data analytics'],
-      'excel': ['ms excel','spreadsheet'],
-      'tableau': ['data visualization','power bi'],
-      'seo': ['search engine optimization'],
-      'digital marketing': ['seo','social media marketing','sem','google ads'],
-      'accounting': ['bookkeeping','tally','gst','taxation'],
-      'finance': ['financial modeling','corporate finance','investment'],
-    };
-
-    function expandSkillSynonyms(skillStr) {
-      const normalized = skillStr.toLowerCase().trim();
-      const expanded = new Set([normalized]);
-      for (const [key, aliases] of Object.entries(SKILL_ALIASES)) {
-        if (normalized === key || aliases.some(a => normalized === a || normalized.includes(a) || a.includes(normalized))) {
-          expanded.add(key);
-          aliases.forEach(a => expanded.add(a));
-        }
-      }
-      return [...expanded];
-    }
-
-    // Role-to-keyword domain map
-    const ROLE_DOMAINS = [
-      { keywords: ['frontend','front end','front-end','ui developer','web developer'], label: 'frontend' },
-      { keywords: ['backend','back end','back-end','server-side'], label: 'backend' },
-      { keywords: ['fullstack','full stack','full-stack','mern','mean'], label: 'fullstack' },
-      { keywords: ['software engineer','software developer','sde','swe'], label: 'software-engineer' },
-      { keywords: ['data scientist','data science'], label: 'data-science' },
-      { keywords: ['data analyst','business analyst','analytics'], label: 'analyst' },
-      { keywords: ['machine learning','ml engineer','ai engineer','deep learning'], label: 'ml-ai' },
-      { keywords: ['devops','site reliability','sre','platform engineer','cloud engineer'], label: 'devops' },
-      { keywords: ['product manager','product management'], label: 'product-manager' },
-      { keywords: ['designer','ux','ui/ux','ui designer','graphic'], label: 'design' },
-      { keywords: ['android developer','android engineer'], label: 'android' },
-      { keywords: ['ios developer','ios engineer','swift developer'], label: 'ios' },
-      { keywords: ['mobile developer','react native developer','flutter developer'], label: 'mobile' },
-      { keywords: ['qa engineer','quality assurance','tester','sdet','test engineer'], label: 'qa' },
-      { keywords: ['sales','business development','bd'], label: 'sales' },
-      { keywords: ['marketing','digital marketing','growth','content'], label: 'marketing' },
-      { keywords: ['hr','human resources','recruiter','talent acquisition'], label: 'hr' },
-      { keywords: ['finance','accountant','accounting','cfa','chartered accountant'], label: 'finance' },
-      { keywords: ['operations','supply chain','logistics'], label: 'operations' },
-      { keywords: ['security','cybersecurity','infosec','penetration testing'], label: 'security' },
-      { keywords: ['blockchain','web3','solidity','smart contract'], label: 'blockchain' },
-      { keywords: ['database','dba','database administrator'], label: 'database' },
-    ];
-
-    function getJobRoleDomainClient(titleStr) {
-      const lower = (titleStr || '').toLowerCase();
-      for (const rd of ROLE_DOMAINS) {
-        if (rd.keywords.some(k => lower.includes(k))) return rd.label;
-      }
-      return null;
-    }
-
     function getJobMatchScore(job) {
       if (!seekerProfile) {
         const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        return 65 + (stringHash % 20);
+        return 70 + (stringHash % 25);
       }
 
-      // Parse user skills with synonym expansion
-      let userSkillsRaw = [];
+      let userSkills = [];
       if (Array.isArray(seekerProfile.skills)) {
-        userSkillsRaw = seekerProfile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+        userSkills = seekerProfile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
       } else if (typeof seekerProfile.skills === 'string') {
-        userSkillsRaw = seekerProfile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        userSkills = seekerProfile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
       }
-      const userSkillsExpanded = new Set();
-      userSkillsRaw.forEach(s => expandSkillSynonyms(s).forEach(e => userSkillsExpanded.add(e)));
 
       let preferredLocs = [];
       if (Array.isArray(seekerProfile.preferredLocations)) {
@@ -887,140 +797,144 @@
       } else if (typeof seekerProfile.preferredLocations === 'string') {
         preferredLocs = seekerProfile.preferredLocations.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
       }
-
-      let desiredRoles = [];
-      if (Array.isArray(seekerProfile.desiredRoles)) {
-        desiredRoles = seekerProfile.desiredRoles.map(r => r.trim().toLowerCase()).filter(Boolean);
-      } else if (typeof seekerProfile.desiredRoles === 'string' && seekerProfile.desiredRoles) {
-        desiredRoles = seekerProfile.desiredRoles.split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
-      } else if (typeof seekerProfile.role === 'string' && seekerProfile.role) {
-        desiredRoles = [seekerProfile.role.trim().toLowerCase()];
-      }
-
+      
       const userExp = extractYearsOfExperience(seekerProfile.experience);
       const jobExp = getJobRequiredExperience(job);
-      const jobLocLower = (job.location || '').toLowerCase();
-      const isJobRemote = jobLocLower.includes('remote') || ((job.type || '').toLowerCase().includes('remote'));
-      const jobInIndia = jobLocLower.includes('india') ||
-        indianStates.some(s => jobLocLower.includes(s.toLowerCase())) ||
-        indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
-      const userInIndia = preferredLocs.length === 0 || preferredLocs.some(loc =>
-        loc.includes('india') ||
-        indianStates.some(s => s.toLowerCase() === loc) ||
-        indianCities.some(c => c.toLowerCase() === loc)
-      );
 
-      // Hard filters (return low but non-zero score for display purposes on client)
-      if (jobExp > userExp + 4) return 20;
+      // STEP 1: HARD FILTERS
+      if (jobExp > userExp + 3) return 35; 
 
-      const jobSkillsRaw = (job.skills || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-      const jobSkillsExpanded = new Set();
-      jobSkillsRaw.forEach(s => expandSkillSynonyms(s).forEach(e => jobSkillsExpanded.add(e)));
-      if (jobSkillsRaw.length > 0 && userSkillsRaw.length > 0) {
-        const hasOverlap = [...jobSkillsExpanded].some(js => userSkillsExpanded.has(js));
-        if (!hasOverlap) return 18;
+      const jobSkills = (job.skills || "").split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      if (jobSkills.length > 0 && userSkills.length > 0) {
+        const hasAnySkill = jobSkills.some(js => userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us)));
+        if (!hasAnySkill) return 30; 
       }
 
-      // ── 1. SKILL SCORE (max 35) ─────────────────────────────────────────────
-      let skill_score = 0;
-      if (jobSkillsRaw.length > 0 && userSkillsRaw.length > 0) {
-        let matchCount = 0;
-        jobSkillsRaw.forEach(js => {
-          const jsExpanded = expandSkillSynonyms(js);
-          if (jsExpanded.some(e => userSkillsExpanded.has(e))) matchCount++;
-        });
-        const ratio = matchCount / jobSkillsRaw.length;
-        if      (ratio >= 0.90) skill_score = 35;
-        else if (ratio >= 0.75) skill_score = 30;
-        else if (ratio >= 0.55) skill_score = 22;
-        else if (ratio >= 0.35) skill_score = 14;
-        else if (ratio >  0   ) skill_score = 7;
-      } else {
-        skill_score = 16;
+      const isJobRemote = job.location.toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
+      const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => job.location.toLowerCase().includes(loc) || loc.includes(job.location.toLowerCase()));
+      if (!isJobRemote && !isLocationMatch) {
+        return 38; 
       }
 
-      // ── 2. TITLE / ROLE SCORE (max 25) ─────────────────────────────────────
-      let role_score = 0;
-      const jobTitleLower = (job.title || '').toLowerCase();
-      const jobRoleDomain = getJobRoleDomainClient(jobTitleLower);
-      const expSummaryLower = (seekerProfile.experience || '').toLowerCase();
-      const degreeLower = (seekerProfile.degree || '').toLowerCase();
-
-      if (desiredRoles.length > 0) {
-        const directMatch = desiredRoles.some(dr => jobTitleLower.includes(dr) || dr.includes(jobTitleLower.split(' ')[0]));
-        const domainMatch = jobRoleDomain && desiredRoles.some(dr => {
-          const drDomain = getJobRoleDomainClient(dr);
-          return drDomain && drDomain === jobRoleDomain;
-        });
-        if (directMatch) role_score = 25;
-        else if (domainMatch) role_score = 18;
-        else role_score = 5;
-      } else {
-        if (jobRoleDomain) {
-          const expDomain = getJobRoleDomainClient(expSummaryLower);
-          const degDomain = getJobRoleDomainClient(degreeLower);
-          if (expDomain === jobRoleDomain) role_score = 22;
-          else if (degDomain === jobRoleDomain) role_score = 16;
-          else if (expSummaryLower.includes(jobTitleLower.split(' ')[0])) role_score = 12;
-          else role_score = 6;
-        } else {
-          role_score = 8;
-        }
-      }
-
-      // ── 3. LOCATION SCORE (max 20) ──────────────────────────────────────────
       let location_score = 0;
-      const userWorkMode = (seekerProfile.workMode || seekerProfile.work_mode || '').toLowerCase();
-      const prefersRemote = userWorkMode.includes('remote') || preferredLocs.includes('remote');
+      let skill_score = 0;
+      let role_score = 0;
+      let experience_score = 0;
+      let work_mode_score = 0;
+      let salary_score = 0;
 
-      if (isJobRemote && prefersRemote) {
-        location_score = 20;
-      } else if (isJobRemote && !prefersRemote) {
-        location_score = 12;
-      } else {
-        const hasCity = preferredLocs.some(loc =>
-          indianCities.some(c => c.toLowerCase() === loc) && jobLocLower.includes(loc)
-        );
-        const hasState = preferredLocs.some(loc =>
-          indianStates.some(s => s.toLowerCase() === loc) && jobLocLower.includes(loc)
-        );
-        if (hasCity) location_score = 20;
-        else if (hasState) location_score = 15;
-        else if (jobInIndia && userInIndia) location_score = 10;
-        else location_score = 3;
+      // STEP 2: LOCATION SCORING
+      const jobLocLower = job.location.toLowerCase();
+      const hasCity = preferredLocs.some(loc => indianCities.some(c => c.toLowerCase() === loc.toLowerCase()) && jobLocLower.includes(loc));
+      const hasState = preferredLocs.some(loc => indianStates.some(s => s.toLowerCase() === loc.toLowerCase()) && jobLocLower.includes(loc));
+      
+      let inIndia = jobLocLower.includes("india");
+      if (!inIndia) {
+        inIndia = indianStates.some(s => jobLocLower.includes(s.toLowerCase())) || indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
       }
 
-      // ── 4. EXPERIENCE SCORE (max 10) ────────────────────────────────────────
-      let experience_score = 0;
-      const expDiff = userExp - jobExp;
-      if (expDiff >= 0 && expDiff <= 1) experience_score = 10;
-      else if (expDiff >= -1 && expDiff <= 2) experience_score = 8;
-      else if (Math.abs(expDiff) <= 3) experience_score = 5;
-      else experience_score = 2;
+      if (hasCity) {
+        location_score = 30;
+      } else if (hasState) {
+        location_score = 25;
+      } else if (inIndia) {
+        if (isJobRemote) {
+          location_score = 35;
+        } else {
+          location_score = 20;
+        }
+      } else if (isJobRemote) {
+        location_score = 40;
+      } else {
+        location_score = -50;
+      }
 
-      // ── 5. SALARY SCORE (max 7) ─────────────────────────────────────────────
-      let salary_score = 0;
+      const requiresRelocation = !isJobRemote && !hasCity && !hasState;
+      if (requiresRelocation && inIndia) {
+        location_score += 10;
+      }
+
+      // STEP 3: SKILL MATCH SCORING
+      if (jobSkills.length > 0 && userSkills.length > 0) {
+        let matchCount = 0;
+        jobSkills.forEach(js => {
+          if (userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us))) {
+            matchCount++;
+          }
+        });
+        const skillMatchRatio = matchCount / jobSkills.length;
+        if (skillMatchRatio >= 0.9) skill_score = 40;
+        else if (skillMatchRatio >= 0.7) skill_score = 30;
+        else if (skillMatchRatio >= 0.5) skill_score = 20;
+        else if (skillMatchRatio >= 0.3) skill_score = 10;
+        else skill_score = 0;
+      } else {
+        skill_score = 20;
+      }
+
+      // STEP 4: ROLE MATCH
+      const jobTitleLower = job.title.toLowerCase();
+      const userDegreeLower = (seekerProfile.degree || "").toLowerCase();
+      const expSummaryLower = (seekerProfile.experience || "").toLowerCase();
+      
+      let exactRole = false;
+      let relatedRole = false;
+      let sameDomain = false;
+      
+      const rolesList = ["software engineer", "developer", "machine learning", "frontend", "backend", "fullstack", "designer", "data scientist", "analyst", "product manager"];
+      rolesList.forEach(r => {
+        if (jobTitleLower.includes(r)) {
+          if (userDegreeLower.includes(r) || expSummaryLower.includes(r)) {
+            exactRole = true;
+          } else {
+            relatedRole = true;
+          }
+          sameDomain = true;
+        }
+      });
+      
+      if (exactRole) role_score = 30;
+      else if (relatedRole) role_score = 20;
+      else if (sameDomain) role_score = 10;
+      else role_score = 10;
+
+      // STEP 5: EXPERIENCE MATCH
+      const diff = userExp - jobExp;
+      if (diff === 0) {
+        experience_score = 20;
+      } else if (Math.abs(diff) <= 2) {
+        experience_score = 15;
+      } else if (Math.abs(diff) <= 3) {
+        experience_score = 10;
+      } else {
+        experience_score = 5;
+      }
+
+      // STEP 6: WORK MODE MATCH
+      const isUserRemotePreferred = preferredLocs.includes("remote");
+      if (isUserRemotePreferred && isJobRemote) {
+        work_mode_score = 15;
+      } else if (!isUserRemotePreferred && !isJobRemote) {
+        work_mode_score = 15;
+      } else {
+        work_mode_score = 0;
+      }
+
+      // STEP 7: SALARY MATCH
       const userSalary = parseSalaryLPA(seekerProfile.expectedCtc);
       const jobSalary = parseSalaryLPA(job.salary);
       if (userSalary === 0 || jobSalary === 0) {
-        salary_score = 4;
-      } else if (jobSalary >= userSalary) {
-        salary_score = 7;
-      } else if (jobSalary >= userSalary * 0.85) {
-        salary_score = 4;
+        salary_score = 15;
+      } else if (jobSalary === userSalary) {
+        salary_score = 15;
+      } else if (jobSalary > userSalary) {
+        salary_score = 20;
       } else {
-        salary_score = 1;
+        salary_score = 5;
       }
 
-      // ── 6. RECENCY SCORE (max 3) ─────────────────────────────────────────────
-      let recency_score = 0;
-      const postedDate = new Date(job.posted_date || job.created_at || 0);
-      const daysSince = (Date.now() - postedDate.getTime()) / 86400000;
-      if      (daysSince < 3)  recency_score = 3;
-      else if (daysSince < 7)  recency_score = 2;
-      else if (daysSince < 14) recency_score = 1;
-
-      return Math.max(0, Math.min(100, skill_score + role_score + location_score + experience_score + salary_score + recency_score));
+      const finalScore = location_score + skill_score + role_score + experience_score + work_mode_score + salary_score;
+      return Math.max(0, Math.min(100, finalScore));
     }
 
     // Match breakdown helper
@@ -1034,21 +948,14 @@
         return { matched: [], missing: [] };
       }
       
-      const userSkillsRaw = Array.isArray(seekerProfile && seekerProfile.skills)
-        ? seekerProfile.skills.map(s => s.trim().toLowerCase())
-        : ((seekerProfile && typeof seekerProfile.skills === 'string')
-            ? seekerProfile.skills.split(',').map(s => s.trim().toLowerCase())
-            : seekerSkills.map(s => String(s).trim().toLowerCase()));
-
-      const userSkillsExpanded2 = new Set();
-      userSkillsRaw.forEach(s => expandSkillSynonyms(s).forEach(e => userSkillsExpanded2.add(e)));
+      const seekerSkillsLower = seekerSkills.map(s => s.trim().toLowerCase());
       
       const matched = [];
       const missing = [];
       
       jobSkills.forEach(js => {
-        const jsExpanded = expandSkillSynonyms(js.toLowerCase());
-        if (jsExpanded.some(e => userSkillsExpanded2.has(e))) {
+        const jsLower = js.toLowerCase();
+        if (seekerSkillsLower.includes(jsLower) || seekerSkillsLower.some(ss => ss.includes(jsLower) || jsLower.includes(ss))) {
           matched.push(js);
         } else {
           missing.push(js);
@@ -1667,11 +1574,6 @@
         console.error('Apply error:', err);
         alert('Could not connect to the backend to apply.');
       }
-    }
-
-    function startMockInterviewForCurrentJob() {
-      if (!currentSelectedJob) return;
-      window.location.href = `aiinterview.html?jobId=${encodeURIComponent(currentSelectedJob.id)}`;
     }
   </script>
   
