@@ -1786,14 +1786,14 @@
                 e.preventDefault();
                 const targetSection = document.querySelector(targetId);
                 if (targetSection) {
+                  if (targetId === '#sarthi-scroll-section') {
+                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
+                  }
+                  
                   const headerOffset = targetId === '#hero' ? 0 : 90;
                   const elementPosition = targetSection.getBoundingClientRect().top;
-                  let offsetPosition = targetId === '#hero' ? 0 : (elementPosition + window.scrollY - headerOffset);
-
-                  // If target is Sarthi scroll section, scroll a bit deeper so the panel expands and shows the first card
-                  if (targetId === '#sarthi-scroll-section') {
-                    offsetPosition = elementPosition + window.scrollY + 100;
-                  }
+                  const offsetPosition = targetId === '#hero' ? 0 : (elementPosition + window.scrollY - headerOffset);
 
                   window.scrollTo({
                     top: offsetPosition,
@@ -1985,12 +1985,7 @@
           if (event) event.stopPropagation();
           const targetSection = document.getElementById('sarthi-scroll-section');
           if (targetSection) {
-            const elementPosition = targetSection.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.scrollY + 100;
-            window.scrollTo({
-              top: offsetPosition,
-              behavior: 'smooth'
-            });
+            targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         }
       </script>
