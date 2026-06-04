@@ -579,7 +579,7 @@
         // 4. Fetch Jobs and Populate Recommended Matches
         let jobs = [];
         try {
-          const jobsRes = await fetch((window.API_BASE_URL || '') + '/api/jobs');
+          const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?t=${Date.now()}`);
           if (jobsRes.ok) {
             jobs = await jobsRes.json();
           }

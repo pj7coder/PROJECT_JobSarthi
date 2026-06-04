@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/admin/jobs/collect",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "rewrites": [

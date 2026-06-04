@@ -664,7 +664,7 @@
       await loadSeekerProfile();
 
       try {
-        const response = await fetch((window.API_BASE_URL || '') + '/api/jobs');
+        const response = await fetch((window.API_BASE_URL || '') + `/api/jobs?t=${Date.now()}`);
         if (!response.ok) throw new Error("Failed to fetch jobs");
         dbJobs = await response.json();
       } catch (err) {
