@@ -473,24 +473,24 @@
         
         card.innerHTML = `
           <div class="job-item-main">
-            <div class="job-item-logo">${job.logo}</div>
+            <div class="job-item-logo">${job.logo || '💼'}</div>
             <div>
-              <div class="job-item-title">${job.title}</div>
+              <div class="job-item-title">${job.title || 'Untitled Role'}</div>
               <div class="job-item-company" style="display: flex; align-items: center; gap: 8px;">
-                ${job.company}
+                ${job.company || 'Company'}
                 ${job.source && job.source !== 'employer' ? `<span style="font-size: 0.7rem; text-transform: uppercase; background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); border: 1px solid rgba(99, 102, 241, 0.25); padding: 1px 6px; border-radius: 4px; font-weight: 700; letter-spacing: 0.05em;">${job.source}</span>` : ''}
               </div>
               <div class="job-item-meta">
-                <span>📍 ${job.location}</span>
-                <span>💰 ${job.salary.split(' / ')[0]}</span>
-                <span>🕒 ${job.type}</span>
+                <span>📍 ${job.location || 'Remote'}</span>
+                <span>💰 ${(job.salary || 'Not specified').split(' / ')[0]}</span>
+                <span>🕒 ${job.type || 'Full-time'}</span>
               </div>
             </div>
           </div>
           <div class="job-item-actions" onclick="event.stopPropagation()">
             <span class="match-score" style="
-              ${job.match >= 90 ? '' : job.match >= 80 ? 'color: var(--accent-primary); border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.1);' : 'color: var(--accent-tertiary); border-color: rgba(217,70,239,0.3); background: rgba(217,70,239,0.1);'}
-            ">${job.match}% Match</span>
+              ${(job.match || 80) >= 90 ? '' : (job.match || 80) >= 80 ? 'color: var(--accent-primary); border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.1);' : 'color: var(--accent-tertiary); border-color: rgba(217,70,239,0.3); background: rgba(217,70,239,0.1);'}
+            ">${job.match || 80}% Match</span>
             <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openDrawerFromBtn('${job.id}')">Details</button>
           </div>
         `;
@@ -506,16 +506,17 @@
 
     function openDrawer(job) {
       currentSelectedJob = job;
-      document.getElementById('drawerLogo').textContent = job.logo;
-      document.getElementById('drawerTitle').textContent = job.title;
-      document.getElementById('drawerCompany').textContent = job.company;
-      document.getElementById('drawerDesc').textContent = job.description;
-      document.getElementById('drawerComp').textContent = `Offering a highly competitive salary range of ${job.salary}. We also provide comprehensive medical coverage, premium wellness benefits, learning stipends, and hardware options.`;
+      document.getElementById('drawerLogo').textContent = job.logo || '💼';
+      document.getElementById('drawerTitle').textContent = job.title || 'Untitled Role';
+      document.getElementById('drawerCompany').textContent = job.company || 'Company';
+      document.getElementById('drawerDesc').textContent = job.description || 'No description provided.';
+      document.getElementById('drawerComp').textContent = `Offering a highly competitive salary range of ${job.salary || 'Not specified'}. We also provide comprehensive medical coverage, premium wellness benefits, learning stipends, and hardware options.`;
 
       // Render requirements list
       const reqsUl = document.getElementById('drawerReqs');
       reqsUl.innerHTML = '';
-      job.reqs.forEach(req => {
+      const requirements = job.reqs || [];
+      requirements.forEach(req => {
         const li = document.createElement('li');
         li.textContent = req;
         li.style.marginBottom = '6px';
@@ -525,8 +526,8 @@
       // Badges
       const badgesDiv = document.getElementById('drawerBadges');
       badgesDiv.innerHTML = `
-        <span class="badge badge-primary">${job.type}</span>
-        <span class="badge badge-success">${job.match}% AI MATCH</span>
+        <span class="badge badge-primary">${job.type || 'Full-time'}</span>
+        <span class="badge badge-success">${job.match || 80}% AI MATCH</span>
       `;
 
       // Apply button status reset
