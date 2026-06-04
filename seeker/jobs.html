@@ -293,54 +293,7 @@
   <!-- Container -->
   <main class="container">
     <div class="jobs-layout">
-      <!-- Sidebar Filters (Hidden for now to show all jobs) -->
-      <aside class="glass-panel filter-sidebar" style="display: none;">
-        <div class="filter-section">
-          <h3 class="filter-title">Job Category</h3>
-          <div class="checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" class="checkbox-input filter-category" value="tech" checked onchange="filterJobs()"> Tech & Development
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" class="checkbox-input filter-category" value="design" checked onchange="filterJobs()"> Design & Creative
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" class="checkbox-input filter-category" value="marketing" checked onchange="filterJobs()"> Marketing & Growth
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" class="checkbox-input filter-category" value="pm" checked onchange="filterJobs()"> Product Management
-            </label>
-          </div>
-        </div>
 
-        <div class="filter-section">
-          <h3 class="filter-title">Job Type</h3>
-          <div class="checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" class="checkbox-input filter-type" value="Full-time" checked onchange="filterJobs()"> Full-Time
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" class="checkbox-input filter-type" value="Part-time" checked onchange="filterJobs()"> Part-Time
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" class="checkbox-input filter-type" value="Remote" checked onchange="filterJobs()"> Remote
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" class="checkbox-input filter-type" value="Contract" checked onchange="filterJobs()"> Contract
-            </label>
-          </div>
-        </div>
-
-        <div class="filter-section">
-          <h3 class="filter-title">Min Match Score</h3>
-          <input type="range" min="50" max="95" value="70" class="form-control" style="width: 100%; cursor: pointer;" id="matchSlider" oninput="updateMatchFilter(this.value)">
-          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dark); margin-top: 8px;">
-            <span>50%</span>
-            <span id="sliderVal" style="color: var(--accent-secondary); font-weight: 700;">70% Match</span>
-            <span>95%</span>
-          </div>
-        </div>
-      </aside>
 
       <!-- Main Search & Results -->
       <section>
@@ -433,10 +386,6 @@
       loadJobs();
     });
 
-    function updateMatchFilter(val) {
-      document.getElementById('sliderVal').textContent = val + '% Match';
-      filterJobs();
-    }
 
     function filterJobs() {
       const searchQuery = document.getElementById('jobSearch').value.toLowerCase();

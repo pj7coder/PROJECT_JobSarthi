@@ -121,22 +121,22 @@ async function initDB() {
         ]
       });
 
-      // Auto-seed database from db.json if both users and jobs collections are empty
+      // Auto-seed database collections independently from db.json if empty
+      const localData = await readLocalDB();
       const userCount = await mongoDb.collection("users").countDocuments();
+      if (userCount === 0 && localData.users && localData.users.length > 0) {
+        console.log("MongoDB 'users' collection is empty. Seeding from db.json...");
+        await mongoDb.collection("users").insertMany(localData.users);
+      }
       const jobCount = await mongoDb.collection("jobs").countDocuments();
-      if (userCount === 0 && jobCount === 0) {
-        console.log("MongoDB database is empty. Seeding with data from db.json...");
-        const localData = await readLocalDB();
-        if (localData.users && localData.users.length > 0) {
-          await mongoDb.collection("users").insertMany(localData.users);
-        }
-        if (localData.jobs && localData.jobs.length > 0) {
-          await mongoDb.collection("jobs").insertMany(localData.jobs);
-        }
-        if (localData.applications && localData.applications.length > 0) {
-          await mongoDb.collection("applications").insertMany(localData.applications);
-        }
-        console.log("MongoDB seeding completed successfully!");
+      if (jobCount === 0 && localData.jobs && localData.jobs.length > 0) {
+        console.log("MongoDB 'jobs' collection is empty. Seeding from db.json...");
+        await mongoDb.collection("jobs").insertMany(localData.jobs);
+      }
+      const appCount = await mongoDb.collection("applications").countDocuments();
+      if (appCount === 0 && localData.applications && localData.applications.length > 0) {
+        console.log("MongoDB 'applications' collection is empty. Seeding from db.json...");
+        await mongoDb.collection("applications").insertMany(localData.applications);
       }
     } catch (err) {
       console.error("Failed to connect to MongoDB Atlas. Falling back to local db.json.", err);
