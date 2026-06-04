@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/admin/jobs/collect",
+      "path": "/api/cron-collect",
       "schedule": "0 0 * * *"
     }
   ],
