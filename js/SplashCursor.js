@@ -1,9 +1,9 @@
 (function () {
   // Global configuration
   window.SplashCursorConfig = {
-    SIM_RESOLUTION: 128,
-    DYE_RESOLUTION: 1440,
-    CAPTURE_RESOLUTION: 512,
+    SIM_RESOLUTION: 64,
+    DYE_RESOLUTION: 512,
+    CAPTURE_RESOLUTION: 256,
     DENSITY_DISSIPATION: 4.0, // Default corresponding to slider value 7
     VELOCITY_DISSIPATION: 2,
     PRESSURE: 0.1,

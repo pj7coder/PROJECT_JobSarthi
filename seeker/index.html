@@ -571,11 +571,8 @@
           document.getElementById('applicationsSentCount').textContent = appsSent;
           document.getElementById('interviewsScheduledCount').textContent = interviewsScheduled;
         }
-      } catch (err) {
-        console.error("Failed to load profile in background:", err);
-      }
 
-        // 3. Fetch Jobs and Populate Recommended Matches
+        // 4. Fetch Jobs and Populate Recommended Matches
         let jobs = [];
         try {
           const jobsRes = await fetch((window.API_BASE_URL || '') + '/api/jobs');
@@ -633,9 +630,8 @@
             }
           }
         }
-
       } catch (err) {
-        console.error("Failed to load dashboard profile:", err);
+        console.error("Failed to load profile details in background:", err);
       }
     }
 
