@@ -252,6 +252,102 @@
       background: rgba(99, 102, 241, 0.1);
       color: var(--accent-primary);
     }
+
+    /* 3 dots wave loading animation */
+    .loading-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+      width: 100%;
+    }
+
+    .loading-wave {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .loading-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent-secondary);
+      border-radius: 50%;
+      display: inline-block;
+      animation: wave 1.2s infinite ease-in-out;
+    }
+
+    .loading-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .loading-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes wave {
+      0%, 60%, 100% {
+        transform: translateY(0);
+      }
+      30% {
+        transform: translateY(-6px);
+      }
+    }
+
+    /* Premium Pagination Styling */
+    .pagination-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 25px;
+      flex-wrap: wrap;
+    }
+
+    .pagination-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-main);
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    body.light-theme .pagination-btn {
+      background: rgba(0, 0, 0, 0.01);
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+      border-color: var(--accent-secondary);
+      background: rgba(6, 182, 212, 0.08);
+      color: var(--accent-secondary);
+      transform: translateY(-1px);
+    }
+
+    .pagination-btn.active {
+      background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+    }
+
+    .pagination-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .pagination-ellipsis {
+      color: var(--text-muted);
+      padding: 0 6px;
+      font-weight: 600;
+    }
   </style>
 </head>
 
@@ -318,7 +414,7 @@
                 stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-secondary);">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
               </svg>
-              Top Job Matches
+              Top Job Matches for You
             </h2>
             <a href="jobs.html" style="color: var(--accent-primary); font-size: 0.9rem; font-weight: 600;">View All Jobs
               &rarr;</a>
@@ -327,6 +423,9 @@
           <div class="job-cards-list" id="recommendedJobsList">
             <!-- Dynamically populated from Database -->
           </div>
+
+          <!-- Dashboard Pagination Controls -->
+          <div id="dashboardPaginationContainer"></div>
         </div>
       </section>
     </div>
@@ -426,6 +525,9 @@
   <script src="../js/header.js"></script>
   <script>
     let seekerSkills = [];
+    let lastRecommendedJobs = [];
+    let currentDashboardPage = 1;
+    const dashboardJobsPerPage = 5;
 
     const indianStates = [
       "andhra pradesh", "arunachal pradesh", "assam", "bihar", "chhattisgarh", "goa", "gujarat", "haryana", 
@@ -692,6 +794,20 @@
     }
 
     async function loadDashboardProfile() {
+      // Show loading indicator
+      const recommendedContainer = document.getElementById('recommendedJobsList');
+      if (recommendedContainer) {
+        recommendedContainer.innerHTML = `
+          <div class="loading-container" style="grid-column: 1 / -1;">
+            <div class="loading-wave">
+              <div class="loading-dot"></div>
+              <div class="loading-dot"></div>
+              <div class="loading-dot"></div>
+            </div>
+          </div>
+        `;
+      }
+
       const email = localStorage.getItem('seeker_email');
       const name = localStorage.getItem('seeker_name') || 'Candidate';
       if (!email) return;
@@ -752,7 +868,6 @@
 
         const recommendedContainer = document.getElementById('recommendedJobsList');
         if (recommendedContainer) {
-          recommendedContainer.innerHTML = '';
           if (jobs && jobs.length > 0) {
             // Score and sort jobs based on user skills
             const scored = jobs.map(job => {
@@ -764,30 +879,9 @@
             
             scored.sort((a, b) => b.matchScore - a.matchScore);
 
-            // Display top 3 matching jobs
-            const topMatches = scored.slice(0, 3);
-            topMatches.forEach(job => {
-              const card = document.createElement('div');
-              card.className = 'glass-card job-card';
-              card.innerHTML = `
-                <div class="job-card-logo">${job.logo || '💼'}</div>
-                <div class="job-card-info">
-                  <h3>${job.title}</h3>
-                  <div style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">${job.company}</div>
-                  <div class="job-card-meta">
-                    <div class="job-card-meta-item">📍 ${job.location || 'Remote'}</div>
-                    <div class="job-card-meta-item">💰 ${(job.salary || 'Not specified').split(' / ')[0]}</div>
-                    <div class="job-card-meta-item">🕒 ${job.type || 'Full-time'}</div>
-                  </div>
-                </div>
-                <div class="job-card-actions">
-                  <span class="match-score" style="font-size: 0.78rem; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(6, 182, 212, 0.1); color: var(--accent-secondary); border: 1px solid rgba(6, 182, 212, 0.2);">${getMatchClassification(job.matchScore)} (${job.matchScore} Pts)</span>
-                  <a href="jobs.html?id=${job.id}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">Details</a>
-                  <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Apply</a>
-                </div>
-              `;
-              recommendedContainer.appendChild(card);
-            });
+            lastRecommendedJobs = scored;
+            currentDashboardPage = 1;
+            renderPaginatedDashboardJobs();
 
             // Update welcome card text dynamically
             const welcomeTextP = document.querySelector('.welcome-text p');
@@ -801,6 +895,7 @@
                 <a href="jobs.html" class="btn btn-secondary" style="display: inline-block; padding: 6px 12px; font-size: 0.85rem;">Browse All Jobs</a>
               </div>
             `;
+            document.getElementById('dashboardPaginationContainer').innerHTML = '';
             
             const welcomeTextP = document.querySelector('.welcome-text p');
             if (welcomeTextP) {
@@ -810,6 +905,128 @@
         }
       } catch (err) {
         console.error("Failed to load profile details in background:", err);
+      }
+    }
+
+    function renderPaginatedDashboardJobs() {
+      const recommendedContainer = document.getElementById('recommendedJobsList');
+      if (!recommendedContainer) return;
+      recommendedContainer.innerHTML = '';
+      
+      const totalJobs = lastRecommendedJobs.length;
+      const totalPages = Math.ceil(totalJobs / dashboardJobsPerPage) || 1;
+      
+      if (currentDashboardPage < 1) currentDashboardPage = 1;
+      if (currentDashboardPage > totalPages) currentDashboardPage = totalPages;
+      
+      const startIndex = (currentDashboardPage - 1) * dashboardJobsPerPage;
+      const endIndex = Math.min(startIndex + dashboardJobsPerPage, totalJobs);
+      
+      const pageJobs = lastRecommendedJobs.slice(startIndex, endIndex);
+      
+      if (pageJobs.length > 0) {
+        pageJobs.forEach(job => {
+          const card = document.createElement('div');
+          card.className = 'glass-card job-card';
+          card.innerHTML = `
+            <div class="job-card-logo">${job.logo || '💼'}</div>
+            <div class="job-card-info">
+              <h3>${job.title}</h3>
+              <div style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">${job.company}</div>
+              <div class="job-card-meta">
+                <div class="job-card-meta-item">📍 ${job.location || 'Remote'}</div>
+                <div class="job-card-meta-item">💰 ${(job.salary || 'Not specified').split(' / ')[0]}</div>
+                <div class="job-card-meta-item">🕒 ${job.type || 'Full-time'}</div>
+              </div>
+            </div>
+            <div class="job-card-actions">
+              <span class="match-score" style="font-size: 0.78rem; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(6, 182, 212, 0.1); color: var(--accent-secondary); border: 1px solid rgba(6, 182, 212, 0.2);">${getMatchClassification(job.matchScore)}</span>
+              <a href="jobs.html?id=${job.id}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">Details</a>
+              <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Apply</a>
+            </div>
+          `;
+          recommendedContainer.appendChild(card);
+        });
+        
+        renderDashboardPaginationControls(totalPages);
+      } else {
+        recommendedContainer.innerHTML = `
+          <div class="glass-panel" style="grid-column: 1 / -1; padding: 20px; text-align: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
+            <p style="color: var(--text-dark); margin-bottom: 12px; font-size: 0.9rem;">No jobs match your profile yet. Add more skills to improve matches.</p>
+            <a href="jobs.html" class="btn btn-secondary" style="display: inline-block; padding: 6px 12px; font-size: 0.85rem;">Browse All Jobs</a>
+          </div>
+        `;
+        document.getElementById('dashboardPaginationContainer').innerHTML = '';
+      }
+    }
+
+    function renderDashboardPaginationControls(totalPages) {
+      const container = document.getElementById('dashboardPaginationContainer');
+      if (!container) return;
+      
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+      
+      let html = `<div class="pagination-wrap">`;
+      
+      // Previous button
+      html += `
+        <button class="pagination-btn" ${currentDashboardPage === 1 ? 'disabled' : ''} onclick="goToDashboardPage(${currentDashboardPage - 1})">
+          &larr; Prev
+        </button>
+      `;
+      
+      // Page numbers
+      const maxVisible = 5;
+      let startPage = Math.max(1, currentDashboardPage - 2);
+      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+      
+      if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+      }
+      
+      if (startPage > 1) {
+        html += `<button class="pagination-btn" onclick="goToDashboardPage(1)">1</button>`;
+        if (startPage > 2) {
+          html += `<span class="pagination-ellipsis">...</span>`;
+        }
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        html += `
+          <button class="pagination-btn ${i === currentDashboardPage ? 'active' : ''}" onclick="goToDashboardPage(${i})">
+            ${i}
+          </button>
+        `;
+      }
+      
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          html += `<span class="pagination-ellipsis">...</span>`;
+        }
+        html += `<button class="pagination-btn" onclick="goToDashboardPage(${totalPages})">${totalPages}</button>`;
+      }
+      
+      // Next button
+      html += `
+        <button class="pagination-btn" ${currentDashboardPage === totalPages ? 'disabled' : ''} onclick="goToDashboardPage(${currentDashboardPage + 1})">
+          Next &rarr;
+        </button>
+      `;
+      
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+    
+    function goToDashboardPage(pageNum) {
+      currentDashboardPage = pageNum;
+      renderPaginatedDashboardJobs();
+      // Scroll smoothly to top of the recommended section
+      const recommendedSection = document.getElementById('recommendedJobsList');
+      if (recommendedSection) {
+        recommendedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
 
