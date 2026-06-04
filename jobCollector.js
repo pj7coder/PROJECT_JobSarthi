@@ -612,22 +612,15 @@ export async function syncNextCompany() {
 
   try {
     if (db) {
-      const jobs = await db.collection("jobs").find({}, { projection: { company: 1, updated_at: 1 } }).toArray();
-      jobs.forEach(job => {
-        const cName = job.company.toLowerCase();
-        const date = new Date(job.updated_at || 0).getTime();
-        if (!companyLastUpdated[cName] || date > companyLastUpdated[cName]) {
-          companyLastUpdated[cName] = date;
-        }
+      const syncs = await db.collection("company_syncs").find({}).toArray();
+      syncs.forEach(s => {
+        companyLastUpdated[s.company.toLowerCase()] = new Date(s.last_synced_at).getTime();
       });
     } else {
       const local = await readLocalDB();
-      (local.jobs || []).forEach(job => {
-        const cName = job.company.toLowerCase();
-        const date = new Date(job.updated_at || 0).getTime();
-        if (!companyLastUpdated[cName] || date > companyLastUpdated[cName]) {
-          companyLastUpdated[cName] = date;
-        }
+      if (!local.company_syncs) local.company_syncs = [];
+      local.company_syncs.forEach(s => {
+        companyLastUpdated[s.company.toLowerCase()] = new Date(s.last_synced_at).getTime();
       });
     }
   } catch (err) {
@@ -653,7 +646,32 @@ export async function syncNextCompany() {
 
   if (chosenCompany) {
     console.log(`[JobCollector] Round-Robin Sync: Chosen company is "${chosenCompany.name}" (Last sync: ${oldestTime === Infinity ? 'Never' : new Date(oldestTime).toISOString()})`);
-    return await runJobCollectionPipeline([chosenCompany]);
+    const stats = await runJobCollectionPipeline([chosenCompany]);
+
+    // Update the sync timestamp in company_syncs
+    try {
+      if (db) {
+        await db.collection("company_syncs").updateOne(
+          { company: chosenCompany.name.toLowerCase() },
+          { $set: { last_synced_at: new Date() } },
+          { upsert: true }
+        );
+      } else {
+        const local = await readLocalDB();
+        if (!local.company_syncs) local.company_syncs = [];
+        const index = local.company_syncs.findIndex(s => s.company.toLowerCase() === chosenCompany.name.toLowerCase());
+        if (index > -1) {
+          local.company_syncs[index].last_synced_at = new Date();
+        } else {
+          local.company_syncs.push({ company: chosenCompany.name.toLowerCase(), last_synced_at: new Date() });
+        }
+        await writeLocalDB(local);
+      }
+    } catch (err) {
+      console.error("[JobCollector] Error updating sync timestamp:", err);
+    }
+
+    return stats;
   } else {
     console.log("[JobCollector] Round-Robin Sync: No target companies configured.");
     return { inserted: 0, updated: 0 };

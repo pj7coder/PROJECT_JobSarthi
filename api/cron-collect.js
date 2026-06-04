@@ -1,37 +1,22 @@
+import { syncNextCompany } from "../jobCollector.js";
+
 export default async function handler(req, res) {
-  console.log("Cron-collect trigger received. Contacting Render backend to run job aggregation...");
+  console.log("[Vercel Serverless Cron] Starting job collection pipeline run directly on Vercel...");
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout for safety
-
-    const url = 'https://project-jobsarthi.onrender.com/api/admin/jobs/collect';
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      },
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`Render responded with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("Render response:", data);
+    // Run the round-robin synchronization of the next company
+    const stats = await syncNextCompany();
+    
+    console.log("[Vercel Serverless Cron] Sync complete. Stats:", stats);
     res.status(200).json({
       success: true,
-      message: "Render aggregation completed.",
-      data
+      message: "Job collection completed natively on Vercel Serverless.",
+      stats
     });
   } catch (err) {
-    console.error("Cron-collect failed:", err.message);
+    console.error("[Vercel Serverless Cron] Job collection failed:", err);
     res.status(500).json({
       success: false,
-      error: err.message || "Failed to trigger Render collector."
+      error: err.message || "Job collection pipeline failed on Vercel."
     });
   }
 }
