@@ -1088,7 +1088,7 @@
   </div>
 
   <!-- Unified Floating Sarthi AI Pill -->
-  <div id="floatingSarthiBtn" onclick="onFloatingSarthiClick(event)" class="gemini-pill-border glare-hover glare-hover--play-once"
+  <div id="floatingSarthiBtn" class="gemini-pill-border"
     style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); transform-origin: bottom right;">
     <!-- Small State Content -->
     <div id="floatingSmallContent"
@@ -1777,6 +1777,23 @@
           setupCarousel('finder');
           setupCarousel('recruiter');
 
+          // Setup direct click listener for floating Sarthi button
+          const floatingSarthiBtn = document.getElementById('floatingSarthiBtn');
+          if (floatingSarthiBtn) {
+            floatingSarthiBtn.addEventListener('click', (event) => {
+              if (event) event.stopPropagation();
+              const targetSection = document.getElementById('sarthi-scroll-section');
+              if (targetSection) {
+                const elementPosition = targetSection.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.scrollY + 100;
+                window.scrollTo({
+                  top: offsetPosition,
+                  behavior: 'smooth'
+                });
+              }
+            });
+          }
+
           // Smooth scroll navigation with event delegation (handles dynamic elements like Dock links)
           document.addEventListener('click', (e) => {
             const link = e.target.closest('a[href^="#"]');
@@ -1786,14 +1803,14 @@
                 e.preventDefault();
                 const targetSection = document.querySelector(targetId);
                 if (targetSection) {
-                  if (targetId === '#sarthi-scroll-section') {
-                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    return;
-                  }
-                  
                   const headerOffset = targetId === '#hero' ? 0 : 90;
                   const elementPosition = targetSection.getBoundingClientRect().top;
-                  const offsetPosition = targetId === '#hero' ? 0 : (elementPosition + window.scrollY - headerOffset);
+                  let offsetPosition = targetId === '#hero' ? 0 : (elementPosition + window.scrollY - headerOffset);
+
+                  // If target is Sarthi scroll section, scroll a bit deeper so the panel expands and shows the first card
+                  if (targetId === '#sarthi-scroll-section') {
+                    offsetPosition = elementPosition + window.scrollY + 100;
+                  }
 
                   window.scrollTo({
                     top: offsetPosition,
@@ -1979,16 +1996,7 @@
         });
       </script>
 
-      <!-- Custom function to handle floating Sarthi click on landing page -->
-      <script>
-        function onFloatingSarthiClick(event) {
-          if (event) event.stopPropagation();
-          const targetSection = document.getElementById('sarthi-scroll-section');
-          if (targetSection) {
-            targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }
-      </script>
+
 
 </body>
 

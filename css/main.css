@@ -1466,13 +1466,13 @@ body.light-theme .mobile-bottom-nav {
   content: '';
   position: absolute;
   top: 0;
-  left: -150px;
-  width: 100px;
+  left: -100%;
+  width: 60px;
   height: 100%;
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0.45) 50%,
     rgba(255, 255, 255, 0) 100%
   );
   transform: skewX(-25deg);
@@ -1482,8 +1482,8 @@ body.light-theme .mobile-bottom-nav {
 }
 
 #floatingSarthiBtn:hover::after {
-  transform: translateX(450px) skewX(-25deg);
-  transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+  transform: translateX(350px) skewX(-25deg);
+  transition: transform 0.75s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 /* Disable glare when sarthi pane is open */
