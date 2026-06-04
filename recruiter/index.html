@@ -369,9 +369,10 @@
 
         let jobsCount = 0;
         try {
-          const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?t=${Date.now()}`);
+          const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?limit=10000&t=${Date.now()}`);
           if (jobsRes.ok) {
-            const jobsList = await jobsRes.json();
+            const data = await jobsRes.json();
+            const jobsList = Array.isArray(data) ? data : (data.jobs || []);
             const companyJobs = jobsList.filter(j => j.company.toLowerCase() === companyName.toLowerCase());
             jobsCount = companyJobs.length;
           }

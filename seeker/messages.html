@@ -179,44 +179,18 @@
     <div class="messages-layout">
       <!-- Sidebar chats list -->
       <div class="chat-sidebar">
-        <div class="glass-panel chat-user-item active">
-          <div class="chat-user-avatar">I</div>
-          <div class="chat-user-info">
-            <span class="chat-user-name">InnovateTech HR</span>
-            <span class="chat-user-last-msg">Hi Candidate, we liked your profile match score!</span>
-          </div>
-        </div>
-        <div class="glass-panel chat-user-item">
-          <div class="chat-user-avatar" style="background: linear-gradient(135deg, var(--accent-tertiary), #a21caf);">P
-          </div>
-          <div class="chat-user-info">
-            <span class="chat-user-name">PixelPerfect HR</span>
-            <span class="chat-user-last-msg">Are you free for a call tomorrow?</span>
-          </div>
-        </div>
+        <!-- Sidebar items populated dynamically -->
       </div>
 
       <!-- Chat details -->
       <div class="glass-panel chat-window">
         <div class="chat-header">
-          <div class="chat-user-avatar">I</div>
-          <span class="chat-user-name" style="font-size: 1.05rem;">InnovateTech HR</span>
+          <div class="chat-user-avatar">?</div>
+          <span class="chat-user-name" style="font-size: 1.05rem;">Select a Chat</span>
         </div>
 
         <div class="chat-body" id="chatBody">
-          <div class="chat-bubble incoming">
-            Hello Candidate User, we noticed that you scored 94% match on our Senior Frontend Developer posting and
-            verified your JavaScript assessment.
-          </div>
-          <div class="chat-bubble incoming">
-            Would you be open to a quick technical screening next week?
-          </div>
-          <div class="chat-bubble outgoing">
-            Hi! Yes, I would love to connect. I am free most afternoons next week.
-          </div>
-          <div class="chat-bubble incoming">
-            Perfect! Let's lock in Wednesday at 3 PM.
-          </div>
+          <!-- Chat bubbles populated dynamically -->
         </div>
 
         <div class="chat-footer">
@@ -230,27 +204,178 @@
 
   <script src="../js/header.js"></script>
   <script>
-    function sendMessage() {
+    let messages = [];
+    let conversations = {}; // grouped by recruiterEmail
+    let activeChatEmail = null;
+    const seekerEmail = localStorage.getItem('seeker_email');
+    const seekerName = localStorage.getItem('seeker_name') || 'Candidate';
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!seekerEmail) {
+        window.location.replace('login_signup.html');
+        return;
+      }
+      loadMessages();
+      // Poll for messages
+      setInterval(loadMessages, 3000);
+    });
+
+    async function loadMessages() {
+      try {
+        const response = await fetch(`/api/messages?email=${encodeURIComponent(seekerEmail)}&role=jobseeker`);
+        if (!response.ok) return;
+        const data = await response.json();
+        messages = data;
+        
+        // Group messages by recruiter email
+        const groups = {};
+        messages.forEach(msg => {
+          const key = msg.recruiterEmail.toLowerCase();
+          if (!groups[key]) {
+            groups[key] = {
+              recruiterEmail: msg.recruiterEmail,
+              recruiterName: msg.recruiterName,
+              companyName: msg.companyName,
+              messages: []
+            };
+          }
+          groups[key].messages.push(msg);
+        });
+
+        // Sort messages in each group by timestamp ascending
+        for (const key in groups) {
+          groups[key].messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        }
+
+        conversations = groups;
+        
+        // Set default active chat if none set
+        const keys = Object.keys(conversations);
+        if (keys.length > 0 && !activeChatEmail) {
+          activeChatEmail = keys[0];
+        }
+
+        renderSidebar();
+        renderChatWindow();
+      } catch (err) {
+        console.error("Failed to load messages:", err);
+      }
+    }
+
+    function renderSidebar() {
+      const sidebar = document.querySelector('.chat-sidebar');
+      if (!sidebar) return;
+      sidebar.innerHTML = '';
+
+      const keys = Object.keys(conversations);
+      if (keys.length === 0) {
+        sidebar.innerHTML = '<div style="padding: 20px; color: var(--text-muted); text-align: center; font-size: 0.85rem;">No conversations active. Apply to a job to start a conversation!</div>';
+        return;
+      }
+
+      keys.forEach(email => {
+        const conv = conversations[email];
+        const lastMsgObj = conv.messages[conv.messages.length - 1];
+        const lastMsgText = lastMsgObj ? lastMsgObj.text : "No messages yet";
+        const isActive = email === activeChatEmail;
+        const initial = conv.companyName.charAt(0).toUpperCase();
+
+        const item = document.createElement('div');
+        item.className = `glass-panel chat-user-item ${isActive ? 'active' : ''}`;
+        item.onclick = () => {
+          activeChatEmail = email;
+          renderSidebar();
+          renderChatWindow();
+        };
+
+        item.innerHTML = `
+          <div class="chat-user-avatar">${initial}</div>
+          <div class="chat-user-info">
+            <span class="chat-user-name">${conv.companyName} HR</span>
+            <span class="chat-user-last-msg">${lastMsgText}</span>
+          </div>
+        `;
+        sidebar.appendChild(item);
+      });
+    }
+
+    function renderChatWindow() {
+      const chatHeader = document.querySelector('.chat-header');
+      const chatBody = document.getElementById('chatBody');
+      if (!chatHeader || !chatBody) return;
+
+      if (!activeChatEmail || !conversations[activeChatEmail]) {
+        chatHeader.innerHTML = `
+          <div class="chat-user-avatar">?</div>
+          <span class="chat-user-name" style="font-size: 1.05rem;">Select a Chat</span>
+        `;
+        chatBody.innerHTML = `
+          <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.95rem;">
+            Select a conversation from the sidebar to view messages.
+          </div>
+        `;
+        return;
+      }
+
+      const conv = conversations[activeChatEmail];
+      const initial = conv.companyName.charAt(0).toUpperCase();
+
+      chatHeader.innerHTML = `
+        <div class="chat-user-avatar">${initial}</div>
+        <div style="display: flex; flex-direction: column;">
+          <span class="chat-user-name" style="font-size: 1.05rem; font-weight: 600;">${conv.companyName} HR</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">${conv.recruiterName}</span>
+        </div>
+      `;
+
+      // Check if scroll was at the bottom
+      const isAtBottom = chatBody.scrollHeight - chatBody.clientHeight <= chatBody.scrollTop + 50;
+
+      chatBody.innerHTML = '';
+      conv.messages.forEach(msg => {
+        const bubble = document.createElement('div');
+        const isOutgoing = msg.sender === 'seeker';
+        bubble.className = `chat-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
+        bubble.textContent = msg.text;
+        chatBody.appendChild(bubble);
+      });
+
+      if (isAtBottom || chatBody.scrollTop === 0) {
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }
+    }
+
+    async function sendMessage() {
       const input = document.getElementById('chatInput');
       const text = input.value.trim();
-      if (!text) return;
+      if (!text || !activeChatEmail || !conversations[activeChatEmail]) return;
 
-      const body = document.getElementById('chatBody');
-      const bubble = document.createElement('div');
-      bubble.className = 'chat-bubble outgoing';
-      bubble.textContent = text;
-      body.appendChild(bubble);
+      const conv = conversations[activeChatEmail];
       input.value = '';
-      body.scrollTop = body.scrollHeight;
 
-      // Simple mock reply delay
-      setTimeout(() => {
-        const reply = document.createElement('div');
-        reply.className = 'chat-bubble incoming';
-        reply.textContent = "Thank you! I will confirm that time slot and send a calendar invite.";
-        body.appendChild(reply);
-        body.scrollTop = body.scrollHeight;
-      }, 1500);
+      try {
+        const response = await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seekerEmail,
+            seekerName,
+            recruiterEmail: conv.recruiterEmail,
+            recruiterName: conv.recruiterName,
+            companyName: conv.companyName,
+            sender: 'seeker',
+            text: text
+          })
+        });
+
+        if (response.ok) {
+          await loadMessages();
+        } else {
+          alert('Failed to send message.');
+        }
+      } catch (err) {
+        console.error("Error sending message:", err);
+      }
     }
 
     function handleKeyPress(e) {

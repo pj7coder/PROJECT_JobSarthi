@@ -587,6 +587,40 @@ async function autoAggregateJobs() {
   }
 }
 
+let cachedSampleJobs = [];
+
+async function loadCachedSampleJobs() {
+  try {
+    const sampleJobsPath = path.join(__dirname, "database", "sample_jobs", "jobs.json");
+    if (mongoDb) {
+      cachedSampleJobs = await mongoDb.collection("sample_jobs").find({}).toArray();
+      if (cachedSampleJobs.length === 0) {
+        console.log("MongoDB Atlas sample_jobs collection is empty. Seeding from local jobs.json...");
+        const data = await fs.readFile(sampleJobsPath, "utf-8");
+        const localJobs = JSON.parse(data);
+        if (localJobs.length > 0) {
+          const chunkSize = 1000;
+          for (let i = 0; i < localJobs.length; i += chunkSize) {
+            const chunk = localJobs.slice(i, i + chunkSize);
+            await mongoDb.collection("sample_jobs").insertMany(chunk);
+          }
+          cachedSampleJobs = localJobs;
+          console.log(`Successfully seeded and loaded ${cachedSampleJobs.length} sample jobs into MongoDB Atlas.`);
+        }
+      } else {
+        console.log(`Loaded ${cachedSampleJobs.length} sample jobs from MongoDB Atlas.`);
+      }
+    } else {
+      const data = await fs.readFile(sampleJobsPath, "utf-8");
+      cachedSampleJobs = JSON.parse(data);
+      console.log(`Loaded ${cachedSampleJobs.length} sample jobs from local database directory.`);
+    }
+  } catch (err) {
+    console.error("Failed to load sample jobs into memory cache:", err);
+    cachedSampleJobs = [];
+  }
+}
+
 // Unified Database CRUD Operations
 const dbService = {
   findUserByEmail: async (email) => {
@@ -623,17 +657,26 @@ const dbService = {
       jobs = local.jobs || [];
     }
     // Remove sample jobs from PixelPerfect Labs and InnovateTech
-    return jobs.filter(j => 
+    const filteredJobs = jobs.filter(j => 
       !(j.company === "PixelPerfect Labs" && j.title.toLowerCase().includes("product designer")) &&
       !(j.company === "InnovateTech" && j.title.toLowerCase().includes("frontend"))
     );
+    return [...filteredJobs, ...cachedSampleJobs];
   },
   findJobById: async (id) => {
     if (mongoDb) {
-      return await mongoDb.collection("jobs").findOne({ id });
+      let job = await mongoDb.collection("jobs").findOne({ id });
+      if (!job) {
+        job = cachedSampleJobs.find(j => j.id === id);
+      }
+      return job;
     }
     const local = await readLocalDB();
-    return local.jobs.find(j => j.id === id);
+    let job = local.jobs.find(j => j.id === id);
+    if (!job) {
+      job = cachedSampleJobs.find(j => j.id === id);
+    }
+    return job;
   },
   createJob: async (job) => {
     if (mongoDb) {
@@ -665,6 +708,30 @@ const dbService = {
       return local.applications.filter(a => a.companyName && a.companyName.toLowerCase() === companyName.toLowerCase());
     }
     return local.applications;
+  },
+  getMessages: async (query) => {
+    if (mongoDb) {
+      return await mongoDb.collection("messages").find(query).toArray();
+    }
+    const local = await readLocalDB();
+    let msgs = local.messages || [];
+    if (query.seekerEmail) {
+      msgs = msgs.filter(m => m.seekerEmail.toLowerCase() === query.seekerEmail.toLowerCase());
+    } else if (query.recruiterEmail) {
+      msgs = msgs.filter(m => m.recruiterEmail.toLowerCase() === query.recruiterEmail.toLowerCase());
+    }
+    return msgs;
+  },
+  createMessage: async (msg) => {
+    if (mongoDb) {
+      await mongoDb.collection("messages").insertOne(msg);
+      return msg;
+    }
+    const local = await readLocalDB();
+    if (!local.messages) local.messages = [];
+    local.messages.push(msg);
+    await writeLocalDB(local);
+    return msg;
   }
 };
 
@@ -914,12 +981,402 @@ app.post("/api/auth/login", async (req, res) => {
 
 // --- Job Listings APIs ---
 
+const indianStates = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
+  "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", 
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", 
+  "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi", "Chandigarh", "Puducherry", "Jammu and Kashmir"
+];
+
+const indianCities = [
+  "Bangalore", "Bengaluru", "Mumbai", "Pune", "Hyderabad", "Chennai", "Noida", "Gurgaon", "Gurugram", 
+  "New Delhi", "Delhi", "Kolkata", "Ahmedabad", "Surat", "Jaipur", "Lucknow", "Kanpur", "Nagpur", 
+  "Indore", "Thane", "Bhopal", "Visakhapatnam", "Pimpri-Chinchwad", "Patna", "Vadodara", "Ghaziabad", 
+  "Ludhiana", "Agra", "Nashik", "Faridabad", "Meerut", "Rajkot", "Kalyan-Dombivli", "Vasai-Virar", 
+  "Varanasi", "Srinagar", "Aurangabad", "Dhanbad", "Amritsar", "Navi Mumbai", "Allahabad", "Ranchi", 
+  "Howrah", "Coimbatore", "Jabalpur", "Gwalior", "Vijayawada", "Jodhpur", "Madurai", "Raipur", 
+  "Kota", "Guwahati", "Solapur", "Hubli-Dharwad", "Bareilly", "Moradabad", "Mysore", "Aligarh", 
+  "Jalandhar", "Tiruchirappalli", "Bhubaneswar", "Salem", "Mira-Bhayandar", "Thiruvananthapuram", 
+  "Bhiwandi", "Saharanpur", "Gorakhpur", "Guntur", "Bikaner", "Amravati", "Jamshedpur", "Bhilai", 
+  "Cuttack", "Firozabad", "Kochi", "Nellore", "Bhavnagar", "Dehradun", "Durgapur", "Asansol", 
+  "Rourkela", "Nanded", "Kolhapur", "Ajmer", "Akola", "Gulbarga", "Jamnagar", "Ujjain", "Loni", 
+  "Siliguri", "Jhansi", "Ulhasnagar", "Jammu", "Sangli-Miraj & Kupwad", "Belgaum", "Mangalore", 
+  "Ambattur", "Tirunelveli", "Malegaon", "Gaya", "Jalgaon", "Udaipur", "Maheshtala"
+];
+
+function extractYearsOfExperience(expStr) {
+  if (!expStr) return 0;
+  const match = expStr.match(/(\d+)\s*(year|yr)/i);
+  if (match) return parseInt(match[1]);
+  const numMatch = expStr.match(/\b(\d+)\b/);
+  if (numMatch) return parseInt(numMatch[1]);
+  return 0;
+}
+
+function getJobRequiredExperience(job) {
+  const textToSearch = `${job.title} ${job.description || ''} ${(job.reqs || []).join(' ')}`.toLowerCase();
+  const match = textToSearch.match(/(\d+)\s*(?:-|to|\+)?\s*(?:\d+)?\s*years?\s*(?:of\s*)?experience/i);
+  if (match) {
+    return parseInt(match[1]);
+  }
+  if (job.title.toLowerCase().includes("senior") || job.title.toLowerCase().includes("lead") || job.title.toLowerCase().includes("principal")) {
+    return 5;
+  }
+  if (job.title.toLowerCase().includes("junior") || job.title.toLowerCase().includes("entry") || job.title.toLowerCase().includes("associate")) {
+    return 1;
+  }
+  return 2; 
+}
+
+function parseSalaryLPA(salaryStr) {
+  if (!salaryStr) return 0;
+  const match = salaryStr.match(/(\d+)\s*(LPA|lakh)/i);
+  if (match) return parseInt(match[1]);
+  const numMatch = salaryStr.match(/\b(\d+)\b/);
+  if (numMatch) return parseInt(numMatch[1]);
+  return 0;
+}
+
+function getJobLocationsGroup(job) {
+  const loc = (job.location || "").toLowerCase();
+  if (loc.includes("remote")) {
+    return ["Remote"];
+  }
+  
+  const groups = [];
+  let foundCity = false;
+  for (const city of indianCities) {
+    if (loc.includes(city.toLowerCase())) {
+      groups.push(city);
+      foundCity = true;
+    }
+  }
+  
+  let foundState = false;
+  for (const state of indianStates) {
+    if (loc.includes(state.toLowerCase())) {
+      groups.push(state);
+      foundState = true;
+    }
+  }
+  
+  if (foundCity || foundState || loc.includes("india")) {
+    groups.push("India");
+  } else {
+    groups.push("Out of India");
+  }
+  return groups;
+}
+
+function calculateMatchScore(job, profile) {
+  if (!profile) {
+    const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return 70 + (stringHash % 25);
+  }
+
+  let userSkills = [];
+  if (Array.isArray(profile.skills)) {
+    userSkills = profile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+  } else if (typeof profile.skills === 'string') {
+    userSkills = profile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+
+  let preferredLocs = [];
+  if (Array.isArray(profile.preferredLocations)) {
+    preferredLocs = profile.preferredLocations.map(s => s.trim().toLowerCase()).filter(Boolean);
+  } else if (typeof profile.preferredLocations === 'string') {
+    preferredLocs = profile.preferredLocations.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+
+  const userExp = extractYearsOfExperience(profile.experience);
+  const jobExp = getJobRequiredExperience(job);
+
+  // Skill normalization mapping for smarter overlap
+  const normalizeSkill = (s) => {
+    s = s.toLowerCase().trim();
+    if (s === 'react' || s === 'reactjs') return 'react.js';
+    if (s === 'node' || s === 'nodejs') return 'node.js';
+    if (s === 'js') return 'javascript';
+    if (s === 'ts') return 'typescript';
+    if (s === 'py') return 'python';
+    if (s === 'ml') return 'machine learning';
+    if (s === 'ai') return 'artificial intelligence';
+    if (s === 'mongo') return 'mongodb';
+    return s;
+  };
+
+  const normalizedUserSkills = userSkills.map(normalizeSkill);
+  const jobSkills = (job.skills || "").split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const normalizedJobSkills = jobSkills.map(normalizeSkill);
+
+  // STEP 1: HARD FILTERS
+  if (jobExp > userExp + 3) return 0; // Exceeds experience by more than 3 years
+
+  // Location checks
+  const isJobRemote = job.location.toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
+  const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => job.location.toLowerCase().includes(loc) || loc.includes(job.location.toLowerCase()));
+
+  // If job is not remote and doesn't match location, check if they are in same country (e.g. India)
+  const jobLocLower = job.location.toLowerCase();
+  const jobInIndia = jobLocLower.includes("india") || indianStates.some(s => jobLocLower.includes(s.toLowerCase())) || indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
+  const userInIndia = preferredLocs.length === 0 || preferredLocs.some(loc => loc.includes("india") || indianStates.some(s => s.toLowerCase() === loc) || indianCities.some(c => c.toLowerCase() === loc));
+
+  if (!isJobRemote && !isLocationMatch) {
+    if (!(jobInIndia && userInIndia)) {
+      return 0; // Completely different country and not remote
+    }
+  }
+
+  // Mandatory skills check (only reject if they have filled skills but match absolutely 0)
+  if (normalizedJobSkills.length > 0 && normalizedUserSkills.length > 0) {
+    const hasAnySkill = normalizedJobSkills.some(js => 
+      normalizedUserSkills.includes(js) || 
+      normalizedUserSkills.some(us => us.includes(js) || js.includes(us))
+    );
+    if (!hasAnySkill) return 0;
+  }
+
+  let location_score = 0;
+  let skill_score = 0;
+  let role_score = 0;
+  let experience_score = 0;
+  let work_mode_score = 0;
+  let salary_score = 0;
+
+  // STEP 2: LOCATION SCORING
+  const hasCity = preferredLocs.some(loc => indianCities.some(c => c.toLowerCase() === loc) && jobLocLower.includes(loc));
+  const hasState = preferredLocs.some(loc => indianStates.some(s => s.toLowerCase() === loc) && jobLocLower.includes(loc));
+
+  if (hasCity) {
+    location_score = 30;
+  } else if (hasState) {
+    location_score = 25;
+  } else if (jobInIndia && userInIndia) {
+    if (isJobRemote) {
+      location_score = 35;
+    } else {
+      location_score = 20; // relocation bonus
+    }
+  } else if (isJobRemote) {
+    location_score = 40;
+  } else {
+    location_score = 10;
+  }
+
+  // STEP 3: SKILL MATCH SCORING
+  if (normalizedJobSkills.length > 0 && normalizedUserSkills.length > 0) {
+    let matchCount = 0;
+    normalizedJobSkills.forEach(js => {
+      if (normalizedUserSkills.includes(js) || normalizedUserSkills.some(us => us.includes(js) || js.includes(us))) {
+        matchCount++;
+      }
+    });
+    const skillMatchRatio = matchCount / normalizedJobSkills.length;
+    if (skillMatchRatio >= 0.9) skill_score = 40;
+    else if (skillMatchRatio >= 0.7) skill_score = 35;
+    else if (skillMatchRatio >= 0.5) skill_score = 25;
+    else if (skillMatchRatio >= 0.3) skill_score = 15;
+    else skill_score = 10;
+  } else {
+    skill_score = 20;
+  }
+
+  // STEP 4: ROLE MATCH
+  const jobTitleLower = job.title.toLowerCase();
+  const userDegreeLower = (profile.degree || "").toLowerCase();
+  const expSummaryLower = (profile.experience || "").toLowerCase();
+  
+  let exactRole = false;
+  let relatedRole = false;
+  let sameDomain = false;
+  
+  const rolesList = ["software engineer", "developer", "machine learning", "frontend", "backend", "fullstack", "designer", "data scientist", "analyst", "product manager"];
+  rolesList.forEach(r => {
+    if (jobTitleLower.includes(r)) {
+      if (userDegreeLower.includes(r) || expSummaryLower.includes(r)) {
+        exactRole = true;
+      } else {
+        relatedRole = true;
+      }
+      sameDomain = true;
+    }
+  });
+  
+  if (exactRole) role_score = 30;
+  else if (relatedRole) role_score = 25;
+  else if (sameDomain) role_score = 15;
+  else role_score = 10;
+
+  // STEP 5: EXPERIENCE MATCH
+  const diff = userExp - jobExp;
+  if (diff === 0) {
+    experience_score = 20;
+  } else if (Math.abs(diff) <= 2) {
+    experience_score = 15;
+  } else if (Math.abs(diff) <= 3) {
+    experience_score = 10;
+  } else {
+    experience_score = 5;
+  }
+
+  // STEP 6: WORK MODE MATCH
+  const isUserRemotePreferred = preferredLocs.includes("remote");
+  if (isUserRemotePreferred && isJobRemote) {
+    work_mode_score = 15;
+  } else if (!isUserRemotePreferred && !isJobRemote) {
+    work_mode_score = 15;
+  } else {
+    work_mode_score = 5;
+  }
+
+  // STEP 7: SALARY MATCH
+  const userSalary = parseSalaryLPA(profile.expectedCtc);
+  const jobSalary = parseSalaryLPA(job.salary);
+  if (userSalary === 0 || jobSalary === 0) {
+    salary_score = 15;
+  } else if (jobSalary === userSalary) {
+    salary_score = 15;
+  } else if (jobSalary > userSalary) {
+    salary_score = 20;
+  } else {
+    salary_score = 5;
+  }
+
+  const finalScore = location_score + skill_score + role_score + experience_score + work_mode_score + salary_score;
+  return Math.max(0, Math.min(100, finalScore));
+}
+
 app.get("/api/jobs", async (req, res) => {
   try {
-    const jobs = await dbService.getJobs();
-    res.json(jobs);
+    const { page, limit, email, search, category, location, type, sort } = req.query;
+
+    // For backwards compatibility: if no pagination or search query is supplied, return the raw jobs array.
+    if (!page && !limit && !email && !search && !category && !location && !type && !sort) {
+      const jobs = await dbService.getJobs();
+      return res.json(jobs);
+    }
+
+    const currentPage = parseInt(page) || 1;
+    const currentLimit = parseInt(limit) || 50;
+
+    let jobs = await dbService.getJobs();
+    let seekerProfile = null;
+
+    if (email) {
+      const user = await dbService.findUserByEmail(email);
+      if (user && user.profile) {
+        seekerProfile = user.profile;
+      }
+    }
+
+    // Filter jobs
+    let filtered = jobs.filter(job => {
+      // 1. Search text query filter
+      if (search) {
+        const query = search.toLowerCase();
+        const matchesSearch = (job.title && job.title.toLowerCase().includes(query)) || 
+                              (job.company && job.company.toLowerCase().includes(query)) ||
+                              (job.description && job.description.toLowerCase().includes(query)) ||
+                              (job.location && job.location.toLowerCase().includes(query)) ||
+                              (job.skills && String(job.skills).toLowerCase().includes(query));
+        if (!matchesSearch) return false;
+      }
+
+      // 2. Category filter
+      if (category) {
+        if (job.category !== category) return false;
+      }
+
+      // 3. Location filter
+      if (location) {
+        const jobLocs = getJobLocationsGroup(job);
+        if (!jobLocs.includes(location)) return false;
+      }
+
+      // 4. Job Type filter
+      if (type) {
+        const checkedTypes = type.split(',').map(t => t.toLowerCase());
+        const physicalTypes = checkedTypes.filter(t => t !== "remote");
+        const isRemoteChecked = checkedTypes.includes("remote");
+
+        let matchesPhysical = physicalTypes.length === 0;
+        if (physicalTypes.length > 0) {
+          const jobType = (job.type || "Full-time").toLowerCase();
+          matchesPhysical = physicalTypes.some(t => jobType.includes(t));
+        }
+
+        let matchesRemote = true;
+        if (isRemoteChecked) {
+          const jobLoc = (job.location || "").toLowerCase();
+          const jobType = (job.type || "").toLowerCase();
+          matchesRemote = jobLoc.includes("remote") || jobType.includes("remote");
+        }
+
+        if (!(matchesPhysical && matchesRemote)) return false;
+      }
+
+      return true;
+    });
+
+    // Score jobs
+    filtered = filtered.map(job => {
+      const score = calculateMatchScore(job, seekerProfile);
+      return { ...job, matchScore: score };
+    });
+
+    // Sort jobs
+    if (sort === "match-desc") {
+      filtered.sort((a, b) => b.matchScore - a.matchScore);
+    } else if (sort === "date-desc") {
+      filtered.sort((a, b) => new Date(b.posted_date || b.created_at || 0) - new Date(a.posted_date || a.created_at || 0));
+    } else if (sort === "title-asc") {
+      filtered.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    } else if (sort === "company-asc") {
+      filtered.sort((a, b) => (a.company || "").localeCompare(b.company || ""));
+    } else {
+      // Default: sort by match score if profile available, else date-desc
+      if (seekerProfile) {
+        filtered.sort((a, b) => b.matchScore - a.matchScore);
+      } else {
+        filtered.sort((a, b) => new Date(b.posted_date || b.created_at || 0) - new Date(a.posted_date || a.created_at || 0));
+      }
+    }
+
+    // Pagination
+    const total = filtered.length;
+    const startIndex = (currentPage - 1) * currentLimit;
+    const paginatedJobs = filtered.slice(startIndex, startIndex + currentLimit);
+
+    // Metadata for filters
+    const categories = [...new Set(jobs.map(j => j.category || "Software Engineering"))].filter(Boolean).sort();
+    
+    const locationsSet = new Set();
+    jobs.forEach(job => {
+      const locGroups = getJobLocationsGroup(job);
+      locGroups.forEach(g => locationsSet.add(g));
+    });
+    const locations = [...locationsSet].sort();
+
+    res.json({
+      jobs: paginatedJobs,
+      total,
+      categories,
+      locations
+    });
   } catch (err) {
+    console.error("API /api/jobs error:", err);
     res.status(500).json({ error: "Failed to read jobs." });
+  }
+});
+
+app.get("/api/jobs/:id", async (req, res) => {
+  try {
+    const jobs = await dbService.getJobs();
+    const job = jobs.find(j => j.id === req.params.id || j.id == req.params.id);
+    if (!job) return res.status(404).json({ error: "Job not found." });
+    res.json(job);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to read job." });
   }
 });
 
@@ -984,6 +1441,29 @@ app.post("/api/jobs/:id/apply", async (req, res) => {
     };
 
     await dbService.createApplication(newApp);
+
+    // Create welcome chat message from the recruiter
+    try {
+      const recEmail = job.recruiterEmail || `hr@${job.company.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 15)}.com`;
+      const recName = `${job.company} HR`;
+      const welcomeMsgText = `Hi ${finalName}, thank you for applying to the ${job.title} position at ${job.company}. We have received your application and our recruiting team is currently analyzing your match. We will contact you shortly if we decide to move forward!`;
+      
+      const welcomeMsg = {
+        id: "msg_" + Date.now() + "_welcome",
+        seekerEmail: finalEmail.toLowerCase(),
+        seekerName: finalName,
+        recruiterEmail: recEmail.toLowerCase(),
+        recruiterName: recName,
+        companyName: job.company,
+        sender: "recruiter",
+        text: welcomeMsgText,
+        timestamp: new Date().toISOString()
+      };
+      await dbService.createMessage(welcomeMsg);
+      console.log(`Created welcome message thread for ${finalEmail} with ${job.company}`);
+    } catch (msgErr) {
+      console.error("Failed to seed welcome message for application:", msgErr);
+    }
 
     res.json({ success: true, application: newApp });
   } catch (err) {
@@ -1051,6 +1531,109 @@ app.post("/api/recruiter/applicants/:id/status", async (req, res) => {
   } catch (err) {
     console.error("Updating application status failed:", err);
     res.status(500).json({ error: "Failed to update status." });
+  }
+});
+
+// --- Chat Messages and AI Recruiting Agent APIs ---
+
+app.get("/api/messages", async (req, res) => {
+  try {
+    const { email, role } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    let query = {};
+    if (role === "recruiter") {
+      query = { recruiterEmail: cleanEmail };
+    } else {
+      query = { seekerEmail: cleanEmail };
+    }
+
+    const messages = await dbService.getMessages(query);
+    res.json(messages);
+  } catch (err) {
+    console.error("Failed to load messages:", err);
+    res.status(500).json({ error: "Failed to read messages." });
+  }
+});
+
+app.post("/api/messages", async (req, res) => {
+  try {
+    const { seekerEmail, seekerName, recruiterEmail, recruiterName, companyName, sender, text } = req.body;
+    if (!seekerEmail || !recruiterEmail || !sender || !text) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    const newMsg = {
+      id: "msg_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      seekerEmail: seekerEmail.toLowerCase().trim(),
+      seekerName: seekerName || "Candidate",
+      recruiterEmail: recruiterEmail.toLowerCase().trim(),
+      recruiterName: recruiterName || `${companyName} HR`,
+      companyName: companyName || "Company",
+      sender,
+      text,
+      timestamp: new Date().toISOString()
+    };
+
+    const savedMsg = await dbService.createMessage(newMsg);
+
+    // If seeker messages, auto-reply from the recruiter after 1.5 seconds!
+    if (sender === "seeker") {
+      setTimeout(async () => {
+        try {
+          const user = await dbService.findUserByEmail(seekerEmail);
+          const seekerProfileStr = user && user.profile ? JSON.stringify(user.profile) : "A candidate looking for roles";
+          
+          let responseText = `Hi ${seekerName}, thank you for reaching out. We have received your message and will review it shortly.`;
+          
+          if (process.env.GROQ_API_KEY) {
+            try {
+              const systemPrompt = `You are ${newMsg.recruiterName}, the HR / Hiring Coordinator at ${newMsg.companyName}.
+A candidate named ${seekerName} has messaged you.
+Here is the candidate's profile:
+${seekerProfileStr}
+
+Write a short, realistic, professional HR response to their message: "${text}".
+Guidelines:
+- Keep the response short (1-3 sentences).
+- Be polite, professional, and helpful.
+- Signature: ${newMsg.recruiterName}.
+- Do NOT use placeholders.`;
+
+              responseText = await callGroq([
+                { role: "system", content: systemPrompt },
+                { role: "user", content: text }
+              ], false, 0.7);
+            } catch (groqErr) {
+              console.warn("Groq failed in messaging agent:", groqErr);
+            }
+          }
+
+          const autoMsg = {
+            id: "msg_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+            seekerEmail: seekerEmail.toLowerCase().trim(),
+            seekerName: seekerName,
+            recruiterEmail: recruiterEmail.toLowerCase().trim(),
+            recruiterName: newMsg.recruiterName,
+            companyName: newMsg.companyName,
+            sender: "recruiter",
+            text: responseText.trim(),
+            timestamp: new Date().toISOString()
+          };
+          await dbService.createMessage(autoMsg);
+          console.log(`Auto-replied to candidate ${seekerEmail} from company ${newMsg.companyName}`);
+        } catch (autoErr) {
+          console.error("Auto message reply failed:", autoErr);
+        }
+      }, 1500);
+    }
+
+    res.json({ success: true, message: savedMsg });
+  } catch (err) {
+    console.error("Failed to save message:", err);
+    res.status(500).json({ error: "Failed to send message." });
   }
 });
 
@@ -1795,6 +2378,7 @@ app.get("*", (req, res) => {
 });
 
 initDB().then(async () => {
+  await loadCachedSampleJobs();
   await autoAggregateJobs();
   
   // Trigger a background run of job aggregation on boot

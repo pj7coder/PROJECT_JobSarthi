@@ -812,6 +812,11 @@
       const name = localStorage.getItem('seeker_name') || 'Candidate';
       if (!email) return;
 
+      const welcomeNameEl = document.getElementById('welcomeName');
+      if (welcomeNameEl) {
+        welcomeNameEl.textContent = name.split(' ')[0];
+      }
+
       // 1. Instantly load cached profile and stats from localStorage
       try {
         const cachedProfile = localStorage.getItem('seeker_profile_data');
@@ -858,9 +863,10 @@
         // 4. Fetch Jobs and Populate Recommended Matches
         let jobs = [];
         try {
-          const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?t=${Date.now()}`);
+          const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?email=${encodeURIComponent(email)}&limit=20&sort=match-desc&t=${Date.now()}`);
           if (jobsRes.ok) {
-            jobs = await jobsRes.json();
+            const data = await jobsRes.json();
+            jobs = data.jobs || [];
           }
         } catch (jobErr) {
           console.warn("Failed to load jobs for dashboard:", jobErr);
@@ -869,25 +875,9 @@
         const recommendedContainer = document.getElementById('recommendedJobsList');
         if (recommendedContainer) {
           if (jobs && jobs.length > 0) {
-            // Score and sort jobs based on user skills
-            const scored = jobs.map(job => {
-              return {
-                ...job,
-                matchScore: getJobMatchScore(job)
-              };
-            }).filter(job => job.matchScore !== null);
-            
-            scored.sort((a, b) => b.matchScore - a.matchScore);
-
-            lastRecommendedJobs = scored;
+            lastRecommendedJobs = jobs;
             currentDashboardPage = 1;
             renderPaginatedDashboardJobs();
-
-            // Update welcome card text dynamically
-            const welcomeTextP = document.querySelector('.welcome-text p');
-            if (welcomeTextP) {
-              welcomeTextP.textContent = `Sarthi AI has analyzed the open market and found ${jobs.length} roles matching your profile.`;
-            }
           } else {
             recommendedContainer.innerHTML = `
               <div class="glass-panel" style="grid-column: 1 / -1; padding: 20px; text-align: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
@@ -896,11 +886,6 @@
               </div>
             `;
             document.getElementById('dashboardPaginationContainer').innerHTML = '';
-            
-            const welcomeTextP = document.querySelector('.welcome-text p');
-            if (welcomeTextP) {
-              welcomeTextP.textContent = `Sarthi AI is scanning the market. Fill out your profile to get instant matches!`;
-            }
           }
         }
       } catch (err) {

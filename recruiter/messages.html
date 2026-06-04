@@ -266,77 +266,136 @@
         </div>
       </section>
     </div>
-  </main>
-
-  <script>
-    let activeChatId = 1;
-    let activeName = "Arjun Mehta";
-
-    // Conversations Mock Data
-    const conversations = {
-      1: [
-        { sender: 'candidate', text: "Hello! Thank you for reviewing my profile details. I'm excited about the Frontend Developer opening.", time: "10:30 AM" },
-        { sender: 'employer', text: "Hi Arjun, your React and CSS scores look fantastic. We'd love to schedule a quick introduction call.", time: "11:15 AM" },
-        { sender: 'candidate', text: "Sure, tomorrow at 3 PM works perfectly for me.", time: "11:18 AM" }
-      ],
-      2: [
-        { sender: 'candidate', text: "Hello there, I noticed you were looking for layout designers.", time: "Yesterday" },
-        { sender: 'employer', text: "Hi Priya, yes we are searching for UI/UX prototypers. Could you share some wireframe assets?", time: "Yesterday" },
-        { sender: 'candidate', text: "Here is the link to my Figma layouts portfolio.", time: "Yesterday" }
-      ],
-      3: [
-        { sender: 'employer', text: "Hi Kabir, how experienced are you with PostgreSQL database indexing?", time: "2 days ago" },
-        { sender: 'candidate', text: "Let me double check the database parameters.", time: "2 days ago" }
-      ]
-    };
-
-    // Candidates Response Presets
-    const candidateResponses = {
-      1: [
-        "Thanks! I will review the invite details and click accept.",
-        "Could you clarify if the role requires familiarity with Next.js?",
-        "Sounds good! Let's sync tomorrow. Thank you!"
-      ],
-      2: [
-        "I can also share some mobile wireframes if you'd like.",
-        "Great! Let me know if you need anything else.",
-        "Perfect, thank you for your time."
-      ],
-      3: [
-        "I've worked with indices, partitioning, and vacuum processes.",
-        "Sure, I will send over my references.",
-        "Understood, thank you."
-      ]
-    };
+  </main>  <script>
+    let messages = [];
+    let conversations = {}; // grouped by seekerEmail
+    let activeChatEmail = null;
+    const recruiterEmail = localStorage.getItem('recruiter_email');
+    const recruiterCompany = localStorage.getItem('recruiter_company') || 'Company';
 
     document.addEventListener("DOMContentLoaded", () => {
-      renderChat();
+      if (!recruiterEmail) {
+        window.location.replace('login_signup.html');
+        return;
+      }
+      loadMessages();
+      // Poll for messages
+      setInterval(loadMessages, 3000);
     });
 
-    function switchActiveChat(id, name) {
-      document.querySelectorAll('.candidate-chat-item').forEach(el => el.classList.remove('active'));
-      event.currentTarget.classList.add('active');
+    async function loadMessages() {
+      try {
+        const response = await fetch(`/api/messages?email=${encodeURIComponent(recruiterEmail)}&role=recruiter`);
+        if (!response.ok) return;
+        const data = await response.json();
+        messages = data;
+        
+        // Group messages by seeker email
+        const groups = {};
+        messages.forEach(msg => {
+          const key = msg.seekerEmail.toLowerCase();
+          if (!groups[key]) {
+            groups[key] = {
+              seekerEmail: msg.seekerEmail,
+              seekerName: msg.seekerName,
+              messages: []
+            };
+          }
+          groups[key].messages.push(msg);
+        });
 
-      activeChatId = id;
-      activeName = name;
-      document.getElementById('activeChatName').textContent = name;
+        // Sort messages in each group by timestamp ascending
+        for (const key in groups) {
+          groups[key].messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        }
 
-      renderChat();
+        conversations = groups;
+        
+        // Set default active chat if none set
+        const keys = Object.keys(conversations);
+        if (keys.length > 0 && !activeChatEmail) {
+          activeChatEmail = keys[0];
+        }
+
+        renderSidebar();
+        renderChatWindow();
+      } catch (err) {
+        console.error("Failed to load messages:", err);
+      }
     }
 
-    function renderChat() {
+    function renderSidebar() {
+      const sidebar = document.querySelector('.chat-sidebar');
+      if (!sidebar) return;
+      
+      // Preserve the header title in sidebar
+      sidebar.innerHTML = '<h2 style="font-size: 1.1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 10px;">Candidates Inbox</h2>';
+
+      const keys = Object.keys(conversations);
+      if (keys.length === 0) {
+        const div = document.createElement('div');
+        div.style.cssText = 'padding: 20px; color: var(--text-muted); text-align: center; font-size: 0.85rem;';
+        div.textContent = 'No messages received yet.';
+        sidebar.appendChild(div);
+        return;
+      }
+
+      keys.forEach(email => {
+        const conv = conversations[email];
+        const lastMsgObj = conv.messages[conv.messages.length - 1];
+        const lastMsgText = lastMsgObj ? lastMsgObj.text : "No messages yet";
+        const isActive = email === activeChatEmail;
+        const initials = conv.seekerName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+
+        const item = document.createElement('div');
+        item.className = `candidate-chat-item ${isActive ? 'active' : ''}`;
+        item.onclick = () => {
+          activeChatEmail = email;
+          renderSidebar();
+          renderChatWindow();
+        };
+
+        item.innerHTML = `
+          <div class="chat-avatar">${initials}</div>
+          <div class="chat-meta">
+            <h3>${conv.seekerName}</h3>
+            <p>${lastMsgText}</p>
+          </div>
+        `;
+        sidebar.appendChild(item);
+      });
+    }
+
+    function renderChatWindow() {
+      const activeChatName = document.getElementById('activeChatName');
       const container = document.getElementById('chatBodyContainer');
+      if (!activeChatName || !container) return;
+
+      if (!activeChatEmail || !conversations[activeChatEmail]) {
+        activeChatName.textContent = "Select a Candidate";
+        container.innerHTML = `
+          <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.95rem;">
+            Select a candidate from the sidebar to view messages.
+          </div>
+        `;
+        return;
+      }
+
+      const conv = conversations[activeChatEmail];
+      activeChatName.textContent = conv.seekerName;
+
+      // Check if scroll was at the bottom
+      const isAtBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
+
       container.innerHTML = '';
-
-      const messages = conversations[activeChatId] || [];
-
-      messages.forEach(m => {
+      conv.messages.forEach(m => {
         const bubble = document.createElement('div');
-        bubble.className = `chat-bubble ${m.sender === 'employer' ? 'bubble-employer' : ''}`;
+        const isEmployer = m.sender === 'recruiter';
+        bubble.className = `chat-bubble ${isEmployer ? 'bubble-employer' : ''}`;
 
-        const initials = m.sender === 'employer' ? 'E' : activeName.split(' ').map(n=>n[0]).join('');
-        const textClass = m.sender === 'employer' ? 'text-employer' : 'text-candidate';
-        const avatarColorStyle = m.sender === 'employer' ? 'background: linear-gradient(135deg, var(--accent-tertiary), var(--accent-primary));' : '';
+        const initials = isEmployer ? 'HR' : conv.seekerName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        const textClass = isEmployer ? 'text-employer' : 'text-candidate';
+        const avatarColorStyle = isEmployer ? 'background: linear-gradient(135deg, var(--accent-tertiary), var(--accent-primary));' : '';
 
         bubble.innerHTML = `
           <div class="chat-avatar" style="${avatarColorStyle}">${initials}</div>
@@ -346,100 +405,77 @@
         container.appendChild(bubble);
       });
 
-      container.scrollTop = container.scrollHeight;
+      if (isAtBottom || container.scrollTop === 0) {
+        container.scrollTop = container.scrollHeight;
+      }
     }
 
-    function handleSendMessage(event) {
-      event.preventDefault();
+    async function handleSendMessage(event) {
+      if (event) event.preventDefault();
 
       const input = document.getElementById('messageInput');
       const text = input.value.trim();
-      if (!text) return;
+      if (!text || !activeChatEmail || !conversations[activeChatEmail]) return;
 
-      // Save and render employer message
-      conversations[activeChatId].push({
-        sender: 'employer',
-        text: text,
-        time: "Just now"
-      });
-
-      // Update sidebar preview
-      document.getElementById(`preview_${activeChatId}`).textContent = text;
-
-      renderChat();
+      const conv = conversations[activeChatEmail];
       input.value = '';
 
-      // Trigger candidate typing auto-response
-      const typingId = showTypingIndicator();
-
-      setTimeout(() => {
-        removeTypingIndicator(typingId);
-
-        // Get response preset
-        const presets = candidateResponses[activeChatId];
-        const reply = presets.shift() || "Thank you! I will get back to you shortly.";
-
-        conversations[activeChatId].push({
-          sender: 'candidate',
-          text: reply,
-          time: "Just now"
+      try {
+        const response = await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seekerEmail: conv.seekerEmail,
+            seekerName: conv.seekerName,
+            recruiterEmail: recruiterEmail,
+            recruiterName: recruiterCompany + ' HR',
+            companyName: recruiterCompany,
+            sender: 'recruiter',
+            text: text
+          })
         });
 
-        // Update sidebar preview
-        document.getElementById(`preview_${activeChatId}`).textContent = reply;
-
-        renderChat();
-      }, 1500);
+        if (response.ok) {
+          await loadMessages();
+        } else {
+          alert('Failed to send message.');
+        }
+      } catch (err) {
+        console.error("Error sending message:", err);
+      }
     }
 
-    function sendScheduleInvite() {
-      const inviteMsg = "📅 <strong>Interview Scheduled:</strong> An interview invitation has been generated for tomorrow at 3:00 PM (IST). Check your mail calendar for verification.";
+    async function sendScheduleInvite() {
+      if (!activeChatEmail || !conversations[activeChatEmail]) return;
+      const conv = conversations[activeChatEmail];
+      const inviteMsg = "📅 <strong>Interview Scheduled:</strong> An interview invitation has been generated for tomorrow at 3:00 PM (IST). Please check your email calendar details.";
       
-      conversations[activeChatId].push({
-        sender: 'employer',
-        text: inviteMsg,
-        time: "Just now"
-      });
+      try {
+        const response = await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seekerEmail: conv.seekerEmail,
+            seekerName: conv.seekerName,
+            recruiterEmail: recruiterEmail,
+            recruiterName: recruiterCompany + ' HR',
+            companyName: recruiterCompany,
+            sender: 'recruiter',
+            text: inviteMsg
+          })
+        });
 
-      document.getElementById(`preview_${activeChatId}`).innerHTML = "Interview scheduled slot sent.";
-      renderChat();
+        if (response.ok) {
+          await loadMessages();
+        } else {
+          alert('Failed to send schedule invite.');
+        }
+      } catch (err) {
+        console.error("Error sending schedule invite:", err);
+      }
     }
-
-    function showTypingIndicator() {
-      const container = document.getElementById('chatBodyContainer');
-      const id = 'typing_' + Date.now();
-
-      const bubble = document.createElement('div');
-      bubble.className = 'chat-bubble';
-      bubble.id = id;
-
-      const initials = activeName.split(' ').map(n=>n[0]).join('');
-
-      bubble.innerHTML = `
-        <div class="chat-avatar">${initials}</div>
-        <div class="bubble-text text-candidate">
-          <div class="typing-indicator">
-            <span class="dot"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-          </div>
-        </div>
-      `;
-
-      container.appendChild(bubble);
-      container.scrollTop = container.scrollHeight;
-      return id;
-    }
-
-    function removeTypingIndicator(id) {
-      const el = document.getElementById(id);
-      if (el) el.remove();
-    }
-  
   </script>
-  
+
   <script src="../js/header.js"></script>
-
-
 </body>
 </html>
