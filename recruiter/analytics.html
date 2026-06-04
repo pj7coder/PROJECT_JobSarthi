@@ -7,6 +7,9 @@
   <meta name="description" content="View candidate pipeline statistics, acquisition channels, and AI evaluation metrics.">
   <link rel="stylesheet" href="../css/main.css">
   <script>
+    if (localStorage.getItem('recruiter_logged_in') !== 'true') {
+      window.location.replace('login_signup.html');
+    }
     if (localStorage.getItem('theme') === 'light') {
       document.documentElement.classList.add('light-theme');
       document.addEventListener('DOMContentLoaded', () => {

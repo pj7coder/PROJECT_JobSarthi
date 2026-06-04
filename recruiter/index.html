@@ -2,6 +2,11 @@
 <html lang="en">
 
 <head>
+  <script>
+    if (localStorage.getItem('recruiter_logged_in') !== 'true') {
+      window.location.replace('login_signup.html');
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Recruiter Dashboard - JobSarthi</title>
@@ -271,14 +276,97 @@
       loadDashboardApplicants(comp);
     });
 
+    function renderRecruiterStatsAndApplicants(list, jobsCount, container) {
+      // Update Stats UI
+      document.getElementById('recruiterActiveJobs').textContent = jobsCount;
+      document.getElementById('recruiterActiveJobsSubtext').textContent = `${jobsCount} postings active`;
+
+      const totalScreened = list.length;
+      document.getElementById('recruiterTotalCandidates').textContent = totalScreened;
+      document.getElementById('recruiterTotalCandidatesSubtext').textContent = totalScreened > 0 ? `+${totalScreened} candidates total` : 'No candidates registered yet';
+
+      const pendingReviews = list.filter(c => c.status === 'Applied' || c.status === 'Reviewing').length;
+      document.getElementById('recruiterPendingReviews').textContent = pendingReviews;
+      document.getElementById('recruiterPendingReviewsSubtext').textContent = pendingReviews > 0 ? `${pendingReviews} pending screening` : 'No pending reviews';
+
+      const interviews = list.filter(c => c.status === 'Interviewing').length;
+      document.getElementById('recruiterInterviews').textContent = interviews;
+      document.getElementById('recruiterInterviewsSubtext').textContent = `${interviews} scheduled overall`;
+      
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-dark); padding: 30px;">
+              No applicants received yet.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      // Display top 5 recent applicants
+      const recent = list.slice(0, 5);
+
+      recent.forEach(c => {
+        const row = document.createElement('tr');
+
+        let matchClass = 'background: rgba(6,182,212,0.1); color: var(--accent-secondary); border: 1px solid rgba(6,182,212,0.3);';
+        if (c.match >= 90) {
+          matchClass = 'background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.3);';
+        } else if (c.match < 75) {
+          matchClass = 'background: rgba(217,70,239,0.1); color: var(--accent-tertiary); border: 1px solid rgba(217,70,239,0.3);';
+        }
+
+        let statusBadge = `<span class="badge badge-warning">${c.status}</span>`;
+        if (c.status === 'Interviewing') {
+          statusBadge = `<span class="badge badge-primary">${c.status}</span>`;
+        } else if (c.status === 'Reviewing') {
+          statusBadge = `<span class="badge" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3);">${c.status}</span>`;
+        } else if (c.status === 'Shortlisted') {
+          statusBadge = `<span class="badge badge-success">${c.status}</span>`;
+        }
+
+        row.innerHTML = `
+          <td>
+            <div class="candidate-name">${c.name}</div>
+            <div class="candidate-role">${c.date}</div>
+          </td>
+          <td>${c.role}</td>
+          <td>
+            <span class="match-tag" style="${matchClass}">${c.match}% Fit</span>
+          </td>
+          <td>${statusBadge}</td>
+          <td>
+            <a href="applicants.html" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Review</a>
+          </td>
+        `;
+
+        container.appendChild(row);
+      });
+    }
+
     async function loadDashboardApplicants(companyName) {
       const container = document.getElementById('dashboardApplicantsContainer');
+      
+      // 1. Instantly load from localStorage if available
+      try {
+        const cachedList = localStorage.getItem('recruiter_applicants_list');
+        const cachedJobsCount = localStorage.getItem('recruiter_jobs_count');
+        if (cachedList !== null && cachedJobsCount !== null) {
+          renderRecruiterStatsAndApplicants(JSON.parse(cachedList), parseInt(cachedJobsCount), container);
+        }
+      } catch (e) {
+        console.warn("Error parsing cached recruiter stats:", e);
+      }
+
+      // 2. Fetch fresh details in the background
       try {
         const response = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(companyName)}`);
         if (!response.ok) throw new Error("Failed to fetch");
         const list = await response.json();
 
-        // 2. Fetch Jobs to count active ones
         let jobsCount = 0;
         try {
           const jobsRes = await fetch((window.API_BASE_URL || '') + '/api/jobs');
@@ -291,83 +379,14 @@
           console.warn("Failed to fetch jobs for recruiter stats:", jobErr);
         }
 
-        // Update Stats UI
-        document.getElementById('recruiterActiveJobs').textContent = jobsCount;
-        document.getElementById('recruiterActiveJobsSubtext').textContent = `${jobsCount} postings active`;
+        // Save to cache
+        localStorage.setItem('recruiter_applicants_list', JSON.stringify(list));
+        localStorage.setItem('recruiter_jobs_count', jobsCount);
 
-        const totalScreened = list.length;
-        document.getElementById('recruiterTotalCandidates').textContent = totalScreened;
-        document.getElementById('recruiterTotalCandidatesSubtext').textContent = totalScreened > 0 ? `+${totalScreened} candidates total` : 'No candidates registered yet';
-
-        const pendingReviews = list.filter(c => c.status === 'Applied' || c.status === 'Reviewing').length;
-        document.getElementById('recruiterPendingReviews').textContent = pendingReviews;
-        document.getElementById('recruiterPendingReviewsSubtext').textContent = pendingReviews > 0 ? `${pendingReviews} pending screening` : 'No pending reviews';
-
-        const interviews = list.filter(c => c.status === 'Interviewing').length;
-        document.getElementById('recruiterInterviews').textContent = interviews;
-        document.getElementById('recruiterInterviewsSubtext').textContent = `${interviews} scheduled overall`;
-        
-        container.innerHTML = '';
-
-        if (list.length === 0) {
-          container.innerHTML = `
-            <tr>
-              <td colspan="5" style="text-align: center; color: var(--text-dark); padding: 30px;">
-                No applicants received yet.
-              </td>
-            </tr>
-          `;
-          return;
-        }
-
-        // Display top 5 recent applicants
-        const recent = list.slice(0, 5);
-
-        recent.forEach(c => {
-          const row = document.createElement('tr');
-
-          let matchClass = 'background: rgba(6,182,212,0.1); color: var(--accent-secondary); border: 1px solid rgba(6,182,212,0.3);';
-          if (c.match >= 90) {
-            matchClass = 'background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.3);';
-          } else if (c.match < 75) {
-            matchClass = 'background: rgba(217,70,239,0.1); color: var(--accent-tertiary); border: 1px solid rgba(217,70,239,0.3);';
-          }
-
-          let statusBadge = `<span class="badge badge-warning">${c.status}</span>`;
-          if (c.status === 'Interviewing') {
-            statusBadge = `<span class="badge badge-primary">${c.status}</span>`;
-          } else if (c.status === 'Reviewing') {
-            statusBadge = `<span class="badge" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3);">${c.status}</span>`;
-          } else if (c.status === 'Shortlisted') {
-            statusBadge = `<span class="badge badge-success">${c.status}</span>`;
-          }
-
-          row.innerHTML = `
-            <td>
-              <div class="candidate-name">${c.name}</div>
-              <div class="candidate-role">${c.date}</div>
-            </td>
-            <td>${c.role}</td>
-            <td>
-              <span class="match-tag" style="${matchClass}">${c.match}% Fit</span>
-            </td>
-            <td>${statusBadge}</td>
-            <td>
-              <a href="applicants.html" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Review</a>
-            </td>
-          `;
-
-          container.appendChild(row);
-        });
+        // Render fresh data
+        renderRecruiterStatsAndApplicants(list, jobsCount, container);
       } catch (err) {
-        console.error(err);
-        container.innerHTML = `
-          <tr>
-            <td colspan="5" style="text-align: center; color: var(--danger); padding: 30px;">
-              Failed to load applicants from server.
-            </td>
-          </tr>
-        `;
+        console.error("Failed to load applicants in background:", err);
       }
     }
   </script>

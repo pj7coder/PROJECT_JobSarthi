@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // 3b. Initialize splash cursor settings state
-      const splashEnabled = localStorage.getItem('splash_cursor_enabled') !== 'false';
+      const splashEnabled = localStorage.getItem('splash_cursor_enabled') === 'true';
       const splashCheckboxes = document.querySelectorAll('#splashCursorToggleCheckbox');
       splashCheckboxes.forEach(cb => {
         cb.checked = splashEnabled;
@@ -648,7 +648,7 @@ document.addEventListener("DOMContentLoaded", () => {
                modalThemeToggle.checked = document.body.classList.contains('light-theme') || document.documentElement.classList.contains('light-theme');
              }
  
-             const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') !== 'false';
+             const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') === 'true';
              const modalAdvancedUIToggle = activeModal.querySelector('#modalAdvancedUIToggle');
              if (modalAdvancedUIToggle) {
                modalAdvancedUIToggle.checked = isAdvancedUI;
@@ -656,7 +656,7 @@ document.addEventListener("DOMContentLoaded", () => {
              
              const modalCursorToggle = activeModal.querySelector('#modalCursorToggle');
              if (modalCursorToggle) {
-               modalCursorToggle.checked = localStorage.getItem('splash_cursor_enabled') !== 'false';
+               modalCursorToggle.checked = localStorage.getItem('splash_cursor_enabled') === 'true';
              }
              
              const densityVal = localStorage.getItem('splash_cursor_density_slider') || '7';
@@ -671,12 +671,12 @@ document.addEventListener("DOMContentLoaded", () => {
  
              const modalHeaderToggle = activeModal.querySelector('#modalHeaderToggle');
              if (modalHeaderToggle) {
-               modalHeaderToggle.checked = localStorage.getItem('dynamic_header_enabled') !== 'false';
+               modalHeaderToggle.checked = localStorage.getItem('dynamic_header_enabled') === 'true';
              }
 
              const modalFallingTextToggle = activeModal.querySelector('#modalFallingTextToggle');
              if (modalFallingTextToggle) {
-               modalFallingTextToggle.checked = localStorage.getItem('falling_text_enabled') !== 'false';
+               modalFallingTextToggle.checked = localStorage.getItem('falling_text_enabled') === 'true';
              }
 
              const modalNavigationStyleSelect = activeModal.querySelector('#modalNavigationStyleSelect');
@@ -699,7 +699,7 @@ document.addEventListener("DOMContentLoaded", () => {
                    el.style.opacity = '1';
                  });
                  // Also disable/enable falling text toggle based on dynamic header toggle
-                 const headerChecked = localStorage.getItem('dynamic_header_enabled') !== 'false';
+                 const headerChecked = localStorage.getItem('dynamic_header_enabled') === 'true';
                  const ftToggle = activeModal.querySelector('#modalFallingTextToggle');
                  if (ftToggle) {
                    if (headerChecked) {
@@ -935,20 +935,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Global UI preferences manager
 window.applyAllUIPreferences = function () {
-  const advancedUIEnabled = localStorage.getItem('advanced_ui_enabled') !== 'false';
+  const advancedUIEnabled = localStorage.getItem('advanced_ui_enabled') === 'true';
   
   if (window.headerDockInstance) {
     window.headerDockInstance.transformNav();
   }
 
   // 1. Splash Cursor
-  const splashEnabled = advancedUIEnabled && localStorage.getItem('splash_cursor_enabled') !== 'false';
+  const splashEnabled = advancedUIEnabled && localStorage.getItem('splash_cursor_enabled') === 'true';
   if (window.toggleSplashCursor) {
     window.toggleSplashCursor(splashEnabled);
   }
   
   // 2. Dynamic Header physics/shake
-  const headerEnabled = advancedUIEnabled && localStorage.getItem('dynamic_header_enabled') !== 'false';
+  const headerEnabled = advancedUIEnabled && localStorage.getItem('dynamic_header_enabled') === 'true';
   if (!headerEnabled) {
     if (window.resetAboutPhysics) window.resetAboutPhysics();
     // Collapse header if it was open
@@ -1070,18 +1070,14 @@ window.toggleTheme = function () {
 
 // Global Logout Function
 window.logout = function () {
-  const isRecruiter = window.location.pathname.includes('/recruiter/');
-  if (isRecruiter) {
-    localStorage.removeItem('recruiter_logged_in');
-    localStorage.removeItem('recruiter_company');
-    localStorage.removeItem('recruiter_email');
-  } else {
-    localStorage.removeItem('seeker_logged_in');
-    localStorage.removeItem('seeker_name');
-    localStorage.removeItem('seeker_email');
-    localStorage.removeItem('seeker_avatar_url');
-  }
+  const keysToRemove = [
+    'seeker_logged_in', 'seeker_name', 'seeker_email', 'seeker_avatar_url', 'applied_jobs', 'seeker_notifications',
+    'recruiter_logged_in', 'recruiter_company', 'recruiter_email'
+  ];
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+  try { sessionStorage.clear(); } catch(e) {}
+
   const isLanding = !window.location.pathname.includes('/seeker/') && !window.location.pathname.includes('/recruiter/');
   const prefix = isLanding ? './' : '../';
-  window.location.href = `${prefix}index.html`;
+  window.location.replace(`${prefix}index.html`);
 };

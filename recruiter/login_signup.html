@@ -8,6 +8,18 @@
   <meta name="description" content="Sign in or register for an employer account on JobSarthi to start recruiting.">
   <link rel="stylesheet" href="../css/main.css">
   <script>
+    if (localStorage.getItem('recruiter_logged_in') === 'true') {
+      window.location.replace('index.html');
+    } else {
+      // Clear residual session cache to prevent profile photo flashes or data leaks
+      const keysToRemove = [
+        'seeker_logged_in', 'seeker_name', 'seeker_email', 'seeker_avatar_url', 'applied_jobs', 'seeker_notifications',
+        'recruiter_logged_in', 'recruiter_company', 'recruiter_email'
+      ];
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      try { sessionStorage.clear(); } catch(e) {}
+    }
+
     // Theme initializer
     if (localStorage.getItem('theme') === 'light') {
       document.documentElement.classList.add('light-theme');

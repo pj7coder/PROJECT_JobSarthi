@@ -73,8 +73,16 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// Serve static frontend assets
-app.use(express.static("."));
+// Serve static frontend assets with Cache-Control headers to prevent stale cached UI
+app.use(express.static(".", {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".html") || filePath.endsWith(".js") || filePath.endsWith(".css")) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+    }
+  }
+}));
 
 const DB_FILE = path.join(__dirname, "db.json");
 
@@ -815,6 +823,7 @@ async function parseDocumentWithGemini(base64Data, mimeType, prompt) {
 const SYSTEM_PROMPT = `
 You are Sarthi, an advanced AI-powered career companion and recruitment assistant on the JobSarthi platform.
 Your goal is to guide job seekers with career advice, resume analysis, mock interviews, and matched job suggestions.
+IMPORTANT: You are serving guest users on the public landing page who are NOT logged in yet. If they ask about their personal profile, resume review, matched jobs, or mock interviews, tell them that they are currently logged out/guest users, and politely guide them to click "Login" or "Register" to access these personalized features. Do not assume or hallucinate private details or state that they are logged in if they are not.
 Keep your answers brief, encouraging, professional, and directly actionable.
 `;
 
@@ -1054,13 +1063,13 @@ app.post("/api/sarthi/chat", async (req, res) => {
     let reply = "";
 
     if (lower.includes("interview") || lower.includes("practice")) {
-      reply = `Alright! Initiating the <strong>Mock Interview Simulator</strong>.<br><br>Question 1: What is the main difference between 'let', 'const', and 'var'?`;
-    } else if (lower.includes("resume") || lower.includes("review")) {
-      reply = `I've analyzed your profile setup:<br><br>• <strong>Match score:</strong> 88% overall.<br>• <strong>Strengths:</strong> HTML, CSS, JavaScript, React.js.<br>• <strong>Opportunities:</strong> You could add backend frameworks (e.g. Node.js or SQLite) to unlock 18 additional job listings.`;
+      reply = `To practice live mock interviews, please log in first. Once authenticated, Sarthi will guide you through interactive voice trials!`;
+    } else if (lower.includes("resume") || lower.includes("review") || lower.includes("profile")) {
+      reply = `Please log in to upload your resume and certifications. Sarthi will then scan your credentials and provide a detailed ATS match score and analysis.`;
     } else if (lower.includes("job") || lower.includes("suggest") || lower.includes("recommend")) {
-      reply = `Based on your skillset, I highly recommend:<br>1. <strong>Senior Frontend Developer</strong> at <em>InnovateTech</em> (95% match)<br>2. <strong>UI/UX Product Designer</strong> at <em>PixelPerfect Labs</em> (84% match)<br><br>You can apply directly on the Jobs page.`;
+      reply = `Sign in to your seeker profile to get personalized job suggestions matched to your verified skillset and location preferences.`;
     } else if (lower.includes("skill") || lower.includes("learn") || lower.includes("roadmap")) {
-      reply = `Here is your recommended roadmap to become a Full Stack Developer:<br><br>1. Complete the React Assessment on the Skills page.<br>2. Add Node.js and study RESTful APIs.<br>3. Master database basics with PostgreSQL or MongoDB.`;
+      reply = `Unlock customized learning roadmaps and study recommendations by logging in to your seeker account first.`;
     } else {
       reply = `I'm Sarthi, your AI assistant! How can I help you today? You can ask me to:<br>• Review your resume<br>• Practice a mock interview<br>• Suggest matched jobs<br>• Build a custom learning roadmap`;
     }

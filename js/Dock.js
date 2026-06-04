@@ -67,7 +67,7 @@ class HeaderDock {
     const panel = document.createElement('div');
     panel.className = 'dock-panel';
     
-    const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') !== 'false';
+    const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') === 'true';
     const navStyle = isAdvancedUI ? (localStorage.getItem('header_navigation_style') || 'text') : 'text';
     
     // Map original anchors and update contents in place to preserve listeners
@@ -164,7 +164,7 @@ class HeaderDock {
     if (!this.itemPositions) return;
     
     // Disable dock physics / magnification if Dynamic Header (or Advanced UI) is disabled
-    const isHeaderEnabled = localStorage.getItem('advanced_ui_enabled') !== 'false' && localStorage.getItem('dynamic_header_enabled') !== 'false';
+    const isHeaderEnabled = localStorage.getItem('advanced_ui_enabled') === 'true' && localStorage.getItem('dynamic_header_enabled') === 'true';
     if (!isHeaderEnabled) {
       this.resetSizes();
       return;

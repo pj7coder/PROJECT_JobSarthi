@@ -125,8 +125,8 @@
     const container = document.getElementById('aboutContent');
     if (!container) return;
 
-    const isHeaderEnabled = localStorage.getItem('dynamic_header_enabled') !== 'false' && localStorage.getItem('advanced_ui_enabled') !== 'false';
-    const isFallingTextEnabled = localStorage.getItem('falling_text_enabled') !== 'false';
+    const isHeaderEnabled = localStorage.getItem('dynamic_header_enabled') === 'true' && localStorage.getItem('advanced_ui_enabled') === 'true';
+    const isFallingTextEnabled = localStorage.getItem('falling_text_enabled') === 'true';
     if (!isHeaderEnabled || !isFallingTextEnabled) {
       return;
     }

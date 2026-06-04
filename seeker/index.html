@@ -2,6 +2,11 @@
 <html lang="en">
 
 <head>
+  <script>
+    if (localStorage.getItem('seeker_logged_in') !== 'true') {
+      window.location.replace('login_signup.html');
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - JobSarthi Seeker</title>
@@ -363,32 +368,33 @@
         </div>
   </main>
 
-  <!-- Unified Floating Sarthi AI Pill & Panel -->
+  <!-- Unified Floating Sarthi AI Pill -->
   <div id="floatingSarthiBtn" onclick="onFloatingSarthiClick(event)" class="gemini-pill-border moved-up-mobile glare-hover glare-hover--play-once"
-    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), height 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.35s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); will-change: transform, opacity; transform: translate3d(0, 0, 0);">
+    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); transform-origin: bottom right;">
     <!-- Small State Content -->
     <div id="floatingSmallContent"
-      style="position: absolute; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.95rem; white-space: nowrap; transition: opacity 0.3s ease; z-index: 10;">
+      style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.95rem; white-space: nowrap; z-index: 10;">
       Sarthi
     </div>
+  </div>
 
-    <!-- Click Expanded Content (4 Vertical Cards) -->
-    <div id="clickExpandedContent"
-      style="position: absolute; inset: 0; opacity: 0; pointer-events: none; display: flex; flex-direction: column; color: var(--text-main); transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px 24px; justify-content: space-between; overflow: hidden; z-index: 10;">
+  <!-- Click Expanded Content (4 Vertical Cards) - Separate Sibling -->
+  <div id="clickExpandedContent" class="gemini-pill-border"
+    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; flex-direction: column; width: 350px; height: 460px; max-width: calc(100vw - 40px); max-height: calc(100vh - 80px); border-radius: 24px; background: var(--sarthi-bg-expanded); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); box-sizing: border-box; padding: 20px 24px; justify-content: space-between; overflow: hidden; opacity: 0; pointer-events: none; transform: scale(0.9); transform-origin: bottom right; transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); font-family: var(--font-sans);">
 
       <!-- Panel Header -->
       <div
-        style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0;">
+        style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0; z-index: 10;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 1.15rem;">✨</span>
           <span style="font-weight: 700; font-size: 1.05rem; letter-spacing: 0.5px;">Sarthi AI Tools</span>
         </div>
         <button id="clickCloseBtn" onclick="closeClickPanel(event)"
-          style="background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s;">✕</button>
+          style="background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; z-index: 10;">✕</button>
       </div>
 
       <!-- Vertical Card Stack -->
-      <div style="display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: center;">
+      <div style="display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: center; z-index: 10;">
 
         <!-- Card 1: Interview Mode -->
         <a href="aiinterview.html" onclick="event.stopPropagation(); closeClickPanel(null);" class="sarthi-tool-card"
@@ -433,7 +439,7 @@
         </a>
 
         <!-- Card 4: Career Guide -->
-        <a href="sarthi.html?mode=career" onclick="event.stopPropagation(); closeClickPanel(null);"
+        <a href="resume.html" onclick="event.stopPropagation(); closeClickPanel(null);"
           class="sarthi-tool-card"
           style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
           <div
@@ -457,60 +463,43 @@
       loadDashboardProfile();
     });
 
-    async function loadDashboardProfile() {
-      const email = localStorage.getItem('seeker_email');
-      const name = localStorage.getItem('seeker_name') || 'Candidate';
-      if (!email) return;
-
-      try {
-        // 1. Fetch Profile
-        const profileRes = await fetch((window.API_BASE_URL || '') + `/api/seeker/profile?email=${encodeURIComponent(email)}`);
-        if (!profileRes.ok) throw new Error("Failed to load profile");
-        const profile = await profileRes.json();
-
-        // 2. Fetch Applications to count
-        const appsRes = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants`);
-        let applications = [];
-        if (appsRes.ok) {
-          const allApps = await appsRes.json();
-          applications = allApps.filter(app => app.email.toLowerCase() === email.toLowerCase());
-        }
-
-        // Set application counts
-        const appsSent = applications.length;
-        const interviewsScheduled = applications.filter(app => app.status === 'Interviewing').length;
-
-        document.getElementById('applicationsSentCount').textContent = appsSent;
-        document.getElementById('interviewsScheduledCount').textContent = interviewsScheduled;
-
-        // Set title
-        const sidebarTitle = document.getElementById('sidebarTitle');
+    function renderProfile(profile) {
+      if (!profile) return;
+      
+      // Set title
+      const sidebarTitle = document.getElementById('sidebarTitle');
+      if (sidebarTitle) {
         if (profile.degree) {
           sidebarTitle.textContent = `${profile.degree} ${profile.college ? 'at ' + profile.college : ''}`;
         } else {
           sidebarTitle.textContent = "Software Seeker";
         }
+      }
 
-        // Calculate completeness score
-        let completenessScore = 0;
-        if (profile.college) completenessScore += 20;
-        if (profile.degree) completenessScore += 20;
-        if (profile.cgpa) completenessScore += 10;
-        if (profile.experience) completenessScore += 25;
-        if (profile.skills && profile.skills.length > 0) completenessScore += 15;
-        if (profile.resumeFileName) completenessScore += 10;
+      // Calculate completeness score
+      let completenessScore = 0;
+      if (profile.college) completenessScore += 20;
+      if (profile.degree) completenessScore += 20;
+      if (profile.cgpa) completenessScore += 10;
+      if (profile.experience) completenessScore += 25;
+      if (profile.skills && profile.skills.length > 0) completenessScore += 15;
+      if (profile.resumeFileName) completenessScore += 10;
 
-        document.getElementById('profileCompletenessText').textContent = `${completenessScore}%`;
-        document.getElementById('profileProgressBar').style.width = `${completenessScore}%`;
+      const completenessText = document.getElementById('profileCompletenessText');
+      if (completenessText) completenessText.textContent = `${completenessScore}%`;
+      const progressBar = document.getElementById('profileProgressBar');
+      if (progressBar) progressBar.style.width = `${completenessScore}%`;
 
-        // Update other stats counts
-        document.getElementById('certificatesCount').textContent = profile.certificates ? profile.certificates.length : 0;
-        document.getElementById('skillsLoggedCount').textContent = profile.skills ? profile.skills.length : 0;
+      // Update other stats counts
+      const certificatesCount = document.getElementById('certificatesCount');
+      if (certificatesCount) certificatesCount.textContent = profile.certificates ? profile.certificates.length : 0;
+      const skillsLoggedCount = document.getElementById('skillsLoggedCount');
+      if (skillsLoggedCount) skillsLoggedCount.textContent = profile.skills ? profile.skills.length : 0;
 
-        // Populate skills summary grid
-        const skillsGrid = document.getElementById('skillsSummaryGrid');
+      // Populate skills summary grid
+      const skillsGrid = document.getElementById('skillsSummaryGrid');
+      if (skillsGrid) {
         skillsGrid.innerHTML = '';
-
         if (profile.skills && profile.skills.length > 0) {
           const icons = ["⚡", "⚛️", "🐍", "🎨", "💻", "🔧", "📊", "🚀"];
           profile.skills.forEach((skill, index) => {
@@ -532,6 +521,59 @@
             </div>
           `;
         }
+      }
+    }
+
+    async function loadDashboardProfile() {
+      const email = localStorage.getItem('seeker_email');
+      const name = localStorage.getItem('seeker_name') || 'Candidate';
+      if (!email) return;
+
+      // 1. Instantly load cached profile and stats from localStorage
+      try {
+        const cachedProfile = localStorage.getItem('seeker_profile_data');
+        if (cachedProfile) {
+          renderProfile(JSON.parse(cachedProfile));
+        }
+        
+        const cachedAppsCount = localStorage.getItem('seeker_apps_count');
+        const cachedInterviewsCount = localStorage.getItem('seeker_interviews_count');
+        if (cachedAppsCount !== null) {
+          document.getElementById('applicationsSentCount').textContent = cachedAppsCount;
+        }
+        if (cachedInterviewsCount !== null) {
+          document.getElementById('interviewsScheduledCount').textContent = cachedInterviewsCount;
+        }
+      } catch (e) {
+        console.warn("Error parsing cached profile details:", e);
+      }
+
+      try {
+        // 2. Fetch Fresh Profile
+        const profileRes = await fetch((window.API_BASE_URL || '') + `/api/seeker/profile?email=${encodeURIComponent(email)}`);
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          localStorage.setItem('seeker_profile_data', JSON.stringify(profile));
+          renderProfile(profile);
+        }
+
+        // 3. Fetch Applications to count
+        const appsRes = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants`);
+        if (appsRes.ok) {
+          const allApps = await appsRes.json();
+          const applications = allApps.filter(app => app.email.toLowerCase() === email.toLowerCase());
+          const appsSent = applications.length;
+          const interviewsScheduled = applications.filter(app => app.status === 'Interviewing').length;
+
+          localStorage.setItem('seeker_apps_count', appsSent);
+          localStorage.setItem('seeker_interviews_count', interviewsScheduled);
+
+          document.getElementById('applicationsSentCount').textContent = appsSent;
+          document.getElementById('interviewsScheduledCount').textContent = interviewsScheduled;
+        }
+      } catch (err) {
+        console.error("Failed to load profile in background:", err);
+      }
 
         // 3. Fetch Jobs and Populate Recommended Matches
         let jobs = [];
@@ -603,50 +645,48 @@
     let sarthiMode = 'minimized'; // 'minimized' or 'clickExpanded'
 
     function onFloatingSarthiClick(event) {
+      if (event) event.stopPropagation();
       const floatingBtn = document.getElementById('floatingSarthiBtn');
-      const smallContent = document.getElementById('floatingSmallContent');
       const clickContent = document.getElementById('clickExpandedContent');
-      const W = window.innerWidth;
-      const H = window.innerHeight;
 
       if (sarthiMode === 'minimized') {
         sarthiMode = 'clickExpanded';
-        floatingBtn.style.width = `${Math.min(350, W - 40)}px`;
-        floatingBtn.style.height = `${Math.min(460, H - 80)}px`;
-        floatingBtn.style.borderRadius = '24px';
-        floatingBtn.style.background = 'var(--sarthi-bg-expanded)';
-        floatingBtn.classList.add('pane-open');
-
-        smallContent.style.opacity = '0';
-        smallContent.style.pointerEvents = 'none';
-        clickContent.style.opacity = '1';
-        clickContent.style.pointerEvents = 'auto';
+        if (floatingBtn) {
+          floatingBtn.style.opacity = '0';
+          floatingBtn.style.pointerEvents = 'none';
+          floatingBtn.style.transform = 'scale(0.9)';
+        }
+        if (clickContent) {
+          clickContent.style.opacity = '1';
+          clickContent.style.pointerEvents = 'auto';
+          clickContent.style.transform = 'scale(1)';
+        }
       }
     }
 
     function closeClickPanel(event) {
       if (event) event.stopPropagation();
       const floatingBtn = document.getElementById('floatingSarthiBtn');
-      const smallContent = document.getElementById('floatingSmallContent');
       const clickContent = document.getElementById('clickExpandedContent');
 
       sarthiMode = 'minimized';
-      floatingBtn.style.width = '140px';
-      floatingBtn.style.height = '54px';
-      floatingBtn.style.borderRadius = '27px';
-      floatingBtn.style.background = 'var(--sarthi-bg-minimized)';
-      floatingBtn.classList.remove('pane-open');
-
-      smallContent.style.opacity = '1';
-      smallContent.style.pointerEvents = 'auto';
-      clickContent.style.opacity = '0';
-      clickContent.style.pointerEvents = 'none';
+      if (floatingBtn) {
+        floatingBtn.style.opacity = '1';
+        floatingBtn.style.pointerEvents = 'auto';
+        floatingBtn.style.transform = 'scale(1)';
+      }
+      if (clickContent) {
+        clickContent.style.opacity = '0';
+        clickContent.style.pointerEvents = 'none';
+        clickContent.style.transform = 'scale(0.9)';
+      }
     }
 
     // Close panel on document click outside
     document.addEventListener('click', (e) => {
+      const clickContent = document.getElementById('clickExpandedContent');
       const floatingBtn = document.getElementById('floatingSarthiBtn');
-      if (sarthiMode === 'clickExpanded' && floatingBtn && !floatingBtn.contains(e.target)) {
+      if (sarthiMode === 'clickExpanded' && clickContent && !clickContent.contains(e.target) && (!floatingBtn || !floatingBtn.contains(e.target))) {
         closeClickPanel(e);
       }
     });

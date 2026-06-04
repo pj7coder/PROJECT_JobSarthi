@@ -7,6 +7,9 @@
   <meta name="description" content="Stay up to date with job applications, mock reviews, and alerts from Sarthi AI.">
   <link rel="stylesheet" href="../css/main.css">
   <script>
+    if (localStorage.getItem('seeker_logged_in') !== 'true') {
+      window.location.replace('login_signup.html');
+    }
     if (localStorage.getItem('theme') === 'light') {
       document.documentElement.classList.add('light-theme');
       document.addEventListener('DOMContentLoaded', () => {
@@ -236,11 +239,7 @@
       renderNotifications();
     });
 
-    function logout() {
-      localStorage.removeItem('seeker_logged_in');
-      localStorage.removeItem('seeker_name');
-      window.location.href = '../index.html';
-    }
+
 
     function switchFilter(btn, filter) {
       document.querySelectorAll('.notif-tab').forEach(t => t.classList.remove('active'));

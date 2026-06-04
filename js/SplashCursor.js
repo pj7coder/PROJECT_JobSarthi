@@ -17,17 +17,19 @@
     TRANSPARENT: true,
     RAINBOW_MODE: true,
     COLOR: '#ff0000',
-    ENABLED: true
+    ENABLED: false
   };
 
   // Load from localStorage if available
   if (localStorage.getItem('splash_cursor_enabled') !== null) {
     window.SplashCursorConfig.ENABLED = localStorage.getItem('splash_cursor_enabled') === 'true';
+  } else {
+    window.SplashCursorConfig.ENABLED = false;
   }
   if (localStorage.getItem('splash_cursor_density') !== null) {
     window.SplashCursorConfig.DENSITY_DISSIPATION = parseFloat(localStorage.getItem('splash_cursor_density'));
   }
-  if (localStorage.getItem('advanced_ui_enabled') === 'false' || window.DISABLE_SPLASH_CURSOR === true || window.location.pathname.includes('aiinterview.html')) {
+  if (localStorage.getItem('advanced_ui_enabled') !== 'true' || window.DISABLE_SPLASH_CURSOR === true || window.location.pathname.includes('aiinterview.html')) {
     window.SplashCursorConfig.ENABLED = false;
   }
 
@@ -1099,7 +1101,7 @@
   };
 
   window.toggleSplashCursor = function (enabled) {
-    const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') !== 'false';
+    const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') === 'true';
     const actualEnabled = enabled && isAdvancedUI;
 
     window.SplashCursorConfig.ENABLED = actualEnabled;
