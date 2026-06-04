@@ -1270,7 +1270,6 @@ body.light-theme .sarthi-tool-card h4 {
 .gemini-pill-border {
   position: relative;
   border: none !important;
-  contain: layout style; /* Isolate layout/paint to this subtree */
 }
 
 /* Pseudo-element for the gradient border - GPU promoted */
