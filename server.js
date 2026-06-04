@@ -1754,9 +1754,9 @@ app.post("/api/seeker/parse-certificate", async (req, res) => {
 });
 
 // --- Job Aggregator Admin endpoints ---
-app.post("/api/admin/jobs/collect", async (req, res) => {
+app.all("/api/admin/jobs/collect", async (req, res) => {
   try {
-    const { companies } = req.body;
+    const { companies } = req.body || {};
     // Default list of companies to collect if none are provided
     const targetCompanies = companies || [
       { name: "Figma", url: "https://careers.figma.com", ats: "greenhouse", token: "figma" },
