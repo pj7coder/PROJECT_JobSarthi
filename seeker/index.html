@@ -370,7 +370,7 @@
 
   <!-- Unified Floating Sarthi AI Pill -->
   <div id="floatingSarthiBtn" onclick="onFloatingSarthiClick(event)" class="gemini-pill-border moved-up-mobile glare-hover glare-hover--play-once"
-    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); transform-origin: bottom right;">
+    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); transition: transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease; transform-origin: bottom right; will-change: transform, opacity;">
     <!-- Small State Content -->
     <div id="floatingSmallContent"
       style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.95rem; white-space: nowrap; z-index: 10;">
@@ -380,7 +380,7 @@
 
   <!-- Click Expanded Content (4 Vertical Cards) - Separate Sibling -->
   <div id="clickExpandedContent" class="gemini-pill-border"
-    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; flex-direction: column; width: 350px; height: 460px; max-width: calc(100vw - 40px); max-height: calc(100vh - 80px); border-radius: 24px; background: var(--sarthi-bg-expanded); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); box-sizing: border-box; padding: 20px 24px; justify-content: space-between; overflow: hidden; opacity: 0; pointer-events: none; transform: scale(0.9); transform-origin: bottom right; transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); font-family: var(--font-sans);">
+    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; flex-direction: column; width: 350px; height: 460px; max-width: calc(100vw - 40px); max-height: calc(100vh - 80px); border-radius: 24px; background: var(--sarthi-bg-expanded); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); box-sizing: border-box; padding: 20px 24px; justify-content: space-between; overflow: hidden; opacity: 0; pointer-events: none; transform: scale(0.15); transform-origin: bottom right; transition: transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease; font-family: var(--font-sans); will-change: transform, opacity;">
 
       <!-- Panel Header -->
       <div
@@ -648,11 +648,13 @@
       if (sarthiMode === 'minimized') {
         sarthiMode = 'clickExpanded';
         if (floatingBtn) {
+          floatingBtn.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
           floatingBtn.style.opacity = '0';
           floatingBtn.style.pointerEvents = 'none';
-          floatingBtn.style.transform = 'scale(0.9)';
+          floatingBtn.style.transform = 'scale(0.15)';
         }
         if (clickContent) {
+          clickContent.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
           clickContent.style.opacity = '1';
           clickContent.style.pointerEvents = 'auto';
           clickContent.style.transform = 'scale(1)';
@@ -667,14 +669,16 @@
 
       sarthiMode = 'minimized';
       if (floatingBtn) {
+        floatingBtn.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
         floatingBtn.style.opacity = '1';
         floatingBtn.style.pointerEvents = 'auto';
         floatingBtn.style.transform = 'scale(1)';
       }
       if (clickContent) {
+        clickContent.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
         clickContent.style.opacity = '0';
         clickContent.style.pointerEvents = 'none';
-        clickContent.style.transform = 'scale(0.9)';
+        clickContent.style.transform = 'scale(0.15)';
       }
     }
 
