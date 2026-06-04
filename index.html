@@ -1582,9 +1582,9 @@
 
           let nextMode = 'minimized';
           if (cachedMaxScroll > 0) {
-            // Only switch to scrollExpanded once the Sarthi section has scrolled near the top of the viewport
+            // Only switch to scrollExpanded once the Sarthi section has scrolled almost to the top of the viewport
             // cachedSectionTopDoc = absolute top of the section
-            // 500px offset = panel opens when section top is 500px below top of screen (review section mostly gone)
+            // This prevents overlapping with the review section above it.
             const sectionEntersViewport = cachedSectionTopDoc - 500;
             if (window.scrollY >= sectionEntersViewport && cachedSectionTopDoc > 0) {
               nextMode = 'scrollExpanded';
@@ -1981,7 +1981,7 @@
 
     function checkVisibility() {
       var rect = target.getBoundingClientRect();
-      // Hide the button when the Sarthi panel starts to open (synced to panel trigger at rect.top <= 500)
+      // Hide the button when the Sarthi panel starts to open (at rect.top <= 200)
       if (rect.top <= 500) {
         btn.style.opacity = '0';
         btn.style.pointerEvents = 'none';

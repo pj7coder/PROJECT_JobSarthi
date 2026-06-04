@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 // GoogleGenerativeAI removed (migrating to Groq)
 import { MongoClient } from "mongodb";
 import { v2 as cloudinary } from "cloudinary";
+import { runJobCollectionPipeline } from "./jobCollector.js";
 
 dotenv.config();
 
@@ -1732,6 +1733,28 @@ app.post("/api/seeker/parse-certificate", async (req, res) => {
   }
 });
 
+// --- Job Aggregator Admin endpoints ---
+app.post("/api/admin/jobs/collect", async (req, res) => {
+  try {
+    const { companies } = req.body;
+    // Default list of companies to collect if none are provided
+    const targetCompanies = companies || [
+      { name: "Figma", url: "https://careers.figma.com", ats: "greenhouse", token: "figma" },
+      { name: "Vercel", url: "https://vercel.com/careers", ats: "lever", token: "vercel" },
+      { name: "AshbyHQ", url: "https://careers.ashbyhq.com", ats: "ashby", token: "ashby" },
+      { name: "SmartRecruiters", url: "https://careers.smartrecruiters.com", ats: "smartrecruiters", token: "smartrecruiters" },
+      { name: "JobSarthi Partner", url: "https://jobsarthi.ai", ats: "none" }
+    ];
+
+    console.log("[JobCollector API] Triggered job aggregation sync...");
+    const stats = await runJobCollectionPipeline(targetCompanies);
+    res.json({ success: true, message: "Job collection pipeline completed.", stats });
+  } catch (err) {
+    console.error("Job collection endpoint error:", err);
+    res.status(500).json({ error: "Job collection pipeline failed." });
+  }
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
@@ -1743,6 +1766,25 @@ app.get("*", (req, res) => {
 
 initDB().then(async () => {
   await autoAggregateJobs();
+  
+  // Trigger a background run of job aggregation on boot
+  const defaultCompanies = [
+    { name: "Figma", url: "https://careers.figma.com", ats: "greenhouse", token: "figma" },
+    { name: "Vercel", url: "https://vercel.com/careers", ats: "lever", token: "vercel" }
+  ];
+  
+  runJobCollectionPipeline(defaultCompanies)
+    .then(stats => console.log("[Background JobCollector] Initial boot aggregation sync completed:", stats))
+    .catch(err => console.error("[Background JobCollector] Initial boot aggregation sync failed:", err));
+
+  // Run scheduler every 24 hours
+  setInterval(() => {
+    console.log("[Background JobCollector] Scheduled 24h aggregation sync started...");
+    runJobCollectionPipeline(defaultCompanies)
+      .then(stats => console.log("[Background JobCollector] Scheduled aggregation completed:", stats))
+      .catch(err => console.error("[Background JobCollector] Scheduled aggregation failed:", err));
+  }, 24 * 60 * 60 * 1000);
+
   app.listen(PORT, () => {
     console.log(`JobSarthi server running at http://localhost:${PORT}`);
   });
