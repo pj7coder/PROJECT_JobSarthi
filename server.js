@@ -1964,7 +1964,11 @@ const FALLBACK_QUESTIONS = {
 
 app.post("/api/sarthi/interview/next", async (req, res) => {
   try {
-    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language } = req.body;
+    const { 
+      role, difficulty, history, currentQuestion, userAnswer, timerExpired, 
+      candidateProfile, candidateName, interviewerAbility, language,
+      jobTitle, jobCompany, jobReqs, jobDesc
+    } = req.body;
     const currentRole = role || "Full Stack Developer";
     const currentDiff = difficulty || "Intermediate";
     const isFirstQuestion = !currentQuestion || !history || history.length === 0;
@@ -2009,6 +2013,13 @@ For example, if their background is in Economics or Finance, ask relevant questi
 Maintain a professional, conversational tone. Do not ask repetitive questions. 
 Actively listen to the candidate's responses. Your next question MUST be a direct follow-up or build upon their previous answer to keep the conversation natural and authentic.`;
 
+    if (jobTitle) {
+      systemPrompt += `\n\nCRITICAL CONTEXT: The candidate is interviewing specifically for the position of "${jobTitle}" at "${jobCompany || 'the company'}".
+Here is the Job Description: ${jobDesc || 'Not specified'}.
+Here are the Job Requirements: ${jobReqs || 'Not specified'}.
+Please tailor your interview questions, technical depth, and scenario checks directly to test their fit and qualifications for this specific job.`;
+    }
+
     if (interviewerAbility === "vikram") {
       systemPrompt += `\nAbility Active: You are Prof. Vikram, an aged expert who asks questions at a VERY deep technical level. Focus intensely on low-level mechanics, internal architecture patterns, memory limits, and complex algorithms rather than simple high-level concepts.`;
     } else if (interviewerAbility === "ananya") {
@@ -2027,7 +2038,7 @@ Actively listen to the candidate's responses. Your next question MUST be a direc
 
 If it is the FIRST question:
 {
-  "nextQuestion": "The first interview question to ask the candidate, personalized to their background if profile details are provided."
+  "nextQuestion": "The first interview question to ask the candidate, personalized to their background and the specific job they are applying to if applicable."
 }
 
 If it is a SUBSEQUENT question:
@@ -2035,7 +2046,7 @@ If it is a SUBSEQUENT question:
   "feedback": "1-2 sentence constructive feedback on their previous answer.",
   "score": 8, // integer score from 0 to 10 evaluating their last answer
   "difficultyChange": "increase" | "decrease" | "maintain",
-  "nextQuestion": "The next follow-up question to ask the candidate, directly engaging with what they just said."
+  "nextQuestion": "The next follow-up question to ask the candidate, directly engaging with what they just said, tailored to the target job if specified."
 }`;
 
     // Build conversation context

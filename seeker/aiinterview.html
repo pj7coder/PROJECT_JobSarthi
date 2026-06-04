@@ -890,7 +890,7 @@
   <main class="container">
     
     <!-- 0. GENERAL INSTRUCTIONS SCREEN -->
-    <div id="instructionsContainer" class="glass-panel setup-card" style="max-width: 750px; margin: 0 auto; padding: 25px;">
+    <div id="instructionsContainer" class="glass-panel setup-card" style="display: none;">
       <h2 style="font-size: 1.8rem; margin-bottom: 12px; background: linear-gradient(135deg, #fff, var(--text-muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">AI Mock Interview Instructions</h2>
       <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; line-height: 1.6;">
         Welcome to the Sarthi AI Mock Interview. This session simulates a real recruitment trial using advanced audio-visual analysis. Please read the instructions below carefully before starting.
@@ -926,7 +926,7 @@
     </div>
     
     <!-- 1. PRE-INTERVIEW SETUP / CUSTOMIZATION SCREEN -->
-    <div id="setupContainer" class="glass-panel setup-card" style="display: none;">
+    <div id="setupContainer" class="glass-panel setup-card" style="display: block;">
       <h2 style="font-size: 1.6rem; margin-bottom: 8px;">AI Interview Pre-Setup</h2>
       <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">
         Configure your mock session and grant permissions to calibrate the anti-cheating proctor.
@@ -1394,8 +1394,8 @@
     let audioAnalyser = null;
     let audioSource = null;
     
-    // Customization config
     let selectedRole = "Full Stack Developer";
+    let jobContext = null;
     let selectedDifficulty = "Intermediate";
     let timerLimit = 10;
     let proctorStrictness = "medium";
@@ -1505,6 +1505,29 @@
 
     // --- INITIALIZATION ---
     document.addEventListener("DOMContentLoaded", () => {
+      // Check for specific job context in sessionStorage
+      const jobTitle = sessionStorage.getItem('interview_job_title');
+      const jobCompany = sessionStorage.getItem('interview_job_company');
+      if (jobTitle) {
+        jobContext = {
+          title: jobTitle,
+          company: jobCompany,
+          reqs: JSON.parse(sessionStorage.getItem('interview_job_reqs') || '[]'),
+          description: sessionStorage.getItem('interview_job_description') || '',
+          skills: sessionStorage.getItem('interview_job_skills') || ''
+        };
+
+        // Add option to jobRoleSelect dropdown
+        const roleSelect = document.getElementById("jobRoleSelect");
+        if (roleSelect) {
+          const opt = document.createElement("option");
+          opt.value = "job_context";
+          opt.textContent = `Job: ${jobTitle} (${jobCompany})`;
+          opt.selected = true;
+          roleSelect.insertBefore(opt, roleSelect.firstChild);
+        }
+      }
+
       setupPermissions();
       setupEventListeners();
       triggerBlink();
@@ -1701,33 +1724,48 @@
     }
 
     // --- HARDWARE PERMISSIONS AND CAM PREVIEW ---
-    function setupPermissions() {
+    async function requestHardwarePermissions(isManual = false) {
       const requestBtn = document.getElementById("requestPermsBtn");
-      
-      requestBtn.addEventListener("click", async () => {
-        try {
-          localStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: 640, height: 480 }, 
-            audio: true 
-          });
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: 640, height: 480 }, 
+          audio: true 
+        });
 
-          const previewVideo = document.getElementById("setupVideoPreview");
-          previewVideo.srcObject = localStream;
-          document.getElementById("previewFallbackText").style.display = "none";
+        const previewVideo = document.getElementById("setupVideoPreview");
+        if (previewVideo) previewVideo.srcObject = localStream;
+        const fallbackText = document.getElementById("previewFallbackText");
+        if (fallbackText) fallbackText.style.display = "none";
 
-          document.getElementById("camPermBadge").textContent = "Granted";
-          document.getElementById("camPermBadge").className = "permission-badge granted";
-          document.getElementById("micPermBadge").textContent = "Granted";
-          document.getElementById("micPermBadge").className = "permission-badge granted";
+        const camBadge = document.getElementById("camPermBadge");
+        if (camBadge) {
+          camBadge.textContent = "Granted";
+          camBadge.className = "permission-badge granted";
+        }
+        const micBadge = document.getElementById("micPermBadge");
+        if (micBadge) {
+          micBadge.textContent = "Granted";
+          micBadge.className = "permission-badge granted";
+        }
 
-          document.getElementById("startInterviewBtn").disabled = false;
-          requestBtn.style.display = "none";
+        const startBtn = document.getElementById("startInterviewBtn");
+        if (startBtn) startBtn.disabled = false;
+        if (requestBtn) requestBtn.style.display = "none";
 
-        } catch (err) {
-          console.error("Permission error:", err);
+      } catch (err) {
+        console.error("Permission error:", err);
+        if (isManual) {
           alert("We require camera and mic access for eyeball proctoring and voice-to-text. Please click standard permission popup to allow.");
         }
-      });
+      }
+    }
+
+    function setupPermissions() {
+      const requestBtn = document.getElementById("requestPermsBtn");
+      if (requestBtn) {
+        requestBtn.addEventListener("click", () => requestHardwarePermissions(true));
+      }
+      requestHardwarePermissions(false);
     }
 
     // --- PROCTOR SHIELD EVENT LOGGER ---
@@ -1871,7 +1909,11 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            role: selectedRole,
+            role: selectedRole === "job_context" && jobContext ? jobContext.title : selectedRole,
+            jobTitle: selectedRole === "job_context" && jobContext ? jobContext.title : undefined,
+            jobCompany: selectedRole === "job_context" && jobContext ? jobContext.company : undefined,
+            jobReqs: selectedRole === "job_context" && jobContext ? jobContext.reqs : undefined,
+            jobDesc: selectedRole === "job_context" && jobContext ? jobContext.description : undefined,
             difficulty: selectedDifficulty,
             history: interviewHistory,
             currentQuestion: currentQuestionText,
@@ -2366,7 +2408,11 @@
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                role: selectedRole,
+                role: selectedRole === "job_context" && jobContext ? jobContext.title : selectedRole,
+                jobTitle: selectedRole === "job_context" && jobContext ? jobContext.title : undefined,
+                jobCompany: selectedRole === "job_context" && jobContext ? jobContext.company : undefined,
+                jobReqs: selectedRole === "job_context" && jobContext ? jobContext.reqs : undefined,
+                jobDesc: selectedRole === "job_context" && jobContext ? jobContext.description : undefined,
                 difficulty: selectedDifficulty,
                 history: interviewHistory,
                 currentQuestion: currentQuestionText,

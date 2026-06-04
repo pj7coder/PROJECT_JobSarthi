@@ -652,9 +652,10 @@
         </div>
       </div>
 
-      <div style="margin-top: 40px; display: flex; gap: 16px;">
-        <button id="applyBtn" class="btn btn-glow" style="flex: 1;" onclick="applyToCurrentJob()">Apply Now</button>
-        <button class="btn btn-secondary" onclick="closeDrawer(null)">Cancel</button>
+      <div style="margin-top: 40px; display: flex; gap: 16px; flex-wrap: wrap;">
+        <button id="applyBtn" class="btn btn-glow" style="flex: 1; min-width: 150px;" onclick="applyToCurrentJob()">Apply Now</button>
+        <button id="interviewBtn" class="btn btn-glow" style="flex: 1; min-width: 180px; background: linear-gradient(135deg, var(--accent-secondary), #0891b2);" onclick="startMockInterviewForCurrentJob()">🎙️ AI Mock Interview</button>
+        <button class="btn btn-secondary" style="min-width: 100px;" onclick="closeDrawer(null)">Cancel</button>
       </div>
     </div>
   </div>
@@ -1666,6 +1667,11 @@
         console.error('Apply error:', err);
         alert('Could not connect to the backend to apply.');
       }
+    }
+
+    function startMockInterviewForCurrentJob() {
+      if (!currentSelectedJob) return;
+      window.location.href = `aiinterview.html?jobId=${encodeURIComponent(currentSelectedJob.id)}`;
     }
   </script>
   

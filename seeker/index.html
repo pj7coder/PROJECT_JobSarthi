@@ -372,6 +372,116 @@
       padding: 0 6px;
       font-weight: 600;
     }
+
+    /* Modal / Drawer Overlay and Center Popup Content */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(16px);
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      pointer-events: auto;
+    }
+
+    .drawer-content {
+      width: 900px;
+      max-width: 95%;
+      max-height: 90vh;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
+      padding: 35px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+      animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes zoomIn {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .drawer-content {
+        padding: 20px;
+        max-height: 95vh;
+      }
+    }
+
+    .drawer-close {
+      cursor: pointer;
+      color: var(--text-muted);
+      align-self: flex-start;
+      margin-bottom: 24px;
+      transition: var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .drawer-close:hover {
+      color: var(--text-main);
+    }
+
+    .detail-section {
+      margin-top: 30px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 20px;
+      text-align: left;
+    }
+
+    .detail-section:last-of-type {
+      border-bottom: none;
+    }
+
+    .detail-subtitle {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .detail-body {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .applied-alert {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 16px 24px;
+      background: var(--success);
+      color: #fff;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+      display: none;
+      z-index: 2000;
+      font-weight: 600;
+      animation: fadeInUp 0.3s ease-out;
+    }
   </style>
 </head>
 
@@ -546,11 +656,100 @@
     </div>
   </div>
 
+  <!-- Job Details Drawer Overlay -->
+  <div class="drawer-overlay" id="detailDrawer" onclick="closeDrawer(event)">
+    <div class="drawer-content">
+      <div class="drawer-close" onclick="closeDrawer(null)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+        <span>Close Detail</span>
+      </div>
+
+      <div style="flex: 1;">
+        <div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 24px; text-align: left;">
+          <div class="job-card-logo" id="drawerLogo" style="width: 60px; height: 60px; font-size: 2rem; flex-shrink: 0;">🏢</div>
+          <div>
+            <h2 id="drawerTitle"
+              style="font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; color: #fff; line-height: 1.2;">Role Title</h2>
+            <div id="drawerCompany" style="font-size: 1.05rem; font-weight: 500; color: var(--text-muted);">Company Name</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 24px;" id="drawerBadges">
+          <!-- Badges dynamically added -->
+        </div>
+
+        <!-- Sarthi AI Match Analysis Box -->
+        <div class="detail-section"
+          style="background: rgba(99, 102, 241, 0.04); border: 1px dashed rgba(99, 102, 241, 0.25); padding: 20px; border-radius: 12px;">
+          <div class="detail-subtitle"
+            style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: #818cf8; border-bottom: none; padding-bottom: 0;">
+            <span>✨ Sarthi AI Skills Analysis</span>
+          </div>
+          <div class="detail-body" id="matchInsightBody" style="color: var(--text-main); margin-bottom: 16px; font-size: 0.9rem; line-height: 1.5;">
+            Generating matching insight...
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <span style="font-size: 0.72rem; font-weight: 700; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">Matched Skills</span>
+              <div id="matchedSkillsTags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;"></div>
+            </div>
+            <div>
+              <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Missing / Recommended Skills</span>
+              <div id="missingSkillsTags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-subtitle" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>About the Role</span>
+            <button id="descToggleBtn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; display: none;" onclick="toggleDescription()">Read More</button>
+          </div>
+          <div class="detail-body" id="drawerDesc" style="max-height: 250px; overflow-y: auto; line-height: 1.6; padding-right: 8px;">
+            Job description goes here.
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-subtitle">Key Qualifications</div>
+          <ul class="detail-body" id="drawerReqs" style="padding-left: 20px;">
+            <!-- Requirements list -->
+          </ul>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-subtitle">Compensation & Benefits</div>
+          <div class="detail-body" id="drawerComp">
+            Salary and benefits go here.
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 40px; display: flex; gap: 16px; flex-wrap: wrap;">
+        <button id="applyBtn" class="btn btn-glow" style="flex: 1; min-width: 150px;" onclick="applyToCurrentJob()">Apply Now</button>
+        <button id="interviewBtn" class="btn btn-glow" style="flex: 1; min-width: 180px; background: linear-gradient(135deg, var(--accent-secondary), #0891b2);" onclick="startMockInterviewForCurrentJob()">🎙️ AI Mock Interview</button>
+        <button class="btn btn-secondary" style="min-width: 100px;" onclick="closeDrawer(null)">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Alert -->
+  <div class="applied-alert" id="successToast">
+    Application submitted successfully! Recruiter will contact you soon.
+  </div>
+
   <script src="../js/header.js"></script>
   <script>
     let seekerSkills = [];
+    let seekerProfile = null;
     let lastRecommendedJobs = [];
     let currentDashboardPage = 1;
+    let currentSelectedJob = null;
+    let isDescriptionExpanded = false;
     const dashboardJobsPerPage = 5;
 
     const indianStates = [
@@ -608,22 +807,107 @@
       const match = salaryStr.match(/(\d+)\s*(LPA|lakh)/i);
       if (match) return parseInt(match[1]);
       const numMatch = salaryStr.match(/\b(\d+)\b/);
-      if (numMatch) return parseInt(numMatch[1]);
-      return 0;
+      if (numMatch) return parseInt(numMatch[    // ── Skill synonym / ecosystem map ────────────────────────────────────────
+    const SKILL_ALIASES = {
+      'react': ['react.js','reactjs','react native'],
+      'react.js': ['react','reactjs'],
+      'vue': ['vue.js','vuejs'],
+      'angular': ['angularjs','angular.js'],
+      'node': ['node.js','nodejs'],
+      'node.js': ['node','nodejs'],
+      'next.js': ['nextjs','next'],
+      'javascript': ['js','ecmascript','es6','es2015'],
+      'typescript': ['ts'],
+      'python': ['py','python3'],
+      'machine learning': ['ml','deep learning','ai','artificial intelligence','nlp'],
+      'deep learning': ['machine learning','neural networks','tensorflow','pytorch'],
+      'sql': ['mysql','postgresql','postgres','oracle sql','sql server','mssql'],
+      'mongodb': ['mongo'],
+      'docker': ['containerization','containers'],
+      'kubernetes': ['k8s'],
+      'aws': ['amazon web services','cloud','ec2','s3','lambda'],
+      'gcp': ['google cloud','firebase'],
+      'azure': ['microsoft azure','cloud'],
+      'graphql': ['graph ql'],
+      'rest api': ['restful','rest','api'],
+      'java': ['spring','spring boot','jvm'],
+      'spring': ['spring boot','java'],
+      'android': ['kotlin','java android'],
+      'ios': ['swift','objective-c'],
+      'flutter': ['dart'],
+      'devops': ['ci/cd','jenkins','github actions','gitlab ci'],
+      'git': ['github','gitlab','bitbucket'],
+      'figma': ['ui design','ux design','sketch'],
+      'data analysis': ['excel','tableau','power bi','data analytics'],
+      'excel': ['ms excel','spreadsheet'],
+      'tableau': ['data visualization','power bi'],
+      'seo': ['search engine optimization'],
+      'digital marketing': ['seo','social media marketing','sem','google ads'],
+      'accounting': ['bookkeeping','tally','gst','taxation'],
+      'finance': ['financial modeling','corporate finance','investment'],
+    };
+
+    function expandSkillSynonyms(skillStr) {
+      const normalized = skillStr.toLowerCase().trim();
+      const expanded = new Set([normalized]);
+      for (const [key, aliases] of Object.entries(SKILL_ALIASES)) {
+        if (normalized === key || aliases.some(a => normalized === a || normalized.includes(a) || a.includes(normalized))) {
+          expanded.add(key);
+          aliases.forEach(a => expanded.add(a));
+        }
+      }
+      return [...expanded];
+    }
+
+    // Role-to-keyword domain map
+    const ROLE_DOMAINS = [
+      { keywords: ['frontend','front end','front-end','ui developer','web developer'], label: 'frontend' },
+      { keywords: ['backend','back end','back-end','server-side'], label: 'backend' },
+      { keywords: ['fullstack','full stack','full-stack','mern','mean'], label: 'fullstack' },
+      { keywords: ['software engineer','software developer','sde','swe'], label: 'software-engineer' },
+      { keywords: ['data scientist','data science'], label: 'data-science' },
+      { keywords: ['data analyst','business analyst','analytics'], label: 'analyst' },
+      { keywords: ['machine learning','ml engineer','ai engineer','deep learning'], label: 'ml-ai' },
+      { keywords: ['devops','site reliability','sre','platform engineer','cloud engineer'], label: 'devops' },
+      { keywords: ['product manager','product management'], label: 'product-manager' },
+      { keywords: ['designer','ux','ui/ux','ui designer','graphic'], label: 'design' },
+      { keywords: ['android developer','android engineer'], label: 'android' },
+      { keywords: ['ios developer','ios engineer','swift developer'], label: 'ios' },
+      { keywords: ['mobile developer','react native developer','flutter developer'], label: 'mobile' },
+      { keywords: ['qa engineer','quality assurance','tester','sdet','test engineer'], label: 'qa' },
+      { keywords: ['sales','business development','bd'], label: 'sales' },
+      { keywords: ['marketing','digital marketing','growth','content'], label: 'marketing' },
+      { keywords: ['hr','human resources','recruiter','talent acquisition'], label: 'hr' },
+      { keywords: ['finance','accountant','accounting','cfa','chartered accountant'], label: 'finance' },
+      { keywords: ['operations','supply chain','logistics'], label: 'operations' },
+      { keywords: ['security','cybersecurity','infosec','penetration testing'], label: 'security' },
+      { keywords: ['blockchain','web3','solidity','smart contract'], label: 'blockchain' },
+      { keywords: ['database','dba','database administrator'], label: 'database' },
+    ];
+
+    function getJobRoleDomainClient(titleStr) {
+      const lower = (titleStr || '').toLowerCase();
+      for (const rd of ROLE_DOMAINS) {
+        if (rd.keywords.some(k => lower.includes(k))) return rd.label;
+      }
+      return null;
     }
 
     function getJobMatchScore(job) {
       if (!seekerProfile) {
         const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        return 70 + (stringHash % 25);
+        return 65 + (stringHash % 20);
       }
 
-      let userSkills = [];
+      // Parse user skills with synonym expansion
+      let userSkillsRaw = [];
       if (Array.isArray(seekerProfile.skills)) {
-        userSkills = seekerProfile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+        userSkillsRaw = seekerProfile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
       } else if (typeof seekerProfile.skills === 'string') {
-        userSkills = seekerProfile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        userSkillsRaw = seekerProfile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
       }
+      const userSkillsExpanded = new Set();
+      userSkillsRaw.forEach(s => expandSkillSynonyms(s).forEach(e => userSkillsExpanded.add(e)));
 
       let preferredLocs = [];
       if (Array.isArray(seekerProfile.preferredLocations)) {
@@ -631,152 +915,175 @@
       } else if (typeof seekerProfile.preferredLocations === 'string') {
         preferredLocs = seekerProfile.preferredLocations.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
       }
-      
+
+      let desiredRoles = [];
+      if (Array.isArray(seekerProfile.desiredRoles)) {
+        desiredRoles = seekerProfile.desiredRoles.map(r => r.trim().toLowerCase()).filter(Boolean);
+      } else if (typeof seekerProfile.desiredRoles === 'string' && seekerProfile.desiredRoles) {
+        desiredRoles = seekerProfile.desiredRoles.split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
+      } else if (typeof seekerProfile.role === 'string' && seekerProfile.role) {
+        desiredRoles = [seekerProfile.role.trim().toLowerCase()];
+      }
+
       const userExp = extractYearsOfExperience(seekerProfile.experience);
       const jobExp = getJobRequiredExperience(job);
+      const jobLocLower = (job.location || '').toLowerCase();
+      const isJobRemote = jobLocLower.includes('remote') || ((job.type || '').toLowerCase().includes('remote'));
+      const jobInIndia = jobLocLower.includes('india') ||
+        indianStates.some(s => jobLocLower.includes(s.toLowerCase())) ||
+        indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
+      const userInIndia = preferredLocs.length === 0 || preferredLocs.some(loc =>
+        loc.includes('india') ||
+        indianStates.some(s => s.toLowerCase() === loc) ||
+        indianCities.some(c => c.toLowerCase() === loc)
+      );
 
-      // STEP 1: HARD FILTERS
-      if (jobExp > userExp + 3) return null; 
+      // Hard filters (return low but non-zero score for display purposes on client)
+      if (jobExp > userExp + 4) return 20;
 
-      const jobSkills = (job.skills || "").split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-      if (jobSkills.length > 0 && userSkills.length > 0) {
-        const hasAnySkill = jobSkills.some(js => userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us)));
-        if (!hasAnySkill) return null; 
+      const jobSkillsRaw = (job.skills || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      const jobSkillsExpanded = new Set();
+      jobSkillsRaw.forEach(s => expandSkillSynonyms(s).forEach(e => jobSkillsExpanded.add(e)));
+      if (jobSkillsRaw.length > 0 && userSkillsRaw.length > 0) {
+        const hasOverlap = [...jobSkillsExpanded].some(js => userSkillsExpanded.has(js));
+        if (!hasOverlap) return 18;
       }
 
-      const isJobRemote = job.location.toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
-      const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => job.location.toLowerCase().includes(loc) || loc.includes(job.location.toLowerCase()));
-      if (!isJobRemote && !isLocationMatch) {
-        return null; 
-      }
-
-      let location_score = 0;
+      // ── 1. SKILL SCORE (max 35) ─────────────────────────────────────────────
       let skill_score = 0;
-      let role_score = 0;
-      let experience_score = 0;
-      let work_mode_score = 0;
-      let salary_score = 0;
-
-      // STEP 2: LOCATION SCORING
-      const jobLocLower = job.location.toLowerCase();
-      const hasCity = preferredLocs.some(loc => indianCities.includes(loc) && jobLocLower.includes(loc));
-      const hasState = preferredLocs.some(loc => indianStates.includes(loc) && jobLocLower.includes(loc));
-      
-      let inIndia = jobLocLower.includes("india");
-      if (!inIndia) {
-        inIndia = indianStates.some(s => jobLocLower.includes(s)) || indianCities.some(c => jobLocLower.includes(c));
-      }
-
-      if (hasCity) {
-        location_score = 30;
-      } else if (hasState) {
-        location_score = 25;
-      } else if (inIndia) {
-        if (isJobRemote) {
-          location_score = 35;
-        } else {
-          location_score = 20;
-        }
-      } else if (isJobRemote) {
-        location_score = 40;
-      } else {
-        location_score = -50;
-      }
-
-      const requiresRelocation = !isJobRemote && !hasCity && !hasState;
-      if (requiresRelocation && inIndia) {
-        location_score += 10;
-      }
-
-      // STEP 3: SKILL MATCH SCORING
-      if (jobSkills.length > 0 && userSkills.length > 0) {
+      if (jobSkillsRaw.length > 0 && userSkillsRaw.length > 0) {
         let matchCount = 0;
-        jobSkills.forEach(js => {
-          if (userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us))) {
-            matchCount++;
-          }
+        jobSkillsRaw.forEach(js => {
+          const jsExpanded = expandSkillSynonyms(js);
+          if (jsExpanded.some(e => userSkillsExpanded.has(e))) matchCount++;
         });
-        const skillMatchRatio = matchCount / jobSkills.length;
-        if (skillMatchRatio >= 0.9) skill_score = 40;
-        else if (skillMatchRatio >= 0.7) skill_score = 30;
-        else if (skillMatchRatio >= 0.5) skill_score = 20;
-        else if (skillMatchRatio >= 0.3) skill_score = 10;
-        else skill_score = 0;
+        const ratio = matchCount / jobSkillsRaw.length;
+        if      (ratio >= 0.90) skill_score = 35;
+        else if (ratio >= 0.75) skill_score = 30;
+        else if (ratio >= 0.55) skill_score = 22;
+        else if (ratio >= 0.35) skill_score = 14;
+        else if (ratio >  0   ) skill_score = 7;
       } else {
-        skill_score = 20;
+        skill_score = 16;
       }
 
-      // STEP 4: ROLE MATCH
-      const jobTitleLower = job.title.toLowerCase();
-      const userDegreeLower = (seekerProfile.degree || "").toLowerCase();
-      const expSummaryLower = (seekerProfile.experience || "").toLowerCase();
-      
-      let exactRole = false;
-      let relatedRole = false;
-      let sameDomain = false;
-      
-      const rolesList = ["software engineer", "developer", "machine learning", "frontend", "backend", "fullstack", "designer", "data scientist", "analyst", "product manager"];
-      rolesList.forEach(r => {
-        if (jobTitleLower.includes(r)) {
-          if (userDegreeLower.includes(r) || expSummaryLower.includes(r)) {
-            exactRole = true;
-          } else {
-            relatedRole = true;
-          }
-          sameDomain = true;
+      // ── 2. TITLE / ROLE SCORE (max 25) ─────────────────────────────────────
+      let role_score = 0;
+      const jobTitleLower = (job.title || '').toLowerCase();
+      const jobRoleDomain = getJobRoleDomainClient(jobTitleLower);
+      const expSummaryLower = (seekerProfile.experience || '').toLowerCase();
+      const degreeLower = (seekerProfile.degree || '').toLowerCase();
+
+      if (desiredRoles.length > 0) {
+        const directMatch = desiredRoles.some(dr => jobTitleLower.includes(dr) || dr.includes(jobTitleLower.split(' ')[0]));
+        const domainMatch = jobRoleDomain && desiredRoles.some(dr => {
+          const drDomain = getJobRoleDomainClient(dr);
+          return drDomain && drDomain === jobRoleDomain;
+        });
+        if (directMatch) role_score = 25;
+        else if (domainMatch) role_score = 18;
+        else role_score = 5;
+      } else {
+        if (jobRoleDomain) {
+          const expDomain = getJobRoleDomainClient(expSummaryLower);
+          const degDomain = getJobRoleDomainClient(degreeLower);
+          if (expDomain === jobRoleDomain) role_score = 22;
+          else if (degDomain === jobRoleDomain) role_score = 16;
+          else if (expSummaryLower.includes(jobTitleLower.split(' ')[0])) role_score = 12;
+          else role_score = 6;
+        } else {
+          role_score = 8;
         }
-      });
-      
-      if (exactRole) role_score = 30;
-      else if (relatedRole) role_score = 20;
-      else if (sameDomain) role_score = 10;
-      else role_score = 10;
-
-      // STEP 5: EXPERIENCE MATCH
-      const diff = userExp - jobExp;
-      if (diff === 0) {
-        experience_score = 20;
-      } else if (Math.abs(diff) <= 2) {
-        experience_score = 15;
-      } else if (Math.abs(diff) <= 3) {
-        experience_score = 10;
-      } else {
-        experience_score = 5;
       }
 
-      // STEP 6: WORK MODE MATCH
-      const isUserRemotePreferred = preferredLocs.includes("remote");
-      if (isUserRemotePreferred && isJobRemote) {
-        work_mode_score = 15;
-      } else if (!isUserRemotePreferred && !isJobRemote) {
-        work_mode_score = 15;
+      // ── 3. LOCATION SCORE (max 20) ──────────────────────────────────────────
+      let location_score = 0;
+      const userWorkMode = (seekerProfile.workMode || seekerProfile.work_mode || '').toLowerCase();
+      const prefersRemote = userWorkMode.includes('remote') || preferredLocs.includes('remote');
+
+      if (isJobRemote && prefersRemote) {
+        location_score = 20;
+      } else if (isJobRemote && !prefersRemote) {
+        location_score = 12;
       } else {
-        work_mode_score = 0;
+        const hasCity = preferredLocs.some(loc =>
+          indianCities.some(c => c.toLowerCase() === loc) && jobLocLower.includes(loc)
+        );
+        const hasState = preferredLocs.some(loc =>
+          indianStates.some(s => s.toLowerCase() === loc) && jobLocLower.includes(loc)
+        );
+        if (hasCity) location_score = 20;
+        else if (hasState) location_score = 15;
+        else if (jobInIndia && userInIndia) location_score = 10;
+        else location_score = 3;
       }
 
-      // STEP 7: SALARY MATCH
+      // ── 4. EXPERIENCE SCORE (max 10) ────────────────────────────────────────
+      let experience_score = 0;
+      const expDiff = userExp - jobExp;
+      if (expDiff >= 0 && expDiff <= 1) experience_score = 10;
+      else if (expDiff >= -1 && expDiff <= 2) experience_score = 8;
+      else if (Math.abs(expDiff) <= 3) experience_score = 5;
+      else experience_score = 2;
+
+      // ── 5. SALARY SCORE (max 7) ─────────────────────────────────────────────
+      let salary_score = 0;
       const userSalary = parseSalaryLPA(seekerProfile.expectedCtc);
       const jobSalary = parseSalaryLPA(job.salary);
       if (userSalary === 0 || jobSalary === 0) {
-        salary_score = 15;
-      } else if (jobSalary === userSalary) {
-        salary_score = 15;
-      } else if (jobSalary > userSalary) {
-        salary_score = 20;
+        salary_score = 4;
+      } else if (jobSalary >= userSalary) {
+        salary_score = 7;
+      } else if (jobSalary >= userSalary * 0.85) {
+        salary_score = 4;
       } else {
-        salary_score = 5;
+        salary_score = 1;
       }
 
-      return location_score + skill_score + role_score + experience_score + work_mode_score + salary_score;
+      // ── 6. RECENCY SCORE (max 3) ─────────────────────────────────────────────
+      let recency_score = 0;
+      const postedDate = new Date(job.posted_date || job.created_at || 0);
+      const daysSince = (Date.now() - postedDate.getTime()) / 86400000;
+      if      (daysSince < 3)  recency_score = 3;
+      else if (daysSince < 7)  recency_score = 2;
+      else if (daysSince < 14) recency_score = 1;
+
+      return Math.max(0, Math.min(100, skill_score + role_score + location_score + experience_score + salary_score + recency_score));
     }
 
-    function getMatchClassification(score) {
-      if (score === null || score === undefined) return "Low Match";
-      if (score >= 90) return "Excellent Match";
-      if (score >= 75) return "Strong Match";
-      if (score >= 60) return "Good Match";
-      if (score >= 40) return "Moderate Match";
-      return "Low Match";
+    // Match breakdown helper
+    function getSkillsMatchInfo(job) {
+      const jobSkillsStr = job.skills || "";
+      const jobSkills = jobSkillsStr.split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+        
+      if (jobSkills.length === 0) {
+        return { matched: [], missing: [] };
+      }
+      
+      const userSkillsRaw = Array.isArray(seekerProfile && seekerProfile.skills)
+        ? seekerProfile.skills.map(s => s.trim().toLowerCase())
+        : ((seekerProfile && typeof seekerProfile.skills === 'string')
+            ? seekerProfile.skills.split(',').map(s => s.trim().toLowerCase())
+            : seekerSkills.map(s => String(s).trim().toLowerCase()));
+
+      const userSkillsExpanded2 = new Set();
+      userSkillsRaw.forEach(s => expandSkillSynonyms(s).forEach(e => userSkillsExpanded2.add(e)));
+      
+      const matched = [];
+      const missing = [];
+      
+      jobSkills.forEach(js => {
+        const jsExpanded = expandSkillSynonyms(js.toLowerCase());
+        if (jsExpanded.some(e => userSkillsExpanded2.has(e))) {
+          matched.push(js);
+        } else {
+          missing.push(js);
+        }
+      });
+      
+      return { matched, missing };
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -947,6 +1254,8 @@
         pageJobs.forEach(job => {
           const card = document.createElement('div');
           card.className = 'glass-card job-card';
+          card.style.cursor = 'pointer';
+          card.onclick = () => openDrawer(job);
           card.innerHTML = `
             <div class="job-card-logo">${getJobLogoHtml(job.logo)}</div>
             <div class="job-card-info">
@@ -967,10 +1276,10 @@
                 </div>
               </div>
             </div>
-            <div class="job-card-actions">
-              <a href="jobs.html?id=${job.id}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">Details</a>
+            <div class="job-card-actions" onclick="event.stopPropagation()">
+              <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openDrawerFromBtn('${job.id}')">Details</button>
               ${job.isSample ? `
-                <a href="jobs.html?id=${job.id}" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Apply</a>
+                <button class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openDrawerFromBtn('${job.id}')">Apply</button>
               ` : `
                 <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Open</a>
               `}
@@ -1059,6 +1368,261 @@
       if (recommendedSection) {
         recommendedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
+    }
+
+
+
+    // Drawer Logic
+    function openDrawerFromBtn(jobId) {
+      const job = lastRecommendedJobs.find(j => String(j.id) === String(jobId));
+      if (job) {
+        openDrawer(job);
+      }
+    }
+
+    function openDrawer(job) {
+      currentSelectedJob = job;
+      isDescriptionExpanded = false;
+
+      document.getElementById('drawerTitle').textContent = job.title;
+      document.getElementById('drawerCompany').textContent = job.company;
+
+      const logoContainer = document.getElementById('drawerLogo');
+      if (logoContainer) {
+        logoContainer.innerHTML = getJobLogoHtml(job.logo);
+      }
+
+      // Populate badges
+      const badgesContainer = document.getElementById('drawerBadges');
+      badgesContainer.innerHTML = '';
+      
+      const badgeStyle = 'padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; color: #fff; display: inline-flex; align-items: center; gap: 4px;';
+      
+      // Location badge
+      const locBadge = document.createElement('span');
+      locBadge.style = badgeStyle + ' background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.25); color: var(--accent-secondary);';
+      locBadge.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        ${job.location || 'Remote'}
+      `;
+      badgesContainer.appendChild(locBadge);
+
+      // Salary badge
+      const salBadge = document.createElement('span');
+      salBadge.style = badgeStyle + ' background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); color: var(--success);';
+      salBadge.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        ${(job.salary || 'Not specified').split(' / ')[0]}
+      `;
+      badgesContainer.appendChild(salBadge);
+
+      // Job type badge
+      const typeBadge = document.createElement('span');
+      typeBadge.style = badgeStyle + ' background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); color: #f59e0b;';
+      typeBadge.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        ${job.type || 'Full-time'}
+      `;
+      badgesContainer.appendChild(typeBadge);
+
+      // Sarthi match insight logic
+      const score = getJobMatchScore(job);
+      const insightBody = document.getElementById('matchInsightBody');
+      const matchedTags = document.getElementById('matchedSkillsTags');
+      const missingTags = document.getElementById('missingSkillsTags');
+
+      if (seekerProfile) {
+        const { matched, missing } = getSkillsMatchInfo(job);
+        
+        let percentage = score || 50;
+        
+        let matchClass = "Good Match";
+        let matchColor = "var(--accent-secondary)";
+        if (percentage >= 85) {
+          matchClass = "Excellent Match";
+          matchColor = "var(--success)";
+        } else if (percentage >= 70) {
+          matchClass = "Strong Match";
+          matchColor = "#818cf8";
+        } else if (percentage < 55) {
+          matchClass = "Moderate Match";
+          matchColor = "#f59e0b";
+        }
+
+        insightBody.innerHTML = `
+          JobSarthi AI analyzed this role and your profile. You have a <strong style="color: ${matchColor};">${percentage}% match score</strong> (${matchClass}). 
+          ${matched.length > 0 
+            ? `Your experience with <strong>${matched.slice(0, 3).join(', ')}</strong> fits the requirements well.`
+            : 'Consider updating your profile skills to view direct comparisons.'
+          }
+        `;
+
+        matchedTags.innerHTML = matched.length > 0 
+          ? matched.map(s => `<span style="padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #a7f3d0; font-weight: 500;">${s}</span>`).join('')
+          : `<span style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">None identified</span>`;
+
+        missingTags.innerHTML = missing.length > 0 
+          ? missing.map(s => `<span style="padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: var(--text-muted); font-weight: 500;">${s}</span>`).join('')
+          : `<span style="font-size: 0.8rem; color: var(--success); font-weight: 600;">None! You have all specified skills.</span>`;
+      } else {
+        insightBody.innerHTML = `Login or complete your seeker profile to get AI-powered match analysis and skills breakdown.`;
+        matchedTags.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">Please complete profile</span>`;
+        missingTags.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">Please complete profile</span>`;
+      }
+
+      // Populate description and requirements
+      const descContainer = document.getElementById('drawerDesc');
+      const fullDesc = job.description || 'No description provided.';
+      descContainer.innerHTML = fullDesc;
+
+      const toggleBtn = document.getElementById('descToggleBtn');
+      if (fullDesc.length > 300) {
+        descContainer.innerHTML = getCleanShortDescription(fullDesc, 300);
+        toggleBtn.style.display = 'inline-block';
+        toggleBtn.textContent = 'Read More';
+      } else {
+        toggleBtn.style.display = 'none';
+      }
+
+      const reqsList = document.getElementById('drawerReqs');
+      reqsList.innerHTML = '';
+      const reqs = Array.isArray(job.reqs) ? job.reqs : (typeof job.reqs === 'string' ? job.reqs.split('\n') : []);
+      if (reqs.length > 0) {
+        reqs.forEach(r => {
+          if (r.trim()) {
+            const li = document.createElement('li');
+            li.textContent = r.trim();
+            reqsList.appendChild(li);
+          }
+        });
+      } else {
+        reqsList.innerHTML = `<li style="list-style:none; margin-left:-20px; color: var(--text-muted);">No specific qualifications listed.</li>`;
+      }
+
+      document.getElementById('drawerComp').innerHTML = `
+        <div style="font-weight: 600; color: #fff; margin-bottom: 4px;">Salary:</div>
+        <div>${job.salary || 'Not specified'}</div>
+      `;
+
+      // Set action buttons based on sample job vs scraped job
+      const applyBtn = document.getElementById('applyBtn');
+      if (job.isSample) {
+        applyBtn.textContent = "Apply Now";
+        applyBtn.className = "btn btn-glow";
+        applyBtn.onclick = applyToCurrentJob;
+      } else {
+        applyBtn.textContent = "Open Original Job Page";
+        applyBtn.className = "btn btn-secondary";
+        applyBtn.onclick = () => {
+          window.open(job.applyUrl || job.apply_url || '#', '_blank');
+        };
+      }
+
+      // Display the drawer
+      document.getElementById('detailDrawer').style.display = 'flex';
+      document.body.style.overflow = 'hidden'; // Lock background scroll
+    }
+
+    function getCleanShortDescription(htmlStr, maxChars) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlStr;
+      const plainText = tempDiv.textContent || tempDiv.innerText || "";
+      if (plainText.length <= maxChars) {
+        return htmlStr;
+      }
+      return plainText.substring(0, maxChars) + '...';
+    }
+
+    function toggleDescription() {
+      const descContainer = document.getElementById('drawerDesc');
+      const toggleBtn = document.getElementById('descToggleBtn');
+      if (!currentSelectedJob) return;
+
+      const fullDesc = currentSelectedJob.description || '';
+      if (isDescriptionExpanded) {
+        descContainer.innerHTML = getCleanShortDescription(fullDesc, 300);
+        toggleBtn.textContent = 'Read More';
+        isDescriptionExpanded = false;
+      } else {
+        descContainer.innerHTML = fullDesc;
+        toggleBtn.textContent = 'Read Less';
+        isDescriptionExpanded = true;
+      }
+    }
+
+    function closeDrawer(event) {
+      if (event && event.target !== document.getElementById('detailDrawer')) {
+        return; // Click was inside content
+      }
+      document.getElementById('detailDrawer').style.display = 'none';
+      document.body.style.overflow = 'auto'; // Unlock background scroll
+      currentSelectedJob = null;
+    }
+
+    async function applyToCurrentJob() {
+      if (!currentSelectedJob) return;
+      const job = currentSelectedJob;
+      
+      const email = localStorage.getItem('seeker_email');
+      if (!email) {
+        alert("Please login first to apply!");
+        return;
+      }
+
+      const applyBtn = document.getElementById('applyBtn');
+      applyBtn.disabled = true;
+      applyBtn.textContent = "Applying...";
+
+      try {
+        const res = await fetch((window.API_BASE_URL || '') + '/api/jobs/apply', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            jobId: job.id,
+            seekerEmail: email
+          })
+        });
+
+        if (res.ok) {
+          // Show toast
+          const toast = document.getElementById('successToast');
+          toast.style.display = 'block';
+          setTimeout(() => {
+            toast.style.display = 'none';
+          }, 4000);
+          
+          closeDrawer(null);
+          
+          // Reload dashboard stats
+          loadDashboardProfile();
+        } else {
+          const data = await res.json();
+          alert(data.error || "Failed to apply. Please try again.");
+        }
+      } catch (err) {
+        console.error("Error applying to job:", err);
+        alert("Network error. Please try again.");
+      } finally {
+        applyBtn.disabled = false;
+        applyBtn.textContent = "Apply Now";
+      }
+    }
+
+    function startMockInterviewForCurrentJob() {
+      if (!currentSelectedJob) return;
+      const job = currentSelectedJob;
+      
+      // Store requirements / title in session storage to pass to ai interview page
+      sessionStorage.setItem('interview_job_title', job.title);
+      sessionStorage.setItem('interview_job_company', job.company);
+      sessionStorage.setItem('interview_job_reqs', JSON.stringify(job.reqs || []));
+      sessionStorage.setItem('interview_job_description', job.description || '');
+      sessionStorage.setItem('interview_job_skills', job.skills || '');
+      
+      // Navigate to aiinterview.html
+      window.location.href = 'aiinterview.html';
     }
 
 
