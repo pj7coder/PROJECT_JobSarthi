@@ -355,10 +355,17 @@
           renderChatWindow();
         };
 
+        const companyBadge = lastMsgObj && lastMsgObj.companyName 
+          ? `<span style="font-size: 0.72rem; font-weight: normal; opacity: 0.75; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; color: var(--accent-secondary); border: 1px solid var(--border-subtle);">${lastMsgObj.companyName}</span>`
+          : '';
+
         item.innerHTML = `
           <div class="chat-avatar">${initials}</div>
           <div class="chat-meta">
-            <h3>${conv.seekerName}</h3>
+            <h3 style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <span>${conv.seekerName}</span>
+              ${companyBadge}
+            </h3>
             <p>${lastMsgText}</p>
           </div>
         `;
@@ -382,7 +389,9 @@
       }
 
       const conv = conversations[activeChatEmail];
-      activeChatName.textContent = conv.seekerName;
+      const lastMsgObj = conv.messages[0];
+      const activeCompanyText = lastMsgObj && lastMsgObj.companyName ? ` (${lastMsgObj.companyName})` : '';
+      activeChatName.textContent = conv.seekerName + activeCompanyText;
 
       // Check if scroll was at the bottom
       const isAtBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
@@ -418,6 +427,10 @@
       if (!text || !activeChatEmail || !conversations[activeChatEmail]) return;
 
       const conv = conversations[activeChatEmail];
+      const lastMsgObj = conv.messages[0];
+      const finalCompany = lastMsgObj && lastMsgObj.companyName ? lastMsgObj.companyName : recruiterCompany;
+      const finalRecruiterName = lastMsgObj && lastMsgObj.recruiterName ? lastMsgObj.recruiterName : (recruiterCompany + ' HR');
+      
       input.value = '';
 
       try {
@@ -428,8 +441,8 @@
             seekerEmail: conv.seekerEmail,
             seekerName: conv.seekerName,
             recruiterEmail: recruiterEmail,
-            recruiterName: recruiterCompany + ' HR',
-            companyName: recruiterCompany,
+            recruiterName: finalRecruiterName,
+            companyName: finalCompany,
             sender: 'recruiter',
             text: text
           })
@@ -448,6 +461,9 @@
     async function sendScheduleInvite() {
       if (!activeChatEmail || !conversations[activeChatEmail]) return;
       const conv = conversations[activeChatEmail];
+      const lastMsgObj = conv.messages[0];
+      const finalCompany = lastMsgObj && lastMsgObj.companyName ? lastMsgObj.companyName : recruiterCompany;
+      const finalRecruiterName = lastMsgObj && lastMsgObj.recruiterName ? lastMsgObj.recruiterName : (recruiterCompany + ' HR');
       const inviteMsg = "📅 <strong>Interview Scheduled:</strong> An interview invitation has been generated for tomorrow at 3:00 PM (IST). Please check your email calendar details.";
       
       try {
@@ -458,8 +474,8 @@
             seekerEmail: conv.seekerEmail,
             seekerName: conv.seekerName,
             recruiterEmail: recruiterEmail,
-            recruiterName: recruiterCompany + ' HR',
-            companyName: recruiterCompany,
+            recruiterName: finalRecruiterName,
+            companyName: finalCompany,
             sender: 'recruiter',
             text: inviteMsg
           })

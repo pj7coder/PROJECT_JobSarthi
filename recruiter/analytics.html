@@ -251,7 +251,8 @@
       const company = localStorage.getItem('recruiter_company') || 'InnovateTech';
       let applicants = [];
       try {
-        const res = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(company)}`);
+        const email = localStorage.getItem('recruiter_email') || '';
+        const res = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(company)}&email=${encodeURIComponent(email)}`);
         if (res.ok) {
           applicants = await res.json();
         }

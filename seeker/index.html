@@ -926,7 +926,11 @@
             </div>
             <div class="job-card-actions">
               <a href="jobs.html?id=${job.id}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">Details</a>
-              <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Apply</a>
+              ${job.isSample ? `
+                <a href="jobs.html?id=${job.id}" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Apply</a>
+              ` : `
+                <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Open</a>
+              `}
             </div>
           `;
           recommendedContainer.appendChild(card);

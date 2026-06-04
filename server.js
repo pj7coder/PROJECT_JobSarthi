@@ -1429,11 +1429,16 @@ app.post("/api/jobs/:id/apply", async (req, res) => {
       return res.status(404).json({ error: "Job not found." });
     }
 
+    const recEmail = (job.isSample || String(job.id).startsWith("sample_"))
+      ? "recruiter@gmail.com"
+      : (job.recruiterEmail || `hr://${job.company.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 15)}.com`).toLowerCase().trim();
+
     const newApp = {
       id: "app_" + Date.now(),
       jobId: id,
       jobTitle: job.title,
       companyName: job.company,
+      recruiterEmail: recEmail,
       candidateName: finalName,
       candidateEmail: finalEmail,
       status: "Applied",
@@ -1444,15 +1449,14 @@ app.post("/api/jobs/:id/apply", async (req, res) => {
 
     // Create welcome chat message from the recruiter
     try {
-      const recEmail = job.recruiterEmail || `hr@${job.company.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 15)}.com`;
       const recName = `${job.company} HR`;
       const welcomeMsgText = `Hi ${finalName}, thank you for applying to the ${job.title} position at ${job.company}. We have received your application and our recruiting team is currently analyzing your match. We will contact you shortly if we decide to move forward!`;
       
       const welcomeMsg = {
         id: "msg_" + Date.now() + "_welcome",
-        seekerEmail: finalEmail.toLowerCase(),
+        seekerEmail: finalEmail.toLowerCase().trim(),
         seekerName: finalName,
-        recruiterEmail: recEmail.toLowerCase(),
+        recruiterEmail: recEmail,
         recruiterName: recName,
         companyName: job.company,
         sender: "recruiter",
@@ -1460,7 +1464,7 @@ app.post("/api/jobs/:id/apply", async (req, res) => {
         timestamp: new Date().toISOString()
       };
       await dbService.createMessage(welcomeMsg);
-      console.log(`Created welcome message thread for ${finalEmail} with ${job.company}`);
+      console.log(`Created welcome message thread for ${finalEmail} with ${job.company} linked to recruiter ${recEmail}`);
     } catch (msgErr) {
       console.error("Failed to seed welcome message for application:", msgErr);
     }
@@ -1473,8 +1477,15 @@ app.post("/api/jobs/:id/apply", async (req, res) => {
 
 app.get("/api/recruiter/applicants", async (req, res) => {
   try {
-    const { company } = req.query;
-    const applicants = await dbService.getApplications(company);
+    const { company, email } = req.query;
+    const queryEmail = email || "";
+    let applicants = [];
+    
+    if (queryEmail.toLowerCase().trim() === "recruiter@gmail.com") {
+      applicants = await dbService.getApplications(); // Returns all applications for admin recruiter
+    } else {
+      applicants = await dbService.getApplications(company);
+    }
 
     // Enrich applicants with profile details from users collection
     const enriched = [];
@@ -2377,7 +2388,52 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+async function ensureAdminRecruiter() {
+  try {
+    const adminEmail = "recruiter@gmail.com";
+    const adminUser = await dbService.findUserByEmail(adminEmail);
+    if (!adminUser) {
+      console.log("Creating admin recruiter account (recruiter@gmail.com)...");
+      const newAdmin = {
+        fullName: "Sarthi Admin HR",
+        email: adminEmail,
+        password: "qwertyuiop123",
+        role: "recruiter",
+        company: "JobSarthi Recruiter",
+        createdAt: new Date().toISOString()
+      };
+      if (mongoDb) {
+        await mongoDb.collection("users").insertOne(newAdmin);
+      } else {
+        const local = await readLocalDB();
+        local.users.push(newAdmin);
+        await writeLocalDB(local);
+      }
+      console.log("Successfully created admin recruiter account.");
+    } else {
+      if (mongoDb) {
+        await mongoDb.collection("users").updateOne(
+          { email: adminEmail },
+          { $set: { password: "qwertyuiop123", role: "recruiter" } }
+        );
+      } else {
+        const local = await readLocalDB();
+        const userIdx = local.users.findIndex(u => u.email.toLowerCase() === adminEmail);
+        if (userIdx !== -1) {
+          local.users[userIdx].password = "qwertyuiop123";
+          local.users[userIdx].role = "recruiter";
+          await writeLocalDB(local);
+        }
+      }
+      console.log("Admin recruiter account verified.");
+    }
+  } catch (err) {
+    console.error("Failed to ensure admin recruiter:", err);
+  }
+}
+
 initDB().then(async () => {
+  await ensureAdminRecruiter();
   await loadCachedSampleJobs();
   await autoAggregateJobs();
   

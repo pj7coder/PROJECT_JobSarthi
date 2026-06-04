@@ -363,7 +363,8 @@
 
       // 2. Fetch fresh details in the background
       try {
-        const response = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(companyName)}`);
+        const email = localStorage.getItem('recruiter_email') || '';
+        const response = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(companyName)}&email=${encodeURIComponent(email)}`);
         if (!response.ok) throw new Error("Failed to fetch");
         const list = await response.json();
 
