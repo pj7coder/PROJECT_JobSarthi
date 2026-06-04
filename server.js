@@ -1757,17 +1757,24 @@ app.post("/api/seeker/parse-certificate", async (req, res) => {
 app.all("/api/admin/jobs/collect", async (req, res) => {
   try {
     const { companies } = req.body || {};
-    // Default list of companies to collect if none are provided
-    const targetCompanies = companies || [
-      { name: "Figma", url: "https://careers.figma.com", ats: "greenhouse", token: "figma" },
-      { name: "Vercel", url: "https://vercel.com/careers", ats: "lever", token: "vercel" },
-      { name: "AshbyHQ", url: "https://careers.ashbyhq.com", ats: "ashby", token: "ashby" },
-      { name: "SmartRecruiters", url: "https://careers.smartrecruiters.com", ats: "smartrecruiters", token: "smartrecruiters" },
-      { name: "JobSarthi Partner", url: "https://jobsarthi.ai", ats: "none" }
-    ];
+    let stats = { inserted: 0, updated: 0 };
 
-    console.log("[JobCollector API] Triggered job aggregation sync...");
-    const stats = await runJobCollectionPipeline(targetCompanies);
+    if (companies && companies.length > 0) {
+      console.log("[JobCollector API] Triggered job aggregation sync for custom companies...");
+      stats = await runJobCollectionPipeline(companies);
+    } else {
+      console.log("[JobCollector API] Triggered round-robin batch sync (5 companies)...");
+      for (let i = 0; i < 5; i++) {
+        try {
+          const runStats = await syncNextCompany();
+          stats.inserted += runStats.inserted || 0;
+          stats.updated += runStats.updated || 0;
+        } catch (singleErr) {
+          console.error(`[JobCollector API] Error in batch sync round ${i}:`, singleErr);
+        }
+      }
+    }
+
     res.json({ success: true, message: "Job collection pipeline completed.", stats });
   } catch (err) {
     console.error("Job collection endpoint error:", err);

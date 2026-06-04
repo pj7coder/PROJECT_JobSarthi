@@ -138,26 +138,26 @@ export async function fetchLeverJobs(companyId) {
 }
 
 // 3. Ashby API
-export async function fetchAshbyJobs(boardId) {
+export async function fetchAshbyJobs(boardId, companyName) {
   console.log(`[Ashby] Fetching jobs for board: ${boardId}`);
   // Using public board api endpoint
-  const url = `https://api.ashbyhq.com/v1/iframe/web/${boardId}/jobs`;
+  const url = `https://api.ashbyhq.com/posting-api/job-board/${boardId}`;
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Ashby API status: ${res.status}`);
     const data = await res.json();
-    const jobsList = data.jobs || data.postings || [];
+    const jobsList = data.jobs || [];
     return jobsList.map(job => ({
-      source_id: job.id || job.jobId,
+      source_id: job.id,
       source: "ashby",
       title: job.title,
-      company: job.companyName || "Partner Company",
-      location: job.location || "Remote",
-      department: job.department || "General",
+      company: companyName || boardId.charAt(0).toUpperCase() + boardId.slice(1),
+      location: job.location || (job.isRemote ? "Remote" : "See details"),
+      department: job.department || job.team || "General",
       employment_type: job.employmentType || "Full-time",
-      description: job.descriptionHtml || job.description || "No description provided.",
-      skills: extractSkillsFromText(job.description || ""),
-      salary: job.compensationInfo ? job.compensationInfo.summary : "Not specified",
+      description: job.descriptionHtml || job.descriptionPlain || "No description provided.",
+      skills: extractSkillsFromText(job.descriptionPlain || ""),
+      salary: "Not specified",
       apply_url: job.applyUrl || job.jobUrl,
       posted_date: job.publishedAt ? new Date(job.publishedAt) : new Date()
     }));
@@ -355,7 +355,7 @@ export async function runJobCollectionPipeline(targetCompanies) {
         const fetched = await fetchLeverJobs(entry.token);
         allCollectedJobs.push(...fetched);
       } else if (entry.ats === "ashby") {
-        const fetched = await fetchAshbyJobs(entry.token);
+        const fetched = await fetchAshbyJobs(entry.token, entry.name);
         allCollectedJobs.push(...fetched);
       } else if (entry.ats === "smartrecruiters") {
         const fetched = await fetchSmartRecruitersJobs(entry.token);
