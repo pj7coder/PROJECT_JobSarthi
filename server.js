@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 // GoogleGenerativeAI removed (migrating to Groq)
 import { MongoClient } from "mongodb";
 import { v2 as cloudinary } from "cloudinary";
-import { runJobCollectionPipeline } from "./jobCollector.js";
+import { runJobCollectionPipeline, syncNextCompany } from "./jobCollector.js";
 
 dotenv.config();
 
@@ -1768,22 +1768,17 @@ initDB().then(async () => {
   await autoAggregateJobs();
   
   // Trigger a background run of job aggregation on boot
-  const defaultCompanies = [
-    { name: "Figma", url: "https://careers.figma.com", ats: "greenhouse", token: "figma" },
-    { name: "Vercel", url: "https://vercel.com/careers", ats: "lever", token: "vercel" }
-  ];
-  
-  runJobCollectionPipeline(defaultCompanies)
-    .then(stats => console.log("[Background JobCollector] Initial boot aggregation sync completed:", stats))
-    .catch(err => console.error("[Background JobCollector] Initial boot aggregation sync failed:", err));
+  syncNextCompany()
+    .then(stats => console.log("[Background JobCollector] Initial boot round-robin sync completed:", stats))
+    .catch(err => console.error("[Background JobCollector] Initial boot round-robin sync failed:", err));
 
-  // Run scheduler every 24 hours
+  // Run scheduler every 1 hour (3600000ms)
   setInterval(() => {
-    console.log("[Background JobCollector] Scheduled 24h aggregation sync started...");
-    runJobCollectionPipeline(defaultCompanies)
-      .then(stats => console.log("[Background JobCollector] Scheduled aggregation completed:", stats))
-      .catch(err => console.error("[Background JobCollector] Scheduled aggregation failed:", err));
-  }, 24 * 60 * 60 * 1000);
+    console.log("[Background JobCollector] Scheduled hourly round-robin sync started...");
+    syncNextCompany()
+      .then(stats => console.log("[Background JobCollector] Scheduled hourly sync completed:", stats))
+      .catch(err => console.error("[Background JobCollector] Scheduled hourly sync failed:", err));
+  }, 1 * 60 * 60 * 1000);
 
   app.listen(PORT, () => {
     console.log(`JobSarthi server running at http://localhost:${PORT}`);

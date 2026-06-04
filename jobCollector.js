@@ -457,3 +457,84 @@ function extractSlugFromUrl(url, ats) {
   } catch (e) {}
   return null;
 }
+
+// Global curated list of target tech companies
+export const TARGET_COMPANIES = [
+  { name: "Figma", url: "https://careers.figma.com", ats: "greenhouse", token: "figma" },
+  { name: "Vercel", url: "https://vercel.com/careers", ats: "lever", token: "vercel" },
+  { name: "Airbnb", url: "https://careers.airbnb.com", ats: "greenhouse", token: "airbnb" },
+  { name: "Netflix", url: "https://jobs.netflix.com", ats: "lever", token: "netflix" },
+  { name: "Stripe", url: "https://stripe.com/jobs", ats: "greenhouse", token: "stripe" },
+  { name: "Sentry", url: "https://sentry.io/careers", ats: "lever", token: "sentry" },
+  { name: "Uber", url: "https://www.uber.com/careers", ats: "greenhouse", token: "uber" },
+  { name: "Spotify", url: "https://www.lifeatspotify.com", ats: "lever", token: "spotify" },
+  { name: "Lyft", url: "https://www.lyft.com/careers", ats: "greenhouse", token: "lyft" },
+  { name: "Slack", url: "https://slack.com/careers", ats: "lever", token: "slack" },
+  { name: "Pinterest", url: "https://careers.pinterest.com", ats: "greenhouse", token: "pinterest" },
+  { name: "Cloudflare", url: "https://www.cloudflare.com/careers", ats: "greenhouse", token: "cloudflare" },
+  { name: "Datadog", url: "https://www.datadoghq.com/careers", ats: "greenhouse", token: "datadog" },
+  { name: "Zoom", url: "https://careers.zoom.us", ats: "greenhouse", token: "zoom" },
+  { name: "Robinhood", url: "https://careers.robinhood.com", ats: "greenhouse", token: "robinhood" },
+  { name: "Reddit", url: "https://www.redditinc.com/careers", ats: "greenhouse", token: "reddit" },
+  { name: "Asana", url: "https://asana.com/jobs", ats: "lever", token: "asana" },
+  { name: "Medium", url: "https://medium.jobs", ats: "lever", token: "medium" },
+  { name: "Coursera", url: "https://about.coursera.org/careers", ats: "lever", token: "coursera" },
+  { name: "Linear", url: "https://ashbyhq.com/linear", ats: "ashby", token: "linear" },
+  { name: "Retool", url: "https://retool.com/careers", ats: "ashby", token: "retool" },
+  { name: "Clerk", url: "https://clerk.com/careers", ats: "ashby", token: "clerk" }
+];
+
+// Round-robin selector to fetch 1 company per hour
+export async function syncNextCompany() {
+  const db = await getDB();
+  const companyLastUpdated = {};
+
+  try {
+    if (db) {
+      const jobs = await db.collection("jobs").find({}, { projection: { company: 1, updated_at: 1 } }).toArray();
+      jobs.forEach(job => {
+        const cName = job.company.toLowerCase();
+        const date = new Date(job.updated_at || 0).getTime();
+        if (!companyLastUpdated[cName] || date > companyLastUpdated[cName]) {
+          companyLastUpdated[cName] = date;
+        }
+      });
+    } else {
+      const local = await readLocalDB();
+      (local.jobs || []).forEach(job => {
+        const cName = job.company.toLowerCase();
+        const date = new Date(job.updated_at || 0).getTime();
+        if (!companyLastUpdated[cName] || date > companyLastUpdated[cName]) {
+          companyLastUpdated[cName] = date;
+        }
+      });
+    }
+  } catch (err) {
+    console.error("[JobCollector] Error checking last sync times:", err);
+  }
+
+  // Find the company in TARGET_COMPANIES with the oldest lastUpdated timestamp (or never updated)
+  let chosenCompany = null;
+  let oldestTime = Infinity;
+
+  for (const comp of TARGET_COMPANIES) {
+    const lastTime = companyLastUpdated[comp.name.toLowerCase()];
+    if (lastTime === undefined) {
+      // Never synced, pick immediately!
+      chosenCompany = comp;
+      break;
+    }
+    if (lastTime < oldestTime) {
+      oldestTime = lastTime;
+      chosenCompany = comp;
+    }
+  }
+
+  if (chosenCompany) {
+    console.log(`[JobCollector] Round-Robin Sync: Chosen company is "${chosenCompany.name}" (Last sync: ${oldestTime === Infinity ? 'Never' : new Date(oldestTime).toISOString()})`);
+    return await runJobCollectionPipeline([chosenCompany]);
+  } else {
+    console.log("[JobCollector] Round-Robin Sync: No target companies configured.");
+    return { inserted: 0, updated: 0 };
+  }
+}
