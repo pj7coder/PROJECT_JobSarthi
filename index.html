@@ -1089,6 +1089,7 @@
 
   <!-- Unified Floating Sarthi AI Pill -->
   <div id="floatingSarthiBtn" class="gemini-pill-border"
+    onclick="document.getElementById('sarthi-scroll-section').scrollIntoView({behavior:'smooth',block:'start'})"
     style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); transform-origin: bottom right;">
     <!-- Shine Overlay -->
     <div class="sarthi-shine-overlay"></div>
@@ -1779,26 +1780,9 @@
           setupCarousel('finder');
           setupCarousel('recruiter');
 
-          // Smooth scroll navigation and Sarthi click delegation
-          document.addEventListener('click', (e) => {
-            // 1. Check if they clicked the floating Sarthi button or its children
-            const sarthiBtn = e.target.closest('#floatingSarthiBtn');
-            if (sarthiBtn) {
-              e.preventDefault();
-              e.stopPropagation();
-              const targetSection = document.getElementById('sarthi-scroll-section');
-              if (targetSection) {
-                const elementPosition = targetSection.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.scrollY + 100;
-                window.scrollTo({
-                  top: offsetPosition,
-                  behavior: 'smooth'
-                });
-              }
-              return;
-            }
 
-            // 2. Check if they clicked a hash link
+          // Smooth scroll navigation with event delegation (handles dynamic elements like Dock links)
+          document.addEventListener('click', (e) => {
             const link = e.target.closest('a[href^="#"]');
             if (link) {
               const targetId = link.getAttribute('href');
