@@ -1462,8 +1462,7 @@ body.light-theme .mobile-bottom-nav {
 }
 
 /* Custom premium shine effect for floating Sarthi button */
-#floatingSarthiBtn::after {
-  content: '';
+#floatingSarthiBtn .sarthi-shine-overlay {
   position: absolute;
   top: 0;
   left: -100%;
@@ -1475,19 +1474,19 @@ body.light-theme .mobile-bottom-nav {
     rgba(255, 255, 255, 0.45) 50%,
     rgba(255, 255, 255, 0) 100%
   );
-  transform: skewX(-25deg);
+  transform: skewX(-25deg) translateZ(0);
   pointer-events: none;
   transition: transform 0.6s ease;
-  z-index: 10;
+  z-index: 2;
 }
 
-#floatingSarthiBtn:hover::after {
-  transform: translateX(350px) skewX(-25deg);
+#floatingSarthiBtn:hover .sarthi-shine-overlay {
+  transform: translateX(350px) skewX(-25deg) translateZ(0);
   transition: transform 0.75s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 /* Disable glare when sarthi pane is open */
-#floatingSarthiBtn.pane-open::after {
+#floatingSarthiBtn.pane-open .sarthi-shine-overlay {
   display: none !important;
 }
 
