@@ -4,10 +4,9 @@
 // Dynamic API Base URL configuration (Vercel/file:// compatibility)
 (function() {
   const getApiBaseUrl = () => {
-    // Check if we are running on Vercel or locally opening file:// protocol
-    if (window.location.hostname.includes('vercel') || window.location.protocol === 'file:') {
-      // REPLACE WITH YOUR ACTUAL LIVE RENDER URL
-      return 'https://project-jobsarthi.onrender.com';
+    // Check if we are running locally opening file:// protocol
+    if (window.location.protocol === 'file:') {
+      return 'http://localhost:3000';
     }
     return '';
   };
