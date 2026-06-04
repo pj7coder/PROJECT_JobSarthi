@@ -25,73 +25,11 @@
       margin-top: 30px;
     }
 
-    @media (max-width: 800px) {
-      .jobs-layout {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Filter Sidebar */
-    .filter-sidebar {
-      padding: 24px;
-      height: fit-content;
-      position: sticky;
-      top: 100px;
-    }
-
-    .filter-section {
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--glass-border);
-      padding-bottom: 20px;
-    }
-
-    .filter-section:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-      margin-bottom: 0;
-    }
-
-    .filter-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .checkbox-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: var(--transition-fast);
-    }
-
-    .checkbox-label:hover {
-      color: var(--text-main);
-    }
-
-    .checkbox-input {
-      accent-color: var(--accent-secondary);
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-    }
-
-    /* Search and Listings Area */
+    /* Search Container */
     .search-container {
       display: flex;
       gap: 12px;
-      margin-bottom: 24px;
+      margin-bottom: 30px;
     }
 
     .search-input-wrap {
@@ -111,6 +49,21 @@
     .search-control {
       width: 100%;
       padding-left: 48px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      border-radius: 12px;
+      padding-top: 14px;
+      padding-bottom: 14px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .search-control:focus {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+      outline: none;
     }
 
     /* Job Card List */
@@ -118,6 +71,7 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      margin-bottom: 50px;
     }
 
     .job-item {
@@ -127,6 +81,9 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
     }
 
     @media (max-width: 650px) {
@@ -144,6 +101,8 @@
     .job-item:hover {
       border-color: rgba(99, 102, 241, 0.3);
       box-shadow: 0 10px 25px -10px var(--glass-glow);
+      background: rgba(255, 255, 255, 0.04);
+      transform: translateY(-2px);
     }
 
     .job-item-main {
@@ -168,6 +127,7 @@
       font-size: 1.15rem;
       font-weight: 700;
       margin-bottom: 4px;
+      color: var(--text-main);
     }
 
     .job-item-company {
@@ -182,6 +142,7 @@
       gap: 16px;
       font-size: 0.85rem;
       color: var(--text-dark);
+      flex-wrap: wrap;
     }
 
     .job-item-actions {
@@ -197,8 +158,8 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
       z-index: 1000;
       display: none;
       align-items: center;
@@ -210,7 +171,7 @@
       height: 100%;
       background: #0f1016;
       border-left: 1px solid var(--glass-border);
-      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.6);
       padding: 40px;
       display: flex;
       flex-direction: column;
@@ -227,6 +188,7 @@
     @media (max-width: 600px) {
       .drawer-content {
         width: 100%;
+        padding: 24px;
       }
     }
 
@@ -243,7 +205,7 @@
     }
 
     .detail-section {
-      margin-top: 24px;
+      margin-top: 28px;
     }
 
     .detail-subtitle {
@@ -252,6 +214,8 @@
       font-weight: 700;
       margin-bottom: 10px;
       color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .detail-body {
@@ -293,16 +257,14 @@
   <!-- Container -->
   <main class="container">
     <div class="jobs-layout">
-
-
       <!-- Main Search & Results -->
       <section>
         <div class="search-container">
           <div class="search-input-wrap">
             <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="jobSearch" class="form-control search-control" placeholder="Search roles, skills, or companies..." onkeyup="filterJobs()">
+            <input type="text" id="jobSearch" class="search-control" placeholder="Search roles, skills, or companies..." onkeyup="filterJobs()">
           </div>
-          <button class="btn btn-primary" onclick="filterJobs()">Search</button>
+          <button class="btn btn-primary" style="padding-left: 28px; padding-right: 28px;" onclick="filterJobs()">Search</button>
         </div>
 
         <div class="jobs-grid" id="jobsContainer">
@@ -322,7 +284,7 @@
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
           <div class="job-item-logo" id="drawerLogo" style="font-size: 2.2rem; width: 64px; height: 64px;">⚛️</div>
           <div>
-            <h2 id="drawerTitle" style="font-size: 1.5rem;">Job Title</h2>
+            <h2 id="drawerTitle" style="font-size: 1.5rem; color: var(--text-main); margin-bottom: 4px;">Job Title</h2>
             <div id="drawerCompany" style="color: var(--accent-secondary); font-weight: 600;">Company Name</div>
           </div>
         </div>
@@ -386,16 +348,16 @@
       loadJobs();
     });
 
-
     function filterJobs() {
       const searchQuery = document.getElementById('jobSearch').value.toLowerCase();
       
       const filtered = dbJobs.filter(job => {
         const matchesSearch = !searchQuery || 
-                              job.title.toLowerCase().includes(searchQuery) || 
-                              job.company.toLowerCase().includes(searchQuery) ||
+                              (job.title && job.title.toLowerCase().includes(searchQuery)) || 
+                              (job.company && job.company.toLowerCase().includes(searchQuery)) ||
                               (job.description && job.description.toLowerCase().includes(searchQuery)) ||
-                              (job.location && job.location.toLowerCase().includes(searchQuery));
+                              (job.location && job.location.toLowerCase().includes(searchQuery)) ||
+                              (job.skills && job.skills.toLowerCase().includes(searchQuery));
         return matchesSearch;
       });
 
@@ -408,8 +370,8 @@
 
       if (jobs.length === 0) {
         container.innerHTML = `
-          <div class="glass-panel" style="padding: 40px; text-align: center; color: var(--text-muted);">
-            No jobs match your search parameters. Try widening your filters.
+          <div class="glass-panel" style="padding: 40px; text-align: center; color: var(--text-muted); border-radius: 16px;">
+            No jobs match your search parameters.
           </div>
         `;
         return;
@@ -417,7 +379,7 @@
 
       jobs.forEach(job => {
         const card = document.createElement('div');
-        card.className = 'glass-card job-item';
+        card.className = 'job-item';
         card.onclick = () => openDrawer(job);
         
         card.innerHTML = `
@@ -438,7 +400,8 @@
           </div>
           <div class="job-item-actions" onclick="event.stopPropagation()">
             <span class="match-score" style="
-              ${(job.match || 80) >= 90 ? '' : (job.match || 80) >= 80 ? 'color: var(--accent-primary); border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.1);' : 'color: var(--accent-tertiary); border-color: rgba(217,70,239,0.3); background: rgba(217,70,239,0.1);'}
+              border: 1px solid rgba(99, 102, 241, 0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;
+              ${(job.match || 80) >= 90 ? 'color: var(--success); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1);' : (job.match || 80) >= 80 ? 'color: var(--accent-primary); border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.1);' : 'color: var(--accent-tertiary); border-color: rgba(217,70,239,0.3); background: rgba(217,70,239,0.1);'}
             ">${job.match || 80}% Match</span>
             <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openDrawerFromBtn('${job.id}')">Details</button>
           </div>
@@ -458,25 +421,32 @@
       document.getElementById('drawerLogo').textContent = job.logo || '💼';
       document.getElementById('drawerTitle').textContent = job.title || 'Untitled Role';
       document.getElementById('drawerCompany').textContent = job.company || 'Company';
-      document.getElementById('drawerDesc').textContent = job.description || 'No description provided.';
+      document.getElementById('drawerDesc').innerHTML = job.description || 'No description provided.';
       document.getElementById('drawerComp').textContent = `Offering a highly competitive salary range of ${job.salary || 'Not specified'}. We also provide comprehensive medical coverage, premium wellness benefits, learning stipends, and hardware options.`;
 
       // Render requirements list
       const reqsUl = document.getElementById('drawerReqs');
       reqsUl.innerHTML = '';
       const requirements = job.reqs || [];
-      requirements.forEach(req => {
+      if (requirements.length === 0) {
         const li = document.createElement('li');
-        li.textContent = req;
+        li.textContent = "Refer to the job description for specific requirements.";
         li.style.marginBottom = '6px';
         reqsUl.appendChild(li);
-      });
+      } else {
+        requirements.forEach(req => {
+          const li = document.createElement('li');
+          li.textContent = req;
+          li.style.marginBottom = '6px';
+          reqsUl.appendChild(li);
+        });
+      }
 
       // Badges
       const badgesDiv = document.getElementById('drawerBadges');
       badgesDiv.innerHTML = `
-        <span class="badge badge-primary">${job.type || 'Full-time'}</span>
-        <span class="badge badge-success">${job.match || 80}% AI MATCH</span>
+        <span class="badge badge-primary" style="padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); border: 1px solid rgba(99, 102, 241, 0.25);">${job.type || 'Full-time'}</span>
+        <span class="badge badge-success" style="padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25);">${job.match || 80}% AI MATCH</span>
       `;
 
       // Apply button status reset
@@ -537,7 +507,7 @@
         notifications.unshift({
           id: Date.now(),
           title: `Applied to ${currentSelectedJob.title}`,
-          desc: `Your profile matching analysis (${currentSelectedJob.match}%) has been sent directly to ${currentSelectedJob.company}.`,
+          desc: `Your profile matching analysis (${currentSelectedJob.match || 80}%) has been sent directly to ${currentSelectedJob.company}.`,
           time: "Just now",
           unread: true
         });
@@ -563,7 +533,5 @@
   </script>
   
   <script src="../js/header.js"></script>
-
-
 </body>
 </html>
