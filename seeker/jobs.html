@@ -9,9 +9,6 @@
     content="Browse, filter, and apply to hundreds of tech roles fetched from top companies using Sarthi AI.">
   <link rel="stylesheet" href="../css/main.css">
   <script>
-    if (localStorage.getItem('seeker_logged_in') !== 'true') {
-      window.location.replace('login_signup.html');
-    }
     if (localStorage.getItem('theme') === 'light') {
       document.documentElement.classList.add('light-theme');
       document.addEventListener('DOMContentLoaded', () => {
@@ -945,39 +942,59 @@
       matchedContainer.innerHTML = '';
       missingContainer.innerHTML = '';
 
-      if (matchInfo.matched.length === 0) {
-        matchedContainer.innerHTML = '<span style="color: var(--text-dark); font-size: 0.82rem; font-style: italic;">None matching. Add more skills to your profile.</span>';
-      } else {
-        matchInfo.matched.forEach(s => {
-          const tag = document.createElement('span');
-          tag.style.cssText = 'background: rgba(16, 185, 129, 0.08); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;';
-          tag.textContent = s;
-          matchedContainer.appendChild(tag);
-        });
-      }
+      const isLoggedIn = localStorage.getItem('seeker_logged_in') === 'true';
 
-      if (matchInfo.missing.length === 0) {
-        missingContainer.innerHTML = '<span style="color: var(--success); font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 4px;">🎉 Perfect match! You possess all listed skills.</span>';
+      if (!isLoggedIn) {
+        matchedContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.82rem; font-style: italic;">Sign in to see matching skills.</span>';
+        
+        const jobSkillsStr = job.skills || "";
+        const jobSkills = jobSkillsStr.split(',').map(s => s.trim()).filter(Boolean);
+        if (jobSkills.length === 0) {
+          missingContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 0.82rem; font-style: italic;">No specific skills listed.</span>';
+        } else {
+          jobSkills.forEach(s => {
+            const tag = document.createElement('span');
+            tag.style.cssText = 'background: rgba(255, 255, 255, 0.04); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;';
+            tag.textContent = s;
+            missingContainer.appendChild(tag);
+          });
+        }
+        insightBody.innerHTML = `<strong>Unlock personalized matching!</strong> Log in to your JobSarthi account to get a personalized AI Match Score, highlight your matching skills, and get customized suggestions.`;
       } else {
-        matchInfo.missing.forEach(s => {
-          const tag = document.createElement('span');
-          tag.style.cssText = 'background: rgba(255, 255, 255, 0.04); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;';
-          tag.textContent = s;
-          missingContainer.appendChild(tag);
-        });
-      }
+        if (matchInfo.matched.length === 0) {
+          matchedContainer.innerHTML = '<span style="color: var(--text-dark); font-size: 0.82rem; font-style: italic;">None matching. Add more skills to your profile.</span>';
+        } else {
+          matchInfo.matched.forEach(s => {
+            const tag = document.createElement('span');
+            tag.style.cssText = 'background: rgba(16, 185, 129, 0.08); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;';
+            tag.textContent = s;
+            matchedContainer.appendChild(tag);
+          });
+        }
 
-      let insightText = '';
-      if (score >= 90) {
-        insightText = `<strong>Outstanding match!</strong> You have almost all the key skills (${matchInfo.matched.join(', ')}) required for this role. Sarthi recommends applying immediately as your profile stands out in the top 5% of candidates.`;
-      } else if (score >= 80) {
-        insightText = `<strong>Strong match!</strong> You have a solid alignment of skills like ${matchInfo.matched.slice(0, 3).join(', ')}. ${matchInfo.missing.length > 0 ? 'To maximize your chances, consider highlighting projects that use ' + matchInfo.missing.slice(0, 2).join(', ') + ' in your interview.' : ''}`;
-      } else if (score >= 70) {
-        insightText = `<strong>Good match!</strong> You have relevant foundational skills. Sarthi recommends brushing up on <strong>${matchInfo.missing.slice(0, 2).join(', ')}</strong> before applying to strengthen your application.`;
-      } else {
-        insightText = `<strong>Moderate alignment.</strong> While you have some overlapping experience, this role heavily emphasizes skills like <strong>${matchInfo.missing.slice(0, 3).join(', ')}</strong>. You can still apply, but we recommend tailoring your resume to emphasize transferrable skills.`;
+        if (matchInfo.missing.length === 0) {
+          missingContainer.innerHTML = '<span style="color: var(--success); font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 4px;">🎉 Perfect match! You possess all listed skills.</span>';
+        } else {
+          matchInfo.missing.forEach(s => {
+            const tag = document.createElement('span');
+            tag.style.cssText = 'background: rgba(255, 255, 255, 0.04); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;';
+            tag.textContent = s;
+            missingContainer.appendChild(tag);
+          });
+        }
+
+        let insightText = '';
+        if (score >= 90) {
+          insightText = `<strong>Outstanding match!</strong> You have almost all the key skills (${matchInfo.matched.join(', ')}) required for this role. Sarthi recommends applying immediately as your profile stands out in the top 5% of candidates.`;
+        } else if (score >= 80) {
+          insightText = `<strong>Strong match!</strong> You have a solid alignment of skills like ${matchInfo.matched.slice(0, 3).join(', ')}. ${matchInfo.missing.length > 0 ? 'To maximize your chances, consider highlighting projects that use ' + matchInfo.missing.slice(0, 2).join(', ') + ' in your interview.' : ''}`;
+        } else if (score >= 70) {
+          insightText = `<strong>Good match!</strong> You have relevant foundational skills. Sarthi recommends brushing up on <strong>${matchInfo.missing.slice(0, 2).join(', ')}</strong> before applying to strengthen your application.`;
+        } else {
+          insightText = `<strong>Moderate alignment.</strong> While you have some overlapping experience, this role heavily emphasizes skills like <strong>${matchInfo.missing.slice(0, 3).join(', ')}</strong>. You can still apply, but we recommend tailoring your resume to emphasize transferrable skills.`;
+        }
+        insightBody.innerHTML = insightText;
       }
-      insightBody.innerHTML = insightText;
 
       // Badges
       const badgesDiv = document.getElementById('drawerBadges');

@@ -103,23 +103,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // 4. Identify role and check authentication
       const isLanding = !isRecruiter && !isSeeker;
-      if (!isLanding) {
-        const authKey = isRecruiter ? 'recruiter_logged_in' : 'seeker_logged_in';
-        if (localStorage.getItem(authKey) !== 'true') {
+      const isJobsPage = window.location.pathname.includes('jobs.html');
+      const authKey = isRecruiter ? 'recruiter_logged_in' : 'seeker_logged_in';
+      const isLoggedIn = localStorage.getItem(authKey) === 'true';
+
+      if (!isLanding && !isJobsPage) {
+        if (!isLoggedIn) {
           window.location.href = 'login_signup.html';
           return;
         }
       }
 
       // 5. Setup User Profile Name & Initials
-      const userName = isRecruiter
-        ? (localStorage.getItem('recruiter_company') || 'Employer')
-        : (localStorage.getItem('seeker_name') || 'Candidate');
-      const userEmail = isRecruiter
-        ? (localStorage.getItem('recruiter_email') || 'hr@jobsarthi.ai')
-        : (localStorage.getItem('seeker_email') || 'user@jobsarthi.ai');
+      const userName = isLoggedIn
+        ? (isRecruiter ? (localStorage.getItem('recruiter_company') || 'Employer') : (localStorage.getItem('seeker_name') || 'Candidate'))
+        : 'Guest';
+      const userEmail = isLoggedIn
+        ? (isRecruiter ? (localStorage.getItem('recruiter_email') || 'hr@jobsarthi.ai') : (localStorage.getItem('seeker_email') || 'user@jobsarthi.ai'))
+        : 'Sign in to sync profile';
 
-      const initial = userName.charAt(0).toUpperCase();
+      const initial = isLoggedIn ? userName.charAt(0).toUpperCase() : 'G';
 
       // Populate header profile
       const headerInitials = document.getElementById('headerProfileInitials');
@@ -142,6 +145,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sidebarAvatar) sidebarAvatar.textContent = initial;
       if (sidebarName) sidebarName.textContent = userName;
       if (welcomeName) welcomeName.textContent = userName;
+
+      // Customize logout button if not logged in
+      if (!isLoggedIn) {
+        const logoutBtn = document.querySelector('.logout-btn');
+        if (logoutBtn) {
+          logoutBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            Sign In
+          `;
+          logoutBtn.setAttribute('onclick', "window.location.href='login_signup.html'");
+          logoutBtn.className = 'dropdown-action-item login-btn';
+        }
+      }
 
       // Function to render avatar image over initials
       function updateAvatarUI(avatarUrl) {
