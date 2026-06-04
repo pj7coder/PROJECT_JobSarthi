@@ -135,18 +135,19 @@
     .job-item {
       padding: 24px;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: all 0.2s ease;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      backdrop-filter: blur(8px);
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
     }
 
     body.light-theme .job-item {
-      background: rgba(0, 0, 0, 0.01);
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     @media (max-width: 768px) {
@@ -172,10 +173,15 @@
     }
 
     .job-item:hover {
-      border-color: rgba(99, 102, 241, 0.4);
-      box-shadow: 0 12px 30px -10px rgba(99, 102, 241, 0.25);
+      border-color: var(--border-focus);
       background: rgba(255, 255, 255, 0.04);
-      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transform: none;
+    }
+
+    body.light-theme .job-item:hover {
+      background: #fafafa;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
     .job-item-main {
@@ -1224,6 +1230,16 @@
       }
     }
 
+    function getJobLogoHtml(logo) {
+      const isUrl = logo && (logo.startsWith('http') || logo.startsWith('/') || logo.startsWith('data:'));
+      const isGreenhouse = logo && (String(logo).toLowerCase().includes('greenhouse') || String(logo).includes('🌿') || String(logo).toLowerCase().includes('green'));
+      
+      if (isUrl && !isGreenhouse) {
+        return `<img src="${logo}" alt="Logo" style="width:100%; height:100%; object-fit:contain; border-radius:8px;" onerror="this.outerHTML='<svg width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'color: var(--text-muted);\'><rect x=\'2\' y=\'7\' width=\'20\' height=\'14\' rx=\'2\' ry=\'2\'></rect><path d=\'M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16\'></path></svg>'">`;
+      }
+      return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>`;
+    }
+
     function renderJobs(jobs) {
       const container = document.getElementById('jobsContainer');
       container.innerHTML = '';
@@ -1274,17 +1290,25 @@
 
         card.innerHTML = `
           <div class="job-item-main">
-            <div class="job-item-logo">${job.logo || '💼'}</div>
+            <div class="job-item-logo">${getJobLogoHtml(job.logo)}</div>
             <div class="job-item-details">
               <div class="job-item-title">${job.title || 'Untitled Role'}</div>
               <div class="job-item-company">
                 <span>${job.company || 'Company'}</span>
-                ${job.source && job.source !== 'employer' ? `<span class="source-badge">${job.source}</span>` : ''}
               </div>
               <div class="job-item-meta">
-                <span>📍 ${job.location || 'Remote'}</span>
-                <span>💰 ${(job.salary || 'Not specified').split(' / ')[0]}</span>
-                <span>🕒 ${job.type || 'Full-time'}</span>
+                <span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  ${job.location || 'Remote'}
+                </span>
+                <span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  ${(job.salary || 'Not specified').split(' / ')[0]}
+                </span>
+                <span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  ${job.type || 'Full-time'}
+                </span>
               </div>
               ${skillsSnippet}
             </div>
@@ -1310,13 +1334,12 @@
 
     function openDrawer(job) {
       currentSelectedJob = job;
-      document.getElementById('drawerLogo').textContent = job.logo || '💼';
+      document.getElementById('drawerLogo').innerHTML = getJobLogoHtml(job.logo);
       document.getElementById('drawerTitle').textContent = job.title || 'Untitled Role';
       
       const compDiv = document.getElementById('drawerCompany');
       compDiv.innerHTML = `
         <span>${job.company || 'Company'}</span>
-        ${job.source && job.source !== 'employer' ? `<span class="source-badge" style="font-size: 0.65rem;">${job.source}</span>` : ''}
       `;
       
       isDescriptionExpanded = false;

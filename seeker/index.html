@@ -164,6 +164,30 @@
       grid-template-columns: auto 1fr auto;
       gap: 20px;
       align-items: center;
+      background: var(--bg-secondary) !important;
+      border: 1px solid var(--border-subtle) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      transition: all 0.2s ease !important;
+    }
+
+    body.light-theme .job-card {
+      background: #ffffff !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .job-card:hover {
+      border-color: var(--border-focus) !important;
+      background: rgba(255, 255, 255, 0.04) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+      transform: none !important;
+    }
+
+    body.light-theme .job-card:hover {
+      background: #fafafa !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
     }
 
     @media (max-width: 600px) {
@@ -893,6 +917,16 @@
       }
     }
 
+    function getJobLogoHtml(logo) {
+      const isUrl = logo && (logo.startsWith('http') || logo.startsWith('/') || logo.startsWith('data:'));
+      const isGreenhouse = logo && (String(logo).toLowerCase().includes('greenhouse') || String(logo).includes('🌿') || String(logo).toLowerCase().includes('green'));
+      
+      if (isUrl && !isGreenhouse) {
+        return `<img src="${logo}" alt="Logo" style="width:100%; height:100%; object-fit:contain; border-radius:8px;" onerror="this.outerHTML='<svg width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'color: var(--text-muted);\'><rect x=\'2\' y=\'7\' width=\'20\' height=\'14\' rx=\'2\' ry=\'2\'></rect><path d=\'M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16\'></path></svg>'">`;
+      }
+      return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>`;
+    }
+
     function renderPaginatedDashboardJobs() {
       const recommendedContainer = document.getElementById('recommendedJobsList');
       if (!recommendedContainer) return;
@@ -914,14 +948,23 @@
           const card = document.createElement('div');
           card.className = 'glass-card job-card';
           card.innerHTML = `
-            <div class="job-card-logo">${job.logo || '💼'}</div>
+            <div class="job-card-logo">${getJobLogoHtml(job.logo)}</div>
             <div class="job-card-info">
               <h3>${job.title}</h3>
               <div style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">${job.company}</div>
               <div class="job-card-meta">
-                <div class="job-card-meta-item">📍 ${job.location || 'Remote'}</div>
-                <div class="job-card-meta-item">💰 ${(job.salary || 'Not specified').split(' / ')[0]}</div>
-                <div class="job-card-meta-item">🕒 ${job.type || 'Full-time'}</div>
+                <div class="job-card-meta-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  ${job.location || 'Remote'}
+                </div>
+                <div class="job-card-meta-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  ${(job.salary || 'Not specified').split(' / ')[0]}
+                </div>
+                <div class="job-card-meta-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  ${job.type || 'Full-time'}
+                </div>
               </div>
             </div>
             <div class="job-card-actions">
