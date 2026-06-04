@@ -1779,11 +1779,13 @@
           setupCarousel('finder');
           setupCarousel('recruiter');
 
-          // Setup direct click listener for floating Sarthi button
-          const floatingSarthiBtn = document.getElementById('floatingSarthiBtn');
-          if (floatingSarthiBtn) {
-            floatingSarthiBtn.addEventListener('click', (event) => {
-              if (event) event.stopPropagation();
+          // Smooth scroll navigation and Sarthi click delegation
+          document.addEventListener('click', (e) => {
+            // 1. Check if they clicked the floating Sarthi button or its children
+            const sarthiBtn = e.target.closest('#floatingSarthiBtn');
+            if (sarthiBtn) {
+              e.preventDefault();
+              e.stopPropagation();
               const targetSection = document.getElementById('sarthi-scroll-section');
               if (targetSection) {
                 const elementPosition = targetSection.getBoundingClientRect().top;
@@ -1793,11 +1795,10 @@
                   behavior: 'smooth'
                 });
               }
-            });
-          }
+              return;
+            }
 
-          // Smooth scroll navigation with event delegation (handles dynamic elements like Dock links)
-          document.addEventListener('click', (e) => {
+            // 2. Check if they clicked a hash link
             const link = e.target.closest('a[href^="#"]');
             if (link) {
               const targetId = link.getAttribute('href');
