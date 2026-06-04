@@ -802,6 +802,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const isExpanded = header.classList.contains('about-active');
         if (isExpanded) {
           header.classList.remove('about-active');
+          document.body.classList.remove('about-active');
           unlockScroll();
           if (floatingBtn) {
             floatingBtn.style.opacity = '1';
@@ -810,12 +811,19 @@ document.addEventListener("DOMContentLoaded", () => {
           if (window.resetAboutPhysics) {
             window.resetAboutPhysics();
           }
+          if (localStorage.getItem('splash_cursor_enabled') === 'true' && window.initSplashCursor) {
+            window.initSplashCursor();
+          }
         } else {
           header.classList.add('about-active');
+          document.body.classList.add('about-active');
           lockScroll();
           if (floatingBtn) {
             floatingBtn.style.opacity = '0';
             floatingBtn.style.pointerEvents = 'none';
+          }
+          if (window.disableSplashCursor) {
+            window.disableSplashCursor();
           }
           if (window.initAboutPhysics) {
             window.initAboutPhysics();
@@ -833,8 +841,10 @@ document.addEventListener("DOMContentLoaded", () => {
       // Close About panel when clicking outside of it
       document.addEventListener('click', (e) => {
         if (header && header.classList.contains('about-active')) {
+          if (window.isAboutPhysicsActive) return; // Prevent closing on click outside if playing with physics
           if (!header.contains(e.target) && e.target !== logoLink && !logoLink.contains(e.target)) {
             header.classList.remove('about-active');
+            document.body.classList.remove('about-active');
             unlockScroll();
             if (floatingBtn) {
               floatingBtn.style.opacity = '1';
@@ -842,6 +852,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             if (window.resetAboutPhysics) {
               window.resetAboutPhysics();
+            }
+            if (localStorage.getItem('splash_cursor_enabled') === 'true' && window.initSplashCursor) {
+              window.initSplashCursor();
             }
           }
         }
@@ -955,12 +968,16 @@ window.applyAllUIPreferences = function () {
     const header = document.getElementById('mainHeader');
     if (header && header.classList.contains('about-active')) {
       header.classList.remove('about-active');
+      document.body.classList.remove('about-active');
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
       const floatingBtn = document.getElementById('floatingSarthiBtn');
       if (floatingBtn) {
         floatingBtn.style.opacity = '1';
         floatingBtn.style.pointerEvents = 'auto';
+      }
+      if (localStorage.getItem('splash_cursor_enabled') === 'true' && window.initSplashCursor) {
+        window.initSplashCursor();
       }
     }
   } else {

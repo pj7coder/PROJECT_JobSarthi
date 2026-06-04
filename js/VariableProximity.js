@@ -148,7 +148,7 @@ class VariableProximity {
     
     requestAnimationFrame(() => this.loop());
     
-    if (!this.container) return;
+    if (!this.container || document.body.classList.contains('about-active')) return;
     const containerRect = this.container.getBoundingClientRect();
     const { x, y } = this.mousePosition;
     

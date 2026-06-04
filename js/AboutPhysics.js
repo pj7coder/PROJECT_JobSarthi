@@ -197,6 +197,7 @@
     if (!container || !grid || isPhysicsActive) return;
 
     isPhysicsActive = true;
+    window.isAboutPhysicsActive = true;
 
     // Hide warning label when physics is activated
     const warningLabel = document.getElementById('aboutWarningLabel');
@@ -272,7 +273,7 @@
     const height = container.clientHeight;
 
     physicsEngine = Engine.create();
-    physicsEngine.world.gravity.y = 0.65; // Balanced, smooth gravity
+    physicsEngine.world.gravity.y = 1.4; // Faster falling gravity
 
     physicsRender = Render.create({
       element: overlay,
@@ -307,8 +308,8 @@
 
       // Apply initial scatter impulse so they break apart dynamically
       window.Matter.Body.setVelocity(body, {
-        x: (Math.random() - 0.5) * 4,
-        y: (Math.random() - 0.5) * 2 - 1.5
+        x: (Math.random() - 0.5) * 6,
+        y: (Math.random() - 0.5) * 3 - 3.5
       });
       window.Matter.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.06);
 
@@ -360,6 +361,7 @@
   // Terminate simulation, clear memory, and restore normal state
   window.resetAboutPhysics = function () {
     isPhysicsActive = false;
+    window.isAboutPhysicsActive = false;
 
     // Cancel animation frames
     if (physicsAnimationFrame) {
