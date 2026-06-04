@@ -486,7 +486,10 @@
             <div class="job-item-logo">${job.logo}</div>
             <div>
               <div class="job-item-title">${job.title}</div>
-              <div class="job-item-company">${job.company}</div>
+              <div class="job-item-company" style="display: flex; align-items: center; gap: 8px;">
+                ${job.company}
+                ${job.source && job.source !== 'employer' ? `<span style="font-size: 0.7rem; text-transform: uppercase; background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); border: 1px solid rgba(99, 102, 241, 0.25); padding: 1px 6px; border-radius: 4px; font-weight: 700; letter-spacing: 0.05em;">${job.source}</span>` : ''}
+              </div>
               <div class="job-item-meta">
                 <span>📍 ${job.location}</span>
                 <span>💰 ${job.salary.split(' / ')[0]}</span>

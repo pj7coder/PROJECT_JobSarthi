@@ -1772,13 +1772,13 @@ initDB().then(async () => {
     .then(stats => console.log("[Background JobCollector] Initial boot round-robin sync completed:", stats))
     .catch(err => console.error("[Background JobCollector] Initial boot round-robin sync failed:", err));
 
-  // Run scheduler every 1 hour (3600000ms)
+  // Run scheduler every 10 minutes (600000ms)
   setInterval(() => {
-    console.log("[Background JobCollector] Scheduled hourly round-robin sync started...");
+    console.log("[Background JobCollector] Scheduled 10m round-robin sync started...");
     syncNextCompany()
-      .then(stats => console.log("[Background JobCollector] Scheduled hourly sync completed:", stats))
-      .catch(err => console.error("[Background JobCollector] Scheduled hourly sync failed:", err));
-  }, 1 * 60 * 60 * 1000);
+      .then(stats => console.log("[Background JobCollector] Scheduled 10m sync completed:", stats))
+      .catch(err => console.error("[Background JobCollector] Scheduled 10m sync failed:", err));
+  }, 10 * 60 * 1000);
 
   app.listen(PORT, () => {
     console.log(`JobSarthi server running at http://localhost:${PORT}`);

@@ -306,6 +306,35 @@ function extractSkillsFromText(text) {
   return matched.join(", ");
 }
 
+// Heuristic check to filter jobs suitable for Indian job seekers (either remote, or located in India)
+export function isJobSuitableForIndia(job) {
+  const loc = (job.location || "").toLowerCase();
+  
+  // List of major Indian cities/regions and remote variations
+  const matchesIndia = [
+    "india", "bangalore", "bengaluru", "hyderabad", "pune", "mumbai", "noida", 
+    "gurgaon", "gurugram", "chennai", "delhi", "kolkata", "ahmedabad", "kochi", 
+    "jaipur", "indore", "coimbatore", "remote", "anywhere", "telecommute", "wfh"
+  ];
+  
+  for (const match of matchesIndia) {
+    if (loc.includes(match)) {
+      return true;
+    }
+  }
+
+  // If the job location contains other foreign cities but does not contain remote/india, skip it.
+  const foreignCities = ["london", "new york", "san francisco", "berlin", "paris", "tokyo", "singapore", "sydney", "austin", "seattle", "chicago", "boston", "toronto"];
+  for (const city of foreignCities) {
+    if (loc.includes(city)) {
+      return false; 
+    }
+  }
+  
+  // Default to keeping it if it's general/unspecified
+  return true;
+}
+
 // --- MAIN PIPELINE PIPELINE PIPELINE PIPELINE ---
 export async function runJobCollectionPipeline(targetCompanies) {
   console.log(`[JobCollector] Starting pipeline run for ${targetCompanies.length} companies...`);
@@ -357,6 +386,7 @@ export async function runJobCollectionPipeline(targetCompanies) {
   if (db) {
     // Write to MongoDB
     for (const job of allCollectedJobs) {
+      if (!isJobSuitableForIndia(job)) continue;
       const jobId = generateJobId(job.company, job.title, job.location);
       const query = { id: jobId };
       
@@ -400,6 +430,7 @@ export async function runJobCollectionPipeline(targetCompanies) {
     if (!local.jobs) local.jobs = [];
 
     for (const job of allCollectedJobs) {
+      if (!isJobSuitableForIndia(job)) continue;
       const jobId = generateJobId(job.company, job.title, job.location);
       
       const normalizedJob = {
