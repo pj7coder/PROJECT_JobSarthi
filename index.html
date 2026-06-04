@@ -1088,7 +1088,9 @@
   </div>
 
   <!-- Unified Floating Sarthi AI Pill - clicking scrolls to Sarthi section -->
-  <a id="floatingSarthiBtn" href="#sarthi-scroll-section" class="gemini-pill-border"
+  <a id="floatingSarthiBtn" href="#sarthi-scroll-section"
+    onclick="event.preventDefault(); document.getElementById('sarthi-scroll-section').scrollIntoView({behavior:'smooth', block:'start'});"
+    class="gemini-pill-border"
     style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); text-decoration: none; transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); transform-origin: bottom right;">
     <!-- Shine Overlay -->
     <div class="sarthi-shine-overlay"></div>
