@@ -8,6 +8,10 @@
     if (window.location.protocol === 'file:') {
       return 'http://localhost:3000';
     }
+    // Check if we are running on Vercel or other cloud hosted frontend
+    if (window.location.hostname.includes('vercel') || window.location.hostname.includes('github.io')) {
+      return 'https://project-jobsarthi.onrender.com';
+    }
     return '';
   };
   window.API_BASE_URL = getApiBaseUrl();
