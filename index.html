@@ -1582,11 +1582,10 @@
 
           let nextMode = 'minimized';
           if (cachedMaxScroll > 0) {
-            // Only switch to scrollExpanded once the Sarthi section is actually visible in the viewport
+            // Only switch to scrollExpanded once the Sarthi section has scrolled almost to the top of the viewport
             // cachedSectionTopDoc = absolute top of the section
-            // Section enters viewport when: scrollY + windowHeight >= cachedSectionTopDoc
-            // i.e. scrollY >= cachedSectionTopDoc - cachedWindowHeight
-            const sectionEntersViewport = cachedSectionTopDoc - cachedWindowHeight;
+            // This prevents overlapping with the review section above it.
+            const sectionEntersViewport = cachedSectionTopDoc - 150;
             if (window.scrollY >= sectionEntersViewport && cachedSectionTopDoc > 0) {
               nextMode = 'scrollExpanded';
             }
@@ -1982,8 +1981,8 @@
 
     function checkVisibility() {
       var rect = target.getBoundingClientRect();
-      // Hide the button when the Sarthi panel starts to enter the viewport
-      if (rect.top <= window.innerHeight) {
+      // Hide the button when the Sarthi panel starts to open (at rect.top <= 200)
+      if (rect.top <= 200) {
         btn.style.opacity = '0';
         btn.style.pointerEvents = 'none';
         btn.style.transform = 'scale(0.8)';
