@@ -1788,7 +1788,12 @@
                 if (targetSection) {
                   const headerOffset = targetId === '#hero' ? 0 : 90;
                   const elementPosition = targetSection.getBoundingClientRect().top;
-                  const offsetPosition = targetId === '#hero' ? 0 : (elementPosition + window.scrollY - headerOffset);
+                  let offsetPosition = targetId === '#hero' ? 0 : (elementPosition + window.scrollY - headerOffset);
+
+                  // If target is Sarthi scroll section, scroll a bit deeper so the panel expands and shows the first card
+                  if (targetId === '#sarthi-scroll-section') {
+                    offsetPosition = elementPosition + window.scrollY + 100;
+                  }
 
                   window.scrollTo({
                     top: offsetPosition,
@@ -1927,22 +1932,6 @@
       <!-- Initialize SplitText & VariableProximity for Hero introductory text -->
       <script>
         document.addEventListener('DOMContentLoaded', () => {
-          // Auto-scroll to Sarthi section if redirected from dashboard
-          if (window.location.search.includes('sarthi=open') || window.location.hash === '#sarthi-scroll-section') {
-            setTimeout(() => {
-              const targetSection = document.getElementById('sarthi-scroll-section');
-              if (targetSection) {
-                const headerOffset = 90;
-                const elementPosition = targetSection.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.scrollY - headerOffset;
-                window.scrollTo({
-                  top: offsetPosition,
-                  behavior: 'smooth'
-                });
-              }
-            }, 600);
-          }
-
           const headlineEl = document.getElementById('heroHeadline');
           const subtitleEl = document.getElementById('heroSubtitle');
 
@@ -1996,9 +1985,8 @@
           if (event) event.stopPropagation();
           const targetSection = document.getElementById('sarthi-scroll-section');
           if (targetSection) {
-            const headerOffset = 90;
             const elementPosition = targetSection.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.scrollY - headerOffset;
+            const offsetPosition = elementPosition + window.scrollY + 100;
             window.scrollTo({
               top: offsetPosition,
               behavior: 'smooth'

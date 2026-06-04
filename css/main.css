@@ -1461,16 +1461,33 @@ body.light-theme .mobile-bottom-nav {
     0 0;
 }
 
-/* GlareHover Configuration for Sarthi button */
-#floatingSarthiBtn.glare-hover {
-  --gh-angle: -30deg;
-  --gh-duration: 2000ms;
-  --gh-size: 500%;
-  --gh-rgba: rgba(255, 255, 255, 0.8);
+/* Custom premium shine effect for floating Sarthi button */
+#floatingSarthiBtn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60px;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-25deg);
+  pointer-events: none;
+  transition: transform 0.6s ease;
+  z-index: 10;
+}
+
+#floatingSarthiBtn:hover::after {
+  transform: translateX(350px) skewX(-25deg);
+  transition: transform 0.75s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 /* Disable glare when sarthi pane is open */
-#floatingSarthiBtn.glare-hover.pane-open::after {
+#floatingSarthiBtn.pane-open::after {
   display: none !important;
 }
 
