@@ -1088,7 +1088,9 @@ window.toggleTheme = function () {
 window.logout = function () {
   const keysToRemove = [
     'seeker_logged_in', 'seeker_name', 'seeker_email', 'seeker_avatar_url', 'applied_jobs', 'seeker_notifications',
-    'recruiter_logged_in', 'recruiter_company', 'recruiter_email'
+    'seeker_profile_data', 'seeker_apps_count', 'seeker_interviews_count',
+    'recruiter_logged_in', 'recruiter_company', 'recruiter_email',
+    'recruiter_applicants_list', 'recruiter_jobs_count'
   ];
   keysToRemove.forEach(k => localStorage.removeItem(k));
   try { sessionStorage.clear(); } catch(e) {}

@@ -8,8 +8,13 @@ import { fileURLToPath } from "url";
 import { MongoClient } from "mongodb";
 import { v2 as cloudinary } from "cloudinary";
 import { runJobCollectionPipeline, syncNextCompany } from "./jobCollector.js";
+import dns from "dns";
 
 dotenv.config();
+
+// Override local DNS to prevent connection failure to MongoDB Atlas
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
 
 // Configure Cloudinary
 cloudinary.config({
@@ -657,7 +662,7 @@ const dbService = {
     }
     const local = await readLocalDB();
     if (companyName) {
-      return local.applications.filter(a => a.companyName.toLowerCase() === companyName.toLowerCase());
+      return local.applications.filter(a => a.companyName && a.companyName.toLowerCase() === companyName.toLowerCase());
     }
     return local.applications;
   }
@@ -765,7 +770,7 @@ async function parseDocumentWithGemini(base64Data, mimeType, prompt) {
     }
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
   const payload = {
     contents: [
@@ -1774,8 +1779,11 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Fallback to index.html for undefined frontend routes
+// Fallback to index.html for undefined frontend routes (but NOT for API routes)
 app.get("*", (req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: "API endpoint not found." });
+  }
   res.sendFile(path.join(__dirname, "index.html"));
 });
 

@@ -14,7 +14,8 @@
       // Clear residual session cache to prevent profile photo flashes or data leaks
       const keysToRemove = [
         'seeker_logged_in', 'seeker_name', 'seeker_email', 'seeker_avatar_url', 'applied_jobs', 'seeker_notifications',
-        'recruiter_logged_in', 'recruiter_company', 'recruiter_email'
+        'recruiter_logged_in', 'recruiter_company', 'recruiter_email',
+        'recruiter_applicants_list', 'recruiter_jobs_count'
       ];
       keysToRemove.forEach(k => localStorage.removeItem(k));
       try { sessionStorage.clear(); } catch(e) {}

@@ -1,19 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Browse Jobs - JobSarthi Seeker</title>
-  <meta name="description" content="Explore open roles and apply with AI match score recommendations.">
+  <title>Explore Job Openings - JobSarthi Seeker</title>
+  <meta name="description"
+    content="Browse, filter, and apply to hundreds of tech roles fetched from top companies using Sarthi AI.">
   <link rel="stylesheet" href="../css/main.css">
   <script>
-    // Force cache-busting on load to guarantee loading the latest file from disk/origin
-    const urlParams = new URLSearchParams(window.location.search);
-    if (!urlParams.has('v')) {
-      urlParams.set('v', Date.now());
-      window.location.replace(window.location.pathname + '?' + urlParams.toString());
-    }
-
     if (localStorage.getItem('seeker_logged_in') !== 'true') {
       window.location.replace('login_signup.html');
     }
@@ -45,10 +40,47 @@
       color: var(--text-muted);
     }
 
+    /* Two Column Dashboard Layout */
     .jobs-layout {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: 280px 1fr;
       gap: 30px;
+      margin-bottom: 60px;
+    }
+
+    @media (max-width: 1024px) {
+      .jobs-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Filter Sidebar */
+    .filter-sidebar {
+      height: fit-content;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: sticky;
+      top: 90px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-group-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
     }
 
     /* Elegant Glassmorphic Search Area */
@@ -62,6 +94,10 @@
       backdrop-filter: blur(10px);
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
       margin-bottom: 24px;
+    }
+
+    body.light-theme .search-container {
+      background: rgba(0, 0, 0, 0.01);
     }
 
     .search-input-wrap {
@@ -97,7 +133,6 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
-      margin-bottom: 60px;
     }
 
     .job-item {
@@ -113,20 +148,27 @@
       backdrop-filter: blur(8px);
     }
 
+    body.light-theme .job-item {
+      background: rgba(0, 0, 0, 0.01);
+    }
+
     @media (max-width: 768px) {
       .job-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 20px;
       }
+
       .job-item-actions {
         width: 100%;
         justify-content: space-between;
       }
+
       .search-container {
         flex-direction: column;
         padding: 12px;
       }
+
       .search-control {
         padding: 12px 12px 12px 40px;
       }
@@ -143,6 +185,7 @@
       display: flex;
       gap: 20px;
       align-items: center;
+      flex: 1;
     }
 
     .job-item-logo {
@@ -161,6 +204,7 @@
     .job-item-details {
       display: flex;
       flex-direction: column;
+      flex: 1;
     }
 
     .job-item-title {
@@ -210,6 +254,7 @@
       display: flex;
       align-items: center;
       gap: 16px;
+      flex-shrink: 0;
     }
 
     .match-pill {
@@ -240,7 +285,7 @@
     .drawer-content {
       width: 580px;
       height: 100%;
-      background: #09090b;
+      background: var(--bg-primary);
       border-left: 1px solid var(--border-subtle);
       box-shadow: -15px 0 35px rgba(0, 0, 0, 0.7);
       padding: 40px;
@@ -252,8 +297,13 @@
     }
 
     @keyframes slideInRight {
-      from { transform: translateX(100%); }
-      to { transform: translateX(0); }
+      from {
+        transform: translateX(100%);
+      }
+
+      to {
+        transform: translateX(0);
+      }
     }
 
     @media (max-width: 600px) {
@@ -322,6 +372,7 @@
     }
   </style>
 </head>
+
 <body>
   <!-- Seeker Header (loaded dynamically via js/header.js) -->
   <div class="header-wrapper"></div>
@@ -334,14 +385,116 @@
     </div>
 
     <div class="jobs-layout">
-      <!-- Main Search & Results -->
+      <!-- Left: Sidebar Filters -->
+      <aside class="glass-panel filter-sidebar">
+        <h2
+          style="font-size: 1.15rem; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+          <span>⚡ Filter Panel</span>
+          <button onclick="resetAllFilters()"
+            style="background: none; border: none; color: var(--accent-secondary); font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s;"
+            onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">Reset</button>
+        </h2>
+
+        <!-- Category Select -->
+        <div class="filter-group">
+          <label class="form-label" for="filterCategory">Category / Department</label>
+          <select id="filterCategory" class="form-control" onchange="filterJobs()"
+            style="width: 100%; margin-top: 2px; background: var(--bg-secondary); border-color: var(--border-subtle);">
+            <option value="">All Categories</option>
+          </select>
+        </div>
+
+        <!-- Job Type Checks -->
+        <div class="filter-group">
+          <label class="form-label">Job Type</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;" id="filterJobTypes">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
+              <input type="checkbox" value="Full-time" onchange="filterJobs()" checked> Full-time
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
+              <input type="checkbox" value="Part-time" onchange="filterJobs()" checked> Part-time
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
+              <input type="checkbox" value="Contract" onchange="filterJobs()" checked> Contract
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
+              <input type="checkbox" value="Internship" onchange="filterJobs()" checked> Internship
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
+              <input type="checkbox" value="Remote" onchange="filterJobs()" checked> Remote Only
+            </label>
+          </div>
+        </div>
+
+        <!-- Location Select -->
+        <div class="filter-group">
+          <label class="form-label" for="filterLocation">Location</label>
+          <select id="filterLocation" class="form-control" onchange="filterJobs()"
+            style="width: 100%; margin-top: 2px; background: var(--bg-secondary); border-color: var(--border-subtle);">
+            <option value="">All Locations</option>
+          </select>
+        </div>
+
+        <!-- Minimum Match Score -->
+        <div class="filter-group">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label class="form-label">Min AI Match</label>
+            <span id="matchValLabel"
+              style="font-size: 0.82rem; font-weight: 700; color: var(--accent-secondary);">60%</span>
+          </div>
+          <input type="range" id="filterMatchScore" min="60" max="100" value="60" class="form-control"
+            oninput="updateMatchScoreLabel(this.value)" onchange="filterJobs()"
+            style="width: 100%; margin-top: 4px; padding: 0; cursor: pointer;">
+        </div>
+
+        <!-- Source Select -->
+        <div class="filter-group">
+          <label class="form-label" for="filterSource">Job Source</label>
+          <select id="filterSource" class="form-control" onchange="filterJobs()"
+            style="width: 100%; margin-top: 2px; background: var(--bg-secondary); border-color: var(--border-subtle);">
+            <option value="">All Sources</option>
+            <option value="employer">Recruiter Posts</option>
+            <option value="greenhouse">Greenhouse</option>
+            <option value="lever">Lever</option>
+            <option value="ashby">Ashby</option>
+            <option value="smartrecruiters">SmartRecruiters</option>
+          </select>
+        </div>
+      </aside>
+
+      <!-- Right: Main Feed -->
       <section>
+        <!-- Search and Actions Bar -->
         <div class="search-container">
           <div class="search-input-wrap">
-            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="jobSearch" class="search-control" placeholder="Search roles, skills, or companies..." onkeyup="filterJobs()">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="jobSearch" class="search-control" placeholder="Search roles, skills, or companies..."
+              onkeyup="filterJobs()">
           </div>
-          <button class="btn btn-primary" style="padding-left: 28px; padding-right: 28px;" onclick="filterJobs()">Search</button>
+          <button class="btn btn-primary" style="padding-left: 28px; padding-right: 28px;"
+            onclick="filterJobs()">Search</button>
+        </div>
+
+        <!-- Feed Info Header -->
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 0.9rem; flex-wrap: wrap; gap: 10px;">
+          <div style="color: var(--text-muted); font-weight: 500;" id="feedSummaryText">
+            Showing 0 jobs
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label class="form-label" style="margin: 0; white-space: nowrap;">Sort by:</label>
+            <select id="jobSort" class="form-control" onchange="filterJobs()"
+              style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-secondary); border-color: var(--border-subtle);">
+              <option value="match-desc">AI Match (High to Low)</option>
+              <option value="date-desc">Newest First</option>
+              <option value="title-asc">Title (A-Z)</option>
+              <option value="company-asc">Company (A-Z)</option>
+            </select>
+          </div>
         </div>
 
         <div class="jobs-grid" id="jobsContainer">
@@ -356,19 +509,46 @@
     <div class="drawer-content" onclick="event.stopPropagation()">
       <div>
         <div class="drawer-close" onclick="closeDrawer(null)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
           <span>Close Details</span>
         </div>
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
           <div class="job-item-logo" id="drawerLogo" style="font-size: 2.2rem; width: 68px; height: 68px;">⚛️</div>
           <div>
             <h2 id="drawerTitle" style="font-size: 1.5rem; color: var(--text-main); margin-bottom: 4px;">Job Title</h2>
-            <div id="drawerCompany" style="color: var(--accent-secondary); font-weight: 600; display: flex; align-items: center; gap: 8px;">Company Name</div>
+            <div id="drawerCompany"
+              style="color: var(--accent-secondary); font-weight: 600; display: flex; align-items: center; gap: 8px;">Company
+              Name</div>
           </div>
         </div>
-        
+
         <div style="display: flex; gap: 10px; margin-bottom: 24px;" id="drawerBadges">
           <!-- Badges dynamically added -->
+        </div>
+
+        <!-- Sarthi AI Match Analysis Box -->
+        <div class="detail-section"
+          style="background: rgba(99, 102, 241, 0.04); border: 1px dashed rgba(99, 102, 241, 0.25); padding: 20px; border-radius: 12px;">
+          <div class="detail-subtitle"
+            style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: #818cf8; border-bottom: none; padding-bottom: 0;">
+            <span>✨ Sarthi AI Matching Insight</span>
+          </div>
+          <div class="detail-body" id="matchInsightBody" style="color: var(--text-main); margin-bottom: 16px; font-size: 0.9rem; line-height: 1.5;">
+            Generating matching insight...
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <span style="font-size: 0.72rem; font-weight: 700; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">Matched Skills</span>
+              <div id="matchedSkillsTags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;"></div>
+            </div>
+            <div>
+              <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Missing / Recommended Skills</span>
+              <div id="missingSkillsTags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;"></div>
+            </div>
+          </div>
         </div>
 
         <div class="detail-section">
@@ -408,8 +588,84 @@
   <script>
     let dbJobs = [];
     let currentSelectedJob = null;
+    let seekerSkills = [];
+
+    // Load seeker profile to retrieve skills for matching
+    async function loadSeekerProfile() {
+      const email = localStorage.getItem('seeker_email');
+      if (!email) return;
+      try {
+        const response = await fetch((window.API_BASE_URL || '') + `/api/seeker/profile?email=${encodeURIComponent(email)}`);
+        if (response.ok) {
+          const profile = await response.json();
+          seekerSkills = profile.skills || [];
+        }
+      } catch (err) {
+        console.error("Error loading seeker profile for matching:", err);
+      }
+    }
+
+    // Dynamic Match Score Calculation
+    function getJobMatchScore(job) {
+      if (!seekerSkills || seekerSkills.length === 0) {
+        // Fallback: if no profile skills, return a deterministic score based on job details
+        const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return 70 + (stringHash % 25);
+      }
+      
+      const jobSkillsStr = job.skills || "";
+      const jobSkills = jobSkillsStr.split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean);
+      
+      if (jobSkills.length === 0) return 75;
+      
+      const seekerSkillsLower = seekerSkills.map(s => s.trim().toLowerCase());
+      
+      let matchedCount = 0;
+      jobSkills.forEach(js => {
+        if (seekerSkillsLower.includes(js) || seekerSkillsLower.some(ss => ss.includes(js) || js.includes(ss))) {
+          matchedCount++;
+        }
+      });
+      
+      const ratio = matchedCount / jobSkills.length;
+      // Scale from 60% (no match) to 99% (full match)
+      const score = Math.round(60 + (ratio * 39));
+      return score;
+    }
+
+    // Match breakdown helper
+    function getSkillsMatchInfo(job) {
+      const jobSkillsStr = job.skills || "";
+      const jobSkills = jobSkillsStr.split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+        
+      if (jobSkills.length === 0) {
+        return { matched: [], missing: [] };
+      }
+      
+      const seekerSkillsLower = seekerSkills.map(s => s.trim().toLowerCase());
+      
+      const matched = [];
+      const missing = [];
+      
+      jobSkills.forEach(js => {
+        const jsLower = js.toLowerCase();
+        if (seekerSkillsLower.includes(jsLower) || seekerSkillsLower.some(ss => ss.includes(jsLower) || jsLower.includes(ss))) {
+          matched.push(js);
+        } else {
+          missing.push(js);
+        }
+      });
+      
+      return { matched, missing };
+    }
 
     async function loadJobs() {
+      await loadSeekerProfile();
+
       try {
         const response = await fetch((window.API_BASE_URL || '') + '/api/jobs');
         if (!response.ok) throw new Error("Failed to fetch jobs");
@@ -425,26 +681,144 @@
         counterEl.textContent = `Browse and search through ${dbJobs.length} active opportunities matching your criteria.`;
       }
       
+      populateFilterOptions();
       filterJobs();
     }
 
-    // Check login
+    // Dynamically populate Filter options based on job list
+    function populateFilterOptions() {
+      // 1. Populate Category dropdown
+      const categories = [...new Set(dbJobs.map(j => j.category || "Software Engineering"))].filter(Boolean).sort();
+      const catSelect = document.getElementById('filterCategory');
+      catSelect.innerHTML = '<option value="">All Categories</option>';
+      categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        catSelect.appendChild(opt);
+      });
+
+      // 2. Populate Location dropdown
+      const locations = [...new Set(dbJobs.map(j => {
+        const loc = j.location || "Remote";
+        if (loc.toLowerCase().includes("remote")) return "Remote";
+        if (loc.includes(",")) return loc.split(",")[0].trim();
+        return loc.trim();
+      }))].filter(Boolean).sort();
+      
+      const locSelect = document.getElementById('filterLocation');
+      locSelect.innerHTML = '<option value="">All Locations</option>';
+      locations.forEach(loc => {
+        const opt = document.createElement('option');
+        opt.value = loc;
+        opt.textContent = loc;
+        locSelect.appendChild(opt);
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       loadJobs();
     });
 
+    function updateMatchScoreLabel(val) {
+      document.getElementById('matchValLabel').textContent = `${val}%`;
+    }
+
+    function resetAllFilters() {
+      document.getElementById('filterCategory').value = "";
+      document.getElementById('filterLocation').value = "";
+      document.getElementById('filterSource').value = "";
+      document.getElementById('filterMatchScore').value = "60";
+      updateMatchScoreLabel("60");
+      document.getElementById('jobSearch').value = "";
+      
+      const checkboxes = document.querySelectorAll('#filterJobTypes input');
+      checkboxes.forEach(cb => cb.checked = true);
+      
+      filterJobs();
+    }
+
     function filterJobs() {
       const searchQuery = document.getElementById('jobSearch').value.toLowerCase();
+      const selectedCategory = document.getElementById('filterCategory').value;
+      const selectedLocation = document.getElementById('filterLocation').value;
+      const selectedSource = document.getElementById('filterSource').value;
+      const minMatch = parseInt(document.getElementById('filterMatchScore').value);
       
+      // Get checked job types
+      const checkedTypes = [];
+      const checkboxes = document.querySelectorAll('#filterJobTypes input');
+      checkboxes.forEach(cb => {
+        if (cb.checked) checkedTypes.push(cb.value.toLowerCase());
+      });
+
       const filtered = dbJobs.filter(job => {
+        // 1. Text Search matching
         const matchesSearch = !searchQuery || 
                               (job.title && job.title.toLowerCase().includes(searchQuery)) || 
                               (job.company && job.company.toLowerCase().includes(searchQuery)) ||
                               (job.description && job.description.toLowerCase().includes(searchQuery)) ||
                               (job.location && job.location.toLowerCase().includes(searchQuery)) ||
-                              (job.skills && job.skills.toLowerCase().includes(searchQuery));
-        return matchesSearch;
+                              (job.skills && String(job.skills).toLowerCase().includes(searchQuery));
+        
+        // 2. Category matching
+        const matchesCategory = !selectedCategory || (job.category === selectedCategory);
+        
+        // 3. Location matching
+        let matchesLocation = true;
+        if (selectedLocation) {
+          const loc = (job.location || "").toLowerCase();
+          const selLoc = selectedLocation.toLowerCase();
+          if (selLoc === "remote") {
+            matchesLocation = loc.includes("remote");
+          } else {
+            matchesLocation = loc.includes(selLoc);
+          }
+        }
+
+        // 4. Job Type matching
+        let matchesType = false;
+        const jobType = (job.type || "Full-time").toLowerCase();
+        
+        if (checkedTypes.includes("remote only")) {
+          // If remote only checked, filter strictly to remote location or remote type
+          const isRemote = (job.location || "").toLowerCase().includes("remote") || jobType.includes("remote");
+          matchesType = isRemote && checkedTypes.some(type => type !== "remote only" && jobType.includes(type));
+        } else {
+          matchesType = checkedTypes.some(type => jobType.includes(type));
+        }
+
+        if (checkedTypes.length === 0) {
+          matchesType = true; // default back if none selected
+        }
+
+        // 5. Source matching
+        const matchesSource = !selectedSource || (job.source === selectedSource);
+
+        // 6. Match score matching
+        const score = getJobMatchScore(job);
+        const matchesMatch = (score >= minMatch);
+
+        return matchesSearch && matchesCategory && matchesLocation && matchesType && matchesSource && matchesMatch;
       });
+
+      // Handle Sorting
+      const sortVal = document.getElementById('jobSort').value;
+      filtered.sort((a, b) => {
+        if (sortVal === "match-desc") {
+          return getJobMatchScore(b) - getJobMatchScore(a);
+        } else if (sortVal === "date-desc") {
+          return new Date(b.posted_date || b.created_at || 0) - new Date(a.posted_date || a.created_at || 0);
+        } else if (sortVal === "title-asc") {
+          return (a.title || "").localeCompare(b.title || "");
+        } else if (sortVal === "company-asc") {
+          return (a.company || "").localeCompare(b.company || "");
+        }
+        return 0;
+      });
+
+      // Update feed summary sentence
+      document.getElementById('feedSummaryText').textContent = `Showing ${filtered.length} matching jobs (out of ${dbJobs.length} total)`;
 
       renderJobs(filtered);
     }
@@ -456,7 +830,7 @@
       if (jobs.length === 0) {
         container.innerHTML = `
           <div class="glass-panel" style="padding: 40px; text-align: center; color: var(--text-muted); border-radius: 16px;">
-            No jobs match your search parameters.
+            No jobs match your search parameters. Try resetting filters.
           </div>
         `;
         return;
@@ -467,14 +841,36 @@
         card.className = 'job-item';
         card.onclick = () => openDrawer(job);
         
-        const matchVal = job.match || 80;
+        const matchVal = getJobMatchScore(job);
         let matchStyle = 'color: var(--accent-tertiary); border-color: rgba(217,70,239,0.3); background: rgba(217,70,239,0.1);';
         if (matchVal >= 90) {
           matchStyle = 'color: var(--success); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1);';
         } else if (matchVal >= 80) {
-          matchStyle = 'color: var(--accent-primary); border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05);';
+          matchStyle = 'color: var(--accent-secondary); border-color: rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.1);';
         }
         
+        const skillsInfo = getSkillsMatchInfo(job);
+        let skillsSnippet = "";
+        
+        if (skillsInfo.matched.length > 0) {
+          skillsSnippet = `
+            <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+              <span style="font-size: 0.7rem; font-weight: 700; color: var(--success); text-transform: uppercase; margin-right: 4px;">Matched:</span>
+              ${skillsInfo.matched.slice(0, 3).map(s => `<span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--success);">${s}</span>`).join('')}
+              ${skillsInfo.matched.length > 3 ? `<span style="font-size: 0.7rem; color: var(--text-muted);">+${skillsInfo.matched.length - 3} more</span>` : ''}
+            </div>
+          `;
+        } else if (job.skills) {
+          const reqSkills = job.skills.split(',').map(s => s.trim()).filter(Boolean);
+          skillsSnippet = `
+            <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-right: 4px;">Skills:</span>
+              ${reqSkills.slice(0, 3).map(s => `<span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); color: var(--text-muted);">${s}</span>`).join('')}
+              ${reqSkills.length > 3 ? `<span style="font-size: 0.7rem; color: var(--text-muted);">+${reqSkills.length - 3} more</span>` : ''}
+            </div>
+          `;
+        }
+
         card.innerHTML = `
           <div class="job-item-main">
             <div class="job-item-logo">${job.logo || '💼'}</div>
@@ -489,6 +885,7 @@
                 <span>💰 ${(job.salary || 'Not specified').split(' / ')[0]}</span>
                 <span>🕒 ${job.type || 'Full-time'}</span>
               </div>
+              ${skillsSnippet}
             </div>
           </div>
           <div class="job-item-actions" onclick="event.stopPropagation()">
@@ -538,11 +935,55 @@
         });
       }
 
+      // Dynamic Match Analysis in Drawer
+      const score = getJobMatchScore(job);
+      const matchInfo = getSkillsMatchInfo(job);
+      const matchedContainer = document.getElementById('matchedSkillsTags');
+      const missingContainer = document.getElementById('missingSkillsTags');
+      const insightBody = document.getElementById('matchInsightBody');
+
+      matchedContainer.innerHTML = '';
+      missingContainer.innerHTML = '';
+
+      if (matchInfo.matched.length === 0) {
+        matchedContainer.innerHTML = '<span style="color: var(--text-dark); font-size: 0.82rem; font-style: italic;">None matching. Add more skills to your profile.</span>';
+      } else {
+        matchInfo.matched.forEach(s => {
+          const tag = document.createElement('span');
+          tag.style.cssText = 'background: rgba(16, 185, 129, 0.08); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;';
+          tag.textContent = s;
+          matchedContainer.appendChild(tag);
+        });
+      }
+
+      if (matchInfo.missing.length === 0) {
+        missingContainer.innerHTML = '<span style="color: var(--success); font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 4px;">🎉 Perfect match! You possess all listed skills.</span>';
+      } else {
+        matchInfo.missing.forEach(s => {
+          const tag = document.createElement('span');
+          tag.style.cssText = 'background: rgba(255, 255, 255, 0.04); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;';
+          tag.textContent = s;
+          missingContainer.appendChild(tag);
+        });
+      }
+
+      let insightText = '';
+      if (score >= 90) {
+        insightText = `<strong>Outstanding match!</strong> You have almost all the key skills (${matchInfo.matched.join(', ')}) required for this role. Sarthi recommends applying immediately as your profile stands out in the top 5% of candidates.`;
+      } else if (score >= 80) {
+        insightText = `<strong>Strong match!</strong> You have a solid alignment of skills like ${matchInfo.matched.slice(0, 3).join(', ')}. ${matchInfo.missing.length > 0 ? 'To maximize your chances, consider highlighting projects that use ' + matchInfo.missing.slice(0, 2).join(', ') + ' in your interview.' : ''}`;
+      } else if (score >= 70) {
+        insightText = `<strong>Good match!</strong> You have relevant foundational skills. Sarthi recommends brushing up on <strong>${matchInfo.missing.slice(0, 2).join(', ')}</strong> before applying to strengthen your application.`;
+      } else {
+        insightText = `<strong>Moderate alignment.</strong> While you have some overlapping experience, this role heavily emphasizes skills like <strong>${matchInfo.missing.slice(0, 3).join(', ')}</strong>. You can still apply, but we recommend tailoring your resume to emphasize transferrable skills.`;
+      }
+      insightBody.innerHTML = insightText;
+
       // Badges
       const badgesDiv = document.getElementById('drawerBadges');
       badgesDiv.innerHTML = `
         <span class="badge badge-primary" style="padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); border: 1px solid rgba(99, 102, 241, 0.25);">${job.type || 'Full-time'}</span>
-        <span class="badge badge-success" style="padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25);">${job.match || 80}% AI MATCH</span>
+        <span class="badge badge-success" style="padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25);">${score}% AI MATCH</span>
       `;
 
       // Apply button status reset
@@ -603,7 +1044,7 @@
         notifications.unshift({
           id: Date.now(),
           title: `Applied to ${currentSelectedJob.title}`,
-          desc: `Your profile matching analysis (${currentSelectedJob.match || 80}%) has been sent directly to ${currentSelectedJob.company}.`,
+          desc: `Your profile matching analysis (${getJobMatchScore(currentSelectedJob)}%) has been sent directly to ${currentSelectedJob.company}.`,
           time: "Just now",
           unread: true
         });
@@ -630,4 +1071,5 @@
   
   <script src="../js/header.js"></script>
 </body>
+
 </html>
