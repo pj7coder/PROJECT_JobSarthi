@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const welcomeName = document.getElementById('welcomeName');
       if (sidebarAvatar) sidebarAvatar.textContent = initial;
       if (sidebarName) sidebarName.textContent = userName;
-      if (welcomeName) welcomeName.textContent = userName;
+      if (welcomeName) welcomeName.textContent = userName ? userName.split(' ')[0] : 'Candidate';
 
       // Customize logout button if not logged in
       if (!isLoggedIn) {
