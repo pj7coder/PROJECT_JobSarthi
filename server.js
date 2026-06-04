@@ -112,6 +112,14 @@ async function initDB() {
       await client.connect();
       mongoDb = client.db("jobsarthi");
       console.log("Connected to MongoDB Atlas!");
+      
+      // Permanently remove the 2 sample jobs if they exist in MongoDB
+      await mongoDb.collection("jobs").deleteMany({
+        $or: [
+          { company: "PixelPerfect Labs" },
+          { company: "InnovateTech", title: /frontend/i }
+        ]
+      });
 
       // Auto-seed database from db.json if both users and jobs collections are empty
       const userCount = await mongoDb.collection("users").countDocuments();
@@ -601,12 +609,19 @@ const dbService = {
     return user;
   },
   getJobs: async () => {
+    let jobs = [];
     if (mongoDb) {
       // Sort jobs so that newly created jobs are listed first
-      return await mongoDb.collection("jobs").find({}).sort({ _id: -1 }).toArray();
+      jobs = await mongoDb.collection("jobs").find({}).sort({ _id: -1 }).toArray();
+    } else {
+      const local = await readLocalDB();
+      jobs = local.jobs || [];
     }
-    const local = await readLocalDB();
-    return local.jobs;
+    // Remove sample jobs from PixelPerfect Labs and InnovateTech
+    return jobs.filter(j => 
+      !(j.company === "PixelPerfect Labs" && j.title.toLowerCase().includes("product designer")) &&
+      !(j.company === "InnovateTech" && j.title.toLowerCase().includes("frontend"))
+    );
   },
   findJobById: async (id) => {
     if (mongoDb) {
