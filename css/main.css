@@ -1464,34 +1464,7 @@ body.light-theme .mobile-bottom-nav {
     0 0;
 }
 
-/* Custom premium shine effect for floating Sarthi button */
-#floatingSarthiBtn .sarthi-shine-overlay {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 60px;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.45) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: skewX(-25deg) translateZ(0);
-  pointer-events: none;
-  transition: transform 0.6s ease;
-  z-index: 2;
-}
 
-#floatingSarthiBtn:hover .sarthi-shine-overlay {
-  transform: translateX(350px) skewX(-25deg) translateZ(0);
-  transition: transform 0.75s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-/* Disable glare when sarthi pane is open */
-#floatingSarthiBtn.pane-open .sarthi-shine-overlay {
-  display: none !important;
-}
 
 /* Splash Cursor Canvas */
 #fluid {
@@ -1515,26 +1488,7 @@ body.light-theme .mobile-bottom-nav {
   z-index: 2001 !important;
 }
 
-#floatingSarthiBtn {
-  z-index: 1000 !important;
-  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-              height 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-              border-radius 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-              background-color 0.3s ease, 
-              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-              opacity 0.25s ease !important;
-  will-change: transform, opacity;
-}
 
-#floatingSarthiBtn.pane-open {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  background: rgba(13, 13, 16, 0.98) !important;
-}
-
-.light-theme #floatingSarthiBtn.pane-open {
-  background: rgba(255, 255, 255, 0.98) !important;
-}
 
 /* --- Global Settings Modal (Neutral Theme) --- */
 .settings-modal-overlay {

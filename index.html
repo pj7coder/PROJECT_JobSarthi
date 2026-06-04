@@ -1088,57 +1088,23 @@
   </div>
 
   <!-- Floating Sarthi Pill: click scrolls to Sarthi panel -->
+  <a id="floatingSarthiBtn" href="#sarthi-scroll-section"
+    onclick="event.preventDefault(); event.stopPropagation(); var target = document.getElementById('sarthi-scroll-section'); if (target) { window.scrollTo({top: target.getBoundingClientRect().top + window.scrollY + 100, behavior: 'smooth'}); }"
+    class="gemini-pill-border"
+    style="position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: rgba(15, 15, 20, 0.8) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; color: #ffffff !important; box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important; cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans), sans-serif; text-decoration: none; transition: opacity 0.4s ease, transform 0.4s ease; transform-origin: bottom right;">
+    <div style="position: absolute; top: 0; left: -100%; width: 60px; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 100%); transform: skewX(-25deg); pointer-events: none; transition: transform 0.6s ease; z-index: 2;" class="sarthi-btn-shine"></div>
+    <span style="font-weight: 600; font-size: 0.95rem; letter-spacing: 0.5px; z-index: 4; pointer-events: none;">Sarthi</span>
+  </a>
+
   <style>
-    #floatingSarthiBtn {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 140px;
-      height: 54px;
-      border-radius: 27px;
-      background: rgba(15, 15, 20, 0.8) !important;
-      backdrop-filter: blur(12px) !important;
-      -webkit-backdrop-filter: blur(12px) !important;
-      color: #ffffff !important;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
-      cursor: pointer;
-      overflow: hidden;
-      box-sizing: border-box;
-      font-family: var(--font-sans), sans-serif;
-      text-decoration: none;
-      transition: opacity 0.4s ease, transform 0.4s ease !important;
-      transform-origin: bottom right;
+    #floatingSarthiBtn:hover .sarthi-btn-shine {
+      transform: translateX(350px) skewX(-25deg) !important;
+      transition: transform 0.75s cubic-bezier(0.25, 1, 0.5, 1) !important;
     }
     #floatingSarthiBtn:hover {
       transform: scale(1.05) !important;
     }
-    #floatingSarthiBtn .sarthi-btn-shine {
-      position: absolute;
-      top: 0;
-      left: -150%;
-      width: 80px;
-      height: 100%;
-      background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-      transform: skewX(-20deg);
-      pointer-events: none;
-      transition: left 0.6s ease;
-      z-index: 3;
-    }
-    #floatingSarthiBtn:hover .sarthi-btn-shine {
-      left: 150% !important;
-    }
   </style>
-
-  <a id="floatingSarthiBtn" href="#sarthi-scroll-section"
-    onclick="event.preventDefault(); event.stopPropagation(); var target = document.getElementById('sarthi-scroll-section'); if (target) { window.scrollTo({top: target.getBoundingClientRect().top + window.scrollY + 100, behavior: 'smooth'}); }"
-    class="gemini-pill-border">
-    <div class="sarthi-btn-shine"></div>
-    <span style="font-weight: 600; font-size: 0.95rem; letter-spacing: 0.5px; z-index: 4; pointer-events: none;">Sarthi</span>
-  </a>
 
   <!-- Click Expanded Content (4 Vertical Cards) - Separate Sibling -->
   <div id="clickExpandedContent" class="gemini-pill-border"
@@ -2008,36 +1974,33 @@
 </body>
 
 <script>
-  // ─── Floating Sarthi Button: show across whole page, hide when Sarthi panel visible ───
+  // ─── Floating Sarthi Button Visibility Controller ───
   (function() {
-    var btn    = document.getElementById('floatingSarthiBtn');
+    var btn = document.getElementById('floatingSarthiBtn');
     var target = document.getElementById('sarthi-scroll-section');
     if (!btn || !target) return;
 
-    // Start visible
-    btn.style.opacity      = '1';
-    btn.style.transform    = 'scale(1)';
-    btn.style.pointerEvents = 'auto';
-    btn.style.transition   = 'opacity 0.4s ease, transform 0.4s ease';
+    function checkVisibility() {
+      var rect = target.getBoundingClientRect();
+      // Hide the button when the Sarthi panel starts to enter the viewport
+      if (rect.top <= window.innerHeight) {
+        btn.style.opacity = '0';
+        btn.style.pointerEvents = 'none';
+        btn.style.transform = 'scale(0.8)';
+      } else {
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        btn.style.transform = 'scale(1)';
+      }
+    }
 
-    // IntersectionObserver fires when sarthi-scroll-section enters/leaves viewport
-    var observer = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
-        if (entry.isIntersecting) {
-          // Sarthi panel is visible → hide the button
-          btn.style.opacity       = '0';
-          btn.style.transform     = 'scale(0.8)';
-          btn.style.pointerEvents = 'none';
-        } else {
-          // Sarthi panel not visible → show the button
-          btn.style.opacity       = '1';
-          btn.style.transform     = 'scale(1)';
-          btn.style.pointerEvents = 'auto';
-        }
-      });
-    }, { threshold: 0.05 }); // triggers when just 5% of the section is visible
-
-    observer.observe(target);
+    window.addEventListener('scroll', checkVisibility, { passive: true });
+    window.addEventListener('resize', checkVisibility, { passive: true });
+    checkVisibility();
+    
+    // Fallback checks for settle/delayed layouts
+    setTimeout(checkVisibility, 200);
+    setTimeout(checkVisibility, 500);
   })();
 </script>
 
