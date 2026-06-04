@@ -20,7 +20,7 @@
   <style>
     .jobs-layout {
       display: grid;
-      grid-template-columns: 280px 1fr;
+      grid-template-columns: 1fr;
       gap: 30px;
       margin-top: 30px;
     }
@@ -293,8 +293,8 @@
   <!-- Container -->
   <main class="container">
     <div class="jobs-layout">
-      <!-- Sidebar Filters -->
-      <aside class="glass-panel filter-sidebar">
+      <!-- Sidebar Filters (Hidden for now to show all jobs) -->
+      <aside class="glass-panel filter-sidebar" style="display: none;">
         <div class="filter-section">
           <h3 class="filter-title">Job Category</h3>
           <div class="checkbox-group">
@@ -440,24 +440,14 @@
 
     function filterJobs() {
       const searchQuery = document.getElementById('jobSearch').value.toLowerCase();
-      const sliderVal = parseInt(document.getElementById('matchSlider').value);
       
-      const selectedCategories = Array.from(document.querySelectorAll('.filter-category:checked')).map(cb => cb.value);
-      const selectedTypes = Array.from(document.querySelectorAll('.filter-type:checked')).map(cb => cb.value);
-
       const filtered = dbJobs.filter(job => {
-        const matchesSearch = job.title.toLowerCase().includes(searchQuery) || 
+        const matchesSearch = !searchQuery || 
+                              job.title.toLowerCase().includes(searchQuery) || 
                               job.company.toLowerCase().includes(searchQuery) ||
-                              job.description.toLowerCase().includes(searchQuery);
-        
-        const matchesCategory = selectedCategories.includes(job.category);
-        
-        // Match type (Handling 'Remote' specifically since it can overlap with location or custom tags)
-        const matchesType = selectedTypes.includes(job.type) || (selectedTypes.includes('Remote') && job.location.toLowerCase().includes('remote'));
-        
-        const matchesMatchScore = job.match >= sliderVal;
-
-        return matchesSearch && matchesCategory && matchesType && matchesMatchScore;
+                              (job.description && job.description.toLowerCase().includes(searchQuery)) ||
+                              (job.location && job.location.toLowerCase().includes(searchQuery));
+        return matchesSearch;
       });
 
       renderJobs(filtered);
