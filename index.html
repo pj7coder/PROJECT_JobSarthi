@@ -1594,16 +1594,13 @@
 
           let nextMode = 'minimized';
           if (cachedMaxScroll > 0) {
-            const start = cachedSectionTopDoc - cachedWindowHeight + 200;
-            const end = cachedMaxScroll - 30;
-
-            if (end > start) {
-              const totalScrollDistance = end - start;
-              const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
-
-              if (scrollOffset > 0) {
-                nextMode = 'scrollExpanded';
-              }
+            // Only switch to scrollExpanded once the Sarthi section is actually visible in the viewport
+            // cachedSectionTopDoc = absolute top of the section
+            // Section enters viewport when: scrollY + windowHeight >= cachedSectionTopDoc
+            // i.e. scrollY >= cachedSectionTopDoc - cachedWindowHeight
+            const sectionEntersViewport = cachedSectionTopDoc - cachedWindowHeight;
+            if (window.scrollY >= sectionEntersViewport && cachedSectionTopDoc > 0) {
+              nextMode = 'scrollExpanded';
             }
           }
 
