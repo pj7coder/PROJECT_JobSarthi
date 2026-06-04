@@ -438,31 +438,230 @@
   <script>
     let seekerSkills = [];
 
+    const indianStates = [
+      "andhra pradesh", "arunachal pradesh", "assam", "bihar", "chhattisgarh", "goa", "gujarat", "haryana", 
+      "himachal pradesh", "jharkhand", "karnataka", "kerala", "madhya pradesh", "maharashtra", "manipur", 
+      "meghalaya", "mizoram", "nagaland", "odisha", "punjab", "rajasthan", "sikkim", "tamil nadu", 
+      "telangana", "tripura", "uttar pradesh", "uttarakhand", "west bengal", "delhi", "chandigarh"
+    ];
+
+    const indianCities = [
+      "mumbai", "pune", "nagpur", "thane", "nashik", "aurangabad", "navi mumbai",
+      "bangalore", "bengaluru", "mysore", "hubli", "mangalore",
+      "chennai", "coimbatore", "madurai", "salem", "trichy",
+      "hyderabad", "warangal", "secunderabad",
+      "delhi", "new delhi", "noida", "gurgaon", "gurugram", "ghaziabad", "faridabad",
+      "kolkata", "howrah", "durgapur", "siliguri",
+      "ahmedabad", "surat", "vadodara", "rajkot",
+      "jaipur", "jodhpur", "udaipur", "kota",
+      "lucknow", "kanpur", "agra", "varanasi", "noida",
+      "patna", "gaya",
+      "bhopal", "indore", "gwalior",
+      "chandigarh", "ludhiana", "amritsar",
+      "kochi", "trivandrum", "kozhikode",
+      "bhubaneswar", "cuttack",
+      "guwahati",
+      "dehradun"
+    ];
+
+    function extractYearsOfExperience(expStr) {
+      if (!expStr) return 0;
+      const match = expStr.match(/(\d+)\s*(year|yr)/i);
+      if (match) return parseInt(match[1]);
+      const numMatch = expStr.match(/\b(\d+)\b/);
+      if (numMatch) return parseInt(numMatch[1]);
+      return 0;
+    }
+
+    function getJobRequiredExperience(job) {
+      const textToSearch = `${job.title} ${job.description || ''} ${(job.reqs || []).join(' ')}`.toLowerCase();
+      const match = textToSearch.match(/(\d+)\s*(?:-|to|\+)?\s*(?:\d+)?\s*years?\s*(?:of\s*)?experience/i);
+      if (match) {
+        return parseInt(match[1]);
+      }
+      if (job.title.toLowerCase().includes("senior") || job.title.toLowerCase().includes("lead") || job.title.toLowerCase().includes("principal")) {
+        return 5;
+      }
+      if (job.title.toLowerCase().includes("junior") || job.title.toLowerCase().includes("entry") || job.title.toLowerCase().includes("associate")) {
+        return 1;
+      }
+      return 2; 
+    }
+
+    function parseSalaryLPA(salaryStr) {
+      if (!salaryStr) return 0;
+      const match = salaryStr.match(/(\d+)\s*(LPA|lakh)/i);
+      if (match) return parseInt(match[1]);
+      const numMatch = salaryStr.match(/\b(\d+)\b/);
+      if (numMatch) return parseInt(numMatch[1]);
+      return 0;
+    }
+
     function getJobMatchScore(job) {
-      if (!seekerSkills || seekerSkills.length === 0) {
+      if (!seekerProfile) {
         const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
         return 70 + (stringHash % 25);
       }
+
+      let userSkills = [];
+      if (Array.isArray(seekerProfile.skills)) {
+        userSkills = seekerProfile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+      } else if (typeof seekerProfile.skills === 'string') {
+        userSkills = seekerProfile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      }
+
+      let preferredLocs = [];
+      if (Array.isArray(seekerProfile.preferredLocations)) {
+        preferredLocs = seekerProfile.preferredLocations.map(s => s.trim().toLowerCase()).filter(Boolean);
+      } else if (typeof seekerProfile.preferredLocations === 'string') {
+        preferredLocs = seekerProfile.preferredLocations.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      }
       
-      const jobSkillsStr = job.skills || "";
-      const jobSkills = jobSkillsStr.split(',')
-        .map(s => s.trim().toLowerCase())
-        .filter(Boolean);
+      const userExp = extractYearsOfExperience(seekerProfile.experience);
+      const jobExp = getJobRequiredExperience(job);
+
+      // STEP 1: HARD FILTERS
+      if (jobExp > userExp + 3) return null; 
+
+      const jobSkills = (job.skills || "").split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      if (jobSkills.length > 0 && userSkills.length > 0) {
+        const hasAnySkill = jobSkills.some(js => userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us)));
+        if (!hasAnySkill) return null; 
+      }
+
+      const isJobRemote = job.location.toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
+      const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => job.location.toLowerCase().includes(loc) || loc.includes(job.location.toLowerCase()));
+      if (!isJobRemote && !isLocationMatch) {
+        return null; 
+      }
+
+      let location_score = 0;
+      let skill_score = 0;
+      let role_score = 0;
+      let experience_score = 0;
+      let work_mode_score = 0;
+      let salary_score = 0;
+
+      // STEP 2: LOCATION SCORING
+      const jobLocLower = job.location.toLowerCase();
+      const hasCity = preferredLocs.some(loc => indianCities.includes(loc) && jobLocLower.includes(loc));
+      const hasState = preferredLocs.some(loc => indianStates.includes(loc) && jobLocLower.includes(loc));
       
-      if (jobSkills.length === 0) return 75;
+      let inIndia = jobLocLower.includes("india");
+      if (!inIndia) {
+        inIndia = indianStates.some(s => jobLocLower.includes(s)) || indianCities.some(c => jobLocLower.includes(c));
+      }
+
+      if (hasCity) {
+        location_score = 30;
+      } else if (hasState) {
+        location_score = 25;
+      } else if (inIndia) {
+        if (isJobRemote) {
+          location_score = 35;
+        } else {
+          location_score = 20;
+        }
+      } else if (isJobRemote) {
+        location_score = 40;
+      } else {
+        location_score = -50;
+      }
+
+      const requiresRelocation = !isJobRemote && !hasCity && !hasState;
+      if (requiresRelocation && inIndia) {
+        location_score += 10;
+      }
+
+      // STEP 3: SKILL MATCH SCORING
+      if (jobSkills.length > 0 && userSkills.length > 0) {
+        let matchCount = 0;
+        jobSkills.forEach(js => {
+          if (userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us))) {
+            matchCount++;
+          }
+        });
+        const skillMatchRatio = matchCount / jobSkills.length;
+        if (skillMatchRatio >= 0.9) skill_score = 40;
+        else if (skillMatchRatio >= 0.7) skill_score = 30;
+        else if (skillMatchRatio >= 0.5) skill_score = 20;
+        else if (skillMatchRatio >= 0.3) skill_score = 10;
+        else skill_score = 0;
+      } else {
+        skill_score = 20;
+      }
+
+      // STEP 4: ROLE MATCH
+      const jobTitleLower = job.title.toLowerCase();
+      const userDegreeLower = (seekerProfile.degree || "").toLowerCase();
+      const expSummaryLower = (seekerProfile.experience || "").toLowerCase();
       
-      const seekerSkillsLower = seekerSkills.map(s => s.trim().toLowerCase());
+      let exactRole = false;
+      let relatedRole = false;
+      let sameDomain = false;
       
-      let matchedCount = 0;
-      jobSkills.forEach(js => {
-        if (seekerSkillsLower.includes(js) || seekerSkillsLower.some(ss => ss.includes(js) || js.includes(ss))) {
-          matchedCount++;
+      const rolesList = ["software engineer", "developer", "machine learning", "frontend", "backend", "fullstack", "designer", "data scientist", "analyst", "product manager"];
+      rolesList.forEach(r => {
+        if (jobTitleLower.includes(r)) {
+          if (userDegreeLower.includes(r) || expSummaryLower.includes(r)) {
+            exactRole = true;
+          } else {
+            relatedRole = true;
+          }
+          sameDomain = true;
         }
       });
       
-      const ratio = matchedCount / jobSkills.length;
-      const score = Math.round(60 + (ratio * 39));
-      return score;
+      if (exactRole) role_score = 30;
+      else if (relatedRole) role_score = 20;
+      else if (sameDomain) role_score = 10;
+      else role_score = 10;
+
+      // STEP 5: EXPERIENCE MATCH
+      const diff = userExp - jobExp;
+      if (diff === 0) {
+        experience_score = 20;
+      } else if (Math.abs(diff) <= 2) {
+        experience_score = 15;
+      } else if (Math.abs(diff) <= 3) {
+        experience_score = 10;
+      } else {
+        experience_score = 5;
+      }
+
+      // STEP 6: WORK MODE MATCH
+      const isUserRemotePreferred = preferredLocs.includes("remote");
+      if (isUserRemotePreferred && isJobRemote) {
+        work_mode_score = 15;
+      } else if (!isUserRemotePreferred && !isJobRemote) {
+        work_mode_score = 15;
+      } else {
+        work_mode_score = 0;
+      }
+
+      // STEP 7: SALARY MATCH
+      const userSalary = parseSalaryLPA(seekerProfile.expectedCtc);
+      const jobSalary = parseSalaryLPA(job.salary);
+      if (userSalary === 0 || jobSalary === 0) {
+        salary_score = 15;
+      } else if (jobSalary === userSalary) {
+        salary_score = 15;
+      } else if (jobSalary > userSalary) {
+        salary_score = 20;
+      } else {
+        salary_score = 5;
+      }
+
+      return location_score + skill_score + role_score + experience_score + work_mode_score + salary_score;
+    }
+
+    function getMatchClassification(score) {
+      if (score === null || score === undefined) return "Low Match";
+      if (score >= 90) return "Excellent Match";
+      if (score >= 75) return "Strong Match";
+      if (score >= 60) return "Good Match";
+      if (score >= 40) return "Moderate Match";
+      return "Low Match";
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -471,6 +670,7 @@
 
     function renderProfile(profile) {
       if (!profile) return;
+      seekerProfile = profile;
       seekerSkills = profile.skills || [];
       
       // Set title
@@ -571,7 +771,8 @@
                 ...job,
                 matchScore: getJobMatchScore(job)
               };
-            });
+            }).filter(job => job.matchScore !== null);
+            
             scored.sort((a, b) => b.matchScore - a.matchScore);
 
             // Display top 3 matching jobs
@@ -591,8 +792,8 @@
                   </div>
                 </div>
                 <div class="job-card-actions">
-                  <span class="match-score">${job.matchScore}% Match</span>
-                  <a href="jobs.html" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">Details</a>
+                  <span class="match-score" style="font-size: 0.78rem; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(6, 182, 212, 0.1); color: var(--accent-secondary); border: 1px solid rgba(6, 182, 212, 0.2);">${getMatchClassification(job.matchScore)} (${job.matchScore} Pts)</span>
+                  <a href="jobs.html?id=${job.id}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">Details</a>
                   <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Apply</a>
                 </div>
               `;

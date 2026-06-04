@@ -271,23 +271,24 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(12px);
-      z-index: 1000;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(16px);
+      z-index: 99999;
       display: none;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      pointer-events: auto;
     }
 
     .drawer-content {
-      width: 650px;
-      max-width: 100%;
-      max-height: 85vh;
+      width: 900px;
+      max-width: 95%;
+      max-height: 90vh;
       background: var(--bg-surface);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
       padding: 35px;
       display: flex;
       flex-direction: column;
@@ -522,8 +523,11 @@
         </div>
 
         <div class="detail-section">
-          <div class="detail-subtitle">About the Role</div>
-          <div class="detail-body" id="drawerDesc">
+          <div class="detail-subtitle" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>About the Role</span>
+            <button id="descToggleBtn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; display: none;" onclick="toggleDescription()">Read More</button>
+          </div>
+          <div class="detail-body" id="drawerDesc" style="max-height: 250px; overflow-y: auto; line-height: 1.6; padding-right: 8px;">
             Job description goes here.
           </div>
         </div>
@@ -559,6 +563,7 @@
     let dbJobs = [];
     let currentSelectedJob = null;
     let seekerSkills = [];
+    let seekerProfile = null;
 
     const indianStates = [
       "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
@@ -622,6 +627,7 @@
         const response = await fetch((window.API_BASE_URL || '') + `/api/seeker/profile?email=${encodeURIComponent(email)}`);
         if (response.ok) {
           const profile = await response.json();
+          seekerProfile = profile;
           seekerSkills = profile.skills || [];
         }
       } catch (err) {
@@ -629,34 +635,196 @@
       }
     }
 
-    // Dynamic Match Score Calculation
+    function extractYearsOfExperience(expStr) {
+      if (!expStr) return 0;
+      const match = expStr.match(/(\d+)\s*(year|yr)/i);
+      if (match) return parseInt(match[1]);
+      const numMatch = expStr.match(/\b(\d+)\b/);
+      if (numMatch) return parseInt(numMatch[1]);
+      return 0;
+    }
+
+    function getJobRequiredExperience(job) {
+      const textToSearch = `${job.title} ${job.description || ''} ${(job.reqs || []).join(' ')}`.toLowerCase();
+      const match = textToSearch.match(/(\d+)\s*(?:-|to|\+)?\s*(?:\d+)?\s*years?\s*(?:of\s*)?experience/i);
+      if (match) {
+        return parseInt(match[1]);
+      }
+      if (job.title.toLowerCase().includes("senior") || job.title.toLowerCase().includes("lead") || job.title.toLowerCase().includes("principal")) {
+        return 5;
+      }
+      if (job.title.toLowerCase().includes("junior") || job.title.toLowerCase().includes("entry") || job.title.toLowerCase().includes("associate")) {
+        return 1;
+      }
+      return 2; 
+    }
+
+    function parseSalaryLPA(salaryStr) {
+      if (!salaryStr) return 0;
+      const match = salaryStr.match(/(\d+)\s*(LPA|lakh)/i);
+      if (match) return parseInt(match[1]);
+      const numMatch = salaryStr.match(/\b(\d+)\b/);
+      if (numMatch) return parseInt(numMatch[1]);
+      return 0;
+    }
+
     function getJobMatchScore(job) {
-      if (!seekerSkills || seekerSkills.length === 0) {
-        // Fallback: if no profile skills, return a deterministic score based on job details
+      if (!seekerProfile) {
         const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
         return 70 + (stringHash % 25);
       }
+
+      let userSkills = [];
+      if (Array.isArray(seekerProfile.skills)) {
+        userSkills = seekerProfile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+      } else if (typeof seekerProfile.skills === 'string') {
+        userSkills = seekerProfile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      }
+
+      let preferredLocs = [];
+      if (Array.isArray(seekerProfile.preferredLocations)) {
+        preferredLocs = seekerProfile.preferredLocations.map(s => s.trim().toLowerCase()).filter(Boolean);
+      } else if (typeof seekerProfile.preferredLocations === 'string') {
+        preferredLocs = seekerProfile.preferredLocations.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      }
       
-      const jobSkillsStr = job.skills || "";
-      const jobSkills = jobSkillsStr.split(',')
-        .map(s => s.trim().toLowerCase())
-        .filter(Boolean);
+      const userExp = extractYearsOfExperience(seekerProfile.experience);
+      const jobExp = getJobRequiredExperience(job);
+
+      // STEP 1: HARD FILTERS
+      if (jobExp > userExp + 3) return 35; 
+
+      const jobSkills = (job.skills || "").split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      if (jobSkills.length > 0 && userSkills.length > 0) {
+        const hasAnySkill = jobSkills.some(js => userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us)));
+        if (!hasAnySkill) return 30; 
+      }
+
+      const isJobRemote = job.location.toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
+      const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => job.location.toLowerCase().includes(loc) || loc.includes(job.location.toLowerCase()));
+      if (!isJobRemote && !isLocationMatch) {
+        return 38; 
+      }
+
+      let location_score = 0;
+      let skill_score = 0;
+      let role_score = 0;
+      let experience_score = 0;
+      let work_mode_score = 0;
+      let salary_score = 0;
+
+      // STEP 2: LOCATION SCORING
+      const jobLocLower = job.location.toLowerCase();
+      const hasCity = preferredLocs.some(loc => indianCities.some(c => c.toLowerCase() === loc.toLowerCase()) && jobLocLower.includes(loc));
+      const hasState = preferredLocs.some(loc => indianStates.some(s => s.toLowerCase() === loc.toLowerCase()) && jobLocLower.includes(loc));
       
-      if (jobSkills.length === 0) return 75;
+      let inIndia = jobLocLower.includes("india");
+      if (!inIndia) {
+        inIndia = indianStates.some(s => jobLocLower.includes(s.toLowerCase())) || indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
+      }
+
+      if (hasCity) {
+        location_score = 30;
+      } else if (hasState) {
+        location_score = 25;
+      } else if (inIndia) {
+        if (isJobRemote) {
+          location_score = 35;
+        } else {
+          location_score = 20;
+        }
+      } else if (isJobRemote) {
+        location_score = 40;
+      } else {
+        location_score = -50;
+      }
+
+      const requiresRelocation = !isJobRemote && !hasCity && !hasState;
+      if (requiresRelocation && inIndia) {
+        location_score += 10;
+      }
+
+      // STEP 3: SKILL MATCH SCORING
+      if (jobSkills.length > 0 && userSkills.length > 0) {
+        let matchCount = 0;
+        jobSkills.forEach(js => {
+          if (userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us))) {
+            matchCount++;
+          }
+        });
+        const skillMatchRatio = matchCount / jobSkills.length;
+        if (skillMatchRatio >= 0.9) skill_score = 40;
+        else if (skillMatchRatio >= 0.7) skill_score = 30;
+        else if (skillMatchRatio >= 0.5) skill_score = 20;
+        else if (skillMatchRatio >= 0.3) skill_score = 10;
+        else skill_score = 0;
+      } else {
+        skill_score = 20;
+      }
+
+      // STEP 4: ROLE MATCH
+      const jobTitleLower = job.title.toLowerCase();
+      const userDegreeLower = (seekerProfile.degree || "").toLowerCase();
+      const expSummaryLower = (seekerProfile.experience || "").toLowerCase();
       
-      const seekerSkillsLower = seekerSkills.map(s => s.trim().toLowerCase());
+      let exactRole = false;
+      let relatedRole = false;
+      let sameDomain = false;
       
-      let matchedCount = 0;
-      jobSkills.forEach(js => {
-        if (seekerSkillsLower.includes(js) || seekerSkillsLower.some(ss => ss.includes(js) || js.includes(ss))) {
-          matchedCount++;
+      const rolesList = ["software engineer", "developer", "machine learning", "frontend", "backend", "fullstack", "designer", "data scientist", "analyst", "product manager"];
+      rolesList.forEach(r => {
+        if (jobTitleLower.includes(r)) {
+          if (userDegreeLower.includes(r) || expSummaryLower.includes(r)) {
+            exactRole = true;
+          } else {
+            relatedRole = true;
+          }
+          sameDomain = true;
         }
       });
       
-      const ratio = matchedCount / jobSkills.length;
-      // Scale from 60% (no match) to 99% (full match)
-      const score = Math.round(60 + (ratio * 39));
-      return score;
+      if (exactRole) role_score = 30;
+      else if (relatedRole) role_score = 20;
+      else if (sameDomain) role_score = 10;
+      else role_score = 10;
+
+      // STEP 5: EXPERIENCE MATCH
+      const diff = userExp - jobExp;
+      if (diff === 0) {
+        experience_score = 20;
+      } else if (Math.abs(diff) <= 2) {
+        experience_score = 15;
+      } else if (Math.abs(diff) <= 3) {
+        experience_score = 10;
+      } else {
+        experience_score = 5;
+      }
+
+      // STEP 6: WORK MODE MATCH
+      const isUserRemotePreferred = preferredLocs.includes("remote");
+      if (isUserRemotePreferred && isJobRemote) {
+        work_mode_score = 15;
+      } else if (!isUserRemotePreferred && !isJobRemote) {
+        work_mode_score = 15;
+      } else {
+        work_mode_score = 0;
+      }
+
+      // STEP 7: SALARY MATCH
+      const userSalary = parseSalaryLPA(seekerProfile.expectedCtc);
+      const jobSalary = parseSalaryLPA(job.salary);
+      if (userSalary === 0 || jobSalary === 0) {
+        salary_score = 15;
+      } else if (jobSalary === userSalary) {
+        salary_score = 15;
+      } else if (jobSalary > userSalary) {
+        salary_score = 20;
+      } else {
+        salary_score = 5;
+      }
+
+      const finalScore = location_score + skill_score + role_score + experience_score + work_mode_score + salary_score;
+      return Math.max(0, Math.min(100, finalScore));
     }
 
     // Match breakdown helper
@@ -686,7 +854,14 @@
       
       return { matched, missing };
     }
-
+    function getMatchClassification(score) {
+      if (score === null || score === undefined) return "Low Match";
+      if (score >= 90) return "Excellent Match";
+      if (score >= 75) return "Strong Match";
+      if (score >= 60) return "Good Match";
+      if (score >= 40) return "Moderate Match";
+      return "Low Match";
+    }
     async function loadJobs() {
       await loadSeekerProfile();
 
@@ -707,6 +882,16 @@
       
       populateFilterOptions();
       filterJobs();
+
+      // Check URL query param to auto-open details
+      const urlParams = new URLSearchParams(window.location.search);
+      const jobIdParam = urlParams.get('id');
+      if (jobIdParam) {
+        const targetJob = dbJobs.find(j => j.id === jobIdParam || j.id == jobIdParam);
+        if (targetJob) {
+          openDrawer(targetJob);
+        }
+      }
     }
 
     // Dynamically populate Filter options based on job list
@@ -934,7 +1119,7 @@
             </div>
           </div>
           <div class="job-item-actions" onclick="event.stopPropagation()">
-            <span class="match-pill" style="${matchStyle}">${matchVal}% Match</span>
+            <span class="match-pill" style="${matchStyle}">${getMatchClassification(matchVal)} (${matchVal} Pts)</span>
             <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openDrawerFromBtn('${job.id}')">Details</button>
             <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Apply</a>
           </div>
@@ -960,8 +1145,26 @@
         ${job.source && job.source !== 'employer' ? `<span class="source-badge" style="font-size: 0.65rem;">${job.source}</span>` : ''}
       `;
       
-      document.getElementById('drawerDesc').innerHTML = job.description || 'No description provided.';
+      isDescriptionExpanded = false;
+      const cleanShortDesc = getCleanShortDescription(job.description || '');
+      const descEl = document.getElementById('drawerDesc');
+      const toggleBtn = document.getElementById('descToggleBtn');
+      
+      descEl.textContent = cleanShortDesc;
+      
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = job.description || "";
+      const rawTextLength = (tempDiv.textContent || tempDiv.innerText || "").replace(/\s+/g, ' ').trim().length;
+      
+      if (rawTextLength > 350) {
+        toggleBtn.style.display = 'inline-block';
+        toggleBtn.textContent = 'Read More';
+      } else {
+        toggleBtn.style.display = 'none';
+      }
+      
       document.getElementById('drawerComp').textContent = `Offering a highly competitive salary range of ${job.salary || 'Not specified'}. We also provide comprehensive medical coverage, premium wellness benefits, learning stipends, and hardware options.`;
+      document.body.style.overflow = 'hidden';
 
       // Render requirements list
       const reqsUl = document.getElementById('drawerReqs');
@@ -1049,7 +1252,7 @@
       const badgesDiv = document.getElementById('drawerBadges');
       badgesDiv.innerHTML = `
         <span class="badge badge-primary" style="padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); border: 1px solid rgba(99, 102, 241, 0.25);">${job.type || 'Full-time'}</span>
-        <span class="badge badge-success" style="padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25);">${score}% AI MATCH</span>
+        <span class="badge badge-success" style="padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25);">${getMatchClassification(score)} (${score} Pts)</span>
       `;
 
       // Apply button status reset
@@ -1070,9 +1273,35 @@
       document.getElementById('detailDrawer').style.display = 'flex';
     }
 
+    let isDescriptionExpanded = false;
+
+    function getCleanShortDescription(htmlStr, maxChars = 350) {
+      if (!htmlStr) return "No description available.";
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlStr;
+      let plainText = tempDiv.textContent || tempDiv.innerText || "";
+      plainText = plainText.replace(/\s+/g, ' ').trim();
+      if (plainText.length <= maxChars) return plainText;
+      return plainText.substring(0, maxChars) + "...";
+    }
+
+    function toggleDescription() {
+      isDescriptionExpanded = !isDescriptionExpanded;
+      const descEl = document.getElementById('drawerDesc');
+      const toggleBtn = document.getElementById('descToggleBtn');
+      if (isDescriptionExpanded) {
+        descEl.innerHTML = currentSelectedJob.description || 'No description provided.';
+        toggleBtn.textContent = 'Show Less';
+      } else {
+        descEl.textContent = getCleanShortDescription(currentSelectedJob.description || '');
+        toggleBtn.textContent = 'Read More';
+      }
+    }
+
     function closeDrawer(event) {
-      if (event === null || event.target === document.getElementById('detailDrawer')) {
+      if (event === null || event.target === document.getElementById('detailDrawer') || event.target.classList.contains('drawer-close') || event.target.closest('.drawer-close')) {
         document.getElementById('detailDrawer').style.display = 'none';
+        document.body.style.overflow = '';
       }
     }
 
