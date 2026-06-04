@@ -401,19 +401,19 @@
           <label class="form-label">Job Type</label>
           <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;" id="filterJobTypes">
             <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
-              <input type="checkbox" value="Full-time" onchange="filterJobs()" checked> Full-time
+              <input type="checkbox" value="Full-time" onchange="filterJobs()"> Full-time
             </label>
             <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
-              <input type="checkbox" value="Part-time" onchange="filterJobs()" checked> Part-time
+              <input type="checkbox" value="Part-time" onchange="filterJobs()"> Part-time
             </label>
             <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
-              <input type="checkbox" value="Contract" onchange="filterJobs()" checked> Contract
+              <input type="checkbox" value="Contract" onchange="filterJobs()"> Contract
             </label>
             <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
-              <input type="checkbox" value="Internship" onchange="filterJobs()" checked> Internship
+              <input type="checkbox" value="Internship" onchange="filterJobs()"> Internship
             </label>
             <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
-              <input type="checkbox" value="Remote" onchange="filterJobs()" checked> Remote Only
+              <input type="checkbox" value="Remote" onchange="filterJobs()"> Remote Only
             </label>
           </div>
         </div>
@@ -424,32 +424,6 @@
           <select id="filterLocation" class="form-control" onchange="filterJobs()"
             style="width: 100%; margin-top: 2px; background: var(--bg-secondary); border-color: var(--border-subtle);">
             <option value="">All Locations</option>
-          </select>
-        </div>
-
-        <!-- Minimum Match Score -->
-        <div class="filter-group">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label class="form-label">Min AI Match</label>
-            <span id="matchValLabel"
-              style="font-size: 0.82rem; font-weight: 700; color: var(--accent-secondary);">60%</span>
-          </div>
-          <input type="range" id="filterMatchScore" min="60" max="100" value="60" class="form-control"
-            oninput="updateMatchScoreLabel(this.value)" onchange="filterJobs()"
-            style="width: 100%; margin-top: 4px; padding: 0; cursor: pointer;">
-        </div>
-
-        <!-- Source Select -->
-        <div class="filter-group">
-          <label class="form-label" for="filterSource">Job Source</label>
-          <select id="filterSource" class="form-control" onchange="filterJobs()"
-            style="width: 100%; margin-top: 2px; background: var(--bg-secondary); border-color: var(--border-subtle);">
-            <option value="">All Sources</option>
-            <option value="employer">Recruiter Posts</option>
-            <option value="greenhouse">Greenhouse</option>
-            <option value="lever">Lever</option>
-            <option value="ashby">Ashby</option>
-            <option value="smartrecruiters">SmartRecruiters</option>
           </select>
         </div>
       </aside>
@@ -712,30 +686,21 @@
       loadJobs();
     });
 
-    function updateMatchScoreLabel(val) {
-      document.getElementById('matchValLabel').textContent = `${val}%`;
-    }
-
     function resetAllFilters() {
       document.getElementById('filterCategory').value = "";
       document.getElementById('filterLocation').value = "";
-      document.getElementById('filterSource').value = "";
-      document.getElementById('filterMatchScore').value = "60";
-      updateMatchScoreLabel("60");
       document.getElementById('jobSearch').value = "";
       
       const checkboxes = document.querySelectorAll('#filterJobTypes input');
-      checkboxes.forEach(cb => cb.checked = true);
+      checkboxes.forEach(cb => cb.checked = false);
       
       filterJobs();
     }
-
+ 
     function filterJobs() {
       const searchQuery = document.getElementById('jobSearch').value.toLowerCase();
       const selectedCategory = document.getElementById('filterCategory').value;
       const selectedLocation = document.getElementById('filterLocation').value;
-      const selectedSource = document.getElementById('filterSource').value;
-      const minMatch = parseInt(document.getElementById('filterMatchScore').value);
       
       // Get checked job types
       const checkedTypes = [];
@@ -743,7 +708,7 @@
       checkboxes.forEach(cb => {
         if (cb.checked) checkedTypes.push(cb.value.toLowerCase());
       });
-
+ 
       const filtered = dbJobs.filter(job => {
         // 1. Text Search matching
         const matchesSearch = !searchQuery || 
@@ -767,33 +732,32 @@
             matchesLocation = loc.includes(selLoc);
           }
         }
-
+ 
         // 4. Job Type matching
-        let matchesType = false;
-        const jobType = (job.type || "Full-time").toLowerCase();
-        
-        if (checkedTypes.includes("remote only")) {
-          // If remote only checked, filter strictly to remote location or remote type
-          const isRemote = (job.location || "").toLowerCase().includes("remote") || jobType.includes("remote");
-          matchesType = isRemote && checkedTypes.some(type => type !== "remote only" && jobType.includes(type));
-        } else {
-          matchesType = checkedTypes.some(type => jobType.includes(type));
+        let matchesType = true;
+        if (checkedTypes.length > 0) {
+          const physicalTypesChecked = checkedTypes.filter(t => t !== "remote");
+          const isRemoteChecked = checkedTypes.includes("remote");
+          
+          let matchesPhysical = physicalTypesChecked.length === 0;
+          if (physicalTypesChecked.length > 0) {
+            const jobType = (job.type || "Full-time").toLowerCase();
+            matchesPhysical = physicalTypesChecked.some(t => jobType.includes(t));
+          }
+          
+          let matchesRemote = true;
+          if (isRemoteChecked) {
+            const jobLoc = (job.location || "").toLowerCase();
+            const jobType = (job.type || "").toLowerCase();
+            matchesRemote = jobLoc.includes("remote") || jobType.includes("remote");
+          }
+          
+          matchesType = matchesPhysical && matchesRemote;
         }
-
-        if (checkedTypes.length === 0) {
-          matchesType = true; // default back if none selected
-        }
-
-        // 5. Source matching
-        const matchesSource = !selectedSource || (job.source === selectedSource);
-
-        // 6. Match score matching
-        const score = getJobMatchScore(job);
-        const matchesMatch = (score >= minMatch);
-
-        return matchesSearch && matchesCategory && matchesLocation && matchesType && matchesSource && matchesMatch;
+ 
+        return matchesSearch && matchesCategory && matchesLocation && matchesType;
       });
-
+ 
       // Handle Sorting
       const sortVal = document.getElementById('jobSort').value;
       filtered.sort((a, b) => {
@@ -808,10 +772,10 @@
         }
         return 0;
       });
-
+ 
       // Update feed summary sentence
       document.getElementById('feedSummaryText').textContent = `Showing ${filtered.length} matching jobs (out of ${dbJobs.length} total)`;
-
+ 
       renderJobs(filtered);
     }
 
