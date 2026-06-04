@@ -301,10 +301,6 @@
             <span class="stat-label">Uploaded Certificates</span>
             <span class="stat-value" id="certificatesCount">0</span>
           </div>
-          <div class="stat-row">
-            <span class="stat-label">Skills Logged</span>
-            <span class="stat-value" style="color: var(--accent-secondary);" id="skillsLoggedCount">0</span>
-          </div>
         </div>
       </aside>
 
@@ -340,29 +336,6 @@
           </div>
 
           <div class="job-cards-list" id="recommendedJobsList">
-            <!-- Dynamically populated from Database -->
-          </div>
-        </div>
-
-        <!-- Skills Summary Section -->
-        <div id="skills">
-          <div class="section-header">
-            <h2 class="section-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary);">
-                <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"></polygon>
-                <line x1="12" y1="22" x2="12" y2="15.5"></line>
-                <polyline points="22 8.5 12 15.5 2 8.5"></polyline>
-                <polyline points="2 15.5 12 8.5 22 15.5"></polyline>
-                <line x1="12" y1="2" x2="12" y2="8.5"></line>
-              </svg>
-              My Skills Progress
-            </h2>
-            <a href="resume.html" style="color: var(--accent-primary); font-size: 0.9rem; font-weight: 600;">Edit
-              Profile &rarr;</a>
-          </div>
-
-          <div class="skills-summary-grid" id="skillsSummaryGrid">
             <!-- Dynamically populated from Database -->
           </div>
         </div>
@@ -463,12 +436,42 @@
 
   <script src="../js/header.js"></script>
   <script>
+    let seekerSkills = [];
+
+    function getJobMatchScore(job) {
+      if (!seekerSkills || seekerSkills.length === 0) {
+        const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return 70 + (stringHash % 25);
+      }
+      
+      const jobSkillsStr = job.skills || "";
+      const jobSkills = jobSkillsStr.split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean);
+      
+      if (jobSkills.length === 0) return 75;
+      
+      const seekerSkillsLower = seekerSkills.map(s => s.trim().toLowerCase());
+      
+      let matchedCount = 0;
+      jobSkills.forEach(js => {
+        if (seekerSkillsLower.includes(js) || seekerSkillsLower.some(ss => ss.includes(js) || js.includes(ss))) {
+          matchedCount++;
+        }
+      });
+      
+      const ratio = matchedCount / jobSkills.length;
+      const score = Math.round(60 + (ratio * 39));
+      return score;
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       loadDashboardProfile();
     });
 
     function renderProfile(profile) {
       if (!profile) return;
+      seekerSkills = profile.skills || [];
       
       // Set title
       const sidebarTitle = document.getElementById('sidebarTitle');
@@ -497,35 +500,6 @@
       // Update other stats counts
       const certificatesCount = document.getElementById('certificatesCount');
       if (certificatesCount) certificatesCount.textContent = profile.certificates ? profile.certificates.length : 0;
-      const skillsLoggedCount = document.getElementById('skillsLoggedCount');
-      if (skillsLoggedCount) skillsLoggedCount.textContent = profile.skills ? profile.skills.length : 0;
-
-      // Populate skills summary grid
-      const skillsGrid = document.getElementById('skillsSummaryGrid');
-      if (skillsGrid) {
-        skillsGrid.innerHTML = '';
-        if (profile.skills && profile.skills.length > 0) {
-          const icons = ["⚡", "⚛️", "🐍", "🎨", "💻", "🔧", "📊", "🚀"];
-          profile.skills.forEach((skill, index) => {
-            const icon = icons[index % icons.length];
-            const card = document.createElement('div');
-            card.className = 'glass-card skill-card-summary';
-            card.innerHTML = `
-              <div class="skill-icon-wrap">${icon}</div>
-              <h4>${skill}</h4>
-              <div style="color: var(--accent-secondary); font-size: 0.85rem; font-weight: 600; margin-top: 4px;">Verified (100%)</div>
-            `;
-            skillsGrid.appendChild(card);
-          });
-        } else {
-          skillsGrid.innerHTML = `
-            <div class="glass-panel" style="grid-column: 1 / -1; padding: 20px; text-align: center; background: rgba(255,255,255,0.02);">
-              <p style="color: var(--text-dark); margin-bottom: 12px; font-size: 0.9rem;">No skills added yet.</p>
-              <a href="resume.html" class="btn btn-secondary" style="display: inline-block; padding: 6px 12px; font-size: 0.85rem;">Edit Profile & Add Skills</a>
-            </div>
-          `;
-        }
-      }
     }
 
     async function loadDashboardProfile() {
@@ -591,25 +565,35 @@
         if (recommendedContainer) {
           recommendedContainer.innerHTML = '';
           if (jobs && jobs.length > 0) {
+            // Score and sort jobs based on user skills
+            const scored = jobs.map(job => {
+              return {
+                ...job,
+                matchScore: getJobMatchScore(job)
+              };
+            });
+            scored.sort((a, b) => b.matchScore - a.matchScore);
+
             // Display top 3 matching jobs
-            const topMatches = jobs.slice(0, 3);
+            const topMatches = scored.slice(0, 3);
             topMatches.forEach(job => {
               const card = document.createElement('div');
               card.className = 'glass-card job-card';
               card.innerHTML = `
-                <div class="job-card-logo">${job.logo || '⚛️'}</div>
+                <div class="job-card-logo">${job.logo || '💼'}</div>
                 <div class="job-card-info">
                   <h3>${job.title}</h3>
                   <div style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">${job.company}</div>
                   <div class="job-card-meta">
                     <div class="job-card-meta-item">📍 ${job.location || 'Remote'}</div>
-                    <div class="job-card-meta-item">💰 ${job.salary.split(' / ')[0]}</div>
+                    <div class="job-card-meta-item">💰 ${(job.salary || 'Not specified').split(' / ')[0]}</div>
                     <div class="job-card-meta-item">🕒 ${job.type || 'Full-time'}</div>
                   </div>
                 </div>
                 <div class="job-card-actions">
-                  <span class="match-score">${job.match || 90}% Match</span>
-                  <a href="jobs.html" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">View Details</a>
+                  <span class="match-score">${job.matchScore}% Match</span>
+                  <a href="jobs.html" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;">Details</a>
+                  <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Apply</a>
                 </div>
               `;
               recommendedContainer.appendChild(card);

@@ -264,7 +264,7 @@
       letter-spacing: 0.02em;
     }
 
-    /* Modal / Drawer Overlay and Sliding Content */
+    /* Modal / Drawer Overlay and Center Popup Content */
     .drawer-overlay {
       position: fixed;
       top: 0;
@@ -276,37 +276,41 @@
       z-index: 1000;
       display: none;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: center;
+      padding: 20px;
     }
 
     .drawer-content {
-      width: 580px;
-      height: 100%;
-      background: var(--bg-primary);
-      border-left: 1px solid var(--border-subtle);
-      box-shadow: -15px 0 35px rgba(0, 0, 0, 0.7);
-      padding: 40px;
+      width: 650px;
+      max-width: 100%;
+      max-height: 85vh;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      padding: 35px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       overflow-y: auto;
-      animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    @keyframes slideInRight {
+    @keyframes zoomIn {
       from {
-        transform: translateX(100%);
+        transform: scale(0.9);
+        opacity: 0;
       }
-
       to {
-        transform: translateX(0);
+        transform: scale(1);
+        opacity: 1;
       }
     }
 
     @media (max-width: 600px) {
       .drawer-content {
-        width: 100%;
-        padding: 24px;
+        padding: 20px;
+        max-height: 95vh;
       }
     }
 
@@ -556,6 +560,60 @@
     let currentSelectedJob = null;
     let seekerSkills = [];
 
+    const indianStates = [
+      "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
+      "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", 
+      "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", 
+      "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi", "Chandigarh", "Puducherry", "Jammu and Kashmir"
+    ];
+
+    const indianCities = [
+      "Bangalore", "Bengaluru", "Mumbai", "Pune", "Hyderabad", "Chennai", "Noida", "Gurgaon", "Gurugram", 
+      "New Delhi", "Delhi", "Kolkata", "Ahmedabad", "Surat", "Jaipur", "Lucknow", "Kanpur", "Nagpur", 
+      "Indore", "Thane", "Bhopal", "Visakhapatnam", "Pimpri-Chinchwad", "Patna", "Vadodara", "Ghaziabad", 
+      "Ludhiana", "Agra", "Nashik", "Faridabad", "Meerut", "Rajkot", "Kalyan-Dombivli", "Vasai-Virar", 
+      "Varanasi", "Srinagar", "Aurangabad", "Dhanbad", "Amritsar", "Navi Mumbai", "Allahabad", "Ranchi", 
+      "Howrah", "Coimbatore", "Jabalpur", "Gwalior", "Vijayawada", "Jodhpur", "Madurai", "Raipur", 
+      "Kota", "Guwahati", "Solapur", "Hubli-Dharwad", "Bareilly", "Moradabad", "Mysore", "Aligarh", 
+      "Jalandhar", "Tiruchirappalli", "Bhubaneswar", "Salem", "Mira-Bhayandar", "Thiruvananthapuram", 
+      "Bhiwandi", "Saharanpur", "Gorakhpur", "Guntur", "Bikaner", "Amravati", "Jamshedpur", "Bhilai", 
+      "Cuttack", "Firozabad", "Kochi", "Nellore", "Bhavnagar", "Dehradun", "Durgapur", "Asansol", 
+      "Rourkela", "Nanded", "Kolhapur", "Ajmer", "Akola", "Gulbarga", "Jamnagar", "Ujjain", "Loni", 
+      "Siliguri", "Jhansi", "Ulhasnagar", "Jammu", "Sangli-Miraj & Kupwad", "Belgaum", "Mangalore", 
+      "Ambattur", "Tirunelveli", "Malegaon", "Gaya", "Jalgaon", "Udaipur", "Maheshtala"
+    ];
+
+    function getJobLocationsGroup(job) {
+      const loc = (job.location || "").toLowerCase();
+      if (loc.includes("remote")) {
+        return ["Remote"];
+      }
+      
+      const groups = [];
+      let foundCity = false;
+      for (const city of indianCities) {
+        if (loc.includes(city.toLowerCase())) {
+          groups.push(city);
+          foundCity = true;
+        }
+      }
+      
+      let foundState = false;
+      for (const state of indianStates) {
+        if (loc.includes(state.toLowerCase())) {
+          groups.push(state);
+          foundState = true;
+        }
+      }
+      
+      if (foundCity || foundState || loc.includes("india")) {
+        groups.push("India");
+      } else {
+        groups.push("Out of India");
+      }
+      return groups;
+    }
+
     // Load seeker profile to retrieve skills for matching
     async function loadSeekerProfile() {
       const email = localStorage.getItem('seeker_email');
@@ -665,21 +723,57 @@
       });
 
       // 2. Populate Location dropdown
-      const locations = [...new Set(dbJobs.map(j => {
-        const loc = j.location || "Remote";
-        if (loc.toLowerCase().includes("remote")) return "Remote";
-        if (loc.includes(",")) return loc.split(",")[0].trim();
-        return loc.trim();
-      }))].filter(Boolean).sort();
-      
+      const detectedStates = new Set();
+      const detectedCities = new Set();
+      let hasIndia = false;
+      let hasOutOfIndia = false;
+      let hasRemote = false;
+
+      dbJobs.forEach(job => {
+        const locGroups = getJobLocationsGroup(job);
+        locGroups.forEach(g => {
+          if (g === "India") hasIndia = true;
+          else if (g === "Out of India") hasOutOfIndia = true;
+          else if (g === "Remote") hasRemote = true;
+          else if (indianStates.includes(g)) detectedStates.add(g);
+          else if (indianCities.includes(g)) detectedCities.add(g);
+        });
+      });
+
       const locSelect = document.getElementById('filterLocation');
       locSelect.innerHTML = '<option value="">All Locations</option>';
-      locations.forEach(loc => {
-        const opt = document.createElement('option');
-        opt.value = loc;
-        opt.textContent = loc;
-        locSelect.appendChild(opt);
-      });
+      
+      if (hasIndia) {
+        locSelect.appendChild(new Option("India", "India"));
+      }
+      if (hasRemote) {
+        locSelect.appendChild(new Option("Remote", "Remote"));
+      }
+      if (hasOutOfIndia) {
+        locSelect.appendChild(new Option("Out of India", "Out of India"));
+      }
+
+      if (detectedStates.size > 0) {
+        const divider = document.createElement('option');
+        divider.disabled = true;
+        divider.textContent = "--- Indian States ---";
+        locSelect.appendChild(divider);
+        
+        [...detectedStates].sort().forEach(state => {
+          locSelect.appendChild(new Option(state, state));
+        });
+      }
+
+      if (detectedCities.size > 0) {
+        const divider = document.createElement('option');
+        divider.disabled = true;
+        divider.textContent = "--- Indian Cities ---";
+        locSelect.appendChild(divider);
+        
+        [...detectedCities].sort().forEach(city => {
+          locSelect.appendChild(new Option(city, city));
+        });
+      }
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -724,13 +818,8 @@
         // 3. Location matching
         let matchesLocation = true;
         if (selectedLocation) {
-          const loc = (job.location || "").toLowerCase();
-          const selLoc = selectedLocation.toLowerCase();
-          if (selLoc === "remote") {
-            matchesLocation = loc.includes("remote");
-          } else {
-            matchesLocation = loc.includes(selLoc);
-          }
+          const jobLocs = getJobLocationsGroup(job);
+          matchesLocation = jobLocs.includes(selectedLocation);
         }
  
         // 4. Job Type matching
@@ -847,6 +936,7 @@
           <div class="job-item-actions" onclick="event.stopPropagation()">
             <span class="match-pill" style="${matchStyle}">${matchVal}% Match</span>
             <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openDrawerFromBtn('${job.id}')">Details</button>
+            <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Apply</a>
           </div>
         `;
         
@@ -1031,8 +1121,9 @@
         toast.style.display = 'block';
         setTimeout(() => {
           toast.style.display = 'none';
-          if (currentSelectedJob.applyUrl && currentSelectedJob.applyUrl.startsWith('http')) {
-            window.open(currentSelectedJob.applyUrl, '_blank');
+          const destUrl = currentSelectedJob.applyUrl || currentSelectedJob.apply_url;
+          if (destUrl && destUrl.startsWith('http')) {
+            window.open(destUrl, '_blank');
           }
         }, 3000);
 
