@@ -1015,16 +1015,16 @@
               <div class="char-ability">Balanced Assessment</div>
             </div>
             <!-- Vikram Card -->
-            <div class="character-card" id="charCard_vikram" onclick="selectCharacter('vikram')">
+            <div class="character-card disabled" id="charCard_vikram" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">
               <div class="char-avatar-mini" style="background: linear-gradient(135deg, #64748b, #475569);">👨‍🦳</div>
-              <div class="char-name">Prof. Vikram</div>
-              <div class="char-ability">Deep-Dive Questions</div>
+              <div class="char-name" style="color: var(--text-muted);">Prof. Vikram</div>
+              <div class="char-ability" style="color: var(--accent-tertiary); font-weight: 600;">Coming Soon</div>
             </div>
             <!-- Ananya Card -->
-            <div class="character-card" id="charCard_ananya" onclick="selectCharacter('ananya')">
+            <div class="character-card disabled" id="charCard_ananya" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">
               <div class="char-avatar-mini" style="background: linear-gradient(135deg, #ec4899, #db2777);">👩‍💼</div>
-              <div class="char-name">Dr. Ananya</div>
-              <div class="char-ability">High Scrutiny Review</div>
+              <div class="char-name" style="color: var(--text-muted);">Dr. Ananya</div>
+              <div class="char-ability" style="color: var(--accent-tertiary); font-weight: 600;">Coming Soon</div>
             </div>
           </div>
         </div>
@@ -1460,6 +1460,7 @@
     }
 
     window.selectCharacter = function(charName) {
+      if (charName !== 'sarthi') return;
       selectedInterviewer = charName;
       document.querySelectorAll(".character-card").forEach(c => c.classList.remove("active"));
       const card = document.getElementById(`charCard_${charName}`);
