@@ -8,8 +8,14 @@ import dns from "dns";
 
 dotenv.config();
 
-// Override local DNS to prevent connection failure to MongoDB Atlas
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+// Override local DNS to prevent connection failure to MongoDB Atlas (skip on Vercel)
+if (!process.env.VERCEL) {
+  try {
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+  } catch (err) {
+    console.warn("[DNS] Failed to override DNS servers:", err.message);
+  }
+}
 
 
 const __filename = fileURLToPath(import.meta.url);
