@@ -19,32 +19,32 @@
     }
   </script>
   <style>
-  <style>
     .messages-layout {
       display: grid;
       grid-template-columns: 320px 1fr;
       gap: 24px;
       margin-top: 24px;
       height: calc(100vh - 140px);
+      position: relative;
     }
 
-    @media (max-width: 900px) {
-      .messages-layout {
-        grid-template-columns: 1fr;
-        height: auto;
-      }
-
-      .chat-sidebar {
-        display: none;
-      }
-    }
-
+    /* Chats List Sidebar */
     .chat-sidebar {
       display: flex;
       flex-direction: column;
       gap: 12px;
       overflow-y: auto;
-      padding-right: 8px;
+      padding: 20px;
+    }
+
+    .chat-sidebar h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 8px;
     }
 
     .chat-user-item {
@@ -52,27 +52,21 @@
       display: flex;
       gap: 12px;
       align-items: center;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s ease;
       cursor: pointer;
-      border: 1px solid rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
       border-radius: 12px;
+      background: var(--bg-surface);
     }
 
-    .chat-user-item:hover,
+    .chat-user-item:hover {
+      background: var(--bg-secondary);
+      border-color: var(--border-focus);
+    }
+
     .chat-user-item.active {
-      background: rgba(255, 255, 255, 0.04);
-      border-color: var(--accent-primary);
-      transform: translateY(-2px);
-    }
-
-    body.light-theme .chat-user-item {
-      border: 1px solid rgba(0, 0, 0, 0.03);
-    }
-
-    body.light-theme .chat-user-item:hover,
-    body.light-theme .chat-user-item.active {
-      background: rgba(0, 0, 0, 0.03);
-      border-color: var(--accent-primary);
+      background: var(--bg-secondary);
+      border-color: var(--accent-secondary);
     }
 
     .chat-user-avatar {
@@ -80,13 +74,12 @@
       height: 44px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-      color: #fff;
+      color: var(--bg-primary);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
       font-size: 0.95rem;
-      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
       flex-shrink: 0;
     }
 
@@ -115,11 +108,13 @@
       text-overflow: ellipsis;
     }
 
+    /* Main chat pane */
     .chat-window {
       display: flex;
       flex-direction: column;
       height: 100%;
       overflow: hidden;
+      padding: 0;
     }
 
     .chat-header {
@@ -128,12 +123,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      background: rgba(24, 24, 27, 0.2);
-      backdrop-filter: blur(10px);
-    }
-
-    body.light-theme .chat-header {
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--bg-surface);
     }
 
     .chat-body {
@@ -143,7 +133,7 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
-      background: rgba(10, 11, 16, 0.1);
+      background: var(--bg-primary);
     }
 
     .chat-bubble {
@@ -152,33 +142,27 @@
       border-radius: 18px;
       font-size: 0.9rem;
       line-height: 1.45;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-      animation: msgAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: msgAppear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     @keyframes msgAppear {
-      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .chat-bubble.incoming {
-      background: rgba(255, 255, 255, 0.03);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-subtle);
       align-self: flex-start;
       border-bottom-left-radius: 4px;
       color: var(--text-main);
     }
 
-    body.light-theme .chat-bubble.incoming {
-      background: rgba(0, 0, 0, 0.02);
-    }
-
     .chat-bubble.outgoing {
-      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-      color: #fff;
+      background: var(--accent-primary);
+      color: var(--bg-primary);
       align-self: flex-end;
       border-bottom-right-radius: 4px;
-      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
     }
 
     .chat-footer {
@@ -187,27 +171,90 @@
       display: flex;
       gap: 12px;
       align-items: center;
-      background: rgba(24, 24, 27, 0.4);
-      backdrop-filter: blur(10px);
+      background: var(--bg-surface);
     }
 
-    body.light-theme .chat-footer {
-      background: rgba(255, 255, 255, 0.4);
+    /* Mobile Back Button */
+    .mobile-back-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      margin-right: 4px;
+      align-items: center;
+      justify-content: center;
     }
 
-    /* Custom Scrollbar */
+    /* Responsive Design for Mobile Layout (Slide view) */
+    @media (max-width: 900px) {
+      .messages-layout {
+        grid-template-columns: 1fr;
+        height: calc(100vh - 120px);
+      }
+
+      .mobile-back-btn {
+        display: flex;
+      }
+
+      .chat-sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        background: var(--bg-primary);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+      }
+
+      .chat-window {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 5;
+        background: var(--bg-primary);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+      }
+
+      .messages-layout.view-sidebar .chat-sidebar {
+        transform: translateX(0);
+        pointer-events: auto;
+        opacity: 1;
+      }
+
+      .messages-layout.view-sidebar .chat-window {
+        transform: translateX(100%);
+        pointer-events: none;
+        opacity: 0;
+      }
+
+      .messages-layout.view-chat .chat-sidebar {
+        transform: translateX(-100%);
+        pointer-events: none;
+        opacity: 0;
+      }
+
+      .messages-layout.view-chat .chat-window {
+        transform: translateX(0);
+        pointer-events: auto;
+        opacity: 1;
+      }
+    }
+
+    /* Custom scrollbars */
     .chat-sidebar::-webkit-scrollbar,
     .chat-body::-webkit-scrollbar {
       width: 6px;
     }
     .chat-sidebar::-webkit-scrollbar-thumb,
     .chat-body::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--border-subtle);
       border-radius: 10px;
-    }
-    body.light-theme .chat-sidebar::-webkit-scrollbar-thumb,
-    body.light-theme .chat-body::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.05);
     }
   </style>
 </head>
@@ -228,29 +275,38 @@
 
   <!-- Container -->
   <main class="container">
-    <div class="messages-layout">
+    <div class="messages-layout view-sidebar" id="layoutContainer">
       <!-- Sidebar chats list -->
-      <div class="chat-sidebar">
-        <!-- Sidebar items populated dynamically -->
-      </div>
+      <aside class="glass-panel chat-sidebar">
+        <h2>Recruiters Inbox</h2>
+        <div id="sidebarList" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Dynamically populated -->
+        </div>
+      </aside>
 
       <!-- Chat details -->
-      <div class="glass-panel chat-window">
+      <section class="glass-panel chat-window">
         <div class="chat-header">
-          <div class="chat-user-avatar">?</div>
-          <span class="chat-user-name" style="font-size: 1.05rem;">Select a Chat</span>
+          <button class="mobile-back-btn" onclick="showSidebarOnMobile()" title="Back to Inbox">←</button>
+          <div class="chat-user-avatar" id="activeChatAvatar">?</div>
+          <div style="display: flex; flex-direction: column;">
+            <span class="chat-user-name" id="activeChatName" style="font-size: 1.05rem;">Select a Chat</span>
+            <span id="activeChatSub" style="font-size: 0.75rem; color: var(--text-muted);"></span>
+          </div>
         </div>
 
         <div class="chat-body" id="chatBody">
-          <!-- Chat bubbles populated dynamically -->
+          <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.95rem;">
+            Select a conversation from the sidebar to view messages.
+          </div>
         </div>
 
         <div class="chat-footer">
           <input type="text" id="chatInput" class="form-control" placeholder="Type a message..." style="flex: 1;"
-            onkeypress="handleKeyPress(event)">
-          <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+            onkeypress="handleKeyPress(event)" disabled>
+          <button class="btn btn-primary" id="sendBtn" onclick="sendMessage()" disabled>Send</button>
         </div>
-      </div>
+      </section>
     </div>
   </main>
 
@@ -259,6 +315,10 @@
     let messages = [];
     let conversations = {}; // grouped by recruiterEmail
     let activeChatEmail = null;
+    let renderedConversationsJSON = "";
+    let renderedMessageCount = 0;
+    let lastActiveChatEmail = null;
+
     const seekerEmail = localStorage.getItem('seeker_email');
     const seekerName = localStorage.getItem('seeker_name') || 'Candidate';
 
@@ -268,7 +328,7 @@
         return;
       }
       loadMessages();
-      // Poll for messages
+      // Poll for new messages every 3 seconds
       setInterval(loadMessages, 3000);
     });
 
@@ -307,21 +367,42 @@
           activeChatEmail = keys[0];
         }
 
-        renderSidebar();
-        renderChatWindow();
+        // Check change detection for sidebar
+        const currentConvsJSON = JSON.stringify(keys.map(email => ({
+          email,
+          companyName: conversations[email].companyName,
+          lastMsgText: conversations[email].messages[conversations[email].messages.length - 1]?.text,
+          active: email === activeChatEmail
+        })));
+
+        if (currentConvsJSON !== renderedConversationsJSON) {
+          renderedConversationsJSON = currentConvsJSON;
+          renderSidebar();
+        }
+
+        // Check change detection for chat window
+        const activeConv = conversations[activeChatEmail];
+        const activeMsgCount = activeConv ? activeConv.messages.length : 0;
+
+        if (activeChatEmail !== lastActiveChatEmail || activeMsgCount !== renderedMessageCount) {
+          const isChatSwitched = activeChatEmail !== lastActiveChatEmail;
+          lastActiveChatEmail = activeChatEmail;
+          renderedMessageCount = activeMsgCount;
+          renderChatWindow(isChatSwitched);
+        }
       } catch (err) {
         console.error("Failed to load messages:", err);
       }
     }
 
     function renderSidebar() {
-      const sidebar = document.querySelector('.chat-sidebar');
-      if (!sidebar) return;
-      sidebar.innerHTML = '';
+      const sidebarContainer = document.getElementById('sidebarList');
+      if (!sidebarContainer) return;
+      sidebarContainer.innerHTML = '';
 
       const keys = Object.keys(conversations);
       if (keys.length === 0) {
-        sidebar.innerHTML = '<div style="padding: 20px; color: var(--text-muted); text-align: center; font-size: 0.85rem;">No conversations active. Apply to a job to start a conversation!</div>';
+        sidebarContainer.innerHTML = '<div style="padding: 20px; color: var(--text-muted); text-align: center; font-size: 0.85rem;">No conversations active. Apply to a job to start a conversation!</div>';
         return;
       }
 
@@ -333,11 +414,19 @@
         const initial = conv.companyName.charAt(0).toUpperCase();
 
         const item = document.createElement('div');
-        item.className = `glass-panel chat-user-item ${isActive ? 'active' : ''}`;
+        item.className = `chat-user-item ${isActive ? 'active' : ''}`;
         item.onclick = () => {
           activeChatEmail = email;
-          renderSidebar();
-          renderChatWindow();
+          
+          // Switch to chat view on mobile
+          const layout = document.getElementById('layoutContainer');
+          if (layout) {
+            layout.classList.remove('view-sidebar');
+            layout.classList.add('view-chat');
+          }
+          
+          // Trigger updates immediately
+          loadMessages();
         };
 
         item.innerHTML = `
@@ -347,53 +436,78 @@
             <span class="chat-user-last-msg">${lastMsgText}</span>
           </div>
         `;
-        sidebar.appendChild(item);
+        sidebarContainer.appendChild(item);
       });
     }
 
-    function renderChatWindow() {
+    function renderChatWindow(isChatSwitched) {
       const chatHeader = document.querySelector('.chat-header');
       const chatBody = document.getElementById('chatBody');
-      if (!chatHeader || !chatBody) return;
+      const chatInput = document.getElementById('chatInput');
+      const sendBtn = document.getElementById('sendBtn');
+      if (!chatHeader || !chatBody || !chatInput || !sendBtn) return;
 
       if (!activeChatEmail || !conversations[activeChatEmail]) {
-        chatHeader.innerHTML = `
-          <div class="chat-user-avatar">?</div>
-          <span class="chat-user-name" style="font-size: 1.05rem;">Select a Chat</span>
-        `;
+        document.getElementById('activeChatAvatar').textContent = '?';
+        document.getElementById('activeChatName').textContent = 'Select a Chat';
+        document.getElementById('activeChatSub').textContent = '';
         chatBody.innerHTML = `
           <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.95rem;">
             Select a conversation from the sidebar to view messages.
           </div>
         `;
+        chatInput.disabled = true;
+        sendBtn.disabled = true;
         return;
       }
 
       const conv = conversations[activeChatEmail];
       const initial = conv.companyName.charAt(0).toUpperCase();
 
-      chatHeader.innerHTML = `
-        <div class="chat-user-avatar">${initial}</div>
-        <div style="display: flex; flex-direction: column;">
-          <span class="chat-user-name" style="font-size: 1.05rem; font-weight: 600;">${conv.companyName} HR</span>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">${conv.recruiterName}</span>
-        </div>
-      `;
+      // Update Header info
+      document.getElementById('activeChatAvatar').textContent = initial;
+      document.getElementById('activeChatName').textContent = `${conv.companyName} HR`;
+      document.getElementById('activeChatSub').textContent = conv.recruiterName || 'Active recruiter';
 
-      // Check if scroll was at the bottom
-      const isAtBottom = chatBody.scrollHeight - chatBody.clientHeight <= chatBody.scrollTop + 50;
+      chatInput.disabled = false;
+      sendBtn.disabled = false;
 
-      chatBody.innerHTML = '';
-      conv.messages.forEach(msg => {
-        const bubble = document.createElement('div');
-        const isOutgoing = msg.sender === 'seeker';
-        bubble.className = `chat-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
-        bubble.textContent = msg.text;
-        chatBody.appendChild(bubble);
-      });
+      // Check if user is scrolled to the bottom before update
+      const isAtBottom = chatBody.scrollHeight - chatBody.clientHeight <= chatBody.scrollTop + 60;
 
-      if (isAtBottom || chatBody.scrollTop === 0) {
+      if (isChatSwitched) {
+        // If switched to a new chat, clear the body and render all messages
+        chatBody.innerHTML = '';
+        conv.messages.forEach(msg => {
+          const bubble = document.createElement('div');
+          const isOutgoing = msg.sender === 'seeker';
+          bubble.className = `chat-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
+          bubble.textContent = msg.text;
+          chatBody.appendChild(bubble);
+        });
         chatBody.scrollTop = chatBody.scrollHeight;
+      } else {
+        // If same chat, check if new messages were added and only append them to avoid scroll jump
+        const currentBubbles = chatBody.querySelectorAll('.chat-bubble');
+        const renderedCount = currentBubbles.length;
+        
+        if (conv.messages.length > renderedCount) {
+          // Append only the new ones
+          const newMessages = conv.messages.slice(renderedCount);
+          newMessages.forEach(msg => {
+            const bubble = document.createElement('div');
+            const isOutgoing = msg.sender === 'seeker';
+            bubble.className = `chat-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
+            bubble.textContent = msg.text;
+            chatBody.appendChild(bubble);
+          });
+          
+          // Scroll to bottom if user was already at the bottom or if it was their own outgoing message
+          const lastNewMessage = newMessages[newMessages.length - 1];
+          if (isAtBottom || lastNewMessage.sender === 'seeker') {
+            chatBody.scrollTop = chatBody.scrollHeight;
+          }
+        }
       }
     }
 
@@ -421,6 +535,7 @@
         });
 
         if (response.ok) {
+          // Immediately reload to display the new message and auto-scroll
           await loadMessages();
         } else {
           alert('Failed to send message.');
@@ -432,6 +547,14 @@
 
     function handleKeyPress(e) {
       if (e.key === 'Enter') sendMessage();
+    }
+
+    function showSidebarOnMobile() {
+      const layout = document.getElementById('layoutContainer');
+      if (layout) {
+        layout.classList.remove('view-chat');
+        layout.classList.add('view-sidebar');
+      }
     }
   </script>
 </body>
