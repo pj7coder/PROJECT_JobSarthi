@@ -309,10 +309,10 @@
             <button class="mobile-back-btn" onclick="showSidebarOnMobile()" title="Back to Inbox">←</button>
             <div style="display: flex; flex-direction: column;">
               <h2 id="activeChatName" style="font-size: 1.2rem; margin: 0;">Select a Candidate</h2>
-              <span id="activeChatSub" style="font-size: 0.8rem; color: var(--success); font-weight: 600; display: none;">● Active candidate</span>
+              <span id="activeChatSub" style="display: none;"></span>
             </div>
           </div>
-          <button class="btn btn-secondary" id="scheduleBtn" style="padding: 8px 16px; font-size: 0.85rem;" onclick="sendScheduleInvite()" disabled>Schedule Call</button>
+          <button class="btn btn-secondary" id="scheduleBtn" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openScheduleModal()" disabled>Schedule Interview</button>
         </div>
 
         <!-- Chat messages view -->
@@ -332,6 +332,28 @@
       </section>
     </div>
   </main>
+
+  <!-- Schedule Interview Modal -->
+  <div class="drawer-overlay" id="scheduleModal" style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); z-index: 100000; padding: 20px;">
+    <div class="glass-panel" style="width: 400px; max-width: 100%; padding: 28px; display: flex; flex-direction: column; gap: 20px; box-shadow: none !important; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 12px;">
+      <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin: 0;">Schedule Interview</h3>
+      
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Select Date</label>
+        <input type="date" id="interviewDate" class="form-control" style="width: 100%; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-subtle); padding: 8px 12px; border-radius: 6px;">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Select Time</label>
+        <input type="time" id="interviewTime" class="form-control" style="width: 100%; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-subtle); padding: 8px 12px; border-radius: 6px;">
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-top: 8px;">
+        <button class="btn btn-secondary" style="flex: 1; padding: 10px; border-radius: 6px;" onclick="closeScheduleModal()">Cancel</button>
+        <button class="btn btn-primary" style="flex: 1; padding: 10px; border-radius: 6px; background: var(--accent-primary); color: var(--bg-primary);" onclick="confirmScheduleInterview()">Schedule</button>
+      </div>
+    </div>
+  </div>
 
   <script src="../js/header.js"></script>
   <script>
@@ -493,7 +515,7 @@
 
       const conv = conversations[activeChatEmail];
       activeChatName.textContent = conv.seekerName;
-      activeChatSub.style.display = 'inline';
+      activeChatSub.style.display = 'none';
 
       messageInput.disabled = false;
       sendBtn.disabled = false;
@@ -599,14 +621,53 @@
       }
     }
 
-    async function sendScheduleInvite() {
+    function openScheduleModal() {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const yyyy = tomorrow.getFullYear();
+      const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const dd = String(tomorrow.getDate()).padStart(2, '0');
+      document.getElementById('interviewDate').value = `${yyyy}-${mm}-${dd}`;
+      document.getElementById('interviewTime').value = "15:00";
+      
+      document.getElementById('scheduleModal').style.display = 'flex';
+    }
+
+    function closeScheduleModal() {
+      document.getElementById('scheduleModal').style.display = 'none';
+    }
+
+    async function confirmScheduleInterview() {
+      const dateVal = document.getElementById('interviewDate').value;
+      const timeVal = document.getElementById('interviewTime').value;
+      if (!dateVal || !timeVal) {
+        alert("Please select both a date and a time.");
+        return;
+      }
+
+      const dateObj = new Date(dateVal);
+      const formattedDate = dateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      const [hours, minutes] = timeVal.split(':');
+      const suffix = Number(hours) >= 12 ? 'PM' : 'AM';
+      const formattedHours = ((Number(hours) + 11) % 12 + 1);
+      const formattedTime = `${formattedHours}:${minutes} ${suffix}`;
+
       if (!activeChatEmail || !conversations[activeChatEmail]) return;
       const conv = conversations[activeChatEmail];
       const lastMsgObj = conv.messages[0];
       const finalCompany = lastMsgObj && lastMsgObj.companyName ? lastMsgObj.companyName : recruiterCompany;
       const finalRecruiterName = lastMsgObj && lastMsgObj.recruiterName ? lastMsgObj.recruiterName : (recruiterCompany + ' HR');
-      const inviteMsg = "📅 <strong>Interview Scheduled:</strong> An interview invitation has been generated for tomorrow at 3:00 PM (IST). Please check your email calendar details.";
       
+      const inviteMsg = `📅 <strong>Interview Scheduled:</strong> An interview invitation has been generated for ${formattedDate} at ${formattedTime} (IST). Please check your email calendar details.`;
+
+      closeScheduleModal();
+
       try {
         const response = await fetch('/api/messages', {
           method: 'POST',
