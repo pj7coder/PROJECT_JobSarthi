@@ -1077,11 +1077,22 @@ function getJobLocationsGroup(job) {
   return groups;
 }
 
-function calculateMatchScore(job, profile) {
-  if (!profile) {
-    const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return 70 + (stringHash % 25);
-  }
+function normalizeSkill(s) {
+  if (!s) return "";
+  s = s.toLowerCase().trim();
+  if (s === 'react' || s === 'reactjs') return 'react.js';
+  if (s === 'node' || s === 'nodejs') return 'node.js';
+  if (s === 'js') return 'javascript';
+  if (s === 'ts') return 'typescript';
+  if (s === 'py') return 'python';
+  if (s === 'ml') return 'machine learning';
+  if (s === 'ai') return 'artificial intelligence';
+  if (s === 'mongo') return 'mongodb';
+  return s;
+}
+
+function preprocessProfile(profile) {
+  if (!profile) return null;
 
   let userSkills = [];
   if (Array.isArray(profile.skills)) {
@@ -1089,6 +1100,7 @@ function calculateMatchScore(job, profile) {
   } else if (typeof profile.skills === 'string') {
     userSkills = profile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   }
+  const normalizedUserSkills = userSkills.map(normalizeSkill);
 
   let preferredLocs = [];
   if (Array.isArray(profile.preferredLocations)) {
@@ -1098,23 +1110,63 @@ function calculateMatchScore(job, profile) {
   }
 
   const userExp = extractYearsOfExperience(profile.experience);
-  const jobExp = getJobRequiredExperience(job);
+  const userSalary = parseSalaryLPA(profile.expectedCtc);
 
-  // Skill normalization mapping for smarter overlap
-  const normalizeSkill = (s) => {
-    s = s.toLowerCase().trim();
-    if (s === 'react' || s === 'reactjs') return 'react.js';
-    if (s === 'node' || s === 'nodejs') return 'node.js';
-    if (s === 'js') return 'javascript';
-    if (s === 'ts') return 'typescript';
-    if (s === 'py') return 'python';
-    if (s === 'ml') return 'machine learning';
-    if (s === 'ai') return 'artificial intelligence';
-    if (s === 'mongo') return 'mongodb';
-    return s;
+  const userInIndia = preferredLocs.length === 0 || preferredLocs.some(loc => 
+    loc.includes("india") || 
+    indianStates.some(s => s.toLowerCase() === loc) || 
+    indianCities.some(c => c.toLowerCase() === loc)
+  );
+
+  const userDegreeLower = (profile.degree || "").toLowerCase();
+  const expSummaryLower = (profile.experience || "").toLowerCase();
+
+  return {
+    normalizedUserSkills,
+    preferredLocs,
+    userExp,
+    userSalary,
+    userInIndia,
+    userDegreeLower,
+    expSummaryLower
   };
+}
 
-  const normalizedUserSkills = userSkills.map(normalizeSkill);
+function calculateMatchScore(job, profile) {
+  if (!profile) {
+    const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return 70 + (stringHash % 25);
+  }
+
+  const isPreprocessed = 'normalizedUserSkills' in profile;
+  
+  const normalizedUserSkills = isPreprocessed ? profile.normalizedUserSkills : (() => {
+    let userSkills = [];
+    if (Array.isArray(profile.skills)) {
+      userSkills = profile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+    } else if (typeof profile.skills === 'string') {
+      userSkills = profile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+    return userSkills.map(normalizeSkill);
+  })();
+
+  const preferredLocs = isPreprocessed ? profile.preferredLocs : (() => {
+    let preferredLocs = [];
+    if (Array.isArray(profile.preferredLocations)) {
+      preferredLocs = profile.preferredLocations.map(s => s.trim().toLowerCase()).filter(Boolean);
+    } else if (typeof profile.preferredLocations === 'string') {
+      preferredLocs = profile.preferredLocations.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+    return preferredLocs;
+  })();
+
+  const userExp = isPreprocessed ? profile.userExp : extractYearsOfExperience(profile.experience);
+  const userSalary = isPreprocessed ? profile.userSalary : parseSalaryLPA(profile.expectedCtc);
+  const userInIndia = isPreprocessed ? profile.userInIndia : (preferredLocs.length === 0 || preferredLocs.some(loc => loc.includes("india") || indianStates.some(s => s.toLowerCase() === loc) || indianCities.some(c => c.toLowerCase() === loc)));
+  const userDegreeLower = isPreprocessed ? profile.userDegreeLower : (profile.degree || "").toLowerCase();
+  const expSummaryLower = isPreprocessed ? profile.expSummaryLower : (profile.experience || "").toLowerCase();
+
+  const jobExp = getJobRequiredExperience(job);
   const jobSkills = (job.skills || "").split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   const normalizedJobSkills = jobSkills.map(normalizeSkill);
 
@@ -1128,7 +1180,6 @@ function calculateMatchScore(job, profile) {
   // If job is not remote and doesn't match location, check if they are in same country (e.g. India)
   const jobLocLower = job.location.toLowerCase();
   const jobInIndia = jobLocLower.includes("india") || indianStates.some(s => jobLocLower.includes(s.toLowerCase())) || indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
-  const userInIndia = preferredLocs.length === 0 || preferredLocs.some(loc => loc.includes("india") || indianStates.some(s => s.toLowerCase() === loc) || indianCities.some(c => c.toLowerCase() === loc));
 
   if (!isJobRemote && !isLocationMatch) {
     if (!(jobInIndia && userInIndia)) {
@@ -1192,8 +1243,6 @@ function calculateMatchScore(job, profile) {
 
   // STEP 4: ROLE MATCH
   const jobTitleLower = job.title.toLowerCase();
-  const userDegreeLower = (profile.degree || "").toLowerCase();
-  const expSummaryLower = (profile.experience || "").toLowerCase();
   
   let exactRole = false;
   let relatedRole = false;
@@ -1239,7 +1288,6 @@ function calculateMatchScore(job, profile) {
   }
 
   // STEP 7: SALARY MATCH
-  const userSalary = parseSalaryLPA(profile.expectedCtc);
   const jobSalary = parseSalaryLPA(job.salary);
   if (userSalary === 0 || jobSalary === 0) {
     salary_score = 15;
@@ -1257,10 +1305,10 @@ function calculateMatchScore(job, profile) {
 
 app.get("/api/jobs", async (req, res) => {
   try {
-    const { page, limit, email, search, category, location, type, sort } = req.query;
+    const { page, limit, email, search, category, location, type, sort, company } = req.query;
 
     // For backwards compatibility: if no pagination or search query is supplied, return the raw jobs array.
-    if (!page && !limit && !email && !search && !category && !location && !type && !sort) {
+    if (!page && !limit && !email && !search && !category && !location && !type && !sort && !company) {
       const jobs = await dbService.getJobs();
       return res.json(jobs);
     }
@@ -1278,8 +1326,15 @@ app.get("/api/jobs", async (req, res) => {
       }
     }
 
+    const preprocessedProfile = seekerProfile ? preprocessProfile(seekerProfile) : null;
+
     // Filter jobs
     let filtered = jobs.filter(job => {
+      // 0. Company filter
+      if (company) {
+        if (!job.company || job.company.toLowerCase() !== company.toLowerCase()) return false;
+      }
+
       // 1. Search text query filter
       if (search) {
         const query = search.toLowerCase();
@@ -1329,7 +1384,7 @@ app.get("/api/jobs", async (req, res) => {
 
     // Score jobs
     filtered = filtered.map(job => {
-      const score = calculateMatchScore(job, seekerProfile);
+      const score = calculateMatchScore(job, preprocessedProfile);
       return { ...job, matchScore: score };
     });
 

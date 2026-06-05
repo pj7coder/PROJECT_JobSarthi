@@ -30,7 +30,7 @@
     /* Stats Grid */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 20px;
       margin-top: 30px;
     }
@@ -55,7 +55,7 @@
     /* Dashboard Layout Splits */
     .dashboard-split {
       display: grid;
-      grid-template-columns: 2fr 1fr;
+      grid-template-columns: 1fr 2.2fr;
       gap: 30px;
       margin-top: 30px;
     }
@@ -179,54 +179,35 @@
     <!-- Stats Cards Grid -->
     <section class="stats-grid">
       <div class="glass-panel stat-card">
-        <span class="stat-subtext">Active Job Openings</span>
+        <span class="stat-subtext">Jobs Created</span>
         <div class="stat-number" id="recruiterActiveJobs">0</div>
-        <span class="stat-subtext" style="color: var(--accent-tertiary);" id="recruiterActiveJobsSubtext">0 promotions active</span>
+        <span class="stat-subtext" style="color: var(--accent-tertiary);" id="recruiterActiveJobsSubtext">0 postings active</span>
       </div>
       <div class="glass-panel stat-card">
-        <span class="stat-subtext">Total Candidates Screened</span>
-        <div class="stat-number" id="recruiterTotalCandidates">0</div>
-        <span class="stat-subtext" style="color: var(--success);" id="recruiterTotalCandidatesSubtext">No new applicants today</span>
+        <span class="stat-subtext">Candidates Applied</span>
+        <div class="stat-number" id="recruiterCandidatesApplied">0</div>
+        <span class="stat-subtext" style="color: var(--success);" id="recruiterCandidatesAppliedSubtext">0 total applicants</span>
       </div>
       <div class="glass-panel stat-card">
-        <span class="stat-subtext">Pending AI Profile Reviews</span>
-        <div class="stat-number" id="recruiterPendingReviews">0</div>
-        <span class="stat-subtext" style="color: var(--warning);" id="recruiterPendingReviewsSubtext">Needs immediate screening</span>
+        <span class="stat-subtext">Candidates Shortlisted</span>
+        <div class="stat-number" id="recruiterShortlisted">0</div>
+        <span class="stat-subtext" style="color: var(--warning);" id="recruiterShortlistedSubtext">0 in shortlist</span>
       </div>
       <div class="glass-panel stat-card">
         <span class="stat-subtext">Interviews Scheduled</span>
         <div class="stat-number" id="recruiterInterviews">0</div>
-        <span class="stat-subtext" style="color: var(--accent-secondary);" id="recruiterInterviewsSubtext">0 scheduled this week</span>
+        <span class="stat-subtext" style="color: var(--accent-secondary);" id="recruiterInterviewsSubtext">0 scheduled</span>
+      </div>
+      <div class="glass-panel stat-card">
+        <span class="stat-subtext">Candidates Hired</span>
+        <div class="stat-number" id="recruiterHired">0</div>
+        <span class="stat-subtext" style="color: #10b981;" id="recruiterHiredSubtext">0 hired to date</span>
       </div>
     </section>
 
     <!-- Split Main Area -->
     <div class="dashboard-split">
-      <!-- Left side: Recent Applicants Table -->
-      <section class="glass-panel applicants-table-wrap">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h2 style="font-size: 1.25rem;">Recent Applicants</h2>
-          <a href="applicants.html" style="color: var(--accent-tertiary); font-size: 0.9rem; font-weight: 600;">View
-            Pipeline &rarr;</a>
-        </div>
-
-        <table class="recruiter-table">
-          <thead>
-            <tr>
-              <th>Candidate</th>
-              <th>Applied Role</th>
-              <th>AI Fit Index</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="dashboardApplicantsContainer">
-            <!-- Populated via Javascript -->
-          </tbody>
-        </table>
-      </section>
-
-      <!-- Right side: Quick Shortcuts -->
+      <!-- Left side: Quick Shortcuts -->
       <aside class="glass-panel shortcuts-panel">
         <h2
           style="font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 10px;">
@@ -256,6 +237,30 @@
           </div>
         </div>
       </aside>
+
+      <!-- Right side: Candidates List Table -->
+      <section class="glass-panel applicants-table-wrap">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="font-size: 1.25rem;">Candidates List</h2>
+          <a href="applicants.html" style="color: var(--accent-tertiary); font-size: 0.9rem; font-weight: 600;">View
+            Pipeline &rarr;</a>
+        </div>
+
+        <table class="recruiter-table">
+          <thead>
+            <tr>
+              <th>Candidate</th>
+              <th>Applied Role</th>
+              <th>AI Fit Index</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="dashboardApplicantsContainer">
+            <!-- Populated via Javascript -->
+          </tbody>
+        </table>
+      </section>
     </div>
   </main>
 
@@ -282,16 +287,20 @@
       document.getElementById('recruiterActiveJobsSubtext').textContent = `${jobsCount} postings active`;
 
       const totalScreened = list.length;
-      document.getElementById('recruiterTotalCandidates').textContent = totalScreened;
-      document.getElementById('recruiterTotalCandidatesSubtext').textContent = totalScreened > 0 ? `+${totalScreened} candidates total` : 'No candidates registered yet';
+      document.getElementById('recruiterCandidatesApplied').textContent = totalScreened;
+      document.getElementById('recruiterCandidatesAppliedSubtext').textContent = totalScreened > 0 ? `+${totalScreened} candidates total` : 'No candidates registered yet';
 
-      const pendingReviews = list.filter(c => c.status === 'Applied' || c.status === 'Reviewing').length;
-      document.getElementById('recruiterPendingReviews').textContent = pendingReviews;
-      document.getElementById('recruiterPendingReviewsSubtext').textContent = pendingReviews > 0 ? `${pendingReviews} pending screening` : 'No pending reviews';
+      const shortlistedCount = list.filter(c => c.status === 'Shortlisted').length;
+      document.getElementById('recruiterShortlisted').textContent = shortlistedCount;
+      document.getElementById('recruiterShortlistedSubtext').textContent = `${shortlistedCount} shortlisted`;
 
       const interviews = list.filter(c => c.status === 'Interviewing').length;
       document.getElementById('recruiterInterviews').textContent = interviews;
-      document.getElementById('recruiterInterviewsSubtext').textContent = `${interviews} scheduled overall`;
+      document.getElementById('recruiterInterviewsSubtext').textContent = `${interviews} scheduled`;
+
+      const hiredCount = list.filter(c => c.status === 'Hired').length;
+      document.getElementById('recruiterHired').textContent = hiredCount;
+      document.getElementById('recruiterHiredSubtext').textContent = `${hiredCount} hired overall`;
       
       container.innerHTML = '';
 
@@ -306,10 +315,8 @@
         return;
       }
 
-      // Display top 5 recent applicants
-      const recent = list.slice(0, 5);
-
-      recent.forEach(c => {
+      // Display all candidates
+      list.forEach(c => {
         const row = document.createElement('tr');
 
         let matchClass = 'background: rgba(6,182,212,0.1); color: var(--accent-secondary); border: 1px solid rgba(6,182,212,0.3);';
@@ -326,6 +333,8 @@
           statusBadge = `<span class="badge" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3);">${c.status}</span>`;
         } else if (c.status === 'Shortlisted') {
           statusBadge = `<span class="badge badge-success">${c.status}</span>`;
+        } else if (c.status === 'Hired') {
+          statusBadge = `<span class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3);">${c.status}</span>`;
         }
 
         row.innerHTML = `
@@ -336,13 +345,13 @@
               </div>
               <div>
                 <div class="candidate-name">${c.name}</div>
-                <div class="candidate-role">${c.date}</div>
+                <div class="candidate-role">${c.date || (c.appliedAt ? new Date(c.appliedAt).toLocaleDateString() : 'Recent')}</div>
               </div>
             </div>
           </td>
-          <td>${c.role}</td>
+          <td>${c.role || c.jobTitle || 'General Position'}</td>
           <td>
-            <span class="match-tag" style="${matchClass}">${c.match}% Fit</span>
+            <span class="match-tag" style="${matchClass}">${c.match || 75}% Fit</span>
           </td>
           <td>${statusBadge}</td>
           <td>
@@ -377,12 +386,10 @@
 
         let jobsCount = 0;
         try {
-          const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?limit=10000&t=${Date.now()}`);
+          const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?company=${encodeURIComponent(companyName)}&limit=1&t=${Date.now()}`);
           if (jobsRes.ok) {
             const data = await jobsRes.json();
-            const jobsList = Array.isArray(data) ? data : (data.jobs || []);
-            const companyJobs = jobsList.filter(j => j.company.toLowerCase() === companyName.toLowerCase());
-            jobsCount = companyJobs.length;
+            jobsCount = data.total || 0;
           }
         } catch (jobErr) {
           console.warn("Failed to fetch jobs for recruiter stats:", jobErr);
