@@ -104,10 +104,11 @@ document.addEventListener("DOMContentLoaded", () => {
       // 4. Identify role and check authentication
       const isLanding = !isRecruiter && !isSeeker;
       const isJobsPage = window.location.pathname.includes('jobs.html');
+      const isAuthPage = window.location.pathname.includes('login_signup.html');
       const authKey = isRecruiter ? 'recruiter_logged_in' : 'seeker_logged_in';
       const isLoggedIn = localStorage.getItem(authKey) === 'true';
 
-      if (!isLanding && !isJobsPage) {
+      if (!isLanding && !isJobsPage && !isAuthPage) {
         if (!isLoggedIn) {
           window.location.href = 'login_signup.html';
           return;

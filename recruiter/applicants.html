@@ -324,8 +324,12 @@
           badgeStatus = `<span class="badge" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">${c.status}</span>`;
         }
 
+        const avatarHtml = c.avatarUrl 
+          ? `<img src="${c.avatarUrl}" alt="${c.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />`
+          : c.name.split(' ').map(n=>n[0]).join('');
+
         item.innerHTML = `
-          <div class="applicant-avatar">${c.name.split(' ').map(n=>n[0]).join('')}</div>
+          <div class="applicant-avatar">${avatarHtml}</div>
           <div class="applicant-info">
             <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
               <h3>${c.name}</h3>
@@ -350,7 +354,11 @@
       selectedCandidate = applicantsList.find(c => c.id === id);
       if (!selectedCandidate) return;
 
-      document.getElementById('drawerAvatar').textContent = selectedCandidate.name.split(' ').map(n=>n[0]).join('');
+      if (selectedCandidate.avatarUrl) {
+        document.getElementById('drawerAvatar').innerHTML = `<img src="${selectedCandidate.avatarUrl}" alt="${selectedCandidate.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />`;
+      } else {
+        document.getElementById('drawerAvatar').textContent = selectedCandidate.name.split(' ').map(n=>n[0]).join('');
+      }
       document.getElementById('drawerName').textContent = selectedCandidate.name;
       document.getElementById('drawerAppliedRole').textContent = `Applied for: ${selectedCandidate.role}`;
       

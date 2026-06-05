@@ -21,9 +21,9 @@
     .chat-layout {
       display: grid;
       grid-template-columns: 320px 1fr;
-      gap: 20px;
-      height: calc(100vh - 120px);
-      margin-top: 20px;
+      gap: 24px;
+      height: calc(100vh - 140px);
+      margin-top: 24px;
     }
 
     @media (max-width: 800px) {
@@ -38,33 +38,66 @@
 
     /* Chats List Sidebar */
     .chat-sidebar {
-      padding: 24px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 12px;
       overflow-y: auto;
+    }
+    
+    .chat-sidebar h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 8px;
     }
 
     .candidate-chat-item {
-      padding: 12px;
-      border-radius: var(--radius-md);
+      padding: 14px;
+      border-radius: 12px;
       cursor: pointer;
       display: grid;
       grid-template-columns: auto 1fr;
       gap: 12px;
       align-items: center;
-      border: 1px solid transparent;
-      transition: var(--transition-fast);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.01);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .candidate-chat-item:hover, .candidate-chat-item.active {
-      background: rgba(255, 255, 255, 0.04);
-      border-color: var(--glass-border);
+    body.light-theme .candidate-chat-item {
+      border: 1px solid rgba(0, 0, 0, 0.03);
+      background: rgba(0, 0, 0, 0.01);
+    }
+
+    .candidate-chat-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+    }
+
+    body.light-theme .candidate-chat-item:hover {
+      background: rgba(0, 0, 0, 0.02);
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .candidate-chat-item.active {
+      background: rgba(162, 28, 175, 0.08);
+      border-color: rgba(162, 28, 175, 0.3);
+      box-shadow: 0 4px 20px rgba(162, 28, 175, 0.05);
+    }
+
+    body.light-theme .candidate-chat-item.active {
+      background: rgba(162, 28, 175, 0.05);
+      border-color: rgba(162, 28, 175, 0.2);
     }
 
     .chat-avatar {
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--accent-tertiary), var(--accent-primary));
       display: flex;
@@ -72,6 +105,10 @@
       justify-content: center;
       color: #fff;
       font-weight: 700;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 12px rgba(162, 28, 175, 0.2);
+      overflow: hidden;
+      flex-shrink: 0;
     }
 
     .chat-meta {
@@ -80,8 +117,9 @@
 
     .chat-meta h3 {
       font-size: 0.95rem;
-      font-weight: 700;
-      margin-bottom: 2px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text-main);
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
@@ -104,33 +142,41 @@
     }
 
     .chat-header-pane {
-      padding: 20px 30px;
-      border-bottom: 1px solid var(--glass-border);
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border-subtle);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: rgba(24, 24, 27, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    body.light-theme .chat-header-pane {
+      background: rgba(255, 255, 255, 0.2);
     }
 
     .chat-body-messages {
       flex: 1;
-      padding: 30px;
+      padding: 24px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
+      background: rgba(10, 11, 16, 0.1);
     }
 
     /* Bubbles */
     .chat-bubble {
       display: flex;
       gap: 12px;
-      max-width: 75%;
-      animation: msgAppear 0.25s ease-out;
+      max-width: 70%;
+      align-items: flex-end;
+      animation: msgAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     @keyframes msgAppear {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .bubble-employer {
@@ -139,35 +185,62 @@
     }
 
     .bubble-text {
-      padding: 14px 18px;
-      border-radius: var(--radius-lg);
-      font-size: 0.92rem;
-      line-height: 1.5;
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
 
     .text-candidate {
       background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--glass-border);
-      border-top-left-radius: 4px;
+      border: 1px solid var(--border-subtle);
+      border-bottom-left-radius: 4px;
       color: var(--text-main);
     }
 
+    body.light-theme .text-candidate {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
     .text-employer {
-      background: var(--accent-tertiary);
-      border-top-right-radius: 4px;
+      background: linear-gradient(135deg, var(--accent-tertiary), #a21caf);
+      border-bottom-right-radius: 4px;
       color: #fff;
+      box-shadow: 0 4px 12px rgba(162, 28, 175, 0.15);
     }
 
     /* Message Send Footer */
     .chat-footer-input {
-      padding: 20px 30px;
-      border-top: 1px solid var(--glass-border);
-      background: rgba(10, 11, 16, 0.4);
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(24, 24, 27, 0.4);
+      backdrop-filter: blur(10px);
+    }
+
+    body.light-theme .chat-footer-input {
+      background: rgba(255, 255, 255, 0.4);
     }
 
     .chat-send-form {
       display: flex;
       gap: 12px;
+      align-items: center;
+    }
+
+    /* Custom Scrollbar for premium feel */
+    .chat-sidebar::-webkit-scrollbar,
+    .chat-body-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-sidebar::-webkit-scrollbar-thumb,
+    .chat-body-messages::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+    body.light-theme .chat-sidebar::-webkit-scrollbar-thumb,
+    body.light-theme .chat-body-messages::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.05);
     }
 
     /* Typing Dots */
@@ -347,6 +420,10 @@
         const isActive = email === activeChatEmail;
         const initials = conv.seekerName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
 
+        const avatarHtml = lastMsgObj && lastMsgObj.seekerAvatarUrl 
+          ? `<img src="${lastMsgObj.seekerAvatarUrl}" alt="${conv.seekerName}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />`
+          : initials;
+
         const item = document.createElement('div');
         item.className = `candidate-chat-item ${isActive ? 'active' : ''}`;
         item.onclick = () => {
@@ -360,7 +437,7 @@
           : '';
 
         item.innerHTML = `
-          <div class="chat-avatar">${initials}</div>
+          <div class="chat-avatar">${avatarHtml}</div>
           <div class="chat-meta">
             <h3 style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
               <span>${conv.seekerName}</span>
@@ -405,9 +482,14 @@
         const initials = isEmployer ? 'HR' : conv.seekerName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
         const textClass = isEmployer ? 'text-employer' : 'text-candidate';
         const avatarColorStyle = isEmployer ? 'background: linear-gradient(135deg, var(--accent-tertiary), var(--accent-primary));' : '';
+        const avatarHtml = isEmployer 
+          ? initials 
+          : (m.seekerAvatarUrl 
+              ? `<img src="${m.seekerAvatarUrl}" alt="${conv.seekerName}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />`
+              : initials);
 
         bubble.innerHTML = `
-          <div class="chat-avatar" style="${avatarColorStyle}">${initials}</div>
+          <div class="chat-avatar" style="${avatarColorStyle}">${avatarHtml}</div>
           <div class="bubble-text ${textClass}">${m.text}</div>
         `;
 

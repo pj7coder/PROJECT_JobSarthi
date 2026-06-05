@@ -546,7 +546,7 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
             <input type="text" id="jobSearch" class="search-control" placeholder="Search roles, skills, or companies..."
-              onkeyup="filterJobs()">
+              onkeyup="debouncedFilterJobs()">
           </div>
           <button class="btn btn-primary" style="padding-left: 28px; padding-right: 28px;"
             onclick="filterJobs()">Search</button>
@@ -673,7 +673,7 @@
     // Pagination variables
     let lastFilteredJobs = [];
     let currentPage = 1;
-    const jobsPerPage = 50;
+    const jobsPerPage = 20;
 
     const indianStates = [
       "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
@@ -1077,6 +1077,14 @@
       filterJobs(false);
     }
  
+    let debounceTimer;
+    function debouncedFilterJobs(keepPage = false) {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        filterJobs(keepPage);
+      }, 300);
+    }
+
     function filterJobs(keepPage = false) {
       if (!keepPage) {
         currentPage = 1;

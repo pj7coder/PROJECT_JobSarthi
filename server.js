@@ -617,9 +617,12 @@ async function loadCachedSampleJobs() {
     }
   } catch (err) {
     console.error("Failed to load sample jobs into memory cache:", err);
-    cachedSampleJobs = [];
   }
 }
+
+let jobsCache = null;
+let jobsCacheTime = 0;
+const JOBS_CACHE_DURATION = 10000; // 10 seconds in-memory cache
 
 // Unified Database CRUD Operations
 const dbService = {
@@ -648,6 +651,9 @@ const dbService = {
     return user;
   },
   getJobs: async () => {
+    if (jobsCache && (Date.now() - jobsCacheTime < JOBS_CACHE_DURATION)) {
+      return jobsCache;
+    }
     let jobs = [];
     if (mongoDb) {
       // Sort jobs so that newly created jobs are listed first
@@ -661,7 +667,9 @@ const dbService = {
       !(j.company === "PixelPerfect Labs" && j.title.toLowerCase().includes("product designer")) &&
       !(j.company === "InnovateTech" && j.title.toLowerCase().includes("frontend"))
     );
-    return [...filteredJobs, ...cachedSampleJobs];
+    jobsCache = [...filteredJobs, ...cachedSampleJobs];
+    jobsCacheTime = Date.now();
+    return jobsCache;
   },
   findJobById: async (id) => {
     if (mongoDb) {
@@ -679,6 +687,7 @@ const dbService = {
     return job;
   },
   createJob: async (job) => {
+    jobsCache = null; // Invalidate cache on new job creation
     if (mongoDb) {
       await mongoDb.collection("jobs").insertOne(job);
       return job;
@@ -1257,7 +1266,7 @@ app.get("/api/jobs", async (req, res) => {
     }
 
     const currentPage = parseInt(page) || 1;
-    const currentLimit = parseInt(limit) || 50;
+    const currentLimit = parseInt(limit) || 20;
 
     let jobs = await dbService.getJobs();
     let seekerProfile = null;
@@ -1506,7 +1515,8 @@ app.get("/api/recruiter/applicants", async (req, res) => {
         cgpa: user?.profile?.cgpa || "N/A",
         certificates: user?.profile?.certificates || [],
         resumeFileName: user?.profile?.resumeFileName || "",
-        resumeUrl: user?.profile?.resumeUrl || ""
+        resumeUrl: user?.profile?.resumeUrl || "",
+        avatarUrl: user?.profile?.avatarUrl || ""
       });
     }
 
@@ -1562,7 +1572,21 @@ app.get("/api/messages", async (req, res) => {
     }
 
     const messages = await dbService.getMessages(query);
-    res.json(messages);
+    
+    // Batch fetch user avatar urls to prevent database query amplification
+    const seekerEmails = [...new Set(messages.map(m => m.seekerEmail))];
+    const emailToAvatar = {};
+    for (const email of seekerEmails) {
+      const user = await dbService.findUserByEmail(email);
+      emailToAvatar[email.toLowerCase()] = user?.profile?.avatarUrl || "";
+    }
+
+    const enrichedMessages = messages.map(m => ({
+      ...m,
+      seekerAvatarUrl: emailToAvatar[m.seekerEmail.toLowerCase()] || ""
+    }));
+
+    res.json(enrichedMessages);
   } catch (err) {
     console.error("Failed to load messages:", err);
     res.status(500).json({ error: "Failed to read messages." });
