@@ -36,9 +36,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (isRecruiter) {
     prefix = '../';
     headerVarName = 'headerRecruiterHTML';
+    document.body.classList.add('recruiter-page');
   } else if (isSeeker) {
     prefix = '../';
     headerVarName = 'headerSeekerHTML';
+    document.body.classList.add('seeker-page');
   }
 
   const headerWrapper = document.querySelector('.header-wrapper');
