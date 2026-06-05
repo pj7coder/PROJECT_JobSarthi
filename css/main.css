@@ -51,6 +51,12 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-full: 9999px;
+
+  /* Dome specific defaults */
+  --dome-overlay-color: rgba(9, 9, 11, 0.95);
+  --dome-item-bg: rgba(255, 255, 255, 0.05);
+  --dome-item-border: rgba(255, 255, 255, 0.1);
+  --dome-item-hover-bg: rgba(255, 255, 255, 0.1);
 }
 
 /* Light Theme Variables */
@@ -75,6 +81,12 @@ body.light-theme {
   --sarthi-bg-expanded: rgba(255, 255, 255, 0.9);
   --sarthi-header-bg: rgba(255, 255, 255, 0.55);
   --sarthi-dot-inactive: rgba(0, 0, 0, 0.25);
+
+  /* Dome specific light theme */
+  --dome-overlay-color: rgba(255, 255, 255, 0.95);
+  --dome-item-bg: rgba(9, 9, 11, 0.03);
+  --dome-item-border: rgba(9, 9, 11, 0.08);
+  --dome-item-hover-bg: rgba(9, 9, 11, 0.06);
 }
 
 * {
@@ -2144,12 +2156,12 @@ main.sphere-main {
 }
 
 .overlay {
-  background-image: radial-gradient(rgba(10, 10, 12, 0) 55%, rgba(10, 10, 12, 0.95) 100%);
+  background-image: radial-gradient(transparent 55%, var(--dome-overlay-color) 100%);
 }
 
 .overlay--blur {
-  -webkit-mask-image: radial-gradient(rgba(10, 10, 12, 0) 60%, rgba(10, 10, 12, 1) 90%);
-  mask-image: radial-gradient(rgba(10, 10, 12, 0) 60%, rgba(10, 10, 12, 1) 90%);
+  -webkit-mask-image: radial-gradient(transparent 60%, var(--dome-overlay-color) 90%);
+  mask-image: radial-gradient(transparent 60%, var(--dome-overlay-color) 90%);
   backdrop-filter: blur(1.5px);
 }
 
@@ -2177,8 +2189,8 @@ main.sphere-main {
   justify-content: center;
   inset: 2px;
   border-radius: var(--tile-radius, 14px);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--dome-item-bg);
+  border: 1px solid var(--dome-item-border);
   overflow: hidden;
   backface-visibility: hidden;
   transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
@@ -2195,7 +2207,7 @@ main.sphere-main {
 }
 
 .item__image:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--dome-item-hover-bg);
   border-color: rgba(6, 182, 212, 0.5);
   transform: translateZ(15px);
 }
@@ -2221,7 +2233,7 @@ main.sphere-main {
   height: 80px;
   z-index: 5;
   pointer-events: none;
-  background: linear-gradient(to bottom, transparent, rgba(10, 10, 12, 0.95));
+  background: linear-gradient(to bottom, transparent, var(--dome-overlay-color));
 }
 
 .edge-fade--top {
