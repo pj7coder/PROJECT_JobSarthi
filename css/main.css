@@ -2088,8 +2088,8 @@ body.seeker-page .custom-select-options:focus {
 .sphere-root {
   position: relative;
   width: 100%;
-  height: 480px;
-  --radius: 320px;
+  height: 560px;
+  --radius: 380px;
   --circ: calc(var(--radius) * 3.14159);
   --rot-y: calc((360deg / var(--segments-x)) / 2);
   --rot-x: calc((360deg / var(--segments-y)) / 2);

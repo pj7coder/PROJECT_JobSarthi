@@ -99,8 +99,8 @@ class DomeGallery {
         items.push({
           x: -cols + c * 2,
           y: y * 2.2,
-          sizeX: 2,
-          sizeY: 2,
+          sizeX: 2.8,
+          sizeY: 1.6,
           src: src,
           alt: 'Employer Badge'
         });

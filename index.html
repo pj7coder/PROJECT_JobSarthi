@@ -1061,27 +1061,20 @@
 
     <!-- 3D Dome Gallery and Employer Partner Section -->
     <section id="employer-gallery-section" style="padding: 100px 0; background: var(--bg-dark); border-top: 1px solid var(--border-subtle); overflow: hidden; position: relative;">
-      <!-- Subtle Ambient Glows -->
-      <div style="position: absolute; top: 50%; left: 80%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, transparent 70%); transform: translate(-50%, -50%); pointer-events: none; z-index: 1;"></div>
-      <div style="position: absolute; top: 30%; left: 10%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(168, 85, 247, 0.04) 0%, transparent 70%); transform: translate(-50%, -50%); pointer-events: none; z-index: 1;"></div>
 
       <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2;">
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 48px;">
           
           <!-- Column 1: Interactive 3D Dome Gallery -->
-          <div style="flex: 1 1 500px; display: flex; align-items: center; justify-content: center; position: relative; min-height: 480px;">
-            <div id="domeGalleryContainer" style="width: 100%; height: 480px;"></div>
+          <div style="flex: 1 1 500px; display: flex; align-items: center; justify-content: center; position: relative; min-height: 560px;">
+            <div id="domeGalleryContainer" style="width: 100%; height: 560px;"></div>
           </div>
           
           <!-- Column 2: Compelling Copy & Stats -->
           <div style="flex: 1 1 450px; display: flex; flex-direction: column; gap: 24px; text-align: left;">
-            <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.2); border-radius: 20px; padding: 6px 16px; width: fit-content;">
-              <span style="width: 6px; height: 6px; border-radius: 50%; background: #06b6d4; display: inline-block; box-shadow: 0 0 8px #06b6d4;"></span>
-              <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #06b6d4; font-family: var(--font-sans);">PARTNER NETWORK</span>
-            </div>
             
             <h2 style="font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 800; line-height: 1.2; letter-spacing: -1px; color: #fff; margin: 0; font-family: var(--font-sans);">
-              Direct Pipelines to <span style="background: linear-gradient(135deg, #06b6d4, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">2,500+ Top Brands</span>
+              Direct Pipelines to <span style="color: #06b6d4;">250+ Top Brands</span>
             </h2>
             
             <p style="font-size: 1.05rem; line-height: 1.6; color: var(--text-dark); margin: 0; font-family: var(--font-sans);">
@@ -1095,7 +1088,7 @@
                 <p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; font-family: var(--font-sans);">Average Application Dispatch Time</p>
               </div>
               <div>
-                <h3 style="font-size: 2.2rem; font-weight: 800; color: #a855f7; margin: 0; font-family: var(--font-sans);">94%</h3>
+                <h3 style="font-size: 2.2rem; font-weight: 800; color: #06b6d4; margin: 0; font-family: var(--font-sans);">94%</h3>
                 <p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; font-family: var(--font-sans);">ATS Compatibility Pass Rate</p>
               </div>
             </div>
@@ -2043,8 +2036,8 @@
             ];
             new DomeGallery(domeContainer, {
               images: companyImages,
-              segments: 24,
-              radius: 320,
+              segments: 20,
+              radius: 380,
               dragSensitivity: 0.18,
               dragDampening: 0.94,
               autoRotateSpeed: 0.04
