@@ -1332,7 +1332,11 @@ app.get("/api/jobs", async (req, res) => {
     let filtered = jobs.filter(job => {
       // 0. Company filter
       if (company) {
-        if (!job.company || job.company.toLowerCase() !== company.toLowerCase()) return false;
+        if (company.toLowerCase() === "jobsarthi recruiter") {
+          if (job.company.toLowerCase() !== "jobsarthi recruiter" && !job.isSample) return false;
+        } else {
+          if (!job.company || job.company.toLowerCase() !== company.toLowerCase()) return false;
+        }
       }
 
       // 1. Search text query filter
