@@ -2111,7 +2111,7 @@ If it is a SUBSEQUENT question:
     } else if (process.env.GEMINI_API_KEY) {
       console.log(`[Sarthi AI] Generating question using Gemini... isFirstQuestion: ${isFirstQuestion}`);
       const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
       
       // Map OpenAI messages format to Gemini contents format
       const geminiContents = messages.map(msg => {
@@ -2305,7 +2305,7 @@ app.post("/api/seeker/profile", async (req, res) => {
         }
         console.log("Uploading resume to Cloudinary...");
         // Resumes (PDF, DOCX) should be uploaded as raw/auto
-        const secureUrl = await uploadToCloudinary(profile.resumeBase64, "auto");
+        const secureUrl = await uploadToCloudinary(profile.resumeBase64, "raw");
         profile.resumeUrl = secureUrl;
         delete profile.resumeBase64; // Remove heavy raw base64 so we don't store it in DB
       }
@@ -2327,7 +2327,7 @@ app.post("/api/seeker/profile", async (req, res) => {
           const cert = profile.certificates[i];
           if (cert.fileUrl && cert.fileUrl.startsWith("data:")) {
             console.log(`Uploading certificate "${cert.title}" to Cloudinary...`);
-            const secureUrl = await uploadToCloudinary(cert.fileUrl, "auto");
+            const secureUrl = await uploadToCloudinary(cert.fileUrl, "raw");
             cert.fileUrl = secureUrl;
           }
         }
@@ -2452,6 +2452,54 @@ app.all("/api/admin/jobs/collect", async (req, res) => {
   } catch (err) {
     console.error("Job collection endpoint error:", err);
     res.status(500).json({ error: "Job collection pipeline failed." });
+  }
+});
+
+app.get("/api/resume/view", async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) {
+      return res.status(400).send("URL parameter is required");
+    }
+
+    if (!url.includes("cloudinary.com") && !url.startsWith("http")) {
+      return res.status(400).send("Invalid resource URL");
+    }
+
+    console.log("Proxying file view for:", url);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file from storage: ${response.status}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+    const fileBuffer = Buffer.from(buffer);
+    
+    let contentType = "application/pdf";
+    const magic = fileBuffer.slice(0, 4).toString();
+    if (magic === "%PDF") {
+      contentType = "application/pdf";
+    } else if (url.toLowerCase().endsWith(".docx")) {
+      contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    } else if (url.toLowerCase().endsWith(".doc")) {
+      contentType = "application/msword";
+    } else if (url.toLowerCase().endsWith(".png")) {
+      contentType = "image/png";
+    } else if (url.toLowerCase().endsWith(".jpg") || url.toLowerCase().endsWith(".jpeg")) {
+      contentType = "image/jpeg";
+    } else {
+      const responseContentType = response.headers.get("content-type");
+      if (responseContentType && responseContentType !== "application/octet-stream") {
+        contentType = responseContentType;
+      }
+    }
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", "inline");
+    res.send(fileBuffer);
+  } catch (err) {
+    console.error("Error displaying file:", err);
+    res.status(500).send("Error loading file: " + err.message);
   }
 });
 
