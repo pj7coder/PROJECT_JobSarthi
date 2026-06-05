@@ -2083,3 +2083,152 @@ body.seeker-page .custom-select-options:focus {
   transform: none !important;
   background-image: none !important;
 }
+
+/* ─── DomeGallery Component Styles ─── */
+.sphere-root {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  --radius: 320px;
+  --circ: calc(var(--radius) * 3.14159);
+  --rot-y: calc((360deg / var(--segments-x)) / 2);
+  --rot-x: calc((360deg / var(--segments-y)) / 2);
+  --item-width: calc(var(--circ) / var(--segments-x));
+  --item-height: calc(var(--circ) / var(--segments-y));
+}
+
+.sphere-root * {
+  box-sizing: border-box;
+}
+
+.sphere,
+.item,
+.item__image {
+  transform-style: preserve-3d;
+}
+
+main.sphere-main {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  background: transparent;
+}
+
+.stage {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  perspective: calc(var(--radius) * 2.5);
+  perspective-origin: 50% 50%;
+  contain: layout paint size;
+}
+
+.sphere {
+  transform: translateZ(calc(var(--radius) * -1));
+  will-change: transform;
+}
+
+.overlay,
+.overlay--blur {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.overlay {
+  background-image: radial-gradient(rgba(10, 10, 12, 0) 55%, rgba(10, 10, 12, 0.95) 100%);
+}
+
+.overlay--blur {
+  -webkit-mask-image: radial-gradient(rgba(10, 10, 12, 0) 60%, rgba(10, 10, 12, 1) 90%);
+  mask-image: radial-gradient(rgba(10, 10, 12, 0) 60%, rgba(10, 10, 12, 1) 90%);
+  backdrop-filter: blur(1.5px);
+}
+
+.item {
+  width: calc(var(--item-width) * var(--item-size-x));
+  height: calc(var(--item-height) * var(--item-size-y));
+  position: absolute;
+  top: -999px;
+  bottom: -999px;
+  left: -999px;
+  right: -999px;
+  margin: auto;
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+  transition: transform 300ms;
+  transform: rotateY(calc(var(--rot-y) * (var(--offset-x) + ((var(--item-size-x) - 1) / 2)) + var(--rot-y-delta, 0deg)))
+    rotateX(calc(var(--rot-x) * (var(--offset-y) - ((var(--item-size-y) - 1) / 2)) + var(--rot-x-delta, 0deg)))
+    translateZ(var(--radius));
+}
+
+.item__image {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inset: 8px;
+  border-radius: var(--tile-radius, 14px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  backface-visibility: hidden;
+  transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+  cursor: grab;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  pointer-events: auto;
+  transform: translateZ(0);
+  padding: 12px;
+}
+
+.item__image:active {
+  cursor: grabbing;
+}
+
+.item__image:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(6, 182, 212, 0.5);
+  transform: translateZ(15px);
+}
+
+.item__image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  backface-visibility: hidden;
+  filter: grayscale(0.25) brightness(0.9);
+  transition: filter 0.3s ease;
+}
+
+.item__image:hover img {
+  filter: grayscale(0) brightness(1.1);
+}
+
+.edge-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 80px;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(10, 10, 12, 0.95));
+}
+
+.edge-fade--top {
+  top: 0;
+  transform: rotate(180deg);
+}
+
+.edge-fade--bottom {
+  bottom: 0;
+}

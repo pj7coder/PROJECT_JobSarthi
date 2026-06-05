@@ -1059,6 +1059,52 @@
       style="min-height: 300vh; position: relative; padding: 60px 0; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box;">
     </section>
 
+    <!-- 3D Dome Gallery and Employer Partner Section -->
+    <section id="employer-gallery-section" style="padding: 100px 0; background: var(--bg-dark); border-top: 1px solid var(--border-subtle); overflow: hidden; position: relative;">
+      <!-- Subtle Ambient Glows -->
+      <div style="position: absolute; top: 50%; left: 80%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, transparent 70%); transform: translate(-50%, -50%); pointer-events: none; z-index: 1;"></div>
+      <div style="position: absolute; top: 30%; left: 10%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(168, 85, 247, 0.04) 0%, transparent 70%); transform: translate(-50%, -50%); pointer-events: none; z-index: 1;"></div>
+
+      <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 48px;">
+          
+          <!-- Column 1: Interactive 3D Dome Gallery -->
+          <div style="flex: 1 1 500px; display: flex; align-items: center; justify-content: center; position: relative; min-height: 480px;">
+            <div id="domeGalleryContainer" style="width: 100%; height: 480px;"></div>
+          </div>
+          
+          <!-- Column 2: Compelling Copy & Stats -->
+          <div style="flex: 1 1 450px; display: flex; flex-direction: column; gap: 24px; text-align: left;">
+            <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.2); border-radius: 20px; padding: 6px 16px; width: fit-content;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #06b6d4; display: inline-block; box-shadow: 0 0 8px #06b6d4;"></span>
+              <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #06b6d4; font-family: var(--font-sans);">PARTNER NETWORK</span>
+            </div>
+            
+            <h2 style="font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 800; line-height: 1.2; letter-spacing: -1px; color: #fff; margin: 0; font-family: var(--font-sans);">
+              Direct Pipelines to <span style="background: linear-gradient(135deg, #06b6d4, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">2,500+ Top Brands</span>
+            </h2>
+            
+            <p style="font-size: 1.05rem; line-height: 1.6; color: var(--text-dark); margin: 0; font-family: var(--font-sans);">
+              Skip the traditional application queue. JobSarthi's algorithmic matching maps your skills, portfolio metrics, and verified test credentials directly to key hiring decision makers at leading technology, banking, and creative companies.
+            </p>
+            
+            <!-- Statistics Grid -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 24px;">
+              <div>
+                <h3 style="font-size: 2.2rem; font-weight: 800; color: #06b6d4; margin: 0; font-family: var(--font-sans);">24 ms</h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; font-family: var(--font-sans);">Average Application Dispatch Time</p>
+              </div>
+              <div>
+                <h3 style="font-size: 2.2rem; font-weight: 800; color: #a855f7; margin: 0; font-family: var(--font-sans);">94%</h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; font-family: var(--font-sans);">ATS Compatibility Pass Rate</p>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- Live Mini Sarthi Chat Widget -->
@@ -1506,9 +1552,9 @@
             sizeChanged = false;
           }
 
-          if (sarthiMode === 'scrollExpanded') {
+          if (sarthiMode === 'scrollExpanded' && sarthiScrollSectionEl) {
             const start = cachedSectionTopDoc - H + 200;
-            const end = cachedMaxScroll - 30;
+            const end = cachedSectionTopDoc + sarthiScrollSectionEl.offsetHeight - H;
             if (end > start) {
               const totalScrollDistance = end - start;
               const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
@@ -1579,12 +1625,12 @@
           }
 
           let nextMode = 'minimized';
-          if (cachedMaxScroll > 0) {
+          if (sarthiScrollSectionEl) {
             // Only switch to scrollExpanded once the Sarthi section has scrolled almost to the top of the viewport
-            // cachedSectionTopDoc = absolute top of the section
-            // This prevents overlapping with the review section above it.
+            // and remains active until scrolling past the section.
             const sectionEntersViewport = cachedSectionTopDoc - 500;
-            if (window.scrollY >= sectionEntersViewport && cachedSectionTopDoc > 0) {
+            const sectionLeavesViewport = cachedSectionTopDoc + sarthiScrollSectionEl.offsetHeight - 150;
+            if (window.scrollY >= sectionEntersViewport && window.scrollY <= sectionLeavesViewport && cachedSectionTopDoc > 0) {
               nextMode = 'scrollExpanded';
             }
           }
@@ -1912,6 +1958,7 @@
       <script src="js/SplitText.js"></script>
       <script src="js/VariableProximity.js"></script>
       <script src="js/LogoLoop.js"></script>
+      <script src="js/DomeGallery.js"></script>
 
       <!-- JobSarthi Shared Header Script -->
       <script src="js/header.js"></script>
@@ -1961,6 +2008,46 @@
               hoverSpeed: 0,
               scaleOnHover: true,
               fadeOut: true
+            });
+          }
+
+          // Initialize Interactive 3D DomeGallery
+          const domeContainer = document.getElementById('domeGalleryContainer');
+          if (domeContainer) {
+            const companyImages = [
+              'assets/company/cmp1.png',
+              'assets/company/cmp2.png',
+              'assets/company/cmp3.jpg',
+              'assets/company/cmp4.png',
+              'assets/company/cmp5.png',
+              'assets/company/cmp6.png',
+              'assets/company/cmp7.png',
+              'assets/company/cmp8.png',
+              'assets/company/cmp9.png',
+              'assets/company/cmp10.png',
+              'assets/company/cmp11.png',
+              'assets/company/cmp12.png',
+              'assets/company/cmp13.png',
+              'assets/company/cmp14.png',
+              'assets/company/cmp15.png',
+              'assets/company/cmp16.png',
+              'assets/company/cmp17.jpg',
+              'assets/company/cmp18.png',
+              'assets/company/cmp19.png',
+              'assets/company/cmp20.png',
+              'assets/company/cmp21.png',
+              'assets/company/cmp22.png',
+              'assets/company/cmp23.png',
+              'assets/company/cmp24.jpg',
+              'assets/company/cmp25.jpg'
+            ];
+            new DomeGallery(domeContainer, {
+              images: companyImages,
+              segments: 24,
+              radius: 320,
+              dragSensitivity: 0.18,
+              dragDampening: 0.94,
+              autoRotateSpeed: 0.04
             });
           }
         });
