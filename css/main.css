@@ -51,12 +51,6 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-full: 9999px;
-
-  /* Dome specific defaults */
-  --dome-overlay-color: rgba(9, 9, 11, 0.95);
-  --dome-item-bg: rgba(255, 255, 255, 0.05);
-  --dome-item-border: rgba(255, 255, 255, 0.1);
-  --dome-item-hover-bg: rgba(255, 255, 255, 0.1);
 }
 
 /* Light Theme Variables */
@@ -81,12 +75,6 @@ body.light-theme {
   --sarthi-bg-expanded: rgba(255, 255, 255, 0.9);
   --sarthi-header-bg: rgba(255, 255, 255, 0.55);
   --sarthi-dot-inactive: rgba(0, 0, 0, 0.25);
-
-  /* Dome specific light theme */
-  --dome-overlay-color: rgba(255, 255, 255, 0.95);
-  --dome-item-bg: rgba(9, 9, 11, 0.03);
-  --dome-item-border: rgba(9, 9, 11, 0.08);
-  --dome-item-hover-bg: rgba(9, 9, 11, 0.06);
 }
 
 * {
@@ -2156,12 +2144,12 @@ main.sphere-main {
 }
 
 .overlay {
-  background-image: radial-gradient(transparent 55%, var(--dome-overlay-color) 100%);
+  background-image: radial-gradient(transparent 55%, var(--bg-primary) 100%);
 }
 
 .overlay--blur {
-  -webkit-mask-image: radial-gradient(transparent 60%, var(--dome-overlay-color) 90%);
-  mask-image: radial-gradient(transparent 60%, var(--dome-overlay-color) 90%);
+  -webkit-mask-image: radial-gradient(transparent 60%, var(--bg-primary) 90%);
+  mask-image: radial-gradient(transparent 60%, var(--bg-primary) 90%);
   backdrop-filter: blur(1.5px);
 }
 
@@ -2189,8 +2177,8 @@ main.sphere-main {
   justify-content: center;
   inset: 2px;
   border-radius: var(--tile-radius, 14px);
-  background: var(--dome-item-bg);
-  border: 1px solid var(--dome-item-border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   backface-visibility: hidden;
   transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
@@ -2202,14 +2190,24 @@ main.sphere-main {
   padding: 0;
 }
 
+body.light-theme .item__image {
+  background: rgba(9, 9, 11, 0.04);
+  border: 1px solid rgba(9, 9, 11, 0.08);
+}
+
 .item__image:active {
   cursor: grabbing;
 }
 
 .item__image:hover {
-  background: var(--dome-item-hover-bg);
+  background: rgba(255, 255, 255, 0.1);
   border-color: rgba(6, 182, 212, 0.5);
   transform: translateZ(15px);
+}
+
+body.light-theme .item__image:hover {
+  background: rgba(9, 9, 11, 0.07);
+  border-color: rgba(6, 182, 212, 0.6);
 }
 
 .item__image img {
@@ -2222,8 +2220,16 @@ main.sphere-main {
   transition: filter 0.3s ease;
 }
 
+body.light-theme .item__image img {
+  filter: grayscale(0.1) brightness(0.95);
+}
+
 .item__image:hover img {
   filter: grayscale(0) brightness(1.1);
+}
+
+body.light-theme .item__image:hover img {
+  filter: grayscale(0) brightness(1.0);
 }
 
 .edge-fade {
@@ -2233,7 +2239,7 @@ main.sphere-main {
   height: 80px;
   z-index: 5;
   pointer-events: none;
-  background: linear-gradient(to bottom, transparent, var(--dome-overlay-color));
+  background: linear-gradient(to bottom, transparent, var(--bg-primary));
 }
 
 .edge-fade--top {
