@@ -70,15 +70,32 @@ class VariableProximity {
       });
     }
     
+    // Cache positions
+    this.updateLetterPositions();
+    
     // Event listeners for mouse and touch positioning
     this.boundHandleMouseMove = this.handleMouseMove.bind(this);
     this.boundHandleTouchMove = this.handleTouchMove.bind(this);
+    this.boundResize = this.updateLetterPositions.bind(this);
     
     window.addEventListener('mousemove', this.boundHandleMouseMove, { passive: true });
     window.addEventListener('touchmove', this.boundHandleTouchMove, { passive: true });
+    window.addEventListener('resize', this.boundResize, { passive: true });
+    window.addEventListener('load', this.boundResize, { passive: true });
     
     this.active = true;
     this.loop();
+  }
+  
+  updateLetterPositions() {
+    if (!this.container) return;
+    const containerRect = this.container.getBoundingClientRect();
+    this.letterRefs.forEach(letterRef => {
+      if (!letterRef) return;
+      const rect = letterRef.getBoundingClientRect();
+      letterRef._centerX = rect.left + rect.width / 2 - containerRect.left;
+      letterRef._centerY = rect.top + rect.height / 2 - containerRect.top;
+    });
   }
   
   parseSettings(fromStr, toStr) {
@@ -149,7 +166,6 @@ class VariableProximity {
     requestAnimationFrame(() => this.loop());
     
     if (!this.container || document.body.classList.contains('about-active')) return;
-    const containerRect = this.container.getBoundingClientRect();
     const { x, y } = this.mousePosition;
     
     if (this.lastPosition.x === x && this.lastPosition.y === y) {
@@ -160,10 +176,17 @@ class VariableProximity {
     this.letterRefs.forEach(letterRef => {
       if (!letterRef) return;
       
-      const rect = letterRef.getBoundingClientRect();
-      // Calculate letter center position relative to the container
-      const letterCenterX = rect.left + rect.width / 2 - containerRect.left;
-      const letterCenterY = rect.top + rect.height / 2 - containerRect.top;
+      let letterCenterX = letterRef._centerX;
+      let letterCenterY = letterRef._centerY;
+      if (letterCenterX === undefined || letterCenterY === undefined) {
+        // Fallback if not yet cached
+        const containerRect = this.container.getBoundingClientRect();
+        const rect = letterRef.getBoundingClientRect();
+        letterRef._centerX = rect.left + rect.width / 2 - containerRect.left;
+        letterRef._centerY = rect.top + rect.height / 2 - containerRect.top;
+        letterCenterX = letterRef._centerX;
+        letterCenterY = letterRef._centerY;
+      }
       
       const distance = this.calculateDistance(x, y, letterCenterX, letterCenterY);
       
@@ -188,6 +211,8 @@ class VariableProximity {
     this.active = false;
     window.removeEventListener('mousemove', this.boundHandleMouseMove);
     window.removeEventListener('touchmove', this.boundHandleTouchMove);
+    window.removeEventListener('resize', this.boundResize);
+    window.removeEventListener('load', this.boundResize);
   }
 }
 
