@@ -176,7 +176,7 @@ a {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
   transition: var(--transition-normal);
   padding: 24px;
 }
@@ -186,11 +186,11 @@ a {
   padding: 16px;
 }
 
-.glass-card:hover {
-  border-color: var(--border-focus);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.1);
-  will-change: transform;
+.glass-card:hover,
+.glass-panel:hover {
+  border-color: var(--border-subtle);
+  transform: none;
+  box-shadow: none;
 }
 
 /* Remove spotlight tracking since it feels 'AI made' */
@@ -1930,4 +1930,86 @@ body.light-theme .custom-select-option:hover {
 .custom-select-container[disabled] {
   opacity: 0.4;
   pointer-events: none;
+}
+
+/* Global Reset: No border glow or shadow in the cards in any section in recruiter or seeker page */
+.glass-panel,
+.glass-card,
+.stat-card,
+.metric-card,
+.job-item,
+.applicant-item,
+.review-card,
+.setup-card,
+.question-box,
+.answer-box,
+.report-card,
+.chat-window,
+.chat-sidebar,
+.chat-main,
+.shortcuts-panel,
+.applicants-table-wrap,
+.filter-sidebar,
+.profile-sidebar,
+.pipeline-header,
+.chart-box,
+.interviewer-avatar-panel,
+.search-container,
+.drawer-content,
+.job-card,
+.skill-card-summary,
+.sarthi-tool-card,
+.custom-select-trigger,
+.custom-select-options,
+.btn-glow,
+.btn-primary,
+.header,
+#floatingSarthiBtn,
+#clickExpandedContent,
+.gemini-pill-border {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Hover/active resets to prevent glow, border neon colors, or translation */
+.glass-panel:hover,
+.glass-card:hover,
+.stat-card:hover,
+.metric-card:hover,
+.job-item:hover,
+.applicant-item:hover,
+.review-card:hover,
+.setup-card:hover,
+.question-box:hover,
+.answer-box:hover,
+.report-card:hover,
+.chat-window:hover,
+.chat-sidebar:hover,
+.chat-main:hover,
+.shortcuts-panel:hover,
+.applicants-table-wrap:hover,
+.filter-sidebar:hover,
+.profile-sidebar:hover,
+.pipeline-header:hover,
+.chart-box:hover,
+.shortcut-btn:hover,
+.search-container:hover,
+.drawer-content:hover,
+.job-card:hover,
+.skill-card-summary:hover,
+.sarthi-tool-card:hover,
+.custom-select-trigger:hover,
+.custom-select-options:hover,
+.btn-glow:hover,
+.btn-primary:hover,
+.header:hover,
+#floatingSarthiBtn:hover,
+#clickExpandedContent:hover,
+.gemini-pill-border:hover,
+.custom-select-trigger:focus,
+.custom-select-options:focus {
+  box-shadow: none !important;
+  border-color: var(--border-subtle) !important;
+  transform: none !important;
+  background-image: none !important;
 }
