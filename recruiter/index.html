@@ -171,9 +171,6 @@
     <!-- Welcome Header -->
     <div>
       <h1 style="font-size: 2.2rem; margin-bottom: 6px;">Recruiting Dashboard</h1>
-      <p style="color: var(--text-muted); font-size: 1.05rem;">Welcome back, <span id="companyWelcome"
-          style="color: var(--accent-tertiary);">InnovateTech</span> Recruitment Hub. Here's your talent acquisition
-        status today.</p>
     </div>
 
     <!-- Stats Cards Grid -->
@@ -213,10 +210,10 @@
           style="font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 10px;">
           Quick Shortcuts</h2>
 
-        <div class="shortcut-btn" onclick="window.location.href='create_job.html'">
+        <div class="shortcut-btn" onclick="window.location.href='create_job.html?tab=create'">
           <div class="shortcut-icon">➕</div>
           <div>
-            <h3 style="font-size: 0.95rem; margin-bottom: 4px;">Post a New Job</h3>
+            <h3 style="font-size: 0.95rem; margin-bottom: 4px;">Create Job</h3>
             <p style="color: var(--text-muted); font-size: 0.8rem;">Publish a job listing to search networks.</p>
           </div>
         </div>
@@ -276,7 +273,6 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       const comp = localStorage.getItem('recruiter_company') || 'InnovateTech';
-      document.getElementById('companyWelcome').textContent = comp;
 
       loadDashboardApplicants(comp);
     });

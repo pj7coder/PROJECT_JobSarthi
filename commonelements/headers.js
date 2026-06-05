@@ -257,7 +257,7 @@ window.headerRecruiterHTML = `
     <nav>
       <ul class="nav-links">
         <li><a href="index.html" class="nav-link">Dashboard</a></li>
-        <li><a href="create_job.html" class="nav-link">Create Job</a></li>
+        <li><a href="create_job.html" class="nav-link">Jobs Created</a></li>
         <li><a href="applicants.html" class="nav-link">Applicants</a></li>
         <li><a href="analytics.html" class="nav-link">Analytics</a></li>
         <li><a href="messages.html" class="nav-link">Messages</a></li>
