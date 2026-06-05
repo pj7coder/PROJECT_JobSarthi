@@ -58,8 +58,8 @@
     }
 
     .applicant-item:hover {
-      border-color: rgba(217, 70, 239, 0.25);
-      box-shadow: 0 8px 25px -10px rgba(217, 70, 239, 0.15);
+      border-color: var(--border-subtle);
+      box-shadow: none;
     }
 
     .applicant-avatar {
@@ -159,8 +159,8 @@
     <div class="liquid-blob blob-3"></div>
   </div>
 
-  <div class="bg-glow-1" style="background: radial-gradient(circle, rgba(217, 70, 239, 0.1) 0%, rgba(0,0,0,0) 70%);"></div>
-  <div class="bg-glow-2"></div>
+  <div class="bg-glow-1" style="display: none !important;"></div>
+  <div class="bg-glow-2" style="display: none !important;"></div>
 
   <!-- Recruiter Header (loaded dynamically via js/header.js) -->
   <div class="header-wrapper"></div>
@@ -312,7 +312,7 @@
         if (c.match >= 90) {
           scoreStyle = 'background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.3);';
         } else if (c.match < 75) {
-          scoreStyle = 'background: rgba(217,70,239,0.1); color: var(--accent-tertiary); border: 1px solid rgba(217,70,239,0.3);';
+          scoreStyle = 'background: rgba(99,102,241,0.1); color: var(--accent-secondary); border: 1px solid rgba(99,102,241,0.3);';
         }
 
         let badgeStatus = `<span class="badge badge-warning">${c.status}</span>`;

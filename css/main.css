@@ -1,45 +1,36 @@
 /* JobSarthi - Human Made UI Design System */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* Elegant Dark Mode Palette (Human Made SaaS Style) */
-  --bg-primary: #09090b;
-  /* zinc-950 */
-  --bg-secondary: #18181b;
-  /* zinc-900 */
-  --bg-surface: rgba(24, 24, 27, 0.4);
-  /* Frosted surface */
+  /* Warm Obsidian Theme (Extremely Bespoke Human Made Feel) */
+  --bg-primary: #0a0b0d; 
+  --bg-secondary: #121318;
+  --bg-surface: #181920; 
 
-  --accent-primary: #fafafa;
-  /* Pure white for high contrast */
-  --accent-secondary: #3b82f6;
-  /* Subtle blue */
-  --accent-tertiary: #6366f1;
-  /* Subtle indigo */
+  --accent-primary: #ffffff;
+  --accent-secondary: #4f46e5; /* Royal Indigo */
+  --accent-tertiary: #06b6d4;  /* Tech Cyan */
 
-  --text-main: #fafafa;
-  /* zinc-50 */
-  --text-muted: #a1a1aa;
-  /* zinc-400 */
-  --text-dark: #71717a;
-  /* zinc-500 */
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --text-dark: #6b7280;
 
-  --border-subtle: rgba(255, 255, 255, 0.1);
-  --border-focus: rgba(255, 255, 255, 0.2);
+  --border-subtle: #242630;
+  --border-focus: #373a4b;
 
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
 
   /* Sarthi specific */
-  --sarthi-bg-minimized: rgba(9, 9, 11, 0.7);
-  --sarthi-bg-expanded: rgba(9, 9, 11, 0.85);
-  --sarthi-header-bg: rgba(9, 9, 11, 0.45);
-  --sarthi-dot-inactive: rgba(255, 255, 255, 0.45);
+  --sarthi-bg-minimized: #0a0b0d;
+  --sarthi-bg-expanded: #121318;
+  --sarthi-header-bg: #181920;
+  --sarthi-dot-inactive: #4b5563;
 
   /* Fonts */
-  --font-display: 'Inter', -apple-system, sans-serif;
-  --font-sans: 'Inter', -apple-system, sans-serif;
+  --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
 
   /* Transitions */
   --transition-fast: 0.15s ease;
@@ -55,26 +46,26 @@
 
 /* Light Theme Variables */
 body.light-theme {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f4f4f5;
-  --bg-surface: rgba(255, 255, 255, 0.6);
+  --bg-primary: #fcfcfd;
+  --bg-secondary: #f4f5f7;
+  --bg-surface: #ffffff;
 
-  --accent-primary: #09090b;
-  --accent-secondary: #2563eb;
-  --accent-tertiary: #4f46e5;
+  --accent-primary: #0d0e12;
+  --accent-secondary: #4f46e5;
+  --accent-tertiary: #0d9488;
 
-  --text-main: #09090b;
-  --text-muted: #71717a;
-  --text-dark: #a1a1aa;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-dark: #94a3b8;
 
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-focus: rgba(0, 0, 0, 0.15);
+  --border-subtle: #e2e8f0;
+  --border-focus: #cbd5e1;
 
   /* Sarthi specific */
-  --sarthi-bg-minimized: rgba(255, 255, 255, 0.75);
-  --sarthi-bg-expanded: rgba(255, 255, 255, 0.9);
-  --sarthi-header-bg: rgba(255, 255, 255, 0.55);
-  --sarthi-dot-inactive: rgba(0, 0, 0, 0.25);
+  --sarthi-bg-minimized: #ffffff;
+  --sarthi-bg-expanded: #f8fafc;
+  --sarthi-header-bg: #f1f5f9;
+  --sarthi-dot-inactive: #94a3b8;
 }
 
 * {
@@ -172,8 +163,6 @@ a {
 .glass-panel,
 .glass-card {
   background: var(--bg-surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: none;

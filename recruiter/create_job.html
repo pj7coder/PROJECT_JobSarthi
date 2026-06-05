@@ -118,8 +118,8 @@
     }
 
     .job-item:hover {
-      border-color: rgba(217, 70, 239, 0.25);
-      box-shadow: 0 8px 25px -10px rgba(217, 70, 239, 0.15);
+      border-color: var(--border-subtle);
+      box-shadow: none;
     }
 
     .job-logo {
@@ -238,8 +238,8 @@
     <div class="liquid-blob blob-3"></div>
   </div>
 
-  <div class="bg-glow-1" style="background: radial-gradient(circle, rgba(217, 70, 239, 0.1) 0%, rgba(0,0,0,0) 70%);"></div>
-  <div class="bg-glow-2"></div>
+  <div class="bg-glow-1" style="display: none !important;"></div>
+  <div class="bg-glow-2" style="display: none !important;"></div>
 
   <!-- Recruiter Header (loaded dynamically via js/header.js) -->
   <div class="header-wrapper"></div>
@@ -357,7 +357,7 @@
 
           <div style="margin-top: 30px; display: flex; justify-content: flex-end; gap: 16px;">
             <button type="button" class="btn btn-secondary" onclick="switchTab('list')">Cancel</button>
-            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%);">Publish Job Listing</button>
+            <button type="submit" class="btn btn-primary" style="background: var(--accent-secondary) !important; color: #fff !important;">Publish Job Listing</button>
           </div>
         </form>
       </div>

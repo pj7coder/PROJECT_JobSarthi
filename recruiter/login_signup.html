@@ -51,15 +51,7 @@
     }
 
     .auth-bg-glow {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 550px;
-      height: 550px;
-      background: radial-gradient(circle, rgba(217, 70, 239, 0.16) 0%, rgba(162, 28, 175, 0.06) 45%, rgba(0,0,0,0) 70%);
-      z-index: -1;
-      pointer-events: none;
+      display: none !important;
     }
 
     .back-btn {
@@ -89,7 +81,7 @@
     .logo-icon {
       width: 24px;
       height: 24px;
-      background: linear-gradient(135deg, var(--accent-tertiary) 0%, #a21caf 100%);
+      background: var(--accent-secondary);
       border-radius: 6px;
       display: flex;
       align-items: center;
@@ -110,8 +102,8 @@
       font-size: 0.72rem;
       padding: 2px 8px;
       border-radius: 99px;
-      background: rgba(162, 28, 175, 0.1);
-      color: var(--accent-tertiary);
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--accent-secondary);
       font-weight: 600;
     }
 
@@ -330,7 +322,7 @@
     .btn-primary-solid {
       height: 36px;
       width: 100%;
-      background: linear-gradient(135deg, #a21caf, #d946ef);
+      background: var(--accent-secondary);
       color: #ffffff;
       font-family: var(--font-sans);
       font-size: 0.875rem;
@@ -347,7 +339,7 @@
 
     .btn-primary-solid:hover {
       opacity: 0.95;
-      box-shadow: 0 4px 12px rgba(217, 70, 239, 0.35);
+      box-shadow: none;
     }
 
     .btn-primary-solid:disabled {

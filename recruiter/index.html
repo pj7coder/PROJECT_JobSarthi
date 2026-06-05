@@ -15,16 +15,15 @@
   <link rel="stylesheet" href="../css/main.css">
   <style>
     :root {
-      /* Custom recruiter accent colors (purple/magenta) */
-      --accent-recruiter: var(--accent-tertiary);
+      --accent-recruiter: var(--accent-secondary);
     }
 
     .recruiter-header {
-      border-bottom: 1px solid rgba(217, 70, 239, 0.15);
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .nav-link.recruiter-active::after {
-      background: linear-gradient(90deg, var(--accent-tertiary), var(--accent-primary));
+      background: var(--accent-secondary);
     }
 
     /* Stats Grid */
@@ -133,7 +132,7 @@
 
     .shortcut-btn:hover {
       background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(217, 70, 239, 0.3);
+      border-color: var(--accent-secondary);
       transform: translateX(4px);
     }
 
@@ -141,8 +140,8 @@
       width: 38px;
       height: 38px;
       border-radius: 10px;
-      background: rgba(217, 70, 239, 0.1);
-      color: var(--accent-recruiter);
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--accent-secondary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -159,9 +158,9 @@
     <div class="liquid-blob blob-3"></div>
   </div>
 
-  <div class="bg-glow-1" style="background: radial-gradient(circle, rgba(217, 70, 239, 0.1) 0%, rgba(0,0,0,0) 70%);">
+  <div class="bg-glow-1" style="display: none !important;">
   </div>
-  <div class="bg-glow-2"></div>
+  <div class="bg-glow-2" style="display: none !important;"></div>
 
   <!-- Recruiter Header (loaded dynamically via js/header.js) -->
   <div class="header-wrapper"></div>
@@ -319,7 +318,7 @@
         if (c.match >= 90) {
           matchClass = 'background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.3);';
         } else if (c.match < 75) {
-          matchClass = 'background: rgba(217,70,239,0.1); color: var(--accent-tertiary); border: 1px solid rgba(217,70,239,0.3);';
+          matchClass = 'background: rgba(99,102,241,0.1); color: var(--accent-secondary); border: 1px solid rgba(99,102,241,0.3);';
         }
 
         let statusBadge = `<span class="badge badge-warning">${c.status}</span>`;
