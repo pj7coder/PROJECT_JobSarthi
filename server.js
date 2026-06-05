@@ -592,28 +592,24 @@ let cachedSampleJobs = [];
 async function loadCachedSampleJobs() {
   try {
     const sampleJobsPath = path.join(__dirname, "database", "sample_jobs", "jobs.json");
+    const data = await fs.readFile(sampleJobsPath, "utf-8");
+    cachedSampleJobs = JSON.parse(data);
+    console.log(`Loaded ${cachedSampleJobs.length} sample jobs from local jobs.json directly.`);
+
     if (mongoDb) {
-      cachedSampleJobs = await mongoDb.collection("sample_jobs").find({}).toArray();
-      if (cachedSampleJobs.length === 0) {
-        console.log("MongoDB Atlas sample_jobs collection is empty. Seeding from local jobs.json...");
-        const data = await fs.readFile(sampleJobsPath, "utf-8");
-        const localJobs = JSON.parse(data);
-        if (localJobs.length > 0) {
+      mongoDb.collection("sample_jobs").countDocuments().then(async (count) => {
+        if (count === 0 && cachedSampleJobs.length > 0) {
+          console.log("MongoDB Atlas sample_jobs collection is empty. Seeding from local jobs.json in background...");
           const chunkSize = 1000;
-          for (let i = 0; i < localJobs.length; i += chunkSize) {
-            const chunk = localJobs.slice(i, i + chunkSize);
+          for (let i = 0; i < cachedSampleJobs.length; i += chunkSize) {
+            const chunk = cachedSampleJobs.slice(i, i + chunkSize);
             await mongoDb.collection("sample_jobs").insertMany(chunk);
           }
-          cachedSampleJobs = localJobs;
-          console.log(`Successfully seeded and loaded ${cachedSampleJobs.length} sample jobs into MongoDB Atlas.`);
+          console.log("Successfully seeded sample_jobs collection in MongoDB Atlas.");
         }
-      } else {
-        console.log(`Loaded ${cachedSampleJobs.length} sample jobs from MongoDB Atlas.`);
-      }
-    } else {
-      const data = await fs.readFile(sampleJobsPath, "utf-8");
-      cachedSampleJobs = JSON.parse(data);
-      console.log(`Loaded ${cachedSampleJobs.length} sample jobs from local database directory.`);
+      }).catch(err => {
+        console.warn("Background sample_jobs check/seed failed:", err);
+      });
     }
   } catch (err) {
     console.error("Failed to load sample jobs into memory cache:", err);
@@ -622,7 +618,7 @@ async function loadCachedSampleJobs() {
 
 let jobsCache = null;
 let jobsCacheTime = 0;
-const JOBS_CACHE_DURATION = 10000; // 10 seconds in-memory cache
+const JOBS_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in-memory cache
 
 // Unified Database CRUD Operations
 const dbService = {
@@ -656,8 +652,16 @@ const dbService = {
     }
     let jobs = [];
     if (mongoDb) {
-      // Sort jobs so that newly created jobs are listed first
-      jobs = await mongoDb.collection("jobs").find({}).sort({ _id: -1 }).toArray();
+      try {
+        // Fetch all recruiter-created jobs (id starts with 'job_')
+        const recruiterJobs = await mongoDb.collection("jobs").find({ id: /^job_/ }).toArray();
+        // Fetch latest 150 aggregated jobs to prevent network transmission lag/timeout
+        const otherJobs = await mongoDb.collection("jobs").find({ id: { $not: /^job_/ } }).sort({ _id: -1 }).limit(150).toArray();
+        jobs = [...recruiterJobs, ...otherJobs];
+      } catch (dbErr) {
+        console.error("Failed to query jobs from MongoDB. Returning empty array.", dbErr);
+        jobs = [];
+      }
     } else {
       const local = await readLocalDB();
       jobs = local.jobs || [];
@@ -1167,7 +1171,12 @@ function calculateMatchScore(job, profile) {
   const expSummaryLower = isPreprocessed ? profile.expSummaryLower : (profile.experience || "").toLowerCase();
 
   const jobExp = getJobRequiredExperience(job);
-  const jobSkills = (job.skills || "").split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  let jobSkills = [];
+  if (Array.isArray(job.skills)) {
+    jobSkills = job.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+  } else if (typeof job.skills === 'string') {
+    jobSkills = job.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
   const normalizedJobSkills = jobSkills.map(normalizeSkill);
 
   // STEP 1: HARD FILTERS
@@ -2568,13 +2577,22 @@ async function ensureAdminRecruiter() {
 
 initDB().then(async () => {
   await ensureAdminRecruiter();
-  await loadCachedSampleJobs();
-  await autoAggregateJobs();
   
-  // Trigger a background run of job aggregation on boot
-  syncNextCompany()
-    .then(stats => console.log("[Background JobCollector] Initial boot round-robin sync completed:", stats))
-    .catch(err => console.error("[Background JobCollector] Initial boot round-robin sync failed:", err));
+  app.listen(PORT, () => {
+    console.log(`JobSarthi server running at http://localhost:${PORT}`);
+  });
+
+  // Load sample jobs and aggregate in background to prevent server boot hang
+  loadCachedSampleJobs().then(async () => {
+    await autoAggregateJobs();
+    
+    // Trigger a background run of job aggregation on boot
+    syncNextCompany()
+      .then(stats => console.log("[Background JobCollector] Initial boot round-robin sync completed:", stats))
+      .catch(err => console.error("[Background JobCollector] Initial boot round-robin sync failed:", err));
+  }).catch(err => {
+    console.error("Error in background seeding/loading:", err);
+  });
 
   // Run scheduler every 10 minutes (600000ms)
   setInterval(() => {
@@ -2583,8 +2601,4 @@ initDB().then(async () => {
       .then(stats => console.log("[Background JobCollector] Scheduled 10m sync completed:", stats))
       .catch(err => console.error("[Background JobCollector] Scheduled 10m sync failed:", err));
   }, 10 * 60 * 1000);
-
-  app.listen(PORT, () => {
-    console.log(`JobSarthi server running at http://localhost:${PORT}`);
-  });
 });

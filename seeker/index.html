@@ -13,45 +13,16 @@
   <meta name="description" content="Manage your career profile, view AI job suggestions, and interact with Sarthi.">
   <link rel="stylesheet" href="../css/main.css">
   <style>
-    html, body {
-      height: 100vh;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .header-wrapper {
-      flex-shrink: 0;
-    }
-
-    main.container {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      padding-bottom: 20px;
-    }
-
     .dashboard-grid {
-      flex: 1;
-      min-height: 0;
       display: grid;
       grid-template-columns: 300px 1fr;
       gap: 30px;
-      margin-top: 20px;
-      overflow: hidden;
+      margin-top: 30px;
     }
 
     @media (max-width: 900px) {
       .dashboard-grid {
         grid-template-columns: 1fr;
-        overflow-y: auto;
       }
     }
 
@@ -61,8 +32,7 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      height: 100%;
-      overflow-y: auto;
+      height: fit-content;
     }
 
     .profile-avatar-large {
@@ -141,10 +111,7 @@
     .dashboard-main {
       display: flex;
       flex-direction: column;
-      gap: 24px;
-      height: 100%;
-      overflow: hidden;
-      min-height: 0;
+      gap: 30px;
     }
 
     .welcome-card {
@@ -189,17 +156,6 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
-      flex: 1;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-
-    .recommendations-section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      min-height: 0;
     }
 
     .job-card {
@@ -470,13 +426,13 @@
 
       <!-- Main Section -->
       <section class="dashboard-main">
-        <div style="margin-bottom: 10px; flex-shrink: 0;">
+        <div style="margin-bottom: -10px;">
           <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin: 0; letter-spacing: -0.02em;">Welcome back, <span id="welcomeName" style="color: var(--accent-secondary);">Candidate</span>!</h1>
         </div>
 
         <!-- Recommended Jobs Section -->
-        <div class="recommendations-section">
-          <div class="section-header" style="flex-shrink: 0;">
+        <div>
+          <div class="section-header">
             <h2 class="section-title">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-secondary);">
@@ -493,7 +449,7 @@
           </div>
 
           <!-- Dashboard Pagination Controls -->
-          <div id="dashboardPaginationContainer" style="flex-shrink: 0; margin-top: 12px;"></div>
+          <div id="dashboardPaginationContainer"></div>
         </div>
       </section>
     </div>
@@ -904,20 +860,24 @@
         console.warn("Error parsing cached profile details:", e);
       }
 
+      // 2. Fetch Fresh Profile (Independent)
       try {
-        // 2. Fetch Fresh Profile
         const profileRes = await fetch((window.API_BASE_URL || '') + `/api/seeker/profile?email=${encodeURIComponent(email)}`);
         if (profileRes.ok) {
           const profile = await profileRes.json();
           localStorage.setItem('seeker_profile_data', JSON.stringify(profile));
           renderProfile(profile);
         }
+      } catch (profileErr) {
+        console.warn("Failed to fetch fresh profile:", profileErr);
+      }
 
-        // 3. Fetch Applications to count
+      // 3. Fetch Applications to count (Independent)
+      try {
         const appsRes = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants`);
         if (appsRes.ok) {
           const allApps = await appsRes.json();
-          const applications = allApps.filter(app => app.email.toLowerCase() === email.toLowerCase());
+          const applications = allApps.filter(app => app.email && app.email.toLowerCase() === email.toLowerCase());
           const appsSent = applications.length;
           const interviewsScheduled = applications.filter(app => app.status === 'Interviewing').length;
 
@@ -927,17 +887,17 @@
           document.getElementById('applicationsSentCount').textContent = appsSent;
           document.getElementById('interviewsScheduledCount').textContent = interviewsScheduled;
         }
+      } catch (appsErr) {
+        console.warn("Failed to fetch applications for stats:", appsErr);
+      }
 
-        // 4. Fetch Jobs and Populate Recommended Matches
+      // 4. Fetch Jobs and Populate Recommended Matches (Independent)
+      try {
         let jobs = [];
-        try {
-          const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?email=${encodeURIComponent(email)}&limit=20&sort=match-desc&t=${Date.now()}`);
-          if (jobsRes.ok) {
-            const data = await jobsRes.json();
-            jobs = data.jobs || [];
-          }
-        } catch (jobErr) {
-          console.warn("Failed to load jobs for dashboard:", jobErr);
+        const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?email=${encodeURIComponent(email)}&limit=20&sort=match-desc&t=${Date.now()}`);
+        if (jobsRes.ok) {
+          const data = await jobsRes.json();
+          jobs = data.jobs || [];
         }
 
         const recommendedContainer = document.getElementById('recommendedJobsList');
@@ -956,8 +916,8 @@
             document.getElementById('dashboardPaginationContainer').innerHTML = '';
           }
         }
-      } catch (err) {
-        console.error("Failed to load profile details in background:", err);
+      } catch (jobErr) {
+        console.warn("Failed to load recommended jobs:", jobErr);
       }
     }
 
