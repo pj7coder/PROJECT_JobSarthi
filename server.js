@@ -2469,6 +2469,9 @@ app.get("/api/resume/view", async (req, res) => {
     console.log("Proxying file view for:", url);
     const response = await fetch(url);
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("401 (PDF delivery is restricted in your Cloudinary Security settings. Please log in to your Cloudinary Console, click the Settings gear icon, go to Security, and uncheck 'Restrict PDF and ZIP files delivery' to allow delivery of already-uploaded PDF files, or simply re-upload the resume to save it as an unrestricted raw asset.)");
+      }
       throw new Error(`Failed to fetch file from storage: ${response.status}`);
     }
 
