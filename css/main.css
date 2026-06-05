@@ -88,7 +88,7 @@ body {
   padding-bottom: 60px;
 }
 
-/* Subtle Premium Background Mesh (Instead of AI Blobs) */
+/* Subtle Premium Background Mesh (Dot grid pattern - human made SaaS design) */
 body::before {
   content: '';
   position: fixed;
@@ -96,13 +96,14 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.05), transparent 60%);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
   z-index: -1;
   pointer-events: none;
 }
 
 body.light-theme::before {
-  background: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.03), transparent 60%);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px);
 }
 
 /* Hide AI blobs and canvas completely */
@@ -159,15 +160,21 @@ a {
   transition: var(--transition-fast);
 }
 
-/* Clean Cards (No massive glow) */
+/* Clean Cards (Subtle shadows and hover states - premium saas style) */
 .glass-panel,
 .glass-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  box-shadow: none;
-  transition: var(--transition-normal);
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   padding: 24px;
+}
+
+body.light-theme .glass-panel,
+body.light-theme .glass-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .glass-card {
@@ -177,9 +184,8 @@ a {
 
 .glass-card:hover,
 .glass-panel:hover {
-  border-color: var(--border-subtle);
-  transform: none;
-  box-shadow: none;
+  border-color: var(--border-focus);
+  background: var(--bg-secondary);
 }
 
 /* Remove spotlight tracking since it feels 'AI made' */
@@ -206,17 +212,25 @@ a {
 
 .btn-primary,
 .btn-glow {
-  background: var(--accent-primary);
-  color: var(--bg-primary);
-  /* Invert text */
+  background: var(--accent-secondary);
+  color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+body.light-theme .btn-primary,
+body.light-theme .btn-glow {
+  color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .btn-primary:hover,
 .btn-glow:hover {
+  opacity: 0.95;
   transform: translateY(-1px);
-  opacity: 0.9;
 }
 
 .btn-secondary {
@@ -270,19 +284,19 @@ body.light-theme .btn-secondary:hover {
 }
 
 .form-control {
-  background: transparent;
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   color: var(--text-main);
   font-family: var(--font-sans);
   font-size: 0.9rem;
-  transition: var(--transition-fast);
+  transition: all 0.15s ease-in-out;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: var(--text-muted);
+  border-color: var(--accent-secondary);
 }
 
 /* Pill Header - Fixed! Sticky instead of fixed to prevent overlap, no more weird positioning */
