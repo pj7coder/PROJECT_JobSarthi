@@ -1833,7 +1833,7 @@
           // Update active nav link on scroll using high-performance cached offsets
           let sectionOffsets = {};
           function updateSectionOffsets() {
-            ['hero', 'portal', 'reviews', 'sarthi-scroll-section'].forEach(id => {
+            ['hero', 'portal', 'reviews', 'sarthi-scroll-section', 'employer-gallery-section'].forEach(id => {
               const section = document.getElementById(id);
               if (section) {
                 const rect = section.getBoundingClientRect();
@@ -1852,7 +1852,7 @@
             let currentSectionId = 'hero';
             const currentScroll = window.scrollY;
 
-            ['hero', 'portal', 'reviews', 'sarthi-scroll-section'].forEach(id => {
+            ['hero', 'portal', 'reviews', 'sarthi-scroll-section', 'employer-gallery-section'].forEach(id => {
               if (sectionOffsets[id] !== undefined) {
                 const offset = sectionOffsets[id];
                 if (currentScroll >= offset - 150) {
