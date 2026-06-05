@@ -13,16 +13,45 @@
   <meta name="description" content="Manage your career profile, view AI job suggestions, and interact with Sarthi.">
   <link rel="stylesheet" href="../css/main.css">
   <style>
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-wrapper {
+      flex-shrink: 0;
+    }
+
+    main.container {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-bottom: 20px;
+    }
+
     .dashboard-grid {
+      flex: 1;
+      min-height: 0;
       display: grid;
       grid-template-columns: 300px 1fr;
       gap: 30px;
-      margin-top: 30px;
+      margin-top: 20px;
+      overflow: hidden;
     }
 
     @media (max-width: 900px) {
       .dashboard-grid {
         grid-template-columns: 1fr;
+        overflow-y: auto;
       }
     }
 
@@ -32,7 +61,8 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      height: fit-content;
+      height: 100%;
+      overflow-y: auto;
     }
 
     .profile-avatar-large {
@@ -111,7 +141,10 @@
     .dashboard-main {
       display: flex;
       flex-direction: column;
-      gap: 30px;
+      gap: 24px;
+      height: 100%;
+      overflow: hidden;
+      min-height: 0;
     }
 
     .welcome-card {
@@ -156,6 +189,17 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .recommendations-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
     }
 
     .job-card {
@@ -426,13 +470,13 @@
 
       <!-- Main Section -->
       <section class="dashboard-main">
-        <div style="margin-bottom: -10px;">
+        <div style="margin-bottom: 10px; flex-shrink: 0;">
           <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin: 0; letter-spacing: -0.02em;">Welcome back, <span id="welcomeName" style="color: var(--accent-secondary);">Candidate</span>!</h1>
         </div>
 
         <!-- Recommended Jobs Section -->
-        <div>
-          <div class="section-header">
+        <div class="recommendations-section">
+          <div class="section-header" style="flex-shrink: 0;">
             <h2 class="section-title">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-secondary);">
@@ -449,7 +493,7 @@
           </div>
 
           <!-- Dashboard Pagination Controls -->
-          <div id="dashboardPaginationContainer"></div>
+          <div id="dashboardPaginationContainer" style="flex-shrink: 0; margin-top: 12px;"></div>
         </div>
       </section>
     </div>
