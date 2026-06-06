@@ -229,9 +229,6 @@
       }
       
       const userName = localStorage.getItem('seeker_name') || 'Candidate User';
-      const initial = userName.charAt(0).toUpperCase();
-      document.getElementById('headerProfileName').textContent = userName;
-      document.getElementById('headerProfileInitials').textContent = initial;
 
       // Reset or set seeker_notifications if they still contain emoji icons
       let list = [];
