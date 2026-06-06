@@ -252,15 +252,28 @@ document.addEventListener("DOMContentLoaded", () => {
                       <h4>UI/UX Preferences</h4>
                       <p class="tab-desc">Customise the look and feel of your JobSarthi dashboard.</p>
                       
-                      <div class="setting-item">
-                        <div class="setting-item-info">
-                          <span class="setting-item-title">Light Mode Theme</span>
-                          <span class="setting-item-desc">Toggle between dark and light appearance</span>
+                      <div class="setting-item-theme-group" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                        <span class="setting-item-title" style="font-weight: 600;">System Appearance</span>
+                        <p class="setting-item-desc" style="margin: 0 0 8px 0; font-size: 0.82rem; color: var(--text-muted);">Select your preferred workspace theme appearance.</p>
+                        
+                        <div class="theme-cards-container">
+                          <!-- Light Theme Card -->
+                          <div class="theme-card" id="themeCardLight" data-theme="light">
+                            <div class="theme-card-preview theme-preview-light">
+                              <div class="preview-header"></div>
+                              <div class="preview-body"></div>
+                            </div>
+                            <div class="theme-card-label">Light Theme</div>
+                          </div>
+                          <!-- Dark Theme Card -->
+                          <div class="theme-card" id="themeCardDark" data-theme="dark">
+                            <div class="theme-card-preview theme-preview-dark">
+                              <div class="preview-header"></div>
+                              <div class="preview-body"></div>
+                            </div>
+                            <div class="theme-card-label">Dark Theme</div>
+                          </div>
                         </div>
-                        <label class="switch-toggle">
-                          <input type="checkbox" id="modalThemeToggle">
-                          <span class="slider-round"></span>
-                        </label>
                       </div>
 
                       <div class="ux-divider" style="margin: 20px 0 16px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
@@ -579,14 +592,16 @@ document.addEventListener("DOMContentLoaded", () => {
                  }
                }
              };
- 
-             // Bind switch triggers inside modal
-             const modalThemeToggle = modalEl.querySelector('#modalThemeToggle');
-             if (modalThemeToggle) {
-               modalThemeToggle.addEventListener('change', () => {
-                 if (window.toggleTheme) window.toggleTheme();
-               });
-             }
+              // Bind card theme selection triggers
+              const themeCards = modalEl.querySelectorAll('.theme-card');
+              themeCards.forEach(card => {
+                card.addEventListener('click', () => {
+                  const selectedTheme = card.getAttribute('data-theme');
+                  if (window.setTheme) {
+                    window.setTheme(selectedTheme);
+                  }
+                });
+              });
  
              const modalAdvancedUIToggle = modalEl.querySelector('#modalAdvancedUIToggle');
              if (modalAdvancedUIToggle) {
@@ -663,12 +678,15 @@ document.addEventListener("DOMContentLoaded", () => {
            const activeModal = document.getElementById('globalSettingsModal');
            if (activeModal) {
              activeModal.classList.add('active');
-             
-             // Sync values with current document state
-             const modalThemeToggle = activeModal.querySelector('#modalThemeToggle');
-             if (modalThemeToggle) {
-               modalThemeToggle.checked = document.body.classList.contains('light-theme') || document.documentElement.classList.contains('light-theme');
-             }
+                          // Sync theme cards active states
+              const currentTheme = (document.body.classList.contains('light-theme') || document.documentElement.classList.contains('light-theme')) ? 'light' : 'dark';
+              activeModal.querySelectorAll('.theme-card').forEach(card => {
+                if (card.getAttribute('data-theme') === currentTheme) {
+                  card.classList.add('active');
+                } else {
+                  card.classList.remove('active');
+                }
+              });
  
              const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') === 'true';
              const modalAdvancedUIToggle = activeModal.querySelector('#modalAdvancedUIToggle');
@@ -1100,11 +1118,39 @@ window.applyAllUIPreferences = function () {
   if (sarthiPillStyle) sarthiPillStyle.remove();
 };
 
+// Global Set Theme Function
+window.setTheme = function (themeName) {
+  if (themeName === 'light') {
+    document.body.classList.add('light-theme');
+    document.documentElement.classList.add('light-theme');
+    localStorage.setItem('theme', 'light');
+  } else {
+    document.body.classList.remove('light-theme');
+    document.documentElement.classList.remove('light-theme');
+    localStorage.setItem('theme', 'dark');
+  }
+  
+  // Sync header checkbox if present
+  const checkbox = document.getElementById('themeToggleCheckbox');
+  if (checkbox) checkbox.checked = (themeName === 'light');
+
+  // Sync active state visually on theme cards if modal is open
+  const activeModal = document.getElementById('globalSettingsModal');
+  if (activeModal) {
+    activeModal.querySelectorAll('.theme-card').forEach(card => {
+      if (card.getAttribute('data-theme') === themeName) {
+        card.classList.add('active');
+      } else {
+        card.classList.remove('active');
+      }
+    });
+  }
+};
+
 // Global Toggle Theme Function
 window.toggleTheme = function () {
-  const isLight = document.body.classList.toggle('light-theme');
-  document.documentElement.classList.toggle('light-theme', isLight);
-  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  const currentTheme = (document.body.classList.contains('light-theme') || document.documentElement.classList.contains('light-theme')) ? 'light' : 'dark';
+  window.setTheme(currentTheme === 'light' ? 'dark' : 'light');
 };
 
 // Global Logout Function
