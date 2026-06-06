@@ -1627,7 +1627,7 @@ body.light-theme .mobile-bottom-nav {
 .settings-tab-btn.active {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  color: var(--accent-secondary, #ffffff) !important;
   font-weight: 600;
 }
 
@@ -1771,11 +1771,19 @@ body.light-theme .mobile-bottom-nav {
 
 /* Neutral theme switches (NO blue/magenta) */
 .settings-modal-card .switch-toggle input:checked + .slider-round {
-  background-color: rgba(255, 255, 255, 0.35) !important;
+  background-color: var(--accent-secondary) !important;
+  box-shadow: 0 0 8px var(--border-focus);
 }
 
 .settings-modal-card .switch-toggle input:checked + .slider-round::before {
   background-color: #ffffff !important;
+}
+
+.settings-modal-close-btn:hover {
+  background: var(--accent-secondary);
+  color: #ffffff !important;
+  border-color: var(--accent-tertiary);
+  box-shadow: 0 0 10px var(--border-focus);
 }
 
 /* Light theme overrides for Settings Modal */
@@ -1806,7 +1814,7 @@ body.light-theme .settings-tab-btn:hover {
 body.light-theme .settings-tab-btn.active {
   background: rgba(0, 0, 0, 0.06);
   border-color: rgba(0, 0, 0, 0.1);
-  color: #09090b;
+  color: var(--accent-secondary, #09090b) !important;
 }
 
 body.light-theme .settings-modal-close-btn {
@@ -1855,11 +1863,12 @@ body.light-theme .btn-simple-settings:hover {
 }
 
 body.light-theme .settings-modal-card .switch-toggle input:checked + .slider-round {
-  background-color: rgba(0, 0, 0, 0.25) !important;
+  background-color: var(--accent-secondary) !important;
+  box-shadow: 0 0 8px var(--border-focus);
 }
 
 body.light-theme .settings-modal-card .switch-toggle input:checked + .slider-round::before {
-  background-color: #09090b !important;
+  background-color: #ffffff !important;
 }
 
 /* Custom Premium Select Dropdown */
@@ -2542,15 +2551,15 @@ body.recruiter-page .btn-glow:hover {
 }
 
 .theme-card.active {
-  background: rgba(59, 130, 246, 0.05);
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--accent-secondary) !important;
+  box-shadow: 0 0 15px var(--border-focus);
 }
 
 body.recruiter-page .theme-card.active {
-  background: rgba(219, 39, 119, 0.05);
-  border-color: #db2777 !important;
-  box-shadow: 0 0 15px rgba(219, 39, 119, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--accent-secondary) !important;
+  box-shadow: 0 0 15px var(--border-focus);
 }
 
 .theme-card-preview {
