@@ -478,7 +478,8 @@
         const b2 = document.createElement('button');
         b2.className = 'btn btn-primary';
         b2.style.flex = '1';
-        b2.style.background = 'linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%)';
+        b2.style.background = 'var(--accent-secondary)';
+        b2.style.color = '#ffffff';
         b2.textContent = 'Schedule Interview';
         b2.onclick = () => updateCandidateStatus('Interviewing');
         actionsDiv.appendChild(b2);
