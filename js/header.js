@@ -1228,7 +1228,12 @@ const seekerColors = [
   { name: 'Emerald Green', key: 'emerald', secondary: '#059669', tertiary: '#10b981', hover: '#047857', focus: 'rgba(16, 185, 129, 0.45)' },
   { name: 'Indigo Aura', key: 'indigo', secondary: '#4f46e5', tertiary: '#6366f1', hover: '#4338ca', focus: 'rgba(99, 102, 241, 0.45)' },
   { name: 'Royal Violet', key: 'violet', secondary: '#7c3aed', tertiary: '#8b5cf6', hover: '#6d28d9', focus: 'rgba(139, 92, 246, 0.45)' },
-  { name: 'Amber Sunset', key: 'amber', secondary: '#d97706', tertiary: '#f59e0b', hover: '#b45309', focus: 'rgba(245, 158, 11, 0.45)' }
+  { name: 'Amber Sunset', key: 'amber', secondary: '#d97706', tertiary: '#f59e0b', hover: '#b45309', focus: 'rgba(245, 158, 11, 0.45)' },
+  { name: 'Ocean Teal', key: 'teal', secondary: '#0d9488', tertiary: '#14b8a6', hover: '#0f766e', focus: 'rgba(20, 184, 166, 0.45)' },
+  { name: 'Sky Breeze', key: 'sky', secondary: '#0284c7', tertiary: '#0ea5e9', hover: '#0369a1', focus: 'rgba(14, 165, 233, 0.45)' },
+  { name: 'Vibrant Cyan', key: 'cyan', secondary: '#0891b2', tertiary: '#06b6d4', hover: '#0e7490', focus: 'rgba(6, 182, 212, 0.45)' },
+  { name: 'Rose Petal', key: 'rose', secondary: '#e11d48', tertiary: '#f43f5e', hover: '#be123c', focus: 'rgba(244, 63, 94, 0.45)' },
+  { name: 'Lime Zest', key: 'lime', secondary: '#65a30d', tertiary: '#84cc16', hover: '#4d7c0f', focus: 'rgba(132, 204, 22, 0.45)' }
 ];
 
 const recruiterColors = [
@@ -1236,7 +1241,12 @@ const recruiterColors = [
   { name: 'Rose Red', key: 'rose', secondary: '#e11d48', tertiary: '#f43f5e', hover: '#be123c', focus: 'rgba(244, 63, 94, 0.45)' },
   { name: 'Orange Fire', key: 'orange', secondary: '#ea580c', tertiary: '#f97316', hover: '#c2410c', focus: 'rgba(249, 115, 22, 0.45)' },
   { name: 'Ocean Teal', key: 'teal', secondary: '#0d9488', tertiary: '#14b8a6', hover: '#0f766e', focus: 'rgba(20, 184, 166, 0.45)' },
-  { name: 'Vivid Purple', key: 'purple', secondary: '#9333ea', tertiary: '#a855f7', hover: '#7e22ce', focus: 'rgba(168, 85, 247, 0.45)' }
+  { name: 'Vivid Purple', key: 'purple', secondary: '#9333ea', tertiary: '#a855f7', hover: '#7e22ce', focus: 'rgba(168, 85, 247, 0.45)' },
+  { name: 'Crimson Glow', key: 'crimson', secondary: '#dc2626', tertiary: '#ef4444', hover: '#b91c1c', focus: 'rgba(239, 68, 68, 0.45)' },
+  { name: 'Indigo Aura', key: 'indigo', secondary: '#4f46e5', tertiary: '#6366f1', hover: '#4338ca', focus: 'rgba(99, 102, 241, 0.45)' },
+  { name: 'Royal Violet', key: 'violet', secondary: '#7c3aed', tertiary: '#8b5cf6', hover: '#6d28d9', focus: 'rgba(139, 92, 246, 0.45)' },
+  { name: 'Sky Breeze', key: 'sky', secondary: '#0284c7', tertiary: '#0ea5e9', hover: '#0369a1', focus: 'rgba(14, 165, 233, 0.45)' },
+  { name: 'Emerald Green', key: 'emerald', secondary: '#059669', tertiary: '#10b981', hover: '#047857', focus: 'rgba(16, 185, 129, 0.45)' }
 ];
 
 // Global Apply Accent Color function
@@ -1286,7 +1296,7 @@ window.renderAccentColors = function (modalEl, portalType) {
     if (color.key === activeKey) {
       btn.classList.add('active');
     }
-    btn.setAttribute('aria-label', color.name);
+    btn.setAttribute('aria-color', color.name);
     btn.setAttribute('data-color-key', color.key);
     btn.style.setProperty('--color', color.secondary);
     
