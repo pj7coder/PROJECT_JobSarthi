@@ -1224,29 +1224,33 @@ window.logout = function () {
 
 // Color Accent Lists
 const seekerColors = [
-  { name: 'Default Blue', key: 'blue', secondary: '#2563eb', tertiary: '#3b82f6', hover: '#1d4ed8', focus: 'rgba(59, 130, 246, 0.45)' },
-  { name: 'Emerald Green', key: 'emerald', secondary: '#059669', tertiary: '#10b981', hover: '#047857', focus: 'rgba(16, 185, 129, 0.45)' },
-  { name: 'Indigo Aura', key: 'indigo', secondary: '#4f46e5', tertiary: '#6366f1', hover: '#4338ca', focus: 'rgba(99, 102, 241, 0.45)' },
-  { name: 'Royal Violet', key: 'violet', secondary: '#7c3aed', tertiary: '#8b5cf6', hover: '#6d28d9', focus: 'rgba(139, 92, 246, 0.45)' },
-  { name: 'Amber Sunset', key: 'amber', secondary: '#d97706', tertiary: '#f59e0b', hover: '#b45309', focus: 'rgba(245, 158, 11, 0.45)' },
-  { name: 'Ocean Teal', key: 'teal', secondary: '#0d9488', tertiary: '#14b8a6', hover: '#0f766e', focus: 'rgba(20, 184, 166, 0.45)' },
-  { name: 'Sky Breeze', key: 'sky', secondary: '#0284c7', tertiary: '#0ea5e9', hover: '#0369a1', focus: 'rgba(14, 165, 233, 0.45)' },
-  { name: 'Vibrant Cyan', key: 'cyan', secondary: '#0891b2', tertiary: '#06b6d4', hover: '#0e7490', focus: 'rgba(6, 182, 212, 0.45)' },
-  { name: 'Rose Petal', key: 'rose', secondary: '#e11d48', tertiary: '#f43f5e', hover: '#be123c', focus: 'rgba(244, 63, 94, 0.45)' },
-  { name: 'Lime Zest', key: 'lime', secondary: '#65a30d', tertiary: '#84cc16', hover: '#4d7c0f', focus: 'rgba(132, 204, 22, 0.45)' }
+  { name: 'Default Blue', key: 'blue', secondary: '#2563eb', tertiary: '#3b82f6', hover: '#1d4ed8', focus: 'rgba(59, 130, 246, 0.4)' },
+  { name: 'Neon Indigo', key: 'indigo', secondary: '#5f5af6', tertiary: '#818cf8', hover: '#4f46e5', focus: 'rgba(95, 90, 246, 0.4)' },
+  { name: 'Cyber Turquoise', key: 'turquoise', secondary: '#06b6d4', tertiary: '#22d3ee', hover: '#0891b2', focus: 'rgba(6, 182, 212, 0.4)' },
+  { name: 'Vivid Mint', key: 'mint', secondary: '#10b981', tertiary: '#34d399', hover: '#059669', focus: 'rgba(16, 185, 129, 0.4)' },
+  { name: 'Electric Purple', key: 'purple', secondary: '#8b5cf6', tertiary: '#a78bfa', hover: '#7c3aed', focus: 'rgba(139, 92, 246, 0.4)' },
+  { name: 'Ultra Magenta', key: 'magenta', secondary: '#ec4899', tertiary: '#f472b6', hover: '#db2777', focus: 'rgba(236, 72, 153, 0.4)' },
+  { name: 'Sunset Coral', key: 'coral', secondary: '#f97316', tertiary: '#fb923c', hover: '#ea580c', focus: 'rgba(249, 115, 22, 0.4)' },
+  { name: 'Crimson Rose', key: 'rose', secondary: '#f43f5e', tertiary: '#fb7185', hover: '#e11d48', focus: 'rgba(244, 63, 94, 0.4)' },
+  { name: 'Sky Breeze', key: 'sky', secondary: '#0ea5e9', tertiary: '#38bdf8', hover: '#0284c7', focus: 'rgba(14, 165, 233, 0.4)' },
+  { name: 'Aura Amber', key: 'amber', secondary: '#d97706', tertiary: '#f59e0b', hover: '#b45309', focus: 'rgba(217, 119, 6, 0.4)' },
+  { name: 'Spring Lime', key: 'lime', secondary: '#84cc16', tertiary: '#a3e635', hover: '#65a30d', focus: 'rgba(132, 204, 22, 0.4)' },
+  { name: 'Slate Titanium', key: 'slate', secondary: '#475569', tertiary: '#64748b', hover: '#334155', focus: 'rgba(71, 85, 105, 0.4)' }
 ];
 
 const recruiterColors = [
-  { name: 'Default Magenta', key: 'magenta', secondary: '#db2777', tertiary: '#ec4899', hover: '#be185d', focus: 'rgba(219, 39, 119, 0.45)' },
-  { name: 'Rose Red', key: 'rose', secondary: '#e11d48', tertiary: '#f43f5e', hover: '#be123c', focus: 'rgba(244, 63, 94, 0.45)' },
-  { name: 'Orange Fire', key: 'orange', secondary: '#ea580c', tertiary: '#f97316', hover: '#c2410c', focus: 'rgba(249, 115, 22, 0.45)' },
-  { name: 'Ocean Teal', key: 'teal', secondary: '#0d9488', tertiary: '#14b8a6', hover: '#0f766e', focus: 'rgba(20, 184, 166, 0.45)' },
-  { name: 'Vivid Purple', key: 'purple', secondary: '#9333ea', tertiary: '#a855f7', hover: '#7e22ce', focus: 'rgba(168, 85, 247, 0.45)' },
-  { name: 'Crimson Glow', key: 'crimson', secondary: '#dc2626', tertiary: '#ef4444', hover: '#b91c1c', focus: 'rgba(239, 68, 68, 0.45)' },
-  { name: 'Indigo Aura', key: 'indigo', secondary: '#4f46e5', tertiary: '#6366f1', hover: '#4338ca', focus: 'rgba(99, 102, 241, 0.45)' },
-  { name: 'Royal Violet', key: 'violet', secondary: '#7c3aed', tertiary: '#8b5cf6', hover: '#6d28d9', focus: 'rgba(139, 92, 246, 0.45)' },
-  { name: 'Sky Breeze', key: 'sky', secondary: '#0284c7', tertiary: '#0ea5e9', hover: '#0369a1', focus: 'rgba(14, 165, 233, 0.45)' },
-  { name: 'Emerald Green', key: 'emerald', secondary: '#059669', tertiary: '#10b981', hover: '#047857', focus: 'rgba(16, 185, 129, 0.45)' }
+  { name: 'Default Magenta', key: 'magenta', secondary: '#db2777', tertiary: '#ec4899', hover: '#be185d', focus: 'rgba(219, 39, 119, 0.4)' },
+  { name: 'Neon Rose', key: 'rose', secondary: '#e11d48', tertiary: '#f43f5e', hover: '#be123c', focus: 'rgba(225, 29, 72, 0.4)' },
+  { name: 'Electric Purple', key: 'purple', secondary: '#9333ea', tertiary: '#a855f7', hover: '#7e22ce', focus: 'rgba(147, 51, 234, 0.4)' },
+  { name: 'Stripe Violet', key: 'violet', secondary: '#6366f1', tertiary: '#818cf8', hover: '#4f46e5', focus: 'rgba(99, 102, 241, 0.4)' },
+  { name: 'Flame Orange', key: 'orange', secondary: '#ea580c', tertiary: '#f97316', hover: '#c2410c', focus: 'rgba(234, 88, 12, 0.4)' },
+  { name: 'Teal Spark', key: 'teal', secondary: '#0d9488', tertiary: '#14b8a6', hover: '#0f766e', focus: 'rgba(13, 148, 136, 0.4)' },
+  { name: 'Forest Mint', key: 'mint', secondary: '#059669', tertiary: '#10b981', hover: '#047857', focus: 'rgba(5, 150, 105, 0.4)' },
+  { name: 'Royal Indigo', key: 'indigo', secondary: '#4338ca', tertiary: '#4f46e5', hover: '#3730a3', focus: 'rgba(67, 56, 202, 0.4)' },
+  { name: 'Sky Glacier', key: 'sky', secondary: '#0284c7', tertiary: '#0ea5e9', hover: '#0369a1', focus: 'rgba(2, 132, 199, 0.4)' },
+  { name: 'Plum Orchid', key: 'plum', secondary: '#a21caf', tertiary: '#c084fc', hover: '#86198f', focus: 'rgba(162, 28, 175, 0.4)' },
+  { name: 'Gold Amber', key: 'gold', secondary: '#ca8a04', tertiary: '#eab308', hover: '#a16207', focus: 'rgba(202, 138, 4, 0.4)' },
+  { name: 'Deep Espresso', key: 'espresso', secondary: '#78350f', tertiary: '#92400e', hover: '#451a03', focus: 'rgba(120, 53, 15, 0.4)' }
 ];
 
 // Global Apply Accent Color function

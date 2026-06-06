@@ -2668,6 +2668,7 @@ body.light-theme .theme-colors-section {
   width: 40px;
   height: 40px;
   background-color: var(--color);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.15) 100%);
   border-radius: 6px;
   transform: scale(1.2);
   pointer-events: none;
