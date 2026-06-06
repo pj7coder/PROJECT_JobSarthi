@@ -49,9 +49,9 @@ window.headerLandingHTML = `
       <ul class="nav-links">
         <li><a href="#hero" class="nav-link active">Home</a></li>
         <li><a href="#portal" class="nav-link">Portals</a></li>
-        <li><a href="#reviews" class="nav-link">Reviews</a></li>
         <li><a href="#sarthi-scroll-section" class="nav-link">Sarthi AI</a></li>
         <li><a href="#employer-gallery-section" class="nav-link">Brands</a></li>
+        <li><a href="#reviews" class="nav-link">Reviews</a></li>
       </ul>
     </nav>
     <div class="header-actions">
