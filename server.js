@@ -1180,13 +1180,11 @@ function calculateMatchScore(job, profile) {
   const normalizedJobSkills = jobSkills.map(normalizeSkill);
 
   // STEP 1: HARD FILTERS
-  if (jobExp > userExp + 3) return 0; // Exceeds experience by more than 3 years
+  if (jobExp > userExp + 4) return 0; // Exceeds experience by more than 4 years - relaxed from 3
 
   // Location checks
   const isJobRemote = job.location.toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
   const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => job.location.toLowerCase().includes(loc) || loc.includes(job.location.toLowerCase()));
-
-  // If job is not remote and doesn't match location, check if they are in same country (e.g. India)
   const jobLocLower = job.location.toLowerCase();
   const jobInIndia = jobLocLower.includes("india") || indianStates.some(s => jobLocLower.includes(s.toLowerCase())) || indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
 
@@ -1205,34 +1203,33 @@ function calculateMatchScore(job, profile) {
     if (!hasAnySkill) return 0;
   }
 
-  let location_score = 0;
-  let skill_score = 0;
-  let role_score = 0;
-  let experience_score = 0;
-  let work_mode_score = 0;
-  let salary_score = 0;
+  // === WEIGHTED SCORING (weights designed to sum to ~100 max) ===
+  let location_score = 0;   // max 20
+  let skill_score = 0;      // max 40
+  let role_score = 0;       // max 20
+  let experience_score = 0; // max 10
+  let work_mode_score = 0;  // max 5
+  let salary_score = 0;     // max 5
 
-  // STEP 2: LOCATION SCORING
+  // STEP 2: LOCATION SCORING (max 20)
   const hasCity = preferredLocs.some(loc => indianCities.some(c => c.toLowerCase() === loc) && jobLocLower.includes(loc));
   const hasState = preferredLocs.some(loc => indianStates.some(s => s.toLowerCase() === loc) && jobLocLower.includes(loc));
 
-  if (hasCity) {
-    location_score = 30;
+  if (isJobRemote) {
+    location_score = 18;
+  } else if (hasCity) {
+    location_score = 20;
   } else if (hasState) {
-    location_score = 25;
+    location_score = 15;
   } else if (jobInIndia && userInIndia) {
-    if (isJobRemote) {
-      location_score = 35;
-    } else {
-      location_score = 20; // relocation bonus
-    }
-  } else if (isJobRemote) {
-    location_score = 40;
-  } else {
     location_score = 10;
+  } else if (preferredLocs.length === 0) {
+    location_score = 12; // No preference = neutral
+  } else {
+    location_score = 3;
   }
 
-  // STEP 3: SKILL MATCH SCORING
+  // STEP 3: SKILL MATCH SCORING (max 40)
   if (normalizedJobSkills.length > 0 && normalizedUserSkills.length > 0) {
     let matchCount = 0;
     normalizedJobSkills.forEach(js => {
@@ -1241,73 +1238,86 @@ function calculateMatchScore(job, profile) {
       }
     });
     const skillMatchRatio = matchCount / normalizedJobSkills.length;
+    // Scale: 0.9+ => 40, 0.7+ => 32, 0.5+ => 22, 0.3+ => 12, else => 5
     if (skillMatchRatio >= 0.9) skill_score = 40;
-    else if (skillMatchRatio >= 0.7) skill_score = 35;
-    else if (skillMatchRatio >= 0.5) skill_score = 25;
-    else if (skillMatchRatio >= 0.3) skill_score = 15;
-    else skill_score = 10;
+    else if (skillMatchRatio >= 0.7) skill_score = 32;
+    else if (skillMatchRatio >= 0.5) skill_score = 22;
+    else if (skillMatchRatio >= 0.3) skill_score = 12;
+    else skill_score = 5;
+  } else if (normalizedUserSkills.length === 0) {
+    skill_score = 15; // Profile incomplete — neutral score
   } else {
-    skill_score = 20;
+    skill_score = 15; // Job has no listed skills — neutral
   }
 
-  // STEP 4: ROLE MATCH
+  // STEP 4: ROLE MATCH (max 20)
   const jobTitleLower = job.title.toLowerCase();
+  const jobDescLower = (job.description || "").toLowerCase();
   
+  const roleKeywords = [
+    "software engineer", "developer", "machine learning", "frontend", "backend", "fullstack", 
+    "full stack", "designer", "data scientist", "analyst", "product manager", "devops",
+    "mobile", "android", "ios", "cloud", "architect", "sre", "qa", "tester"
+  ];
+
   let exactRole = false;
   let relatedRole = false;
   let sameDomain = false;
   
-  const rolesList = ["software engineer", "developer", "machine learning", "frontend", "backend", "fullstack", "designer", "data scientist", "analyst", "product manager"];
-  rolesList.forEach(r => {
+  roleKeywords.forEach(r => {
     if (jobTitleLower.includes(r)) {
       if (userDegreeLower.includes(r) || expSummaryLower.includes(r)) {
         exactRole = true;
-      } else {
+      } else if (normalizedUserSkills.some(us => r.includes(us) || us.includes(r.split(' ')[0]))) {
         relatedRole = true;
+      } else {
+        sameDomain = true;
       }
-      sameDomain = true;
     }
   });
   
-  if (exactRole) role_score = 30;
-  else if (relatedRole) role_score = 25;
-  else if (sameDomain) role_score = 15;
-  else role_score = 10;
+  if (exactRole) role_score = 20;
+  else if (relatedRole) role_score = 15;
+  else if (sameDomain) role_score = 8;
+  else role_score = 5;
 
-  // STEP 5: EXPERIENCE MATCH
+  // STEP 5: EXPERIENCE MATCH (max 10)
   const diff = userExp - jobExp;
   if (diff === 0) {
-    experience_score = 20;
-  } else if (Math.abs(diff) <= 2) {
-    experience_score = 15;
-  } else if (Math.abs(diff) <= 3) {
     experience_score = 10;
+  } else if (Math.abs(diff) <= 1) {
+    experience_score = 8;
+  } else if (Math.abs(diff) <= 2) {
+    experience_score = 6;
+  } else if (Math.abs(diff) <= 3) {
+    experience_score = 3;
   } else {
-    experience_score = 5;
+    experience_score = 1;
   }
 
-  // STEP 6: WORK MODE MATCH
+  // STEP 6: WORK MODE MATCH (max 5)
   const isUserRemotePreferred = preferredLocs.includes("remote");
   if (isUserRemotePreferred && isJobRemote) {
-    work_mode_score = 15;
-  } else if (!isUserRemotePreferred && !isJobRemote) {
-    work_mode_score = 15;
-  } else {
     work_mode_score = 5;
+  } else if (!isUserRemotePreferred && !isJobRemote) {
+    work_mode_score = 5;
+  } else {
+    work_mode_score = 2;
   }
 
-  // STEP 7: SALARY MATCH
+  // STEP 7: SALARY MATCH (max 5)
   const jobSalary = parseSalaryLPA(job.salary);
   if (userSalary === 0 || jobSalary === 0) {
-    salary_score = 15;
-  } else if (jobSalary === userSalary) {
-    salary_score = 15;
-  } else if (jobSalary > userSalary) {
-    salary_score = 20;
+    salary_score = 3; // unknown salary — neutral
+  } else if (jobSalary >= userSalary) {
+    salary_score = 5; // job pays >= expected — great
+  } else if (jobSalary >= userSalary * 0.8) {
+    salary_score = 3; // within 20% — acceptable
   } else {
-    salary_score = 5;
+    salary_score = 1; // too low
   }
 
+  // Total max = 20+40+20+10+5+5 = 100
   const finalScore = location_score + skill_score + role_score + experience_score + work_mode_score + salary_score;
   return Math.max(0, Math.min(100, finalScore));
 }
@@ -1568,23 +1578,45 @@ app.get("/api/recruiter/applicants", async (req, res) => {
     const enriched = [];
     for (const app of applicants) {
       const user = await dbService.findUserByEmail(app.candidateEmail);
+      const candidateProfile = user?.profile || {};
+      const candidateSkills = Array.isArray(candidateProfile.skills)
+        ? candidateProfile.skills.map(s => s.trim().toLowerCase()).filter(Boolean)
+        : (typeof candidateProfile.skills === 'string'
+          ? candidateProfile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+          : []);
+
+      // Find the job this application was for to do real skill matching
+      let calculatedMatch = 75; // sensible fallback
+      try {
+        const job = await dbService.findJobById(app.jobId);
+        if (job && candidateProfile) {
+          const score = calculateMatchScore(job, candidateProfile);
+          calculatedMatch = score > 0 ? score : 65;
+        } else if (candidateSkills.length > 0) {
+          // Fallback: base on how many skills filled
+          calculatedMatch = Math.min(90, 55 + candidateSkills.length * 4);
+        }
+      } catch (matchErr) {
+        console.warn("Match calculation failed for applicant:", app.id, matchErr.message);
+      }
+
       enriched.push({
         id: app.id,
         name: app.candidateName,
         email: app.candidateEmail,
         role: app.jobTitle,
-        match: Math.floor(Math.random() * 15) + 80, // Dynamic high fit calculation
+        match: calculatedMatch,
         status: app.status,
         date: new Date(app.appliedAt).toLocaleDateString() || "Recently",
-        skills: user?.profile?.skills || ["General Skills"],
-        statement: user?.profile?.experience || "No experience summary provided yet.",
-        college: user?.profile?.college || "Not specified",
-        degree: user?.profile?.degree || "Not specified",
-        cgpa: user?.profile?.cgpa || "N/A",
-        certificates: user?.profile?.certificates || [],
-        resumeFileName: user?.profile?.resumeFileName || "",
-        resumeUrl: user?.profile?.resumeUrl || "",
-        avatarUrl: user?.profile?.avatarUrl || ""
+        skills: candidateProfile.skills || ["General Skills"],
+        statement: candidateProfile.experience || "No experience summary provided yet.",
+        college: candidateProfile.college || "Not specified",
+        degree: candidateProfile.degree || "Not specified",
+        cgpa: candidateProfile.cgpa || "N/A",
+        certificates: candidateProfile.certificates || [],
+        resumeFileName: candidateProfile.resumeFileName || "",
+        resumeUrl: candidateProfile.resumeUrl || "",
+        avatarUrl: candidateProfile.avatarUrl || ""
       });
     }
 

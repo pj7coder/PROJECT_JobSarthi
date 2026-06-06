@@ -159,7 +159,8 @@
 
       .job-item-actions {
         width: 100%;
-        justify-content: space-between;
+        justify-content: flex-start;
+        gap: 8px;
       }
 
       .search-container {
@@ -256,18 +257,20 @@
     .job-item-actions {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 10px;
       flex-shrink: 0;
+      flex-wrap: wrap;
     }
 
     .match-pill {
       border: 1px solid rgba(16, 185, 129, 0.2);
-      padding: 6px 14px;
+      padding: 5px 12px;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.02em;
+      white-space: nowrap;
     }
 
     /* Modal / Drawer Overlay and Center Popup Content */
@@ -673,6 +676,7 @@
     // Pagination variables
     let lastFilteredJobs = [];
     let currentPage = 1;
+    let dbTotalCount = 0;
     const jobsPerPage = 20;
 
     const indianStates = [
@@ -800,61 +804,53 @@
       
       const userExp = extractYearsOfExperience(seekerProfile.experience);
       const jobExp = getJobRequiredExperience(job);
+      const userDegreeLower = (seekerProfile.degree || "").toLowerCase();
+      const expSummaryLower = (seekerProfile.experience || "").toLowerCase();
 
       // STEP 1: HARD FILTERS
-      if (jobExp > userExp + 3) return 35; 
+      if (jobExp > userExp + 4) return 35; // Relaxed from 3 to 4
 
-      const jobSkills = (job.skills || "").split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      const jobSkills = (typeof job.skills === 'string' ? job.skills : (Array.isArray(job.skills) ? job.skills.join(',') : '')).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
       if (jobSkills.length > 0 && userSkills.length > 0) {
         const hasAnySkill = jobSkills.some(js => userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us)));
         if (!hasAnySkill) return 30; 
       }
 
-      const isJobRemote = job.location.toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
-      const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => job.location.toLowerCase().includes(loc) || loc.includes(job.location.toLowerCase()));
-      if (!isJobRemote && !isLocationMatch) {
+      const isJobRemote = (job.location || '').toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
+      const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => (job.location || '').toLowerCase().includes(loc) || loc.includes((job.location || '').toLowerCase()));
+      if (!isJobRemote && !isLocationMatch && preferredLocs.length > 0) {
         return 38; 
       }
 
-      let location_score = 0;
-      let skill_score = 0;
-      let role_score = 0;
-      let experience_score = 0;
-      let work_mode_score = 0;
-      let salary_score = 0;
+      // === NORMALIZED SCORING (max 100) ===
+      let location_score = 0;   // max 20
+      let skill_score = 0;      // max 40
+      let role_score = 0;       // max 20
+      let experience_score = 0; // max 10
+      let work_mode_score = 0;  // max 5
+      let salary_score = 0;     // max 5
 
-      // STEP 2: LOCATION SCORING
-      const jobLocLower = job.location.toLowerCase();
-      const hasCity = preferredLocs.some(loc => indianCities.some(c => c.toLowerCase() === loc.toLowerCase()) && jobLocLower.includes(loc));
-      const hasState = preferredLocs.some(loc => indianStates.some(s => s.toLowerCase() === loc.toLowerCase()) && jobLocLower.includes(loc));
-      
-      let inIndia = jobLocLower.includes("india");
-      if (!inIndia) {
-        inIndia = indianStates.some(s => jobLocLower.includes(s.toLowerCase())) || indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
-      }
+      // STEP 2: LOCATION SCORING (max 20)
+      const jobLocLower = (job.location || '').toLowerCase();
+      const hasCity = preferredLocs.some(loc => indianCities.some(c => c.toLowerCase() === loc) && jobLocLower.includes(loc));
+      const hasState = preferredLocs.some(loc => indianStates.some(s => s.toLowerCase() === loc) && jobLocLower.includes(loc));
+      const inIndia = jobLocLower.includes("india") || indianStates.some(s => jobLocLower.includes(s.toLowerCase())) || indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
 
-      if (hasCity) {
-        location_score = 30;
+      if (isJobRemote) {
+        location_score = 18;
+      } else if (hasCity) {
+        location_score = 20;
       } else if (hasState) {
-        location_score = 25;
+        location_score = 15;
       } else if (inIndia) {
-        if (isJobRemote) {
-          location_score = 35;
-        } else {
-          location_score = 20;
-        }
-      } else if (isJobRemote) {
-        location_score = 40;
+        location_score = 10;
+      } else if (preferredLocs.length === 0) {
+        location_score = 12;
       } else {
-        location_score = -50;
+        location_score = 3;
       }
 
-      const requiresRelocation = !isJobRemote && !hasCity && !hasState;
-      if (requiresRelocation && inIndia) {
-        location_score += 10;
-      }
-
-      // STEP 3: SKILL MATCH SCORING
+      // STEP 3: SKILL MATCH SCORING (max 40)
       if (jobSkills.length > 0 && userSkills.length > 0) {
         let matchCount = 0;
         jobSkills.forEach(js => {
@@ -864,75 +860,66 @@
         });
         const skillMatchRatio = matchCount / jobSkills.length;
         if (skillMatchRatio >= 0.9) skill_score = 40;
-        else if (skillMatchRatio >= 0.7) skill_score = 30;
-        else if (skillMatchRatio >= 0.5) skill_score = 20;
-        else if (skillMatchRatio >= 0.3) skill_score = 10;
-        else skill_score = 0;
+        else if (skillMatchRatio >= 0.7) skill_score = 32;
+        else if (skillMatchRatio >= 0.5) skill_score = 22;
+        else if (skillMatchRatio >= 0.3) skill_score = 12;
+        else skill_score = 5;
+      } else if (userSkills.length === 0) {
+        skill_score = 15; // Profile incomplete — neutral
       } else {
-        skill_score = 20;
+        skill_score = 15; // Job has no listed skills
       }
 
-      // STEP 4: ROLE MATCH
-      const jobTitleLower = job.title.toLowerCase();
-      const userDegreeLower = (seekerProfile.degree || "").toLowerCase();
-      const expSummaryLower = (seekerProfile.experience || "").toLowerCase();
+      // STEP 4: ROLE MATCH (max 20)
+      const jobTitleLower = (job.title || '').toLowerCase();
+      const roleKeywords = [
+        "software engineer", "developer", "machine learning", "frontend", "backend", "fullstack",
+        "full stack", "designer", "data scientist", "analyst", "product manager", "devops",
+        "mobile", "android", "ios", "cloud", "architect", "sre", "qa", "tester"
+      ];
       
-      let exactRole = false;
-      let relatedRole = false;
-      let sameDomain = false;
+      let exactRole = false, relatedRole = false, sameDomain = false;
       
-      const rolesList = ["software engineer", "developer", "machine learning", "frontend", "backend", "fullstack", "designer", "data scientist", "analyst", "product manager"];
-      rolesList.forEach(r => {
+      roleKeywords.forEach(r => {
         if (jobTitleLower.includes(r)) {
           if (userDegreeLower.includes(r) || expSummaryLower.includes(r)) {
             exactRole = true;
-          } else {
+          } else if (userSkills.some(us => r.includes(us) || us.includes(r.split(' ')[0]))) {
             relatedRole = true;
+          } else {
+            sameDomain = true;
           }
-          sameDomain = true;
         }
       });
       
-      if (exactRole) role_score = 30;
-      else if (relatedRole) role_score = 20;
-      else if (sameDomain) role_score = 10;
-      else role_score = 10;
+      if (exactRole) role_score = 20;
+      else if (relatedRole) role_score = 15;
+      else if (sameDomain) role_score = 8;
+      else role_score = 5;
 
-      // STEP 5: EXPERIENCE MATCH
+      // STEP 5: EXPERIENCE MATCH (max 10)
       const diff = userExp - jobExp;
-      if (diff === 0) {
-        experience_score = 20;
-      } else if (Math.abs(diff) <= 2) {
-        experience_score = 15;
-      } else if (Math.abs(diff) <= 3) {
-        experience_score = 10;
-      } else {
-        experience_score = 5;
-      }
+      if (diff === 0) experience_score = 10;
+      else if (Math.abs(diff) <= 1) experience_score = 8;
+      else if (Math.abs(diff) <= 2) experience_score = 6;
+      else if (Math.abs(diff) <= 3) experience_score = 3;
+      else experience_score = 1;
 
-      // STEP 6: WORK MODE MATCH
+      // STEP 6: WORK MODE MATCH (max 5)
       const isUserRemotePreferred = preferredLocs.includes("remote");
-      if (isUserRemotePreferred && isJobRemote) {
-        work_mode_score = 15;
-      } else if (!isUserRemotePreferred && !isJobRemote) {
-        work_mode_score = 15;
-      } else {
-        work_mode_score = 0;
-      }
+      if (isUserRemotePreferred && isJobRemote) work_mode_score = 5;
+      else if (!isUserRemotePreferred && !isJobRemote) work_mode_score = 5;
+      else work_mode_score = 2;
 
-      // STEP 7: SALARY MATCH
+      // STEP 7: SALARY MATCH (max 5)
       const userSalary = parseSalaryLPA(seekerProfile.expectedCtc);
       const jobSalary = parseSalaryLPA(job.salary);
-      if (userSalary === 0 || jobSalary === 0) {
-        salary_score = 15;
-      } else if (jobSalary === userSalary) {
-        salary_score = 15;
-      } else if (jobSalary > userSalary) {
-        salary_score = 20;
-      } else {
-        salary_score = 5;
-      }
+      if (userSalary === 0 || jobSalary === 0) salary_score = 3;
+      else if (jobSalary >= userSalary) salary_score = 5;
+      else if (jobSalary >= userSalary * 0.8) salary_score = 3;
+      else salary_score = 1;
 
+      // Total max = 20+40+20+10+5+5 = 100
       const finalScore = location_score + skill_score + role_score + experience_score + work_mode_score + salary_score;
       return Math.max(0, Math.min(100, finalScore));
     }
@@ -1024,8 +1011,8 @@
         if (g === "India") hasIndia = true;
         else if (g === "Out of India") hasOutOfIndia = true;
         else if (g === "Remote") hasRemote = true;
-        else if (indianStates.includes(g.toLowerCase())) detectedStates.add(g);
-        else if (indianCities.includes(g.toLowerCase())) detectedCities.add(g);
+        else if (indianStates.some(s => s === g)) detectedStates.add(g);
+        else if (indianCities.some(c => c === g)) detectedCities.add(g);
       });
 
       const locSelect = document.getElementById('filterLocation');
@@ -1265,19 +1252,26 @@
         const card = document.createElement('div');
         card.className = 'job-item';
         card.onclick = () => openDrawer(job);
-        
-        const matchVal = getJobMatchScore(job);
-        let matchStyle = 'color: var(--accent-tertiary); border-color: rgba(217,70,239,0.3); background: rgba(217,70,239,0.1);';
-        if (matchVal >= 90) {
-          matchStyle = 'color: var(--success); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1);';
-        } else if (matchVal >= 80) {
-          matchStyle = 'color: var(--accent-secondary); border-color: rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.1);';
+
+        const isLoggedIn = localStorage.getItem('seeker_logged_in') === 'true';
+        const matchVal = isLoggedIn ? getJobMatchScore(job) : null;
+        let matchPill = '';
+        if (matchVal !== null) {
+          let matchStyle = 'color: var(--accent-tertiary); border-color: rgba(217,70,239,0.3); background: rgba(217,70,239,0.1);';
+          if (matchVal >= 85) {
+            matchStyle = 'color: var(--success); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1);';
+          } else if (matchVal >= 70) {
+            matchStyle = 'color: var(--accent-secondary); border-color: rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.1);';
+          }
+          matchPill = `<span class="match-pill" style="${matchStyle}">${matchVal}% Match</span>`;
+        } else {
+          matchPill = `<span class="match-pill" style="color: var(--text-dark); border-color: var(--border-subtle); background: rgba(255,255,255,0.03);" title="Log in to see your match score">Match: ?</span>`;
         }
-        
+
+        // Skills snippet
         const skillsInfo = getSkillsMatchInfo(job);
         let skillsSnippet = "";
-        
-        if (skillsInfo.matched.length > 0) {
+        if (isLoggedIn && skillsInfo.matched.length > 0) {
           skillsSnippet = `
             <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
               <span style="font-size: 0.7rem; font-weight: 700; color: var(--success); text-transform: uppercase; margin-right: 4px;">Matched:</span>
@@ -1286,7 +1280,7 @@
             </div>
           `;
         } else if (job.skills) {
-          const reqSkills = job.skills.split(',').map(s => s.trim()).filter(Boolean);
+          const reqSkills = (typeof job.skills === 'string' ? job.skills : job.skills.join(',')).split(',').map(s => s.trim()).filter(Boolean);
           skillsSnippet = `
             <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
               <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-right: 4px;">Skills:</span>
@@ -1322,6 +1316,7 @@
             </div>
           </div>
           <div class="job-item-actions" onclick="event.stopPropagation()">
+            ${matchPill}
             <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openDrawerFromBtn('${job.id}')">Details</button>
             ${(JSON.parse(localStorage.getItem('applied_jobs') || '[]')).includes(job.id) ? `
               <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem; cursor: not-allowed; opacity: 0.75;" disabled>Applied</button>

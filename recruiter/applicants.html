@@ -308,6 +308,20 @@
       const roleFilter = document.getElementById('roleFilter').value;
       const sortFilter = document.getElementById('sortFilter').value;
 
+      // Dynamically populate role filter options from loaded data
+      const roleSelect = document.getElementById('roleFilter');
+      const existingRoles = new Set(['all']);
+      for (let i = 0; i < roleSelect.options.length; i++) existingRoles.add(roleSelect.options[i].value);
+      applicantsList.forEach(c => {
+        if (c.role && !existingRoles.has(c.role)) {
+          existingRoles.add(c.role);
+          const opt = document.createElement('option');
+          opt.value = c.role;
+          opt.textContent = c.role;
+          roleSelect.appendChild(opt);
+        }
+      });
+
       // Filter
       let filtered = applicantsList.filter(c => {
         if (roleFilter === 'all') return true;
@@ -335,11 +349,12 @@
         const item = document.createElement('div');
         item.className = 'glass-panel applicant-item';
         
-        let scoreStyle = 'background: rgba(6,182,212,0.1); color: var(--accent-secondary); border: 1px solid rgba(6,182,212,0.3);';
-        if (c.match >= 90) {
+        // Color-code score: green>=80, blue>=65, red<65
+        let scoreStyle = 'background: rgba(59,130,246,0.1); color: var(--accent-secondary); border: 1px solid rgba(59,130,246,0.3);';
+        if (c.match >= 80) {
           scoreStyle = 'background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.3);';
-        } else if (c.match < 75) {
-          scoreStyle = 'background: rgba(217,70,239,0.1); color: var(--accent-tertiary); border: 1px solid rgba(217,70,239,0.3);';
+        } else if (c.match < 65) {
+          scoreStyle = 'background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.3);';
         }
 
         let badgeStatus = `<span class="badge badge-warning">${c.status}</span>`;
@@ -348,12 +363,14 @@
         } else if (c.status === 'Shortlisted') {
           badgeStatus = `<span class="badge badge-success">${c.status}</span>`;
         } else if (c.status === 'Rejected') {
-          badgeStatus = `<span class="badge" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">${c.status}</span>`;
+          badgeStatus = `<span class="badge badge-danger">${c.status}</span>`;
         }
 
         const avatarHtml = c.avatarUrl 
           ? `<img src="${c.avatarUrl}" alt="${c.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />`
-          : c.name.split(' ').map(n=>n[0]).join('');
+          : c.name.split(' ').map(n=>n[0]).join('').toUpperCase();
+
+        const skillsList = Array.isArray(c.skills) ? c.skills : (typeof c.skills === 'string' ? c.skills.split(',') : []);
 
         item.innerHTML = `
           <div class="applicant-avatar">${avatarHtml}</div>
@@ -364,7 +381,8 @@
             </div>
             <div class="applied-for">Applied for: <strong>${c.role}</strong></div>
             <div class="applicant-skills">
-              ${c.skills.map(s => `<span class="badge" style="background: rgba(255,255,255,0.03); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.05); text-transform:none;">${s}</span>`).join('')}
+              ${skillsList.slice(0,6).map(s => `<span class="badge" style="background: rgba(255,255,255,0.03); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.05); text-transform:none;">${String(s).trim()}</span>`).join('')}
+              ${skillsList.length > 6 ? `<span class="badge" style="color: var(--text-dark); border: 1px solid var(--border-subtle);">+${skillsList.length - 6} more</span>` : ''}
             </div>
           </div>
           <div class="applicant-actions">
@@ -395,8 +413,22 @@
       let badgeHtml = selectedCandidate.skills.map(s => `<span class="badge" style="background: rgba(255,255,255,0.03); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.05); text-transform:none; margin-right:4px;">${s}</span>`).join('');
       document.getElementById('drawerSkills').innerHTML = badgeHtml;
 
-      // Fit Index note
-      document.getElementById('drawerAiNote').innerHTML = `Candidate has a fit index of <strong>${selectedCandidate.match}%</strong>. ${selectedCandidate.skills.length > 2 ? 'Strong technical overlaps.' : 'Adequate core skills matches.'}`;
+      // Fit Index note - contextual by score range
+      const sc = selectedCandidate.match;
+      const skillsList = Array.isArray(selectedCandidate.skills)
+        ? selectedCandidate.skills
+        : (typeof selectedCandidate.skills === 'string' ? selectedCandidate.skills.split(',') : []);
+      let fitNote = '';
+      if (sc >= 85) {
+        fitNote = `<strong>${sc}% Match —</strong> Excellent candidate alignment. ${selectedCandidate.name} closely matches the technical requirements for <em>${selectedCandidate.role}</em>. Their skills (${skillsList.slice(0,3).join(', ')}) align strongly with the role. <strong>Highly recommended</strong> for fast-track shortlisting.`;
+      } else if (sc >= 70) {
+        fitNote = `<strong>${sc}% Match —</strong> Good candidate fit for <em>${selectedCandidate.role}</em>. ${selectedCandidate.name} covers most technical requirements. A brief screening call is recommended to verify depth of experience.`;
+      } else if (sc >= 55) {
+        fitNote = `<strong>${sc}% Match —</strong> Moderate alignment. ${selectedCandidate.name} meets some core qualifications for <em>${selectedCandidate.role}</em> but may require additional technical assessment or training.`;
+      } else {
+        fitNote = `<strong>${sc}% Match —</strong> Low technical overlap with the <em>${selectedCandidate.role}</em> position. ${selectedCandidate.name} may be better suited for a different role or requires significant upskilling.`;
+      }
+      document.getElementById('drawerAiNote').innerHTML = fitNote;
       
       // Update Candidate statement with details
       document.getElementById('drawerStatement').innerHTML = `

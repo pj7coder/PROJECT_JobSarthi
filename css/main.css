@@ -26,6 +26,7 @@
 
   --border-subtle: rgba(255, 255, 255, 0.1);
   --border-focus: rgba(255, 255, 255, 0.2);
+  --glass-border: rgba(255, 255, 255, 0.08);
 
   --success: #10b981;
   --warning: #f59e0b;
@@ -53,6 +54,56 @@
   --radius-full: 9999px;
 }
 
+/* === GLOBAL BADGE VARIANTS === */
+.badge-success {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+.badge-primary {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: #a5b4fc !important;
+  border: 1px solid rgba(99, 102, 241, 0.3) !important;
+}
+.badge-warning {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+.badge-danger {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+/* === GLOBAL DRAWER MOBILE SAFETY === */
+@media (max-width: 600px) {
+  .drawer-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  .drawer-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 20px 16px !important;
+    animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  @keyframes slideInUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+  }
+  /* Side drawer (applicants page) becomes full-width bottom sheet on mobile */
+  .drawer-overlay[style*="flex-end"] .drawer-content,
+  .drawer-content[style*="height: 100%"] {
+    width: 100% !important;
+    height: 90vh !important;
+    border-left: none !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+}
+
 /* Light Theme Variables */
 body.light-theme {
   --bg-primary: #ffffff;
@@ -69,6 +120,7 @@ body.light-theme {
 
   --border-subtle: rgba(0, 0, 0, 0.08);
   --border-focus: rgba(0, 0, 0, 0.15);
+  --glass-border: rgba(0, 0, 0, 0.06);
 
   /* Sarthi specific */
   --sarthi-bg-minimized: rgba(255, 255, 255, 0.75);
