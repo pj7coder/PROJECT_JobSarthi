@@ -43,6 +43,20 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add('seeker-page');
   }
 
+  // Apply saved accent color immediately to prevent flash of default color
+  const savedAccent = localStorage.getItem('accent_color');
+  if (savedAccent) {
+    try {
+      const accentData = JSON.parse(savedAccent);
+      document.body.style.setProperty('--accent-secondary', accentData.secondary);
+      document.body.style.setProperty('--accent-tertiary', accentData.tertiary);
+      document.body.style.setProperty('--border-focus', accentData.focus);
+      document.body.style.setProperty('--accent-secondary-hover', accentData.hover);
+    } catch (e) {
+      console.error("Error parsing accent color:", e);
+    }
+  }
+
   const headerWrapper = document.querySelector('.header-wrapper');
   if (!headerWrapper) return;
 
@@ -70,6 +84,20 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.classList.add('light-theme');
         const checkbox = document.getElementById('themeToggleCheckbox');
         if (checkbox) checkbox.checked = true;
+      }
+
+      // 3a. Initialize accent color state
+      const savedAccent = localStorage.getItem('accent_color');
+      if (savedAccent) {
+        try {
+          const accentData = JSON.parse(savedAccent);
+          document.body.style.setProperty('--accent-secondary', accentData.secondary);
+          document.body.style.setProperty('--accent-tertiary', accentData.tertiary);
+          document.body.style.setProperty('--border-focus', accentData.focus);
+          document.body.style.setProperty('--accent-secondary-hover', accentData.hover);
+        } catch (e) {
+          console.error("Error parsing accent color:", e);
+        }
       }
 
       // 3b. Initialize splash cursor settings state
@@ -356,6 +384,15 @@ document.addEventListener("DOMContentLoaded", () => {
                             <div class="preview-body"></div>
                           </div>
                           <div class="theme-card-label">Dark Theme</div>
+                        </div>
+                      </div>
+                      
+                      <!-- Color Accent Options Section -->
+                      <div id="themeColorsSection" class="theme-colors-section" style="display: none;">
+                        <span class="setting-item-title" style="font-weight: 600;">Accent Color</span>
+                        <p class="setting-item-desc" style="margin: 0 0 8px 0; font-size: 0.82rem; color: var(--text-muted);">Personalize the workspace highlight color.</p>
+                        <div class="container-items" id="themeColorsContainer">
+                          <!-- Filled dynamically by JavaScript -->
                         </div>
                       </div>
                     </div>
@@ -688,6 +725,21 @@ document.addEventListener("DOMContentLoaded", () => {
                   card.classList.remove('active');
                 }
               });
+
+              // Render accent color options if on seeker/recruiter page
+              const isSeeker = document.body.classList.contains('seeker-page');
+              const isRecruiter = document.body.classList.contains('recruiter-page');
+              const colorsSection = activeModal.querySelector('#themeColorsSection');
+              if (colorsSection) {
+                if (isSeeker || isRecruiter) {
+                  colorsSection.style.display = 'flex';
+                  if (window.renderAccentColors) {
+                    window.renderAccentColors(activeModal, isSeeker ? 'seeker' : 'recruiter');
+                  }
+                } else {
+                  colorsSection.style.display = 'none';
+                }
+              }
  
              const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') === 'true';
              const modalAdvancedUIToggle = activeModal.querySelector('#modalAdvancedUIToggle');
@@ -1168,4 +1220,82 @@ window.logout = function () {
   const isLanding = !window.location.pathname.includes('/seeker/') && !window.location.pathname.includes('/recruiter/');
   const prefix = isLanding ? './' : '../';
   window.location.replace(`${prefix}index.html`);
+};
+
+// Color Accent Lists
+const seekerColors = [
+  { name: 'Default Blue', key: 'blue', secondary: '#2563eb', tertiary: '#3b82f6', hover: '#1d4ed8', focus: 'rgba(59, 130, 246, 0.45)' },
+  { name: 'Emerald Green', key: 'emerald', secondary: '#059669', tertiary: '#10b981', hover: '#047857', focus: 'rgba(16, 185, 129, 0.45)' },
+  { name: 'Indigo Aura', key: 'indigo', secondary: '#4f46e5', tertiary: '#6366f1', hover: '#4338ca', focus: 'rgba(99, 102, 241, 0.45)' },
+  { name: 'Royal Violet', key: 'violet', secondary: '#7c3aed', tertiary: '#8b5cf6', hover: '#6d28d9', focus: 'rgba(139, 92, 246, 0.45)' },
+  { name: 'Amber Sunset', key: 'amber', secondary: '#d97706', tertiary: '#f59e0b', hover: '#b45309', focus: 'rgba(245, 158, 11, 0.45)' }
+];
+
+const recruiterColors = [
+  { name: 'Default Magenta', key: 'magenta', secondary: '#db2777', tertiary: '#ec4899', hover: '#be185d', focus: 'rgba(219, 39, 119, 0.45)' },
+  { name: 'Rose Red', key: 'rose', secondary: '#e11d48', tertiary: '#f43f5e', hover: '#be123c', focus: 'rgba(244, 63, 94, 0.45)' },
+  { name: 'Orange Fire', key: 'orange', secondary: '#ea580c', tertiary: '#f97316', hover: '#c2410c', focus: 'rgba(249, 115, 22, 0.45)' },
+  { name: 'Ocean Teal', key: 'teal', secondary: '#0d9488', tertiary: '#14b8a6', hover: '#0f766e', focus: 'rgba(20, 184, 166, 0.45)' },
+  { name: 'Vivid Purple', key: 'purple', secondary: '#9333ea', tertiary: '#a855f7', hover: '#7e22ce', focus: 'rgba(168, 85, 247, 0.45)' }
+];
+
+// Global Apply Accent Color function
+window.applyAccentColor = function (accentData) {
+  if (accentData) {
+    document.body.style.setProperty('--accent-secondary', accentData.secondary);
+    document.body.style.setProperty('--accent-tertiary', accentData.tertiary);
+    document.body.style.setProperty('--border-focus', accentData.focus);
+    document.body.style.setProperty('--accent-secondary-hover', accentData.hover);
+    localStorage.setItem('accent_color', JSON.stringify(accentData));
+  } else {
+    document.body.style.removeProperty('--accent-secondary');
+    document.body.style.removeProperty('--accent-tertiary');
+    document.body.style.removeProperty('--border-focus');
+    document.body.style.removeProperty('--accent-secondary-hover');
+    localStorage.removeItem('accent_color');
+  }
+};
+
+// Render color items dynamically in settings modal
+window.renderAccentColors = function (modalEl, portalType) {
+  const container = modalEl.querySelector('#themeColorsContainer');
+  if (!container) return;
+  
+  // Clear container
+  container.innerHTML = '';
+  
+  const colorsList = (portalType === 'seeker') ? seekerColors : recruiterColors;
+  const savedAccent = localStorage.getItem('accent_color');
+  let activeKey = '';
+  
+  if (savedAccent) {
+    try {
+      const parsed = JSON.parse(savedAccent);
+      const match = colorsList.find(c => c.secondary.toLowerCase() === parsed.secondary.toLowerCase());
+      if (match) activeKey = match.key;
+    } catch(e) {}
+  }
+  
+  if (!activeKey) {
+    activeKey = colorsList[0].key;
+  }
+  
+  colorsList.forEach(color => {
+    const btn = document.createElement('button');
+    btn.className = 'item-color';
+    if (color.key === activeKey) {
+      btn.classList.add('active');
+    }
+    btn.setAttribute('aria-label', color.name);
+    btn.setAttribute('data-color-key', color.key);
+    btn.style.setProperty('--color', color.secondary);
+    
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.item-color').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      window.applyAccentColor(color);
+    });
+    
+    container.appendChild(btn);
+  });
 };
