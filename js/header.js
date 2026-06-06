@@ -224,8 +224,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     <h3 class="settings-modal-title">Settings</h3>
                     <div class="settings-modal-tabs">
                       <button class="settings-tab-btn active" data-tab="ui-ux">
-                        <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12c0 2.759 1.119 5.259 2.929 7.071l.007.007c.391.391 1.024.391 1.414 0 .391-.391.391-1.024 0-1.414A7.962 7.962 0 0 1 4 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8a7.963 7.963 0 0 1-5.186-1.929l-.007-.007a1 1 0 0 0-1.414 1.414A9.96 9.96 0 0 0 12 22z"></path><circle cx="7.5" cy="10.5" r="1.5"></circle><circle cx="11.5" cy="7.5" r="1.5"></circle><circle cx="16.5" cy="9.5" r="1.5"></circle><circle cx="15.5" cy="14.5" r="1.5"></circle></svg>
+                        <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="2" y1="14" x2="6" y2="14"></line><line x1="10" y1="8" x2="14" y2="8"></line><line x1="18" y1="16" x2="22" y2="16"></line></svg>
                         UI/UX
+                      </button>
+                      <button class="settings-tab-btn" data-tab="themes">
+                        <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12c0 2.759 1.119 5.259 2.929 7.071l.007.007c.391.391 1.024.391 1.414 0 .391-.391.391-1.024 0-1.414A7.962 7.962 0 0 1 4 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8a7.963 7.963 0 0 1-5.186-1.929l-.007-.007a1 1 0 0 0-1.414 1.414A9.96 9.96 0 0 0 12 22z"></path><circle cx="7.5" cy="10.5" r="1.5"></circle><circle cx="11.5" cy="7.5" r="1.5"></circle><circle cx="16.5" cy="9.5" r="1.5"></circle><circle cx="15.5" cy="14.5" r="1.5"></circle></svg>
+                        Themes
                       </button>
                       <button class="settings-tab-btn" data-tab="languages">
                         <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
@@ -252,34 +256,6 @@ document.addEventListener("DOMContentLoaded", () => {
                       <h4>UI/UX Preferences</h4>
                       <p class="tab-desc">Customise the look and feel of your JobSarthi dashboard.</p>
                       
-                      <div class="setting-item-theme-group" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
-                        <span class="setting-item-title" style="font-weight: 600;">System Appearance</span>
-                        <p class="setting-item-desc" style="margin: 0 0 8px 0; font-size: 0.82rem; color: var(--text-muted);">Select your preferred workspace theme appearance.</p>
-                        
-                        <div class="theme-cards-container">
-                          <!-- Light Theme Card -->
-                          <div class="theme-card" id="themeCardLight" data-theme="light">
-                            <div class="theme-card-preview theme-preview-light">
-                              <div class="preview-header"></div>
-                              <div class="preview-body"></div>
-                            </div>
-                            <div class="theme-card-label">Light Theme</div>
-                          </div>
-                          <!-- Dark Theme Card -->
-                          <div class="theme-card" id="themeCardDark" data-theme="dark">
-                            <div class="theme-card-preview theme-preview-dark">
-                              <div class="preview-header"></div>
-                              <div class="preview-body"></div>
-                            </div>
-                            <div class="theme-card-label">Dark Theme</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="ux-divider" style="margin: 20px 0 16px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
-                        <h5 style="margin: 0 0 4px 0; font-size: 0.85rem; font-weight: 700; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em;">UX Options</h5>
-                      </div>
-
                       <div class="setting-item">
                         <div class="setting-item-info">
                           <span class="setting-item-title" style="font-weight: 600;">Advanced UI Effects</span>
@@ -355,6 +331,30 @@ document.addEventListener("DOMContentLoaded", () => {
                             <input type="checkbox" id="modalFallingTextToggle">
                             <span class="slider-round"></span>
                           </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Content: Themes -->
+                    <div class="settings-tab-content" id="tab-themes" style="display: none;">
+                      <h4>System Themes</h4>
+                      <p class="tab-desc">Select your preferred workspace theme appearance.</p>
+                      
+                      <div class="theme-cards-container">
+                        <!-- Light Theme Card -->
+                        <div class="theme-card" id="themeCardLight" data-theme="light">
+                          <div class="theme-card-preview theme-preview-light">
+                            <div class="preview-header"></div>
+                            <div class="preview-body"></div>
+                          </div>
+                          <div class="theme-card-label">Light Theme</div>
+                        </div>
+                        <!-- Dark Theme Card -->
+                        <div class="theme-card" id="themeCardDark" data-theme="dark">
+                          <div class="theme-card-preview theme-preview-dark">
+                            <div class="preview-header"></div>
+                            <div class="preview-body"></div>
+                          </div>
+                          <div class="theme-card-label">Dark Theme</div>
                         </div>
                       </div>
                     </div>
