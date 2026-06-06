@@ -721,125 +721,44 @@
           customized dashboards below to begin.</p>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 32px; max-width: 1100px; margin: 0 auto;">
-
-        <!-- Finder Row (Up) -->
-        <div class="portal-row finder-row"
-          style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: stretch; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 32px; position: relative; overflow: hidden;">
-          <div class="portal-card-glow"
-            style="background: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08), transparent 50%);"></div>
-
-          <!-- Image Section (Left) -->
-          <div class="carousel-container" data-carousel="finder">
-            <div class="carousel-slides">
-              <div class="carousel-slide active">
-                <img src="assets/finderimage1 (1).jpg" alt="Finder Preview 1"
-                  onerror="this.onerror=null; this.src='assets/finderimage1.jpg';">
-              </div>
-              <div class="carousel-slide">
-                <img src="assets/finderimage2.jpg" alt="Finder Preview 2">
-              </div>
-              <div class="carousel-slide">
-                <img src="assets/finderimage3.jpg" alt="Finder Preview 3">
-              </div>
-            </div>
-            <div class="carousel-dots-container">
-              <span class="carousel-dot active" data-index="0"></span>
-              <span class="carousel-dot" data-index="1"></span>
-              <span class="carousel-dot" data-index="2"></span>
-            </div>
+      <div class="portals-grid">
+        <!-- Finder / Seeker Card (Left) -->
+        <div class="portal-card seeker-portal-card" onclick="window.location.href='seeker/login_signup.html'">
+          <div class="portal-card-glow" style="background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.15), transparent 70%);"></div>
+          
+          <div class="portal-icon-wrapper">
+            <svg class="portal-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <circle cx="18" cy="18" r="3" />
+              <line x1="22" y1="22" x2="20" y2="20" />
+            </svg>
           </div>
-
-          <!-- Card content (Right) -->
-          <div class="portal-card seeker-card" onclick="window.location.href='seeker/login_signup.html'"
-            style="cursor: pointer; border: none; padding: 0; min-height: auto; background: transparent; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-              <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none"
-                stroke="url(#cyanGlow)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-                style="margin-bottom: 24px; filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.45));">
-                <defs>
-                  <linearGradient id="cyanGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#22d3ee" />
-                    <stop offset="100%" stop-color="#0891b2" />
-                  </linearGradient>
-                </defs>
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <circle cx="18" cy="18" r="3" />
-                <line x1="22" y1="22" x2="20" y2="20" />
-              </svg>
-              <h3 style="font-size: 1.8rem; margin-bottom: 12px; font-weight: 700; color: var(--text-main);">Want to
-                Find a Job</h3>
-              <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 24px;">
-                Create your profile, complete assessments, earn skills validation, and talk to your career companion
-                Sarthi AI.
-              </p>
-            </div>
-            <div
-              style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--neon-cyan); margin-top: auto;">
-              Enter Seeker Portal <span class="arrow" style="transition: transform 0.3s ease;">&rarr;</span>
-            </div>
+          
+          <div class="portal-text">
+            <h3>Want to Find a Job</h3>
+            <p>Create your profile, complete assessments, earn skills validation, and talk to your career companion Sarthi AI.</p>
           </div>
         </div>
 
-        <!-- Recruiter Row (Down) -->
-        <div class="portal-row recruiter-row"
-          style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: stretch; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 32px; position: relative; overflow: hidden;">
-          <div class="portal-card-glow"
-            style="background: radial-gradient(circle at 10% 20%, rgba(217, 70, 239, 0.08), transparent 50%);"></div>
-
-          <!-- Image Section (Left) -->
-          <div class="carousel-container" data-carousel="recruiter">
-            <div class="carousel-slides">
-              <div class="carousel-slide active">
-                <img src="assets/recruiterimage1.jpg" alt="Recruiter Preview 1">
-              </div>
-              <div class="carousel-slide">
-                <img src="assets/recruiterimage2.jpg" alt="Recruiter Preview 2">
-              </div>
-              <div class="carousel-slide">
-                <img src="assets/recruiterimage3.jpg" alt="Recruiter Preview 3">
-              </div>
-            </div>
-            <div class="carousel-dots-container">
-              <span class="carousel-dot active" data-index="0"></span>
-              <span class="carousel-dot" data-index="1"></span>
-              <span class="carousel-dot" data-index="2"></span>
-            </div>
+        <!-- Recruiter Card (Right) -->
+        <div class="portal-card recruiter-portal-card" onclick="window.location.href='recruiter/login_signup.html'">
+          <div class="portal-card-glow" style="background: radial-gradient(circle at 50% 50%, rgba(217, 70, 239, 0.15), transparent 70%);"></div>
+          
+          <div class="portal-icon-wrapper">
+            <svg class="portal-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+              <path d="M12 11v4" />
+              <path d="M10 13h4" />
+            </svg>
           </div>
-
-          <!-- Card content (Right) -->
-          <div class="portal-card recruiter-card" onclick="window.location.href='recruiter/login_signup.html'"
-            style="cursor: pointer; border: none; padding: 0; min-height: auto; background: transparent; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-              <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none"
-                stroke="url(#purpleGlow)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-                style="margin-bottom: 24px; filter: drop-shadow(0 0 12px rgba(217, 70, 239, 0.45));">
-                <defs>
-                  <linearGradient id="purpleGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#d946ef" />
-                    <stop offset="100%" stop-color="#a21caf" />
-                  </linearGradient>
-                </defs>
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                <path d="M12 11v4" />
-                <path d="M10 13h4" />
-              </svg>
-              <h3 style="font-size: 1.8rem; margin-bottom: 12px; font-weight: 700; color: var(--text-main);">Need an
-                Employee</h3>
-              <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 24px;">
-                Post listings, manage active applicant pools, view verified skill assessments, and optimize hiring
-                pipelines.
-              </p>
-            </div>
-            <div
-              style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--neon-purple); margin-top: auto;">
-              Enter Recruiter Portal <span class="arrow" style="transition: transform 0.3s ease;">&rarr;</span>
-            </div>
+          
+          <div class="portal-text">
+            <h3>Need an Employee</h3>
+            <p>Post listings, manage active applicant pools, view verified skill assessments, and optimize hiring pipelines.</p>
           </div>
         </div>
-
       </div>
     </section>
 
