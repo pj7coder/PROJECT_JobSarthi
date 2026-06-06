@@ -841,7 +841,7 @@
 
     <!-- Scroll-driven Sarthi Feature Panel Expansion -->
     <section id="sarthi-scroll-section"
-      style="min-height: 300vh; position: relative; padding: 60px 0; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box;">
+      style="min-height: 200vh; position: relative; padding: 60px 0; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box;">
     </section>
 
     <!-- 3D Dome Gallery and Employer Partner Section -->
@@ -1548,31 +1548,33 @@
           }
 
           if (sarthiMode === 'scrollExpanded' && sarthiScrollSectionEl) {
-            const start = cachedSectionTopDoc - H + 200;
-            const end = cachedSectionTopDoc + sarthiScrollSectionEl.offsetHeight - H;
-            if (end > start) {
-              const totalScrollDistance = end - start;
-              const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
-              const expansionThreshold = 380;
-              if (scrollOffset > expansionThreshold) {
-                const remaining = totalScrollDistance - expansionThreshold;
-                const slideProgress = Math.max(0, Math.min(0.99, (scrollOffset - expansionThreshold) / remaining));
-                const activeIdx = Math.floor(slideProgress * 4);
-                if (activeIdx !== lastActiveIdx) {
-                  cachedSlides.forEach((slide, idx) => {
-                    slide.style.opacity = (idx === activeIdx) ? '1' : '0';
-                    slide.style.pointerEvents = (idx === activeIdx) ? 'auto' : 'none';
-                  });
-                  cachedDots.forEach((dot, idx) => {
-                    if (idx === activeIdx) {
-                      dot.style.width = '28px'; dot.style.height = '10px'; dot.style.borderRadius = '5px'; dot.style.background = '#06b6d4'; dot.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.8)';
-                    } else {
-                      dot.style.width = '10px'; dot.style.height = '10px'; dot.style.borderRadius = '5px'; dot.style.background = 'var(--sarthi-dot-inactive)'; dot.style.boxShadow = 'none';
-                    }
-                  });
-                  lastActiveIdx = activeIdx;
+            const startActive = cachedSectionTopDoc - 150;
+            const activeRange = sarthiScrollSectionEl.offsetHeight;
+            const pct = (window.scrollY - startActive) / activeRange;
+            const clampedPct = Math.max(0, Math.min(1, pct));
+            
+            let activeIdx = 0;
+            if (clampedPct > 0.1 && clampedPct < 0.9) {
+              const midPct = (clampedPct - 0.1) / 0.8;
+              activeIdx = Math.floor(midPct * 4);
+            } else if (clampedPct >= 0.9) {
+              activeIdx = 3;
+            }
+            activeIdx = Math.max(0, Math.min(3, activeIdx));
+
+            if (activeIdx !== lastActiveIdx) {
+              cachedSlides.forEach((slide, idx) => {
+                slide.style.opacity = (idx === activeIdx) ? '1' : '0';
+                slide.style.pointerEvents = (idx === activeIdx) ? 'auto' : 'none';
+              });
+              cachedDots.forEach((dot, idx) => {
+                if (idx === activeIdx) {
+                  dot.style.width = '28px'; dot.style.height = '10px'; dot.style.borderRadius = '5px'; dot.style.background = '#06b6d4'; dot.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.8)';
+                } else {
+                  dot.style.width = '10px'; dot.style.height = '10px'; dot.style.borderRadius = '5px'; dot.style.background = 'var(--sarthi-dot-inactive)'; dot.style.boxShadow = 'none';
                 }
-              }
+              });
+              lastActiveIdx = activeIdx;
             }
           }
         }
@@ -1623,7 +1625,7 @@
           if (sarthiScrollSectionEl) {
             // Only switch to scrollExpanded once the Sarthi section has scrolled almost to the top of the viewport
             // and remains active until scrolling past the section.
-            const sectionEntersViewport = cachedSectionTopDoc - 500;
+            const sectionEntersViewport = cachedSectionTopDoc - 150;
             const sectionLeavesViewport = cachedSectionTopDoc + sarthiScrollSectionEl.offsetHeight - 150;
             if (window.scrollY >= sectionEntersViewport && window.scrollY <= sectionLeavesViewport && cachedSectionTopDoc > 0) {
               nextMode = 'scrollExpanded';
@@ -1632,6 +1634,9 @@
 
           if (nextMode !== sarthiMode) {
             sarthiMode = nextMode;
+            if (sarthiMode !== 'scrollExpanded') {
+              lastActiveIdx = null;
+            }
             if (!scrollActive) {
               scrollActive = true;
               requestAnimationFrame(() => {
@@ -1704,24 +1709,18 @@
                 return;
               }
 
-              if (cachedMaxScroll > 0) {
-                const start = cachedSectionTopDoc - cachedWindowHeight + 200;
-                const end = cachedMaxScroll - 30;
+              if (sarthiScrollSectionEl) {
+                const startActive = cachedSectionTopDoc - 150;
+                const activeRange = sarthiScrollSectionEl.offsetHeight;
+                
+                // Calculate target scroll position based on slide segment center inside [0.1, 0.9] range
+                const targetPct = 0.1 + (targetIdx + 0.5) * 0.2;
+                const targetScrollY = startActive + targetPct * activeRange;
 
-                if (end > start) {
-                  const totalScrollDistance = end - start;
-                  const expansionThreshold = 380;
-                  const remaining = totalScrollDistance - expansionThreshold;
-
-                  const targetSlideProgress = targetIdx * 0.25 + 0.125;
-                  const targetScrollOffset = expansionThreshold + targetSlideProgress * remaining;
-                  const targetScrollY = start + targetScrollOffset;
-
-                  window.scrollTo({
-                    top: targetScrollY,
-                    behavior: 'smooth'
-                  });
-                }
+                window.scrollTo({
+                  top: targetScrollY,
+                  behavior: 'smooth'
+                });
               }
             });
           });
@@ -1759,39 +1758,36 @@
                   return;
                 }
 
-                if (cachedMaxScroll > 0) {
-                  const start = cachedSectionTopDoc - cachedWindowHeight + 200;
-                  const end = cachedMaxScroll - 30;
+                if (sarthiScrollSectionEl) {
+                  const startActive = cachedSectionTopDoc - 150;
+                  const activeRange = sarthiScrollSectionEl.offsetHeight;
+                  const currentScroll = window.scrollY;
+                  const pct = (currentScroll - startActive) / activeRange;
+                  const clampedPct = Math.max(0, Math.min(1, pct));
+                  
+                  let currentIdx = 0;
+                  if (clampedPct > 0.1 && clampedPct < 0.9) {
+                    const midPct = (clampedPct - 0.1) / 0.8;
+                    currentIdx = Math.floor(midPct * 4);
+                  } else if (clampedPct >= 0.9) {
+                    currentIdx = 3;
+                  }
 
-                  if (end > start) {
-                    const totalScrollDistance = end - start;
-                    const expansionThreshold = 380;
-                    const remaining = totalScrollDistance - expansionThreshold;
-                    const scrollOffset = Math.max(0, Math.min(totalScrollDistance, window.scrollY - start));
-                    
-                    let currentIdx = 0;
-                    if (scrollOffset > expansionThreshold) {
-                      const slideProgress = Math.max(0, Math.min(0.99, (scrollOffset - expansionThreshold) / remaining));
-                      currentIdx = Math.floor(slideProgress * 4);
-                    }
-                    
-                    let targetIdx = currentIdx;
-                    if (diffX < -50) { // Swiped left -> Next slide
-                      if (targetIdx < 3) targetIdx++;
-                    } else if (diffX > 50) { // Swiped right -> Previous slide
-                      if (targetIdx > 0) targetIdx--;
-                    }
-                    
-                    if (targetIdx !== currentIdx) {
-                      const targetSlideProgress = targetIdx * 0.25 + 0.125;
-                      const targetScrollOffset = expansionThreshold + targetSlideProgress * remaining;
-                      const targetScrollY = start + targetScrollOffset;
+                  let targetIdx = currentIdx;
+                  if (diffX < -50) { // Swiped left -> Next slide
+                    if (targetIdx < 3) targetIdx++;
+                  } else if (diffX > 50) { // Swiped right -> Previous slide
+                    if (targetIdx > 0) targetIdx--;
+                  }
+                  
+                  if (targetIdx !== currentIdx) {
+                    const targetPct = 0.1 + (targetIdx + 0.5) * 0.2;
+                    const targetScrollY = startActive + targetPct * activeRange;
 
-                      window.scrollTo({
-                        top: targetScrollY,
-                        behavior: 'smooth'
-                      });
-                    }
+                    window.scrollTo({
+                      top: targetScrollY,
+                      behavior: 'smooth'
+                    });
                   }
                 }
               }
@@ -2068,7 +2064,7 @@
 
     function checkVisibility() {
       var relativeTop = targetOffsetTop - window.scrollY;
-      if (relativeTop <= 500) {
+      if (relativeTop <= 150) {
         btn.style.opacity = '0';
         btn.style.pointerEvents = 'none';
         btn.style.transform = 'scale(0.8)';
