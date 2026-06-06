@@ -21,11 +21,11 @@
     }
 
     .recruiter-header {
-      border-bottom: 1px solid rgba(217, 70, 239, 0.15);
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .nav-link.recruiter-active::after {
-      background: linear-gradient(90deg, var(--accent-tertiary), var(--accent-primary));
+      background: var(--text-main);
     }
 
     /* Stats Grid */
@@ -146,8 +146,8 @@
     }
 
     .calendar-day:hover {
-      background: rgba(217, 70, 239, 0.15);
-      border-color: rgba(217, 70, 239, 0.3);
+      background: var(--accent-secondary);
+      border-color: var(--border-focus);
     }
 
     .calendar-day.empty {
@@ -157,23 +157,31 @@
     }
 
     .calendar-day.selected {
-      background: var(--accent-tertiary) !important;
-      color: #fff !important;
+      background: var(--text-main) !important;
+      color: var(--bg-primary) !important;
       font-weight: 700;
     }
 
     .calendar-day.today {
-      border: 1px solid var(--accent-recruiter);
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.05);
       font-weight: 700;
+    }
+    body.light-theme .calendar-day.today {
+      background: rgba(0, 0, 0, 0.02);
     }
 
     .day-event-dot {
       width: 5px;
       height: 5px;
       border-radius: 50%;
-      background: var(--accent-recruiter);
+      background: var(--text-muted);
       position: absolute;
       bottom: 4px;
+    }
+
+    .calendar-day.selected .day-event-dot {
+      background: var(--bg-primary) !important;
     }
 
     .calendar-event-item {

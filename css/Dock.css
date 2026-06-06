@@ -65,14 +65,14 @@ body.light-theme .dock-item:hover .dock-item-bg {
 
 .dock-item.active .dock-item-bg {
   background: rgba(255, 255, 255, 0.12) !important;
-  border-color: var(--accent-tertiary) !important;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.35);
+  border-color: var(--border-focus) !important;
+  box-shadow: none !important;
 }
 
 body.light-theme .dock-item.active .dock-item-bg {
   background: rgba(0, 0, 0, 0.08) !important;
-  border-color: var(--accent-secondary) !important;
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
+  border-color: var(--border-focus) !important;
+  box-shadow: none !important;
 }
 
 .dock-icon {

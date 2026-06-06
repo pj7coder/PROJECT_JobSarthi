@@ -210,7 +210,7 @@
 
         <!-- Profile Photo Upload Zone -->
         <div style="display: flex; align-items: center; gap: 20px; padding: 10px 0; margin-bottom: 10px;">
-          <div id="avatarContainer" onclick="document.getElementById('avatarFileInput').click()" style="position: relative; width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary)); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 800; color: #fff; border: 2px solid rgba(255, 255, 255, 0.15); cursor: pointer; overflow: hidden; box-shadow: 0 4px 15px rgba(6, 182, 212, 0.25); flex-shrink: 0;">
+          <div id="avatarContainer" onclick="document.getElementById('avatarFileInput').click()" style="position: relative; width: 72px; height: 72px; border-radius: 50%; background: var(--accent-secondary); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 800; color: var(--text-main); border: 2px solid var(--border-subtle); cursor: pointer; overflow: hidden; flex-shrink: 0;">
             <span id="avatarInitials">C</span>
             <img id="avatarPreview" src="" style="width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0;">
             <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">

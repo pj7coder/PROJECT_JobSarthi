@@ -677,7 +677,7 @@
           
           div.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
-              <div class="candidate-avatar" style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-tertiary), var(--accent-primary)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 0.75rem; overflow: hidden; flex-shrink: 0;">
+              <div class="candidate-avatar" style="width: 28px; height: 28px; border-radius: 50%; background: var(--accent-secondary); display: flex; align-items: center; justify-content: center; color: var(--text-main); font-weight: 700; font-size: 0.75rem; overflow: hidden; flex-shrink: 0;">
                 ${app.avatarUrl ? `<img src="${app.avatarUrl}" alt="${app.name}" style="width: 100%; height: 100%; object-fit: cover;" />` : app.name.split(' ').map(n=>n[0]).join('')}
               </div>
               <div>

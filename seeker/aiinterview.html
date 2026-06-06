@@ -418,17 +418,17 @@
     .proctor-bar-fill {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, var(--success), var(--warning));
+      background: var(--success);
       border-radius: var(--radius-full);
       transition: width 0.4s ease, background 0.4s;
     }
 
     .proctor-bar-fill.medium {
-      background: linear-gradient(90deg, var(--warning), #f97316);
+      background: var(--warning);
     }
 
     .proctor-bar-fill.high {
-      background: linear-gradient(90deg, #f97316, var(--danger));
+      background: var(--danger);
     }
 
     /* Live logs container */
@@ -567,12 +567,11 @@
       transform: translateX(-50%);
       height: 4px;
       width: var(--voice-width, 0%);
-      background: linear-gradient(90deg, #3b82f6, #00f2fe, #10b981, #f59e0b, #ef4444, #ec4899, #a855f7, #3b82f6);
+      background: var(--text-main);
       border-radius: var(--radius-full);
       pointer-events: none;
       z-index: 10;
       transition: width 0.08s ease-out;
-      box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
     }
 
     .answer-header {
@@ -910,7 +909,7 @@
     
     <!-- 0. GENERAL INSTRUCTIONS SCREEN -->
     <div id="instructionsContainer" class="glass-panel setup-card" style="max-width: 750px; margin: 0 auto; padding: 25px;">
-      <h2 style="font-size: 1.8rem; margin-bottom: 12px; background: linear-gradient(135deg, #fff, var(--text-muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">AI Mock Interview Instructions</h2>
+      <h2 style="font-size: 1.8rem; margin-bottom: 12px; color: var(--text-main);">AI Mock Interview Instructions</h2>
       <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; line-height: 1.6;">
         Welcome to the Sarthi AI Mock Interview. This session simulates a real recruitment trial using advanced audio-visual analysis. Please read the instructions below carefully before starting.
       </p>
@@ -1029,19 +1028,19 @@
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
             <!-- Sarthi Card -->
             <div class="character-card active" id="charCard_sarthi" onclick="selectCharacter('sarthi')">
-              <div class="char-avatar-mini" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">🧑‍💼</div>
+              <div class="char-avatar-mini" style="background: #0891b2;">🧑‍💼</div>
               <div class="char-name">Sarthi (Default)</div>
               <div class="char-ability">Balanced Assessment</div>
             </div>
             <!-- Vikram Card -->
             <div class="character-card disabled" id="charCard_vikram" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">
-              <div class="char-avatar-mini" style="background: linear-gradient(135deg, #64748b, #475569);">👨‍🦳</div>
+              <div class="char-avatar-mini" style="background: #475569;">👨‍🦳</div>
               <div class="char-name" style="color: var(--text-muted);">Prof. Vikram</div>
               <div class="char-ability" style="color: var(--accent-tertiary); font-weight: 600;">Coming Soon</div>
             </div>
             <!-- Ananya Card -->
             <div class="character-card disabled" id="charCard_ananya" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">
-              <div class="char-avatar-mini" style="background: linear-gradient(135deg, #ec4899, #db2777);">👩‍💼</div>
+              <div class="char-avatar-mini" style="background: #db2777;">👩‍💼</div>
               <div class="char-name" style="color: var(--text-muted);">Dr. Ananya</div>
               <div class="char-ability" style="color: var(--accent-tertiary); font-weight: 600;">Coming Soon</div>
             </div>

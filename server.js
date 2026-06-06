@@ -1138,8 +1138,7 @@ function preprocessProfile(profile) {
 
 function calculateMatchScore(job, profile) {
   if (!profile) {
-    const stringHash = (job.title + job.company).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return 70 + (stringHash % 25);
+    return 0;
   }
 
   const isPreprocessed = 'normalizedUserSkills' in profile;
@@ -1586,15 +1585,14 @@ app.get("/api/recruiter/applicants", async (req, res) => {
           : []);
 
       // Find the job this application was for to do real skill matching
-      let calculatedMatch = 75; // sensible fallback
+      let calculatedMatch = 50; // sensible fallback for incomplete data
       try {
         const job = await dbService.findJobById(app.jobId);
         if (job && candidateProfile) {
-          const score = calculateMatchScore(job, candidateProfile);
-          calculatedMatch = score > 0 ? score : 65;
+          calculatedMatch = calculateMatchScore(job, candidateProfile);
         } else if (candidateSkills.length > 0) {
           // Fallback: base on how many skills filled
-          calculatedMatch = Math.min(90, 55 + candidateSkills.length * 4);
+          calculatedMatch = Math.min(80, 20 + candidateSkills.length * 5);
         }
       } catch (matchErr) {
         console.warn("Match calculation failed for applicant:", app.id, matchErr.message);
