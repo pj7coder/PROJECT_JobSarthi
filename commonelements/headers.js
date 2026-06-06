@@ -105,10 +105,10 @@ window.headerLandingHTML = `
 
       <!-- Finder Tab (Blue) -->
       <a href="seeker/login_signup.html" class="btn btn-glow"
-        style="padding: 8px 16px; font-size: 0.85rem; background: var(--text-main); border: 1px solid var(--text-main); color: var(--bg-primary); border-radius: var(--radius-sm); font-weight: 600; text-decoration: none;">Finder</a>
+        style="padding: 8px 16px; font-size: 0.85rem; background: #2563eb; border: 1px solid #3b82f6; color: #fff; border-radius: var(--radius-sm); font-weight: 600; text-decoration: none;">Finder</a>
       <!-- Recruiter Tab (Magenta) -->
       <a href="recruiter/login_signup.html" class="btn btn-glow"
-        style="padding: 8px 16px; font-size: 0.85rem; background: transparent; border: 1px solid var(--border-subtle); color: var(--text-main); border-radius: var(--radius-sm); font-weight: 600; text-decoration: none;">Recruiter</a>
+        style="padding: 8px 16px; font-size: 0.85rem; background: #db2777; border: 1px solid #ec4899; color: #fff; border-radius: var(--radius-sm); font-weight: 600; text-decoration: none;">Recruiter</a>
     </div>
     <button id="closeAboutBtn" aria-label="Close About Panel">✕</button>
   </div>

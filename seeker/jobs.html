@@ -472,10 +472,190 @@
       cursor: not-allowed;
     }
 
-    .pagination-ellipsis {
+    /* Heart Bookmark Animation (Example 2) */
+    .heart-container {
+      --heart-color: rgb(255, 91, 137);
+      position: relative;
+      width: 44px;
+      height: 44px;
+      transition: .3s;
+      cursor: pointer;
+    }
+
+    .heart-container .checkbox {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      z-index: 20;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .heart-container .svg-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .heart-container .svg-outline,
+    .heart-container .svg-filled {
+      fill: var(--heart-color);
+      position: absolute;
+      transition: transform 0.2s;
+    }
+
+    .heart-container .svg-outline {
+      fill: none;
+      stroke: var(--heart-color);
+      stroke-width: 2px;
+    }
+
+    .heart-container .svg-filled {
+      animation: keyframes-svg-filled 1s;
+      display: none;
+    }
+
+    .heart-container .svg-celebrate {
+      position: absolute;
+      animation: keyframes-svg-celebrate .5s;
+      animation-fill-mode: forwards;
+      display: none;
+      stroke: var(--heart-color);
+      fill: var(--heart-color);
+      stroke-width: 2px;
+    }
+
+    .heart-container .checkbox:checked~.svg-container .svg-filled {
+      display: block
+    }
+
+    .heart-container .checkbox:checked~.svg-container .svg-celebrate {
+      display: block
+    }
+
+    @keyframes keyframes-svg-filled {
+      0% {
+        transform: scale(0);
+      }
+      25% {
+        transform: scale(1.2);
+      }
+      50% {
+        transform: scale(1);
+        filter: brightness(1.5);
+      }
+    }
+
+    @keyframes keyframes-svg-celebrate {
+      0% {
+        transform: scale(0);
+      }
+      50% {
+        opacity: 1;
+        filter: brightness(1.5);
+      }
+      100% {
+        transform: scale(1.4);
+        opacity: 0;
+        display: none;
+    }
+
+    /* Custom Switch - Example 1 */
+    .custom-switch-label {
+      background-color: transparent;
+      border: 1px solid var(--border-subtle);
+      display: inline-flex;
+      align-items: center;
+      border-radius: 50px;
+      width: 65px;
+      height: 28px;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      position: relative;
+    }
+
+    .custom-switch-label::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 6px;
+      background-color: var(--text-muted);
+      width: 14px;
+      height: 14px;
+      transition: all 0.4s ease;
+      border-radius: 100%;
+      margin: auto 0;
+    }
+
+    .custom-switch-label::after {
+      content: "OFF";
+      font-size: 8px;
       color: var(--text-muted);
-      padding: 0 8px;
-      font-weight: 600;
+      margin-left: 28px;
+      transition: all 0.4s ease;
+      font-weight: 700;
+    }
+
+    #remoteSwitch:checked + .custom-switch-label {
+      background-color: var(--accent-secondary);
+      border-color: var(--accent-secondary);
+    }
+
+    #remoteSwitch:checked + .custom-switch-label::before {
+      background-color: #fff;
+      left: calc(100% - 20px);
+    }
+
+    #remoteSwitch:checked + .custom-switch-label::after {
+      content: "ON";
+      color: #fff;
+      margin-left: 10px;
+    }
+
+    /* Sliding Radio Inputs - Example 6 */
+    .radio-inputs {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      border-radius: var(--radius-md);
+      background-color: var(--bg-secondary);
+      box-sizing: border-box;
+      border: 1px solid var(--border-subtle);
+      padding: 0.25rem;
+      width: 280px;
+      font-size: 0.8rem;
+    }
+
+    .radio-inputs .radio {
+      flex: 1 1 auto;
+      text-align: center;
+    }
+
+    .radio-inputs .radio input {
+      display: none;
+    }
+
+    .radio-inputs .radio .name {
+      display: flex;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      border: none;
+      padding: 6px 0;
+      color: var(--text-muted);
+      transition: all .15s ease-in-out;
+      font-weight: 500;
+    }
+
+    .radio-inputs .radio input:checked + .name {
+      background-color: var(--accent-secondary);
+      color: #fff;
+      font-weight: 700;
     }
   </style>
 </head>
@@ -522,9 +702,13 @@
             <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
               <input type="checkbox" value="Internship" onchange="filterJobs()"> Internship
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
-              <input type="checkbox" value="Remote" onchange="filterJobs()"> Remote Only
-            </label>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px; border-top: 1px dashed var(--border-subtle); padding-top: 10px;">
+              <span style="font-size: 0.85rem; color: var(--text-main); font-weight: 500;">Remote Only</span>
+              <div>
+                <input type="checkbox" id="remoteSwitch" value="Remote" onchange="filterJobs()" style="display: none;">
+                <label for="remoteSwitch" class="custom-switch-label"></label>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -562,14 +746,27 @@
             Showing 0 jobs
           </div>
           <div style="display: flex; align-items: center; gap: 10px;">
-            <label class="form-label" style="margin: 0; white-space: nowrap;">Sort by:</label>
-            <select id="jobSort" class="form-control" onchange="filterJobs()"
-              style="padding: 6px 12px; font-size: 0.85rem; background: var(--bg-secondary); border-color: var(--border-subtle);">
+            <!-- Hidden original selector so standard filterJobs() doesn't throw errors -->
+            <select id="jobSort" style="display: none;">
               <option value="date-desc" selected>Newest First</option>
               <option value="match-desc">Relevance</option>
               <option value="title-asc">Title (A-Z)</option>
-              <option value="company-asc">Company (A-Z)</option>
             </select>
+            
+            <div class="radio-inputs">
+              <label class="radio">
+                <input type="radio" name="jobSortRadio" value="date-desc" checked onchange="handleSortRadioChange(this.value)">
+                <span class="name">Newest First</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="jobSortRadio" value="match-desc" onchange="handleSortRadioChange(this.value)">
+                <span class="name">Relevance</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="jobSortRadio" value="title-asc" onchange="handleSortRadioChange(this.value)">
+                <span class="name">Title</span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -655,8 +852,25 @@
         </div>
       </div>
 
-      <div style="margin-top: 40px; display: flex; gap: 16px;">
+      <div style="margin-top: 40px; display: flex; gap: 16px; align-items: center;">
         <button id="applyBtn" class="btn btn-glow" style="flex: 1;" onclick="applyToCurrentJob()">Apply Now</button>
+        
+        <!-- Heart Bookmark - Example 2 -->
+        <div class="heart-container" title="Save Job" style="flex-shrink: 0; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
+          <input type="checkbox" class="checkbox" id="saveJobCheckbox" onchange="toggleSaveJobState(this.checked)">
+          <div class="svg-container">
+            <svg viewBox="0 0 24 24" class="svg-outline" xmlns="http://www.w3.org/2000/svg" style="width: 22px; height: 22px;">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <svg viewBox="0 0 24 24" class="svg-filled" xmlns="http://www.w3.org/2000/svg" style="width: 22px; height: 22px;">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <svg class="svg-celebrate" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width: 32px; height: 32px;">
+              <circle cx="50" cy="50" r="30"/>
+            </svg>
+          </div>
+        </div>
+
         <button class="btn btn-secondary" onclick="closeDrawer(null)">Cancel</button>
       </div>
     </div>
@@ -668,6 +882,14 @@
   </div>
 
   <script>
+    function handleSortRadioChange(val) {
+      const selectEl = document.getElementById('jobSort');
+      if (selectEl) {
+        selectEl.value = val;
+        filterJobs();
+      }
+    }
+
     let dbJobs = [];
     let currentSelectedJob = null;
     let seekerSkills = [];
@@ -1488,7 +1710,45 @@
         };
       }
 
+      // Check if job is saved in bookmarks
+      const savedJobIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      const saveBox = document.getElementById('saveJobCheckbox');
+      if (saveBox) {
+        saveBox.checked = savedJobIds.includes(job.id);
+      }
+
       document.getElementById('detailDrawer').style.display = 'flex';
+    }
+
+    function toggleSaveJobState(checked) {
+      if (!currentSelectedJob) return;
+      const job = currentSelectedJob;
+      let savedJobIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      if (checked) {
+        if (!savedJobIds.includes(job.id)) {
+          savedJobIds.push(job.id);
+        }
+      } else {
+        savedJobIds = savedJobIds.filter(id => id !== job.id);
+      }
+      localStorage.setItem('saved_jobs', JSON.stringify(savedJobIds));
+
+      const toast = document.getElementById("successToast");
+      if (toast) {
+        if (checked) {
+          toast.textContent = "Job saved to your bookmarks!";
+          toast.style.background = "#ff5b89";
+          toast.style.boxShadow = "0 10px 20px rgba(255, 91, 137, 0.3)";
+        } else {
+          toast.textContent = "Job removed from bookmarks.";
+          toast.style.background = "var(--accent-secondary)";
+          toast.style.boxShadow = "none";
+        }
+        toast.style.display = "block";
+        setTimeout(() => {
+          toast.style.display = "none";
+        }, 2000);
+      }
     }
 
     let isDescriptionExpanded = false;
