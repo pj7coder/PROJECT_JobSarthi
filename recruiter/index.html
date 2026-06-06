@@ -13,6 +13,7 @@
   <meta name="description"
     content="Manage job postings, screen applicants, view hiring funnels, and communicate with candidates.">
   <link rel="stylesheet" href="../css/main.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
       /* Custom recruiter accent colors (purple/magenta) */
@@ -66,49 +67,6 @@
       }
     }
 
-    .applicants-table-wrap {
-      padding: 30px;
-    }
-
-    .recruiter-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      text-align: left;
-    }
-
-    .recruiter-table th {
-      padding: 12px 16px;
-      color: var(--text-dark);
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      font-weight: 700;
-      border-bottom: 1px solid var(--glass-border);
-    }
-
-    .recruiter-table td {
-      padding: 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-      font-size: 0.9rem;
-    }
-
-    .candidate-name {
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    .candidate-role {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .match-tag {
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 0.78rem;
-      font-weight: 700;
-    }
-
     /* Shortcut Actions Panel */
     .shortcuts-panel {
       padding: 30px;
@@ -147,6 +105,103 @@
       align-items: center;
       justify-content: center;
       font-size: 1.15rem;
+    }
+
+    /* Calendar Styling */
+    .calendar-section {
+      padding: 30px;
+    }
+
+    .calendar-grid-container {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 24px;
+      margin-top: 15px;
+    }
+
+    @media (max-width: 768px) {
+      .calendar-grid-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      color: var(--text-main);
+      transition: all 0.2s ease;
+      position: relative;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    body.light-theme .calendar-day {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .calendar-day:hover {
+      background: rgba(217, 70, 239, 0.15);
+      border-color: rgba(217, 70, 239, 0.3);
+    }
+
+    .calendar-day.empty {
+      cursor: default;
+      opacity: 0.2;
+      background: transparent;
+    }
+
+    .calendar-day.selected {
+      background: linear-gradient(135deg, var(--accent-tertiary), var(--accent-primary)) !important;
+      color: #fff !important;
+      font-weight: 700;
+    }
+
+    .calendar-day.today {
+      border: 1px solid var(--accent-recruiter);
+      font-weight: 700;
+    }
+
+    .day-event-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent-recruiter);
+      position: absolute;
+      bottom: 4px;
+    }
+
+    .calendar-event-item {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      border-left: 3px solid transparent;
+    }
+
+    .calendar-event-item.interview {
+      background: rgba(6, 182, 212, 0.08);
+      border-color: var(--accent-secondary);
+      color: var(--text-main);
+    }
+
+    body.light-theme .calendar-event-item.interview {
+      background: rgba(6, 182, 212, 0.15);
+    }
+
+    .calendar-event-item.task {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: var(--text-muted);
+      color: var(--text-muted);
+    }
+
+    body.light-theme .calendar-event-item.task {
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--text-dark);
     }
   </style>
 </head>
@@ -208,7 +263,7 @@
           Quick Shortcuts</h2>
 
         <div class="shortcut-btn" onclick="window.location.href='create_job.html?tab=create'">
-          <div class="shortcut-icon">➕</div>
+          <div class="shortcut-icon"><i data-lucide="plus"></i></div>
           <div>
             <h3 style="font-size: 0.95rem; margin-bottom: 4px;">Create Job</h3>
             <p style="color: var(--text-muted); font-size: 0.8rem;">Publish a job listing to search networks.</p>
@@ -216,7 +271,7 @@
         </div>
 
         <div class="shortcut-btn" onclick="window.location.href='applicants.html'">
-          <div class="shortcut-icon">👥</div>
+          <div class="shortcut-icon"><i data-lucide="users"></i></div>
           <div>
             <h3 style="font-size: 0.95rem; margin-bottom: 4px;">Manage Applicants</h3>
             <p style="color: var(--text-muted); font-size: 0.8rem;">Review candidate pipelines & resumes.</p>
@@ -224,7 +279,7 @@
         </div>
 
         <div class="shortcut-btn" onclick="window.location.href='analytics.html'">
-          <div class="shortcut-icon">📊</div>
+          <div class="shortcut-icon"><i data-lucide="bar-chart-2"></i></div>
           <div>
             <h3 style="font-size: 0.95rem; margin-bottom: 4px;">Hiring Analytics</h3>
             <p style="color: var(--text-muted); font-size: 0.8rem;">Analyze application graphs & rates.</p>
@@ -232,49 +287,376 @@
         </div>
       </aside>
 
-      <!-- Right side: Candidates List Table -->
-      <section class="glass-panel applicants-table-wrap">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h2 style="font-size: 1.25rem;">Candidates List</h2>
-          <a href="applicants.html" style="color: var(--accent-tertiary); font-size: 0.9rem; font-weight: 600;">View
-            Pipeline &rarr;</a>
+      <!-- Right side: Hiring Calendar & Tasks -->
+      <section class="glass-panel calendar-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="calendar"></i> Hiring Calendar & Tasks
+          </h2>
+          <a href="applicants.html" style="color: var(--accent-tertiary); font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 4px; text-decoration: none;">
+            <i data-lucide="users" style="width: 16px; height: 16px;"></i> view all applicants
+          </a>
         </div>
 
-        <table class="recruiter-table">
-          <thead>
-            <tr>
-              <th>Candidate</th>
-              <th>Applied Role</th>
-              <th>AI Fit Index</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="dashboardApplicantsContainer">
-            <!-- Populated via Javascript -->
-          </tbody>
-        </table>
+        <div class="calendar-grid-container">
+          <!-- Calendar View -->
+          <div class="calendar-wrapper">
+            <div class="calendar-nav" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <button class="btn btn-secondary" onclick="prevMonth()" style="padding: 6px 12px; font-size: 0.8rem;">&larr; Prev</button>
+              <span id="calendarMonthName" style="font-weight: 700; font-size: 1rem; color: var(--text-main);">June 2026</span>
+              <button class="btn btn-secondary" onclick="nextMonth()" style="padding: 6px 12px; font-size: 0.8rem;">Next &rarr;</button>
+            </div>
+            <div class="calendar-header-days" style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: 700; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;">
+              <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+            </div>
+            <div id="calendarDaysGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center;">
+              <!-- Days will be generated by Javascript -->
+            </div>
+          </div>
+          
+          <!-- Tasks & Interviews List for Selected Date -->
+          <div class="day-details-panel" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 280px; text-align: left;">
+            <div>
+              <h3 id="selectedDateTitle" style="font-size: 1rem; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 8px; color: var(--text-main);">Events for June 6, 2026</h3>
+              <div id="selectedDateEventsList" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Events list loaded dynamically -->
+              </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 8px;">
+              <button class="btn btn-primary" onclick="openAddEventModal()" style="padding: 8px 16px; font-size: 0.85rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Schedule Event
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   </main>
 
+  <!-- Add Event Modal -->
+  <div id="addEventModal" class="modal-overlay" style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(10, 11, 15, 0.85);
+    backdrop-filter: blur(12px);
+    align-items: center;
+    justify-content: center;
+  ">
+    <div class="glass-panel" style="width: 400px; padding: 30px; text-align: left; position: relative;">
+      <h3 style="margin-top:0; margin-bottom: 20px; color: var(--text-main);">Schedule Event</h3>
+      <div class="form-group" style="text-align: left; margin-bottom: 15px;">
+        <label class="form-label">Event Type</label>
+        <select id="eventFormType" class="form-control" style="width: 100%;">
+          <option value="interview">Interview</option>
+          <option value="task">Task / To-Do</option>
+        </select>
+      </div>
+      <div class="form-group" style="text-align: left; margin-bottom: 15px;">
+        <label class="form-label">Event Title</label>
+        <input type="text" id="eventFormTitle" class="form-control" style="width: 100%;" placeholder="e.g. Interview with Kabir Dev" required>
+      </div>
+      <div class="form-group" style="text-align: left; margin-bottom: 20px;">
+        <label class="form-label">Time</label>
+        <input type="text" id="eventFormTime" class="form-control" style="width: 100%;" placeholder="e.g. 10:00 AM" required>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button class="btn btn-secondary" onclick="closeAddEventModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEventFromForm()">Save Event</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Initial applicants mock data
-    const mockApplicants = [
-      { id: 1, name: "Arjun Mehta", role: "Frontend Developer", match: 94, status: "Applied", date: "Just now" },
-      { id: 2, name: "Priya Sharma", role: "UI/UX Designer", match: 88, status: "Reviewing", date: "3 hours ago" },
-      { id: 3, name: "Kabir Dev", role: "Python Developer", match: 81, status: "Interviewing", date: "Yesterday" },
-      { id: 4, name: "Anjali Gupta", role: "Growth Marketer", match: 76, status: "Applied", date: "Yesterday" },
-      { id: 5, name: "Rohan Das", role: "Product Manager", match: 69, status: "Reviewing", date: "2 days ago" }
-    ];
+    let currentYear = new Date().getFullYear();
+    let currentMonth = new Date().getMonth(); // 0-indexed
+    let selectedDate = new Date();
+
+    // Initial calendar setup
+    function initMockEvents() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      
+      const dateStr = (day) => `${year}-${month}-${String(day).padStart(2, '0')}`;
+      
+      if (!localStorage.getItem('recruiter_calendar_events')) {
+        const defaultEvents = {};
+        
+        // Event on today
+        defaultEvents[dateStr(today.getDate())] = [
+          { type: 'interview', title: 'Interview with Arjun Mehta (Frontend)', time: '10:00 AM' },
+          { type: 'task', title: 'Review Growth Marketer application resumes', time: 'All Day' }
+        ];
+        
+        // Event on tomorrow
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        const tomorrowDay = tomorrow.getDate();
+        const tomorrowMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const tomorrowYear = tomorrow.getFullYear();
+        defaultEvents[`${tomorrowYear}-${tomorrowMonth}-${String(tomorrowDay).padStart(2, '0')}`] = [
+          { type: 'interview', title: 'Interview with Priya Sharma (UI/UX Designer)', time: '02:30 PM' },
+          { type: 'task', title: 'Weekly sync with engineering department lead', time: '04:00 PM' }
+        ];
+        
+        // Event on day after tomorrow
+        const dayAfter = new Date(today);
+        dayAfter.setDate(today.getDate() + 2);
+        const dayAfterDay = dayAfter.getDate();
+        const dayAfterMonth = String(dayAfter.getMonth() + 1).padStart(2, '0');
+        const dayAfterYear = dayAfter.getFullYear();
+        defaultEvents[`${dayAfterYear}-${dayAfterMonth}-${String(dayAfterDay).padStart(2, '0')}`] = [
+          { type: 'task', title: 'Follow up on Rohan Das interview feedback', time: '09:00 AM' },
+          { type: 'interview', title: 'First round call with Anjali Gupta', time: '11:30 AM' }
+        ];
+
+        // Event in past
+        const past = new Date(today);
+        past.setDate(today.getDate() - 3);
+        const pastDay = past.getDate();
+        const pastMonth = String(past.getMonth() + 1).padStart(2, '0');
+        const pastYear = past.getFullYear();
+        defaultEvents[`${pastYear}-${pastMonth}-${String(pastDay).padStart(2, '0')}`] = [
+          { type: 'task', title: 'Post new Node.js backend developer role', time: 'Completed' }
+        ];
+        
+        localStorage.setItem('recruiter_calendar_events', JSON.stringify(defaultEvents));
+      }
+    }
+
+    function syncApplicantsToCalendar(list) {
+      const events = JSON.parse(localStorage.getItem('recruiter_calendar_events') || '{}');
+      let updated = false;
+      
+      const interviewingCandidates = list.filter(c => c.status === 'Interviewing');
+      
+      let slotOffset = 2;
+      interviewingCandidates.forEach(c => {
+        let alreadyScheduled = false;
+        Object.values(events).forEach(dayEvents => {
+          dayEvents.forEach(ev => {
+            if (ev.title.includes(c.name)) {
+              alreadyScheduled = true;
+            }
+          });
+        });
+        
+        if (!alreadyScheduled) {
+          const today = new Date();
+          const targetDate = new Date(today);
+          targetDate.setDate(today.getDate() + slotOffset);
+          
+          const tYear = targetDate.getFullYear();
+          const tMonth = String(targetDate.getMonth() + 1).padStart(2, '0');
+          const tDay = String(targetDate.getDate()).padStart(2, '0');
+          const dateStr = `${tYear}-${tMonth}-${tDay}`;
+          
+          if (!events[dateStr]) {
+            events[dateStr] = [];
+          }
+          
+          events[dateStr].push({
+            type: 'interview',
+            title: `Interview with ${c.name} (${c.role || 'Candidate'})`,
+            time: slotOffset % 2 === 0 ? '11:00 AM' : '03:00 PM'
+          });
+          
+          slotOffset++;
+          updated = true;
+        }
+      });
+      
+      if (updated) {
+        localStorage.setItem('recruiter_calendar_events', JSON.stringify(events));
+      }
+    }
+
+    function renderCalendar() {
+      const daysGrid = document.getElementById('calendarDaysGrid');
+      const monthName = document.getElementById('calendarMonthName');
+      
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      monthName.textContent = `${months[currentMonth]} ${currentYear}`;
+      
+      daysGrid.innerHTML = '';
+      
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+      const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+      
+      for (let i = 0; i < firstDay; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day empty';
+        daysGrid.appendChild(cell);
+      }
+      
+      const events = JSON.parse(localStorage.getItem('recruiter_calendar_events') || '{}');
+      
+      for (let day = 1; day <= totalDays; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day';
+        cell.textContent = day;
+        
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        if (selectedDate && 
+            selectedDate.getDate() === day && 
+            selectedDate.getMonth() === currentMonth && 
+            selectedDate.getFullYear() === currentYear) {
+          cell.classList.add('selected');
+        }
+        
+        const today = new Date();
+        if (today.getDate() === day && 
+            today.getMonth() === currentMonth && 
+            today.getFullYear() === currentYear) {
+          cell.classList.add('today');
+        }
+        
+        if (events[dateStr] && events[dateStr].length > 0) {
+          const dot = document.createElement('span');
+          dot.className = 'day-event-dot';
+          cell.appendChild(dot);
+        }
+        
+        cell.onclick = () => {
+          selectedDate = new Date(currentYear, currentMonth, day);
+          renderCalendar();
+          renderEventsForSelectedDate();
+        };
+        
+        daysGrid.appendChild(cell);
+      }
+    }
+
+    function renderEventsForSelectedDate() {
+      const eventsList = document.getElementById('selectedDateEventsList');
+      const dateTitle = document.getElementById('selectedDateTitle');
+      
+      const year = selectedDate.getFullYear();
+      const monthName = selectedDate.toLocaleDateString('en-US', { month: 'long' });
+      const day = selectedDate.getDate();
+      dateTitle.textContent = `Events for ${monthName} ${day}, ${year}`;
+      
+      eventsList.innerHTML = '';
+      
+      const dateStr = `${year}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const events = JSON.parse(localStorage.getItem('recruiter_calendar_events') || '{}');
+      
+      const dayEvents = events[dateStr] || [];
+      
+      if (dayEvents.length === 0) {
+        eventsList.innerHTML = `
+          <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 30px 0;">
+            No interviews or tasks scheduled.
+          </div>
+        `;
+        return;
+      }
+      
+      dayEvents.forEach((ev, idx) => {
+        const item = document.createElement('div');
+        item.className = `calendar-event-item ${ev.type}`;
+        const iconName = ev.type === 'interview' ? 'video' : 'check-square';
+        
+        item.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+            <div>
+              <div style="font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="${iconName}" style="width: 14px; height: 14px;"></i>
+                ${ev.title}
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Time: ${ev.time}</div>
+            </div>
+            <button onclick="deleteEvent('${dateStr}', ${idx})" style="background: none; border: none; color: var(--danger); font-size: 1.1rem; cursor: pointer; opacity: 0.6; transition: opacity 0.2s; line-height: 1; padding: 0 4px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">&times;</button>
+          </div>
+        `;
+        eventsList.appendChild(item);
+      });
+      
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    function deleteEvent(dateStr, index) {
+      const events = JSON.parse(localStorage.getItem('recruiter_calendar_events') || '{}');
+      if (events[dateStr]) {
+        events[dateStr].splice(index, 1);
+        if (events[dateStr].length === 0) {
+          delete events[dateStr];
+        }
+        localStorage.setItem('recruiter_calendar_events', JSON.stringify(events));
+        renderCalendar();
+        renderEventsForSelectedDate();
+      }
+    }
+
+    function openAddEventModal() {
+      document.getElementById('eventFormTitle').value = '';
+      document.getElementById('eventFormTime').value = '10:00 AM';
+      document.getElementById('addEventModal').style.display = 'flex';
+    }
+
+    function closeAddEventModal() {
+      document.getElementById('addEventModal').style.display = 'none';
+    }
+
+    function saveEventFromForm() {
+      const type = document.getElementById('eventFormType').value;
+      const title = document.getElementById('eventFormTitle').value.trim();
+      const time = document.getElementById('eventFormTime').value.trim();
+      
+      if (!title) {
+        alert("Please enter an event title.");
+        return;
+      }
+      
+      const year = selectedDate.getFullYear();
+      const dateStr = `${year}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+      
+      const events = JSON.parse(localStorage.getItem('recruiter_calendar_events') || '{}');
+      if (!events[dateStr]) {
+        events[dateStr] = [];
+      }
+      
+      events[dateStr].push({ type, title, time });
+      localStorage.setItem('recruiter_calendar_events', JSON.stringify(events));
+      
+      closeAddEventModal();
+      renderCalendar();
+      renderEventsForSelectedDate();
+    }
+
+    function prevMonth() {
+      currentMonth--;
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+      renderCalendar();
+    }
+
+    function nextMonth() {
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+      renderCalendar();
+    }
 
     document.addEventListener("DOMContentLoaded", () => {
+      initMockEvents();
+      renderCalendar();
+      renderEventsForSelectedDate();
+      
       const comp = localStorage.getItem('recruiter_company') || 'InnovateTech';
-
       loadDashboardApplicants(comp);
     });
 
-    function renderRecruiterStatsAndApplicants(list, jobsCount, container) {
+    function renderRecruiterStats(list, jobsCount) {
       // Update Stats UI
       document.getElementById('recruiterActiveJobs').textContent = jobsCount;
       document.getElementById('recruiterActiveJobsSubtext').textContent = `${jobsCount} postings active`;
@@ -294,77 +676,19 @@
       const hiredCount = list.filter(c => c.status === 'Hired').length;
       document.getElementById('recruiterHired').textContent = hiredCount;
       document.getElementById('recruiterHiredSubtext').textContent = `${hiredCount} hired overall`;
-      
-      container.innerHTML = '';
-
-      if (list.length === 0) {
-        container.innerHTML = `
-          <tr>
-            <td colspan="5" style="text-align: center; color: var(--text-dark); padding: 30px;">
-              No applicants received yet.
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      // Display all candidates
-      list.forEach(c => {
-        const row = document.createElement('tr');
-
-        let matchClass = 'background: rgba(6,182,212,0.1); color: var(--accent-secondary); border: 1px solid rgba(6,182,212,0.3);';
-        if (c.match >= 90) {
-          matchClass = 'background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.3);';
-        } else if (c.match < 75) {
-          matchClass = 'background: rgba(217,70,239,0.1); color: var(--accent-tertiary); border: 1px solid rgba(217,70,239,0.3);';
-        }
-
-        let statusBadge = `<span class="badge badge-warning">${c.status}</span>`;
-        if (c.status === 'Interviewing') {
-          statusBadge = `<span class="badge badge-primary">${c.status}</span>`;
-        } else if (c.status === 'Reviewing') {
-          statusBadge = `<span class="badge" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3);">${c.status}</span>`;
-        } else if (c.status === 'Shortlisted') {
-          statusBadge = `<span class="badge badge-success">${c.status}</span>`;
-        } else if (c.status === 'Hired') {
-          statusBadge = `<span class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3);">${c.status}</span>`;
-        }
-
-        row.innerHTML = `
-          <td>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <div class="candidate-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-tertiary), var(--accent-primary)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 0.8rem; overflow: hidden; flex-shrink: 0;">
-                ${c.avatarUrl ? `<img src="${c.avatarUrl}" alt="${c.name}" style="width: 100%; height: 100%; object-fit: cover;" />` : c.name.split(' ').map(n=>n[0]).join('')}
-              </div>
-              <div>
-                <div class="candidate-name">${c.name}</div>
-                <div class="candidate-role">${c.date || (c.appliedAt ? new Date(c.appliedAt).toLocaleDateString() : 'Recent')}</div>
-              </div>
-            </div>
-          </td>
-          <td>${c.role || c.jobTitle || 'General Position'}</td>
-          <td>
-            <span class="match-tag" style="${matchClass}">${c.match || 75}% Fit</span>
-          </td>
-          <td>${statusBadge}</td>
-          <td>
-            <a href="applicants.html" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Review</a>
-          </td>
-        `;
-
-        container.appendChild(row);
-      });
     }
 
     async function loadDashboardApplicants(companyName) {
-      const container = document.getElementById('dashboardApplicantsContainer');
-      
       // 1. Instantly load from localStorage if available
       try {
         const cachedList = localStorage.getItem('recruiter_applicants_list');
         const cachedJobsCount = localStorage.getItem('recruiter_jobs_count');
         if (cachedList !== null && cachedJobsCount !== null) {
-          renderRecruiterStatsAndApplicants(JSON.parse(cachedList), parseInt(cachedJobsCount), container);
+          const list = JSON.parse(cachedList);
+          renderRecruiterStats(list, parseInt(cachedJobsCount));
+          syncApplicantsToCalendar(list);
+          renderCalendar();
+          renderEventsForSelectedDate();
         }
       } catch (e) {
         console.warn("Error parsing cached recruiter stats:", e);
@@ -393,7 +717,10 @@
         localStorage.setItem('recruiter_jobs_count', jobsCount);
 
         // Render fresh data
-        renderRecruiterStatsAndApplicants(list, jobsCount, container);
+        renderRecruiterStats(list, jobsCount);
+        syncApplicantsToCalendar(list);
+        renderCalendar();
+        renderEventsForSelectedDate();
       } catch (err) {
         console.error("Failed to load applicants in background:", err);
       }
@@ -401,6 +728,9 @@
   </script>
   
   <script src="../js/header.js"></script>
+</body>
+
+</html>
 
 
 

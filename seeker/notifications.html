@@ -6,6 +6,7 @@
   <title>Notifications Hub - JobSarthi Seeker</title>
   <meta name="description" content="Stay up to date with job applications, mock reviews, and alerts from Sarthi AI.">
   <link rel="stylesheet" href="../css/main.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script>
     if (localStorage.getItem('seeker_logged_in') !== 'true') {
       window.location.replace('login_signup.html');
@@ -187,7 +188,7 @@
         time: "1 hour ago",
         unread: true,
         type: "jobs",
-        icon: "📆"
+        icon: "calendar"
       },
       {
         id: 102,
@@ -196,7 +197,7 @@
         time: "5 hours ago",
         unread: true,
         type: "jobs",
-        icon: "👁️"
+        icon: "eye"
       },
       {
         id: 103,
@@ -205,7 +206,7 @@
         time: "Yesterday",
         unread: false,
         type: "sarthi",
-        icon: "🤖"
+        icon: "bot"
       },
       {
         id: 104,
@@ -214,7 +215,7 @@
         time: "2 days ago",
         unread: false,
         type: "sarthi",
-        icon: "🎉"
+        icon: "award"
       }
     ];
 
@@ -232,8 +233,14 @@
       document.getElementById('headerProfileName').textContent = userName;
       document.getElementById('headerProfileInitials').textContent = initial;
 
-      // Init notifications stack
-      if (!localStorage.getItem('seeker_notifications')) {
+      // Reset or set seeker_notifications if they still contain emoji icons
+      let list = [];
+      try {
+        list = JSON.parse(localStorage.getItem('seeker_notifications') || '[]');
+      } catch (e) {}
+      
+      const hasEmoji = list.some(n => ["📆", "👁️", "🤖", "🎉"].includes(n.icon));
+      if (!localStorage.getItem('seeker_notifications') || hasEmoji) {
         localStorage.setItem('seeker_notifications', JSON.stringify(defaultNotifications));
       }
       renderNotifications();
@@ -280,7 +287,7 @@
         card.className = `glass-card notif-card ${n.unread ? 'unread' : ''}`;
         
         card.innerHTML = `
-          <div class="notif-icon">${n.icon || '🔔'}</div>
+          <div class="notif-icon"><i data-lucide="${n.icon || 'bell'}" style="width: 18px; height: 18px;"></i></div>
           <div class="notif-info">
             <h3>${n.title}</h3>
             <p>${n.desc}</p>
@@ -298,6 +305,9 @@
         `;
         container.appendChild(card);
       });
+      if (window.lucide) {
+        lucide.createIcons();
+      }
     }
 
     function markAsRead(id) {

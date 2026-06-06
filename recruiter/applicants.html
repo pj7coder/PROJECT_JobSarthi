@@ -6,6 +6,7 @@
   <title>Manage Applicants - JobSarthi</title>
   <meta name="description" content="View incoming applications, read AI screening notes, and manage candidate hiring stages.">
   <link rel="stylesheet" href="../css/main.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script>
     if (localStorage.getItem('recruiter_logged_in') !== 'true') {
       window.location.replace('login_signup.html');
@@ -219,7 +220,7 @@
         <!-- AI Screening Box -->
         <div class="ai-review-box">
           <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #818cf8; margin-bottom: 8px;">
-            <span>🤖</span> Sarthi AI Fit Analysis
+            <i data-lucide="cpu" style="width: 18px; height: 18px;"></i> Sarthi AI Fit Analysis
           </div>
           <p id="drawerAiNote" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main);">
             Analyzing...
@@ -254,7 +255,36 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       const comp = localStorage.getItem('recruiter_company') || 'InnovateTech';
-      loadApplicants(comp);
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const roleParam = urlParams.get('role');
+      const candidateParam = urlParams.get('candidateId');
+      
+      if (roleParam) {
+        const select = document.getElementById('roleFilter');
+        if (select) {
+          let optionExists = false;
+          for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === roleParam) {
+              optionExists = true;
+              break;
+            }
+          }
+          if (!optionExists) {
+            const opt = document.createElement('option');
+            opt.value = roleParam;
+            opt.textContent = roleParam;
+            select.appendChild(opt);
+          }
+          select.value = roleParam;
+        }
+      }
+      
+      loadApplicants(comp).then(() => {
+        if (candidateParam) {
+          openCandidateDrawer(candidateParam);
+        }
+      });
     });
 
     async function loadApplicants(companyName) {
@@ -348,6 +378,9 @@
 
         container.appendChild(item);
       });
+      if (window.lucide) {
+        lucide.createIcons();
+      }
     }
 
     function openCandidateDrawer(id) {

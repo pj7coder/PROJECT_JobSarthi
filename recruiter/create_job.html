@@ -6,6 +6,7 @@
   <title>Jobs Management - JobSarthi</title>
   <meta name="description" content="Manage and create job openings.">
   <link rel="stylesheet" href="../css/main.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script>
     if (localStorage.getItem('recruiter_logged_in') !== 'true') {
       window.location.replace('login_signup.html');
@@ -373,14 +374,14 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 30px;">
-          <div class="job-logo" id="drawerJobLogo" style="width: 64px; height: 64px; font-size: 1.8rem; border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center;">💼</div>
+          <div class="job-logo" id="drawerJobLogo" style="width: 64px; height: 64px; font-size: 1.8rem; border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center;"><i data-lucide="briefcase" style="width: 28px; height: 28px;"></i></div>
           <div style="text-align: left;">
             <h2 id="drawerJobTitle" style="font-size: 1.4rem; color: var(--text-main); margin: 0 0 4px 0;">Job Title</h2>
             <div id="drawerJobCompany" style="color: var(--accent-tertiary); font-weight: 600;">Company Name</div>
           </div>
         </div>
 
-        <div style="margin-top: 24px; text-align: left;">
+        <div style="margin-top: 24px; text-align: left; display: none;">
           <h3 style="font-size: 1.05rem; margin-bottom: 8px; color: var(--text-main);">Job Description</h3>
           <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;" id="drawerJobDesc">
             Job description goes here.
@@ -400,13 +401,22 @@
             <div><strong>Salary:</strong> <br><span id="drawerJobSalary">N/A</span></div>
             <div><strong>Employment Type:</strong> <br><span id="drawerJobType">N/A</span></div>
             <div><strong>Category:</strong> <br><span id="drawerJobCategory">N/A</span></div>
+            <div><strong>Applicants Count:</strong> <br><span id="drawerJobApplicantsCount">0 applied</span></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px; border-top: 1px solid var(--glass-border); padding-top: 20px; text-align: left;">
+          <h3 style="font-size: 1.05rem; margin-bottom: 12px; color: var(--text-main);">Applicants List</h3>
+          <div id="drawerJobApplicantsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+            <!-- Applicants list with link to details -->
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="toast-alert" id="successToast">
+  <!-- Notification Alert -->
+  <div class="save-toast" id="successToast">
     Job posted successfully! It is now visible on seeker boards.
   </div>
 
@@ -480,6 +490,7 @@
     const jobsPerPage = 10;
     let totalJobs = 0;
     let loadedJobsList = [];
+    let loadedApplicantsList = [];
 
     document.addEventListener("DOMContentLoaded", () => {
       // Check query parameter to auto-switch tab
@@ -490,6 +501,7 @@
       } else {
         switchTab('list');
       }
+      if (window.lucide) { lucide.createIcons(); }
     });
 
     function switchTab(tabName) {
@@ -527,6 +539,17 @@
       `;
 
       try {
+        // Fetch applicants in parallel to get count and list
+        try {
+          const email = localStorage.getItem('recruiter_email') || '';
+          const appRes = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(company)}&email=${encodeURIComponent(email)}`);
+          if (appRes.ok) {
+            loadedApplicantsList = await appRes.json();
+          }
+        } catch (appErr) {
+          console.warn("Failed to fetch applicants list:", appErr);
+        }
+
         const queryParams = new URLSearchParams({
           company: company,
           page: currentJobsPage,
@@ -573,17 +596,19 @@
         const item = document.createElement('div');
         item.className = 'glass-panel job-item';
         
-        const logo = job.logo || '💼';
+        const jobApps = loadedApplicantsList.filter(app => app.jobId === job.id || app.role === job.title);
+        const appCount = jobApps.length;
         
         item.innerHTML = `
-          <div class="job-logo">${logo}</div>
+          <div class="job-logo"><i data-lucide="briefcase" style="width: 28px; height: 28px;"></i></div>
           <div class="job-details" style="text-align: left;">
             <h3 style="margin: 0 0 6px 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">${job.title}</h3>
             <div class="job-meta">
-              <span>🏢 ${job.company}</span>
-              <span>📍 ${job.location}</span>
-              <span>💰 ${job.salary || 'Not specified'}</span>
-              <span>⏱️ ${job.type}</span>
+              <span><i data-lucide="building" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>${job.company}</span>
+              <span><i data-lucide="map-pin" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>${job.location}</span>
+              <span><i data-lucide="circle-dollar-sign" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>${job.salary || 'Not specified'}</span>
+              <span><i data-lucide="clock" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>${job.type}</span>
+              <span style="color: var(--accent-tertiary); font-weight: 600;"><i data-lucide="users" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>${appCount} applied</span>
             </div>
             ${job.skills ? `
               <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px;">
@@ -597,16 +622,22 @@
         `;
         container.appendChild(item);
       });
+      
+      if (window.lucide) {
+        lucide.createIcons();
+      }
     }
 
     function viewJobDetails(jobId) {
       const job = loadedJobsList.find(j => j.id === jobId);
       if (!job) return;
 
-      document.getElementById('drawerJobLogo').textContent = job.logo || '💼';
+      const jobApps = loadedApplicantsList.filter(app => app.jobId === job.id || app.role === job.title);
+
       document.getElementById('drawerJobTitle').textContent = job.title;
       document.getElementById('drawerJobCompany').textContent = job.company;
       document.getElementById('drawerJobDesc').textContent = job.description || 'No description provided.';
+      document.getElementById('drawerJobApplicantsCount').textContent = `${jobApps.length} applied`;
       
       const reqsContainer = document.getElementById('drawerJobReqs');
       reqsContainer.innerHTML = '';
@@ -625,7 +656,51 @@
       document.getElementById('drawerJobType').textContent = job.type || 'N/A';
       document.getElementById('drawerJobCategory').textContent = job.category || 'N/A';
 
+      // Render applicants list at the bottom of drawer
+      const listContainer = document.getElementById('drawerJobApplicantsList');
+      listContainer.innerHTML = '';
+      
+      if (jobApps.length === 0) {
+        listContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.88rem; padding: 8px 0;">No applicants yet.</div>';
+      } else {
+        jobApps.forEach(app => {
+          const div = document.createElement('div');
+          div.className = 'shortcut-btn';
+          div.style.padding = '10px 14px';
+          div.style.margin = '0';
+          div.style.display = 'flex';
+          div.style.justifyContent = 'space-between';
+          div.style.alignItems = 'center';
+          div.style.cursor = 'pointer';
+          div.style.background = 'rgba(255, 255, 255, 0.01)';
+          
+          div.onclick = () => {
+            window.location.href = `applicants.html?role=${encodeURIComponent(job.title)}&candidateId=${encodeURIComponent(app.id)}`;
+          };
+          
+          div.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="candidate-avatar" style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-tertiary), var(--accent-primary)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 0.75rem; overflow: hidden; flex-shrink: 0;">
+                ${app.avatarUrl ? `<img src="${app.avatarUrl}" alt="${app.name}" style="width: 100%; height: 100%; object-fit: cover;" />` : app.name.split(' ').map(n=>n[0]).join('')}
+              </div>
+              <div>
+                <span style="font-weight: 600; font-size: 0.88rem; color: var(--text-main);">${app.name}</span>
+                <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 8px;">Fit: ${app.match || 80}%</span>
+              </div>
+            </div>
+            <span style="font-size: 0.8rem; color: var(--accent-recruiter); font-weight: 600; display: flex; align-items: center; gap: 4px;">
+              View Profile <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+            </span>
+          `;
+          listContainer.appendChild(div);
+        });
+      }
+
       document.getElementById('jobDrawer').style.display = 'flex';
+      
+      if (window.lucide) {
+        lucide.createIcons();
+      }
     }
 
     function closeJobDrawer(event) {
