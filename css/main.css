@@ -2676,12 +2676,8 @@ body.light-theme .theme-colors-section {
 }
 
 .item-color.active::after {
-  box-shadow: 0 0 0 2px #ffffff, 0 0 12px var(--color);
-  transform: scale(1.35);
-}
-
-body.light-theme .item-color.active::after {
-  box-shadow: 0 0 0 2px #000000, 0 0 12px var(--color);
+  box-shadow: 0 0 14px var(--color), 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: scale(1.4);
 }
 
 .item-color::before {
