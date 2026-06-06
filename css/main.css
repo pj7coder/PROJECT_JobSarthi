@@ -2250,3 +2250,14 @@ body.light-theme .item__image:hover img {
 .edge-fade--bottom {
   bottom: 0;
 }
+
+/* Disable cursor text selection and mouse events on page background when About modal is open */
+body.about-active main,
+body.about-active canvas,
+body.about-active .mini-chat-preview,
+body.about-active #floatingSarthiBtn,
+body.about-active .mobile-bottom-nav {
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}

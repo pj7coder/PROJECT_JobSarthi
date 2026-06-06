@@ -50,6 +50,7 @@
         font-weight: inherit;
         font-size: inherit;
         color: inherit;
+        will-change: transform;
       }
       .falling-word-span.highlighted-word {
         background: linear-gradient(135deg, var(--accent-secondary, #3b82f6), var(--accent-tertiary, #6366f1));
@@ -251,12 +252,12 @@
     // Make about content container relative so children position correctly
     container.style.position = 'relative';
 
-    // 4. Move spans into the overlay at absolute coordinates
+    // 4. Move spans into the overlay at absolute coordinates using GPU-accelerated translate3d
     wordPositions.forEach(wp => {
       wp.element.style.position = 'absolute';
-      wp.element.style.left = `${wp.x}px`;
-      wp.element.style.top = `${wp.y}px`;
-      wp.element.style.transform = 'translate(-50%, -50%)';
+      wp.element.style.left = '0px';
+      wp.element.style.top = '0px';
+      wp.element.style.transform = `translate3d(${wp.x}px, ${wp.y}px, 0) translate(-50%, -50%)`;
       wp.element.style.margin = '0';
       wp.element.style.padding = '0';
       overlay.appendChild(wp.element);
@@ -341,15 +342,13 @@
     Runner.run(physicsRunner, physicsEngine);
     Render.run(physicsRender);
 
-    // 9. Physics loop to match DOM elements to simulated Matter.js coordinates
+    // 9. Physics loop to match DOM elements to simulated Matter.js coordinates using GPU-accelerated translate3d
     const updatePhysicsLoop = () => {
       if (!isPhysicsActive) return;
 
       wordBodies.forEach(({ body, element }) => {
         const { x, y } = body.position;
-        element.style.left = `${x}px`;
-        element.style.top = `${y}px`;
-        element.style.transform = `translate(-50%, -50%) rotate(${body.angle}rad)`;
+        element.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(${body.angle}rad)`;
       });
 
       physicsAnimationFrame = requestAnimationFrame(updatePhysicsLoop);
