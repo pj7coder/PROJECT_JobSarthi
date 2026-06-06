@@ -1474,7 +1474,7 @@ body.light-theme .mobile-bottom-nav {
   width: 100vw !important;
   height: 100vh !important;
   display: block !important;
-  z-index: 1 !important;
+  z-index: 99999999 !important;
   pointer-events: none !important;
 }
 
