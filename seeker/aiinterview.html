@@ -165,30 +165,49 @@
         height: auto !important;
       }
       .container {
-        padding: 15px !important;
+        padding: 12px !important;
         height: auto !important;
       }
       .interview-grid {
         grid-template-columns: 1fr;
-        gap: 20px;
-        margin-top: 15px;
+        gap: 16px;
+        margin-top: 10px;
       }
-      .camera-container {
-        height: 200px;
+      .proctor-sidebar {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
       }
-      .interviewer-avatar-panel {
-        height: 200px;
+      .camera-container, .interviewer-avatar-panel {
+        height: 120px !important;
+        aspect-ratio: 4/3 !important;
       }
       .controls-row {
+        grid-column: span 2;
         width: 100% !important;
-        max-width: 360px;
-        margin: 15px auto !important;
+        max-width: 100% !important;
+        margin: 5px 0 !important;
+      }
+      .proctor-panel {
+        grid-column: span 2;
+        padding: 10px 15px !important;
       }
       .answer-box {
-        min-height: 230px;
+        min-height: 200px;
+        padding: 16px !important;
+      }
+      .question-box {
+        padding: 16px !important;
+        min-height: auto !important;
       }
       .proctor-logs {
-        max-height: 120px !important;
+        display: none !important;
+      }
+      .timer-badge-container {
+        bottom: 74px !important; /* Float above mobile bottom navigation bar */
+        right: 15px !important;
+        padding: 6px 14px !important;
+        font-size: 0.85rem !important;
       }
     }
 

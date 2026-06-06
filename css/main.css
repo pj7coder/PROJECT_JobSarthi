@@ -2261,3 +2261,170 @@ body.about-active .mobile-bottom-nav {
   user-select: none !important;
   -webkit-user-select: none !important;
 }
+
+/* ==========================================================================
+   Comprehensive Mobile Web App Layout and Spacing Polish (All Pages)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Prevent inputs and selects from auto-zooming on focus in mobile browsers */
+  input, select, textarea, .form-control {
+    font-size: 16px !important;
+  }
+
+  /* Reduce gaps and paddings across all container sections on mobile */
+  .container {
+    padding: 0 12px !important;
+  }
+
+  section {
+    padding: 24px 0 !important;
+  }
+
+  /* Landing Page specific space reduction and gaps alignment */
+  #hero {
+    padding-top: 10px !important;
+    padding-bottom: 20px !important;
+  }
+
+  #portal {
+    padding: 24px 0 !important;
+  }
+
+  #sarthi-scroll-section {
+    min-height: auto !important;
+    height: auto !important;
+    padding: 24px 0 !important;
+  }
+
+  #employer-gallery-section {
+    padding: 24px 0 !important;
+  }
+
+  #reviews {
+    padding: 24px 0 10px 0 !important;
+  }
+
+  /* Eliminate any excessive blank areas or spacing at the bottom of the landing page */
+  body {
+    padding-bottom: 74px !important; /* Sitting exactly above the mobile bottom nav */
+  }
+
+  /* Adjust Sarthi Floating Button layout and position on mobile to prevent overlapping with the navigation bar */
+  #floatingSarthiBtn {
+    bottom: 84px !important;
+    right: 16px !important;
+    transform: scale(0.9) !important;
+    transform-origin: bottom right;
+  }
+
+  /* Sarthi Panel Mobile Static Layout overrides (overriding inline scale/transform and positioning) */
+  #floatingExpandedContent {
+    transform: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 480px !important;
+    max-width: 100% !important;
+    margin: 16px auto !important;
+    padding: 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  #clickExpandedContent {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    bottom: 84px !important;
+    right: 12px !important;
+    max-height: calc(100vh - 120px) !important;
+  }
+
+  /* Seeker Dashboard Reordering on Mobile */
+  .dashboard-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  .dashboard-main {
+    order: 1 !important;
+  }
+
+  .profile-sidebar {
+    order: 2 !important;
+    margin-top: 10px !important;
+    padding: 16px !important;
+  }
+
+  /* Compact Avatar and Margins on mobile */
+  .profile-avatar-large {
+    width: 70px !important;
+    height: 70px !important;
+    font-size: 1.5rem !important;
+  }
+
+  /* Recruiter Dashboard Reordering */
+  .dashboard-split {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  .calendar-section {
+    order: 1 !important;
+  }
+
+  .shortcuts-panel {
+    order: 2 !important;
+    margin-top: 10px !important;
+  }
+
+  /* Stack inline forms/grids inside resume and other pages */
+  .profile-layout div[style*="grid-template-columns: 1fr 1fr"],
+  .profile-layout div[style*="grid-template-columns: 1.1fr 0.9fr"],
+  .setup-grid,
+  .report-metric-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Alert Toasts Repositioning */
+  .applied-alert,
+  .toast-alert,
+  #successToast,
+  #errorToast {
+    bottom: 84px !important;
+    right: 16px !important;
+    left: 16px !important;
+    width: auto !important;
+    text-align: center !important;
+  }
+}
+
+/* Collapsible Filter Sidebar styles on seeker/jobs.html (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .filter-sidebar {
+    padding: 16px !important;
+    position: relative !important;
+    top: 0 !important;
+    gap: 12px !important;
+  }
+  .filter-sidebar .filter-group {
+    display: none !important;
+  }
+  .filter-sidebar.expanded .filter-group {
+    display: flex !important;
+  }
+  .filter-toggle-icon {
+    display: inline-block !important;
+  }
+  .filter-sidebar.expanded .filter-toggle-icon {
+    transform: rotate(180deg);
+  }
+}
+.filter-toggle-icon {
+  display: none;
+}

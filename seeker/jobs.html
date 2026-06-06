@@ -486,10 +486,10 @@
     <div class="jobs-layout">
       <!-- Left: Sidebar Filters -->
       <aside class="glass-panel filter-sidebar">
-        <h2
-          style="font-size: 1.15rem; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
-          <span>⚡ Filter Panel</span>
-          <button onclick="resetAllFilters()"
+        <h2 onclick="document.querySelector('.filter-sidebar').classList.toggle('expanded')"
+          style="font-size: 1.15rem; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; cursor: pointer; user-select: none; -webkit-user-select: none;">
+          <span style="display: flex; align-items: center; gap: 6px;">⚡ Filter Panel <span class="filter-toggle-icon" style="font-size: 0.8rem; opacity: 0.6; transition: transform 0.2s;">▼</span></span>
+          <button onclick="event.stopPropagation(); resetAllFilters()"
             style="background: none; border: none; color: var(--accent-secondary); font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s;"
             onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">Reset</button>
         </h2>
