@@ -332,6 +332,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <span class="slider-round"></span>
                           </label>
                         </div>
+                      </div>
                     </div>
                     
                     <!-- Tab Content: Themes -->
