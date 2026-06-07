@@ -779,40 +779,38 @@
       </section>
     </div>
   </main>
-
-  <!-- Job Details Drawer -->
+  <!-- Job Details Sheet (Right-Slide-Over Shadcn Style) -->
   <div class="drawer-overlay" id="detailDrawer" onclick="closeDrawer(event)">
     <div class="drawer-content" onclick="event.stopPropagation()">
-      <div>
-        <div class="drawer-close" onclick="closeDrawer(null)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="drawer-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="job-card-logo" id="drawerLogo" style="font-size: 1.8rem; width: 44px; height: 44px;">⚛️</div>
+          <div>
+            <h2 id="drawerTitle" style="font-size: 1.25rem; color: var(--text-main); margin: 0; font-weight: 700;">Job Title</h2>
+            <div id="drawerCompany" style="color: var(--accent-secondary); font-size: 0.9rem; font-weight: 600;">Company Name</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary" onclick="closeDrawer(null)" style="padding: 6px 12px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border-subtle); background: transparent; cursor: pointer; border-radius: 6px; color: var(--text-main);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
-          <span>Close Details</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
-          <div class="job-item-logo" id="drawerLogo" style="font-size: 2.2rem; width: 68px; height: 68px;">⚛️</div>
-          <div>
-            <h2 id="drawerTitle" style="font-size: 1.5rem; color: var(--text-main); margin-bottom: 4px;">Job Title</h2>
-            <div id="drawerCompany"
-              style="color: var(--accent-secondary); font-weight: 600; display: flex; align-items: center; gap: 8px;">Company
-              Name</div>
-          </div>
-        </div>
+          Close
+        </button>
+      </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 24px;" id="drawerBadges">
+      <div class="drawer-body">
+        <!-- Badges container -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="drawerBadges">
           <!-- Badges dynamically added -->
         </div>
 
         <!-- Sarthi AI Match Analysis Box -->
-        <div class="detail-section"
-          style="background: var(--bg-surface); border: 1px solid var(--border-subtle); padding: 20px; border-radius: var(--radius-md);">
-          <div class="detail-subtitle"
-            style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--text-main); border-bottom: none; padding-bottom: 0;">
+        <div class="detail-section" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); padding: 18px; border-radius: var(--radius-md);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 700; color: var(--text-main);">
             <span>✨ Sarthi AI Skills Analysis</span>
           </div>
-          <div class="detail-body" id="matchInsightBody" style="color: var(--text-main); margin-bottom: 16px; font-size: 0.9rem; line-height: 1.5;">
+          <div class="detail-body" id="matchInsightBody" style="color: var(--text-main); margin-bottom: 16px; font-size: 0.88rem; line-height: 1.5;">
             Generating matching insight...
           </div>
           <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -827,36 +825,37 @@
           </div>
         </div>
 
-        <div class="detail-section">
-          <div class="detail-subtitle" style="display: flex; justify-content: space-between; align-items: center;">
-            <span>About the Role</span>
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h3 style="font-size: 0.95rem; font-weight: 700; margin: 0; color: var(--text-main);">About the Role</h3>
             <button id="descToggleBtn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; display: none;" onclick="toggleDescription()">Read More</button>
           </div>
-          <div class="detail-body" id="drawerDesc" style="max-height: 250px; overflow-y: auto; line-height: 1.6; padding-right: 8px;">
+          <div id="drawerDesc" style="font-size: 0.9rem; line-height: 1.6; color: var(--text-muted); white-space: pre-line;">
             Job description goes here.
           </div>
         </div>
 
-        <div class="detail-section">
-          <div class="detail-subtitle">Key Qualifications</div>
-          <ul class="detail-body" id="drawerReqs" style="padding-left: 20px;">
+        <div>
+          <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Key Qualifications</h3>
+          <ul id="drawerReqs" style="padding-left: 20px; font-size: 0.9rem; line-height: 1.6; color: var(--text-muted);">
             <!-- Requirements list -->
           </ul>
         </div>
 
-        <div class="detail-section">
-          <div class="detail-subtitle">Compensation & Benefits</div>
-          <div class="detail-body" id="drawerComp">
+        <div>
+          <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Compensation & Benefits</h3>
+          <div id="drawerComp" style="font-size: 0.9rem; line-height: 1.6; color: var(--text-muted);">
             Salary and benefits go here.
           </div>
         </div>
       </div>
 
-      <div style="margin-top: 40px; display: flex; gap: 16px; align-items: center;">
-        <button id="applyBtn" class="btn btn-glow" style="flex: 1;" onclick="applyToCurrentJob()">Apply Now</button>
+      <div class="drawer-footer">
+        <button id="applyBtn" class="btn btn-glow" style="flex: 1; padding: 12px; height: 44px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600;" onclick="applyToCurrentJob()">Apply Now</button>
+        <button id="mockInterviewBtn" class="btn btn-secondary" style="flex: 1; padding: 12px; height: 44px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: #60a5fa;" onclick="startMockSession()">Mock Interview</button>
         
-        <!-- Heart Bookmark - Example 2 -->
-        <div class="heart-container" title="Save Job" style="flex-shrink: 0; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
+        <!-- Heart Bookmark -->
+        <div class="heart-container" title="Save Job" style="flex-shrink: 0; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; box-sizing: border-box;">
           <input type="checkbox" class="checkbox" id="saveJobCheckbox" onchange="toggleSaveJobState(this.checked)">
           <div class="svg-container">
             <svg viewBox="0 0 24 24" class="svg-outline" xmlns="http://www.w3.org/2000/svg" style="width: 22px; height: 22px;">
@@ -864,14 +863,8 @@
             </svg>
             <svg viewBox="0 0 24 24" class="svg-filled" xmlns="http://www.w3.org/2000/svg" style="width: 22px; height: 22px;">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-            <svg class="svg-celebrate" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width: 32px; height: 32px;">
-              <circle cx="50" cy="50" r="30"/>
-            </svg>
           </div>
         </div>
-
-        <button class="btn btn-secondary" onclick="closeDrawer(null)">Cancel</button>
       </div>
     </div>
   </div>
@@ -1458,6 +1451,7 @@
 
     function renderJobs(jobs) {
       const container = document.getElementById('jobsContainer');
+      container.className = 'job-cards-list'; // Force same style as dashboard list
       container.innerHTML = '';
 
       if (jobs.length === 0) {
@@ -1471,24 +1465,19 @@
 
       jobs.forEach(job => {
         const card = document.createElement('div');
-        card.className = 'job-item';
-        card.onclick = () => openDrawer(job);
+        card.className = 'glass-card job-card';
 
         const isLoggedIn = localStorage.getItem('seeker_logged_in') === 'true';
         const matchVal = isLoggedIn ? (job.matchScore !== undefined ? job.matchScore : getJobMatchScore(job)) : null;
         let matchPill = '';
         if (matchVal !== null && matchVal > 0) {
-          let matchStyle = 'color: var(--text-muted); border-color: var(--border-subtle); background: rgba(255,255,255,0.02);';
+          let matchStyle = 'color: var(--text-muted); border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.02);';
           if (matchVal >= 85) {
-            matchStyle = 'color: #10b981; border-color: rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.05);';
+            matchStyle = 'color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.05);';
           } else if (matchVal >= 70) {
-            matchStyle = 'color: #f59e0b; border-color: rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.05);';
+            matchStyle = 'color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.05);';
           }
-          matchPill = `<span class="match-pill" style="${matchStyle}">${matchVal}% Match</span>`;
-        } else if (isLoggedIn && matchVal === 0) {
-          matchPill = `<span class="match-pill" style="color: var(--text-muted); border-color: var(--border-subtle); background: rgba(255,255,255,0.01);">0% Match</span>`;
-        } else {
-          matchPill = `<span class="match-pill" style="color: var(--text-muted); border-color: var(--border-subtle); background: rgba(255,255,255,0.02);" title="Log in to see your match score">Match: ?</span>`;
+          matchPill = `<span class="match-badge" style="font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; ${matchStyle}">${matchVal}% Match</span>`;
         }
 
         // Skills snippet
@@ -1513,50 +1502,48 @@
           `;
         }
 
+        const isApplied = (JSON.parse(localStorage.getItem('applied_jobs') || '[]')).includes(job.id);
+        const actionBtn = job.isSample ? `
+          <button class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem;" ${isApplied ? 'disabled' : ''} onclick="openDrawerFromBtn('${job.id}')">${isApplied ? 'Applied' : 'Apply'}</button>
+        ` : `
+          <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Open</a>
+        `;
+
         card.innerHTML = `
-          <div class="job-item-main">
-            <div class="job-item-logo">${getJobLogoHtml(job.logo)}</div>
-            <div class="job-item-details">
-              <div class="job-item-title">${job.title || 'Untitled Role'}</div>
-              <div class="job-item-company">
-                <span>${job.company || 'Company'}</span>
-              </div>
-              <div class="job-item-meta">
-                <span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                  ${job.location || 'Remote'}
-                </span>
-                <span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                  ${(job.salary || 'Not specified').split(' / ')[0]}
-                </span>
-                <span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                  ${job.type || 'Full-time'}
-                </span>
-              </div>
-              ${skillsSnippet}
+          <div class="job-card-logo">${getJobLogoHtml(job.logo)}</div>
+          <div class="job-card-info">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 2px;">
+              <h3 style="margin: 0; font-size: 1.05rem; font-weight: 600;">${job.title}</h3>
+              ${matchPill}
             </div>
+            <div style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">${job.company}</div>
+            <div class="job-card-meta">
+              <div class="job-card-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                ${job.location || 'Remote'}
+              </div>
+              <div class="job-card-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                ${(job.salary || 'Not specified').split(' / ')[0]}
+              </div>
+              <div class="job-card-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                ${job.type || 'Full-time'}
+              </div>
+            </div>
+            ${skillsSnippet}
           </div>
-          <div class="job-item-actions" onclick="event.stopPropagation()">
-            ${matchPill}
-            <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openDrawerFromBtn('${job.id}')">Details</button>
-            ${(JSON.parse(localStorage.getItem('applied_jobs') || '[]')).includes(job.id) ? `
-              <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem; cursor: not-allowed; opacity: 0.75;" disabled>Applied</button>
-            ` : job.isSample ? `
-              <button class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openDrawerFromBtn('${job.id}')">Apply</button>
-            ` : `
-              <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Open</a>
-            `}
+          <div class="job-card-actions" onclick="event.stopPropagation()">
+            <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-details-animated">Details</button>
+            ${actionBtn}
           </div>
         `;
-        
         container.appendChild(card);
       });
     }
 
     function openDrawerFromBtn(id) {
-      const job = dbJobs.find(j => j.id === id || j.id == id);
+      const job = dbJobs.find(j => String(j.id) === String(id) || String(j._id) === String(id));
       if (job) openDrawer(job);
     }
 
@@ -1564,32 +1551,7 @@
       currentSelectedJob = job;
       document.getElementById('drawerLogo').innerHTML = getJobLogoHtml(job.logo);
       document.getElementById('drawerTitle').textContent = job.title || 'Untitled Role';
-      
-      const compDiv = document.getElementById('drawerCompany');
-      compDiv.innerHTML = `
-        <span>${job.company || 'Company'}</span>
-      `;
-      
-      isDescriptionExpanded = false;
-      const cleanShortDesc = getCleanShortDescription(job.description || '');
-      const descEl = document.getElementById('drawerDesc');
-      const toggleBtn = document.getElementById('descToggleBtn');
-      
-      descEl.textContent = cleanShortDesc;
-      
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = job.description || "";
-      const rawTextLength = (tempDiv.textContent || tempDiv.innerText || "").replace(/\s+/g, ' ').trim().length;
-      
-      if (rawTextLength > 350) {
-        toggleBtn.style.display = 'inline-block';
-        toggleBtn.textContent = 'Read More';
-      } else {
-        toggleBtn.style.display = 'none';
-      }
-      
-      document.getElementById('drawerComp').textContent = `Offering a highly competitive salary range of ${job.salary || 'Not specified'}. We also provide comprehensive medical coverage, premium wellness benefits, learning stipends, and hardware options.`;
-      document.body.style.overflow = 'hidden';
+      document.getElementById('drawerCompany').textContent = job.company || 'Company';
 
       // Render requirements list
       const reqsUl = document.getElementById('drawerReqs');
@@ -1598,16 +1560,18 @@
       if (requirements.length === 0) {
         const li = document.createElement('li');
         li.textContent = "Refer to the job description for specific requirements.";
-        li.style.marginBottom = '6px';
         reqsUl.appendChild(li);
       } else {
         requirements.forEach(req => {
           const li = document.createElement('li');
           li.textContent = req;
-          li.style.marginBottom = '6px';
           reqsUl.appendChild(li);
         });
       }
+
+      document.getElementById('drawerDesc').textContent = job.description || 'No description provided.';
+      document.getElementById('drawerComp').textContent = `Offering a highly competitive salary range of ${job.salary || 'Not specified'}. We also provide comprehensive medical coverage, premium wellness benefits, learning stipends, and hardware options.`;
+      document.body.style.overflow = 'hidden';
 
       // Dynamic Match Analysis in Drawer
       const score = getJobMatchScore(job);
@@ -1631,7 +1595,7 @@
         } else {
           jobSkills.forEach(s => {
             const tag = document.createElement('span');
-            tag.style.cssText = 'background: rgba(255, 255, 255, 0.04); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;';
+            tag.style.cssText = 'background: rgba(255, 255, 255, 0.04); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 500;';
             tag.textContent = s;
             missingContainer.appendChild(tag);
           });
@@ -1643,7 +1607,7 @@
         } else {
           matchInfo.matched.forEach(s => {
             const tag = document.createElement('span');
-            tag.style.cssText = 'background: rgba(16, 185, 129, 0.08); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;';
+            tag.style.cssText = 'background: rgba(16, 185, 129, 0.08); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;';
             tag.textContent = s;
             matchedContainer.appendChild(tag);
           });
@@ -1654,7 +1618,7 @@
         } else {
           matchInfo.missing.forEach(s => {
             const tag = document.createElement('span');
-            tag.style.cssText = 'background: rgba(255, 255, 255, 0.04); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;';
+            tag.style.cssText = 'background: rgba(255, 255, 255, 0.04); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 500;';
             tag.textContent = s;
             missingContainer.appendChild(tag);
           });
@@ -1676,7 +1640,7 @@
       // Badges
       const badgesDiv = document.getElementById('drawerBadges');
       badgesDiv.innerHTML = `
-        <span class="badge badge-primary" style="padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); border: 1px solid rgba(99, 102, 241, 0.25);">${job.type || 'Full-time'}</span>
+        <span class="badge badge-primary" style="padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); border: 1px solid rgba(99, 102, 241, 0.25);">${job.type || 'Full-time'}</span>
       `;
 
       // Apply button status reset
@@ -1717,7 +1681,21 @@
         saveBox.checked = savedJobIds.includes(job.id);
       }
 
-      document.getElementById('detailDrawer').style.display = 'flex';
+      const drawer = document.getElementById('detailDrawer');
+      if (drawer) {
+        drawer.style.display = 'flex';
+        drawer.offsetHeight; // force reflow
+        drawer.classList.add('active');
+      }
+    }
+
+    function startMockSession() {
+      if (currentSelectedJob) {
+        const title = encodeURIComponent(currentSelectedJob.title || '');
+        const company = encodeURIComponent(currentSelectedJob.company || '');
+        const jobId = encodeURIComponent(currentSelectedJob.id || '');
+        window.location.href = `aiinterview.html?jobId=${jobId}&jobTitle=${title}&company=${company}`;
+      }
     }
 
     function toggleSaveJobState(checked) {
@@ -1777,8 +1755,14 @@
     }
 
     function closeDrawer(event) {
-      if (event === null || event.target === document.getElementById('detailDrawer') || event.target.classList.contains('drawer-close') || event.target.closest('.drawer-close')) {
-        document.getElementById('detailDrawer').style.display = 'none';
+      if (event === null || event.target === document.getElementById('detailDrawer') || event.target.closest('.drawer-close') || event.target.closest('button[onclick*="closeDrawer"]')) {
+        const drawer = document.getElementById('detailDrawer');
+        if (drawer) {
+          drawer.classList.remove('active');
+          setTimeout(() => {
+            drawer.style.display = 'none';
+          }, 250);
+        }
         document.body.style.overflow = '';
       }
     }

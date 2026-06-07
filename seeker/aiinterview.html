@@ -1618,6 +1618,32 @@
       triggerBlink();
       startWallClock();
 
+      // Check query params for custom Mock Interview setup
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlJobTitle = urlParams.get('jobTitle');
+      const urlCompany = urlParams.get('company');
+      const urlJobId = urlParams.get('jobId');
+
+      if (urlJobTitle) {
+        const selectEl = document.getElementById('jobRoleSelect');
+        if (selectEl) {
+          let found = false;
+          for (let i = 0; i < selectEl.options.length; i++) {
+            if (selectEl.options[i].value.toLowerCase() === urlJobTitle.toLowerCase()) {
+              selectEl.selectedIndex = i;
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            const displayTitle = urlCompany ? `${urlJobTitle} (${urlCompany})` : urlJobTitle;
+            const newOpt = new Option(displayTitle, urlJobTitle, true, true);
+            selectEl.add(newOpt, selectEl.firstChild);
+            selectEl.selectedIndex = 0;
+          }
+        }
+      }
+
       // 30-second normal behaviour decay rule
       setInterval(() => {
         if (isInterviewFinished) return;
