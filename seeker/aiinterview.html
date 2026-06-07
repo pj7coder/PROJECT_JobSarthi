@@ -1041,6 +1041,14 @@
         Configure your mock session and grant permissions to calibrate the anti-cheating proctor.
       </p>
 
+      <!-- Custom Job Interview Header Card -->
+      <div id="jobInterviewHeaderCard" class="glass-panel" style="display: none; padding: 16px; margin-bottom: 20px; border: 1px solid var(--accent-secondary); background: rgba(59, 130, 246, 0.05); border-radius: 8px;">
+        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">
+          🎯 Interview for this Job: <span id="jobInterviewTitle" style="color: var(--accent-secondary);">Job Title</span>
+        </h3>
+        <p id="jobInterviewCompany" style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">Company Name</p>
+      </div>
+
       <!-- Permissions Panel -->
       <div class="setup-permissions-panel">
         <h4 style="font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
@@ -1112,6 +1120,14 @@
             <option value="hi">Hindi (हिन्दी)</option>
             <option value="hinglish">Hinglish (हिन्दी/English)</option>
           </select>
+        </div>
+
+        <!-- Include Resume Checkbox Option -->
+        <div class="form-group" style="grid-column: span 2; margin-top: 10px; display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+          <input type="checkbox" id="includeResumeCheckbox" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-secondary);">
+          <label for="includeResumeCheckbox" style="cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--text-main); user-select: none;">
+            Include your resume details (AI will customize interview questions to match your experience & skills)
+          </label>
         </div>
 
         <div class="form-group" style="grid-column: span 2; margin-top: 10px;">
@@ -1625,6 +1641,18 @@
       const urlJobId = urlParams.get('jobId');
 
       if (urlJobTitle) {
+        // Show and populate custom job interview card
+        const card = document.getElementById('jobInterviewHeaderCard');
+        const titleSpan = document.getElementById('jobInterviewTitle');
+        const companySpan = document.getElementById('jobInterviewCompany');
+        if (card && titleSpan) {
+          titleSpan.textContent = urlJobTitle;
+          if (companySpan) {
+            companySpan.textContent = urlCompany ? `at ${urlCompany}` : '';
+          }
+          card.style.display = 'block';
+        }
+
         const selectEl = document.getElementById('jobRoleSelect');
         if (selectEl) {
           let found = false;
@@ -2009,6 +2037,9 @@
       `;
 
       try {
+        const includeResume = document.getElementById('includeResumeCheckbox')?.checked;
+        const activeProfile = includeResume ? candidateProfile : null;
+
         const response = await fetch((window.API_BASE_URL || '') + "/api/sarthi/interview/next", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2019,7 +2050,7 @@
             currentQuestion: currentQuestionText,
             userAnswer: previousAnswer,
             timerExpired: wasTimerExpired,
-            candidateProfile: candidateProfile,
+            candidateProfile: activeProfile,
             candidateName: candidateName,
             interviewerAbility: selectedInterviewer,
             language: selectedLanguage
@@ -2512,6 +2543,9 @@
 
         setTimeout(async () => {
           try {
+            const includeResume = document.getElementById('includeResumeCheckbox')?.checked;
+            const activeProfile = includeResume ? candidateProfile : null;
+
             const response = await fetch((window.API_BASE_URL || '') + "/api/sarthi/interview/next", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -2522,7 +2556,7 @@
                 currentQuestion: currentQuestionText,
                 userAnswer: answerVal,
                 timerExpired: wasTimerExpired,
-                candidateProfile: candidateProfile,
+                candidateProfile: activeProfile,
                 candidateName: candidateName,
                 interviewerAbility: selectedInterviewer,
                 language: selectedLanguage

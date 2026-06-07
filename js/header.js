@@ -250,31 +250,43 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="settings-modal-card">
                   <div class="settings-modal-left">
                     <h3 class="settings-modal-title">Settings</h3>
-                    <div class="settings-modal-tabs">
-                      <button class="settings-tab-btn active" data-tab="themes">
+                    <div class="liquid-group-vertical" id="settingsLiquidTabs">
+                      <input type="radio" id="tabRadio-themes" name="settingsTab" checked style="display:none;">
+                      <label for="tabRadio-themes" class="settings-tab-label active" data-tab="themes" data-index="0">
                         <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12c0 2.759 1.119 5.259 2.929 7.071l.007.007c.391.391 1.024.391 1.414 0 .391-.391.391-1.024 0-1.414A7.962 7.962 0 0 1 4 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8a7.963 7.963 0 0 1-5.186-1.929l-.007-.007a1 1 0 0 0-1.414 1.414A9.96 9.96 0 0 0 12 22z"></path><circle cx="7.5" cy="10.5" r="1.5"></circle><circle cx="11.5" cy="7.5" r="1.5"></circle><circle cx="16.5" cy="9.5" r="1.5"></circle><circle cx="15.5" cy="14.5" r="1.5"></circle></svg>
                         Themes
-                      </button>
-                      <button class="settings-tab-btn" data-tab="ui-ux">
+                      </label>
+                      
+                      <input type="radio" id="tabRadio-ui-ux" name="settingsTab" style="display:none;">
+                      <label for="tabRadio-ui-ux" class="settings-tab-label" data-tab="ui-ux" data-index="1">
                         <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="2" y1="14" x2="6" y2="14"></line><line x1="10" y1="8" x2="14" y2="8"></line><line x1="18" y1="16" x2="22" y2="16"></line></svg>
                         UI/UX
-                      </button>
-                      <button class="settings-tab-btn" data-tab="languages">
+                      </label>
+                      
+                      <input type="radio" id="tabRadio-languages" name="settingsTab" style="display:none;">
+                      <label for="tabRadio-languages" class="settings-tab-label" data-tab="languages" data-index="2">
                         <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
                         Languages
-                      </button>
-                      <button class="settings-tab-btn" data-tab="account">
+                      </label>
+                      
+                      <input type="radio" id="tabRadio-account" name="settingsTab" style="display:none;">
+                      <label for="tabRadio-account" class="settings-tab-label" data-tab="account" data-index="3">
                         <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                         Account
-                      </button>
-                      <button class="settings-tab-btn" data-tab="notifications">
+                      </label>
+                      
+                      <input type="radio" id="tabRadio-notifications" name="settingsTab" style="display:none;">
+                      <label for="tabRadio-notifications" class="settings-tab-label" data-tab="notifications" data-index="4">
                         <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                         Notifications
-                      </button>
-                      <button class="settings-tab-btn" data-tab="security">
+                      </label>
+                      
+                      <input type="radio" id="tabRadio-security" name="settingsTab" style="display:none;">
+                      <label for="tabRadio-security" class="settings-tab-label" data-tab="security" data-index="5">
                         <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                         Security
-                      </button>
+                      </label>
+                      <div class="liquid-slider-vertical" id="liquidSliderIndicator"></div>
                     </div>
                     <button class="settings-modal-close-btn" id="closeSettingsModalBtn">Close Settings</button>
                   </div>
@@ -494,18 +506,28 @@ document.addEventListener("DOMContentLoaded", () => {
             document.body.appendChild(modalEl);
             
             // Bind Modal Tab Actions
-            const tabBtns = modalEl.querySelectorAll('.settings-tab-btn');
+            const tabBtns = modalEl.querySelectorAll('.settings-tab-label');
             const tabContents = modalEl.querySelectorAll('.settings-tab-content');
+            const sliderIndicator = modalEl.querySelector('#liquidSliderIndicator');
             
             tabBtns.forEach(btn => {
               btn.addEventListener('click', () => {
                 const tabId = btn.getAttribute('data-tab');
+                const index = parseInt(btn.getAttribute('data-index') || '0');
+                
                 tabBtns.forEach(b => b.classList.remove('active'));
                 tabContents.forEach(c => {
                   c.classList.remove('active');
                   c.style.display = 'none';
                 });
+                
                 btn.classList.add('active');
+                
+                // Move slider indicator
+                if (sliderIndicator) {
+                  sliderIndicator.style.transform = `translateY(${index * 42}px)`;
+                }
+                
                 const targetContent = modalEl.querySelector(`#tab-${tabId}`);
                 if (targetContent) {
                   targetContent.classList.add('active');
@@ -726,18 +748,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
               });
 
-              // Render accent color options if on seeker/recruiter page
-              const isSeeker = document.body.classList.contains('seeker-page');
+              // Render accent color options on all pages
               const isRecruiter = document.body.classList.contains('recruiter-page');
               const colorsSection = activeModal.querySelector('#themeColorsSection');
               if (colorsSection) {
-                if (isSeeker || isRecruiter) {
-                  colorsSection.style.display = 'flex';
-                  if (window.renderAccentColors) {
-                    window.renderAccentColors(activeModal, isSeeker ? 'seeker' : 'recruiter');
-                  }
-                } else {
-                  colorsSection.style.display = 'none';
+                colorsSection.style.display = 'flex';
+                if (window.renderAccentColors) {
+                  window.renderAccentColors(activeModal, isRecruiter ? 'recruiter' : 'seeker');
                 }
               }
  
