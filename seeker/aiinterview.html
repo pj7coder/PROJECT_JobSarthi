@@ -1033,133 +1033,171 @@
         Proceed to Configuration & Permissions
       </button>
     </div>
-    
+
     <!-- 1. PRE-INTERVIEW SETUP / CUSTOMIZATION SCREEN -->
-    <div id="setupContainer" class="glass-panel setup-card" style="display: none;">
-      <h2 style="font-size: 1.6rem; margin-bottom: 8px;">AI Interview Pre-Setup</h2>
-      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">
-        Configure your mock session and grant permissions to calibrate the anti-cheating proctor.
-      </p>
+    <div id="setupContainer" class="glass-panel" style="display: none; padding: 32px; max-width: 1000px; margin: 0 auto; width: 100%;">
 
-      <!-- Custom Job Interview Header Card -->
-      <div id="jobInterviewHeaderCard" class="glass-panel" style="display: none; padding: 16px; margin-bottom: 20px; border: 1px solid var(--accent-secondary); background: rgba(59, 130, 246, 0.05); border-radius: 8px;">
-        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">
-          🎯 Interview for this Job: <span id="jobInterviewTitle" style="color: var(--accent-secondary);">Job Title</span>
-        </h3>
-        <p id="jobInterviewCompany" style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">Company Name</p>
+      <!-- Page Heading -->
+      <div style="margin-bottom: 24px;">
+        <h2 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 6px;">
+          🎙️ Pre-Interview Setup
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin: 0;">
+          Configure your AI mock interview session and verify your camera &amp; microphone before starting.
+        </p>
       </div>
 
-      <!-- Permissions Panel -->
-      <div class="setup-permissions-panel">
-        <h4 style="font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-          <span>🔒</span> Required Hardware Permissions
-        </h4>
-        <div class="permission-row">
-          <span>Camera Access</span>
-          <span id="camPermBadge" class="permission-badge pending">Pending</span>
+      <!-- Custom Job Interview Header Card (shown when launched from job details) -->
+      <div id="jobInterviewHeaderCard" style="display: none; padding: 16px 20px; margin-bottom: 24px; border: 1px solid var(--accent-secondary); background: rgba(59, 130, 246, 0.07); border-radius: 12px;">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <span style="font-size: 1.8rem; flex-shrink: 0;">🎯</span>
+          <div>
+            <h3 style="margin: 0 0 4px; font-size: 1.05rem; font-weight: 800; color: var(--text-main);">
+              Interview for this Job: <span id="jobInterviewTitle" style="color: var(--accent-secondary);">Job Title</span>
+            </h3>
+            <p id="jobInterviewCompany" style="margin: 0; font-size: 0.84rem; color: var(--text-muted);">Company Name</p>
+            <p style="margin: 6px 0 0; font-size: 0.8rem; color: var(--success);">✓ AI interview questions will be tailored specifically to this role and company.</p>
+          </div>
         </div>
-        <div class="permission-row">
-          <span>Microphone Access</span>
-          <span id="micPermBadge" class="permission-badge pending">Pending</span>
-        </div>
-        
-        <!-- Video Preview -->
-        <div class="setup-preview-box">
-          <video id="setupVideoPreview" autoplay muted playsinline></video>
-          <div id="previewFallbackText" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem; background: rgba(0,0,0,0.6);">
-            Grant camera access to see live preview
+      </div>
+
+      <!-- Two-column layout -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start;">
+
+        <!-- LEFT: Camera Preview & Permissions -->
+        <div>
+          <!-- Permissions Status -->
+          <div class="setup-permissions-panel" style="margin-bottom: 16px;">
+            <h4 style="font-size: 0.88rem; margin: 0 0 10px; display: flex; align-items: center; gap: 6px; font-weight: 700;">
+              🔒 Required Permissions
+            </h4>
+            <div class="permission-row" style="margin-bottom: 8px;">
+              <span style="font-size: 0.88rem;">Camera</span>
+              <span id="camPermBadge" class="permission-badge pending">Pending</span>
+            </div>
+            <div class="permission-row">
+              <span style="font-size: 0.88rem;">Microphone</span>
+              <span id="micPermBadge" class="permission-badge pending">Pending</span>
+            </div>
+          </div>
+
+          <!-- Video Preview Box -->
+          <div class="setup-preview-box" style="border-radius: 12px; aspect-ratio: 4/3; width: 100%; margin-bottom: 12px;">
+            <video id="setupVideoPreview" autoplay muted playsinline></video>
+            <div id="previewFallbackText" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.88rem; background: rgba(0,0,0,0.65); border-radius: 12px; gap: 10px;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Grant camera access to see live preview
+            </div>
+          </div>
+
+          <button id="requestPermsBtn" class="btn btn-secondary" style="width: 100%; padding: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Grant Camera &amp; Mic Access
+          </button>
+
+          <!-- Readiness Checklist -->
+          <div style="margin-top: 16px; padding: 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 10px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.7;">
+            <strong style="color: var(--text-main); display: block; margin-bottom: 6px; font-size: 0.85rem;">📋 Before you begin:</strong>
+            <div>• Ensure you are in a quiet, well-lit room</div>
+            <div>• Position your face clearly in the camera frame</div>
+            <div>• Close unnecessary browser tabs</div>
+            <div>• Avoid using earphones unless needed</div>
           </div>
         </div>
 
-        <button id="requestPermsBtn" class="btn btn-secondary" style="width: 100%; margin-top: 10px;">
-          Grant Camera & Mic Access
-        </button>
-      </div>
+        <!-- RIGHT: Configuration Form -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
 
-      <!-- Customization Form -->
-      <div class="setup-grid">
-        <div class="form-group">
-          <label class="form-label" for="jobRoleSelect">Target Job Role</label>
-          <select id="jobRoleSelect" class="form-control" style="background: var(--bg-secondary);">
-            <option value="From your resume" selected>(From your resume)</option>
-            <option value="Full Stack Developer">Full Stack Developer</option>
-            <option value="Frontend Developer">Frontend Developer</option>
-            <option value="Backend Developer">Backend Developer</option>
-            <option value="Data Scientist">Data Scientist</option>
-            <option value="DevOps Engineer">DevOps Engineer</option>
-            <option value="Product Manager">Product Manager</option>
-            <option value="Mobile Developer">Mobile Developer</option>
-            <option value="UI/UX Designer">UI/UX Designer</option>
-            <option value="AI / ML Engineer">AI / ML Engineer</option>
-          </select>
-        </div>
+          <!-- Target Job Role -->
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" for="jobRoleSelect">🎯 Target Job Role</label>
+            <select id="jobRoleSelect" class="form-control" style="background: var(--bg-secondary); margin-top: 6px;">
+              <option value="From your resume">(From your resume)</option>
+              <option value="Full Stack Developer">Full Stack Developer</option>
+              <option value="Frontend Developer">Frontend Developer</option>
+              <option value="Backend Developer">Backend Developer</option>
+              <option value="Data Scientist">Data Scientist</option>
+              <option value="DevOps Engineer">DevOps Engineer</option>
+              <option value="Product Manager">Product Manager</option>
+              <option value="Mobile Developer">Mobile Developer</option>
+              <option value="UI/UX Designer">UI/UX Designer</option>
+              <option value="AI / ML Engineer">AI / ML Engineer</option>
+            </select>
+          </div>
 
-        <div class="form-group">
-          <label class="form-label" for="difficultySelect">Starting Difficulty</label>
-          <select id="difficultySelect" class="form-control" style="background: var(--bg-secondary);">
-            <option value="Beginner">Beginner</option>
-            <option value="Intermediate" selected>Intermediate</option>
-            <option value="Expert">Expert</option>
-          </select>
-        </div>
+          <!-- Starting Difficulty -->
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" for="difficultySelect">⚡ Starting Difficulty</label>
+            <select id="difficultySelect" class="form-control" style="background: var(--bg-secondary); margin-top: 6px;">
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate" selected>Intermediate</option>
+              <option value="Expert">Expert</option>
+            </select>
+          </div>
 
+          <!-- Proctor Strictness -->
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" for="proctorStrictnessSelect">🛡️ Proctor Strictness</label>
+            <select id="proctorStrictnessSelect" class="form-control" style="background: var(--bg-secondary); margin-top: 6px;">
+              <option value="low">Low (Relaxed proctoring)</option>
+              <option value="medium" selected>Medium (Standard limits)</option>
+              <option value="hard">Hard (Strict &amp; auto-fail)</option>
+            </select>
+          </div>
 
-        <div class="form-group">
-          <label class="form-label" for="proctorStrictnessSelect">Proctor Strictness Mode</label>
-          <select id="proctorStrictnessSelect" class="form-control" style="background: var(--bg-secondary);">
-            <option value="low">Low (Relaxed proctoring)</option>
-            <option value="medium" selected>Medium (Standard limits)</option>
-            <option value="hard">Hard (Strict proctoring & auto-fail)</option>
-          </select>
-        </div>
+          <!-- Interview Language -->
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" for="languageSelect">🌐 Interview Language / स्क्रिप्ट</label>
+            <select id="languageSelect" class="form-control" style="background: var(--bg-secondary); margin-top: 6px;">
+              <option value="en" selected>English</option>
+              <option value="hi">Hindi (हिन्दी)</option>
+              <option value="hinglish">Hinglish (हिन्दी/English)</option>
+            </select>
+          </div>
 
-        <div class="form-group">
-          <label class="form-label" for="languageSelect">Interview Language / स्क्रिप्ट</label>
-          <select id="languageSelect" class="form-control" style="background: var(--bg-secondary);">
-            <option value="en" selected>English</option>
-            <option value="hi">Hindi (हिन्दी)</option>
-            <option value="hinglish">Hinglish (हिन्दी/English)</option>
-          </select>
-        </div>
-
-        <!-- Include Resume Checkbox Option -->
-        <div class="form-group" style="grid-column: span 2; margin-top: 10px; display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle);">
-          <input type="checkbox" id="includeResumeCheckbox" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-secondary);">
-          <label for="includeResumeCheckbox" style="cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--text-main); user-select: none;">
-            Include your resume details (AI will customize interview questions to match your experience & skills)
+          <!-- Include Resume Checkbox -->
+          <label style="display: flex; align-items: flex-start; gap: 10px; background: rgba(255,255,255,0.02); padding: 14px; border-radius: 10px; border: 1px solid var(--border-subtle); cursor: pointer; transition: border-color 0.2s;" onmouseover="this.style.borderColor='var(--accent-secondary)'" onmouseout="this.style.borderColor='var(--border-subtle)'">
+            <input type="checkbox" id="includeResumeCheckbox" checked style="width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; accent-color: var(--accent-secondary); cursor: pointer;">
+            <div>
+              <strong style="font-size: 0.9rem; color: var(--text-main); display: block; margin-bottom: 3px;">Include Resume Details</strong>
+              <span style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">AI will customize interview questions to match your experience &amp; skill level</span>
+            </div>
           </label>
-        </div>
 
-        <div class="form-group" style="grid-column: span 2; margin-top: 10px;">
-          <label class="form-label" style="margin-bottom: 8px; display: block;">Select Interviewer Character & Ability</label>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-            <!-- Sarthi Card -->
-            <div class="character-card active" id="charCard_sarthi" onclick="selectCharacter('sarthi')">
-              <div class="char-avatar-mini" style="background: #0891b2;">🧑‍💼</div>
-              <div class="char-name">Sarthi (Default)</div>
-              <div class="char-ability">Balanced Assessment</div>
-            </div>
-            <!-- Vikram Card -->
-            <div class="character-card disabled" id="charCard_vikram" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">
-              <div class="char-avatar-mini" style="background: #475569;">👨‍🦳</div>
-              <div class="char-name" style="color: var(--text-muted);">Prof. Vikram</div>
-              <div class="char-ability" style="color: var(--accent-tertiary); font-weight: 600;">Coming Soon</div>
-            </div>
-            <!-- Ananya Card -->
-            <div class="character-card disabled" id="charCard_ananya" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">
-              <div class="char-avatar-mini" style="background: #db2777;">👩‍💼</div>
-              <div class="char-name" style="color: var(--text-muted);">Dr. Ananya</div>
-              <div class="char-ability" style="color: var(--accent-tertiary); font-weight: 600;">Coming Soon</div>
+          <!-- Interviewer Character -->
+          <div>
+            <label class="form-label" style="display: block; margin-bottom: 10px;">🤖 Select AI Interviewer</label>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+              <div class="character-card active" id="charCard_sarthi" onclick="selectCharacter('sarthi')" style="padding: 14px 8px;">
+                <div class="char-avatar-mini" style="background: linear-gradient(135deg, #0891b2, #0e7490);">🧑‍💼</div>
+                <div class="char-name">Sarthi</div>
+                <div class="char-ability">Balanced</div>
+              </div>
+              <div class="character-card" id="charCard_vikram" style="opacity: 0.45; cursor: not-allowed; pointer-events: none; padding: 14px 8px;">
+                <div class="char-avatar-mini" style="background: #334155;">👨‍🦳</div>
+                <div class="char-name" style="color: var(--text-muted);">Prof. Vikram</div>
+                <div class="char-ability" style="color: var(--accent-tertiary); font-weight: 700; font-size: 0.68rem;">Coming Soon</div>
+              </div>
+              <div class="character-card" id="charCard_ananya" style="opacity: 0.45; cursor: not-allowed; pointer-events: none; padding: 14px 8px;">
+                <div class="char-avatar-mini" style="background: #831843;">👩‍💼</div>
+                <div class="char-name" style="color: var(--text-muted);">Dr. Ananya</div>
+                <div class="char-ability" style="color: var(--accent-tertiary); font-weight: 700; font-size: 0.68rem;">Coming Soon</div>
+              </div>
             </div>
           </div>
+
+          <!-- Start Button -->
+          <button id="startInterviewBtn" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 1rem; font-weight: 700; margin-top: 4px; letter-spacing: 0.2px;" disabled>
+            🚀 Start AI Mock Interview
+          </button>
+          <p id="startInterviewHint" style="text-align: center; color: var(--text-muted); font-size: 0.78rem; margin: -8px 0 0;">
+            Grant camera &amp; mic access to enable the start button
+          </p>
         </div>
+
       </div>
-
-      <button id="startInterviewBtn" class="btn btn-primary" style="width: 100%; margin-top: 25px; padding: 12px;" disabled>
-        Start AI Mock Trial
-      </button>
     </div>
-
+    
     <!-- 2. MAIN INTERVIEW SCREEN -->
     <div id="interviewContainer" class="interview-grid" style="display: none;">
       
@@ -1639,6 +1677,10 @@
       const urlJobTitle = urlParams.get('jobTitle');
       const urlCompany = urlParams.get('company');
       const urlJobId = urlParams.get('jobId');
+      const urlJobSkills = urlParams.get('jobSkills') || '';
+      // Store globally so fetchNextQuestion can pass to API
+      window._interviewJobSkills = urlJobSkills;
+      window._interviewJobId = urlJobId || '';
 
       if (urlJobTitle) {
         // Show and populate custom job interview card
@@ -1884,6 +1926,12 @@
           document.getElementById("startInterviewBtn").disabled = false;
           requestBtn.style.display = "none";
 
+          const hint = document.getElementById("startInterviewHint");
+          if (hint) {
+            hint.textContent = "✓ Camera & mic granted — you're all set!";
+            hint.style.color = "var(--success)";
+          }
+
         } catch (err) {
           console.error("Permission error:", err);
           alert("We require camera and mic access for eyeball proctoring and voice-to-text. Please click standard permission popup to allow.");
@@ -2057,7 +2105,9 @@
             candidateProfile: activeProfile,
             candidateName: candidateName,
             interviewerAbility: selectedInterviewer,
-            language: selectedLanguage
+            language: selectedLanguage,
+            jobSkills: window._interviewJobSkills || '',
+            jobId: window._interviewJobId || ''
           })
         });
 
