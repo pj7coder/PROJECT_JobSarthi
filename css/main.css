@@ -2068,7 +2068,6 @@ body.recruiter-page .pipeline-header,
 body.recruiter-page .chart-box,
 body.recruiter-page .interviewer-avatar-panel,
 body.recruiter-page .search-container,
-body.recruiter-page .drawer-content,
 body.recruiter-page .job-card,
 body.recruiter-page .skill-card-summary,
 body.recruiter-page .sarthi-tool-card,
@@ -2076,7 +2075,6 @@ body.recruiter-page .custom-select-trigger,
 body.recruiter-page .custom-select-options,
 body.recruiter-page .btn-glow,
 body.recruiter-page .btn-primary,
-body.recruiter-page .header,
 body.recruiter-page #floatingSarthiBtn,
 body.recruiter-page #clickExpandedContent,
 body.recruiter-page .gemini-pill-border,
@@ -2102,7 +2100,6 @@ body.seeker-page .pipeline-header,
 body.seeker-page .chart-box,
 body.seeker-page .interviewer-avatar-panel,
 body.seeker-page .search-container,
-body.seeker-page .drawer-content,
 body.seeker-page .job-card,
 body.seeker-page .skill-card-summary,
 body.seeker-page .sarthi-tool-card,
@@ -2110,7 +2107,6 @@ body.seeker-page .custom-select-trigger,
 body.seeker-page .custom-select-options,
 body.seeker-page .btn-glow,
 body.seeker-page .btn-primary,
-body.seeker-page .header,
 body.seeker-page #floatingSarthiBtn,
 body.seeker-page #clickExpandedContent,
 body.seeker-page .gemini-pill-border {
@@ -2821,7 +2817,9 @@ body.light-theme .theme-colors-section {
   z-index: 99999;
   display: none;
   justify-content: flex-end;
-  pointer-events: auto;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
 .drawer-content {
@@ -2840,12 +2838,14 @@ body.light-theme .theme-colors-section {
   overflow: hidden;
   position: relative;
   transform: translateX(100%);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
 }
 
 .drawer-overlay.active {
   display: flex;
+  pointer-events: auto;
+  opacity: 1;
 }
 
 .drawer-overlay.active .drawer-content {
@@ -2893,7 +2893,7 @@ body.light-theme .theme-colors-section {
   border-radius: 8px !important;
   color: #212121 !important;
   z-index: 1;
-  background: #e8e8e8 !important;
+  background: transparent !important;
   position: relative;
   font-weight: 700 !important;
   font-size: 0.85rem !important;
@@ -2902,6 +2902,19 @@ body.light-theme .theme-colors-section {
   overflow: hidden;
   cursor: pointer;
   text-decoration: none;
+}
+
+.btn-details-animated::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #e8e8e8;
+  z-index: -2;
+  transition: all 250ms ease;
+  border-radius: 8px;
 }
 
 .btn-details-animated::before {
@@ -2927,8 +2940,11 @@ body.light-theme .theme-colors-section {
 
 /* Light theme overrides for Details button */
 body.light-theme .btn-details-animated {
-  background: #212121 !important;
   color: #e8e8e8 !important;
+}
+
+body.light-theme .btn-details-animated::after {
+  background: #212121;
 }
 
 body.light-theme .btn-details-animated::before {
@@ -3035,7 +3051,8 @@ body.light-theme .job-card:hover {
 .settings-modal-card,
 header.header,
 .header-dropdown-menu,
-.sheet-content {
+.sheet-content,
+.drawer-content {
   background: rgba(255, 255, 255, 0.03) !important;
   backdrop-filter: blur(20px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
@@ -3047,7 +3064,8 @@ header.header,
 body.light-theme .settings-modal-card,
 body.light-theme header.header,
 body.light-theme .header-dropdown-menu,
-body.light-theme .sheet-content {
+body.light-theme .sheet-content,
+body.light-theme .drawer-content {
   background: rgba(255, 255, 255, 0.4) !important;
   backdrop-filter: blur(25px) saturate(190%) !important;
   -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
@@ -3087,12 +3105,24 @@ body.light-theme .sheet-content {
 }
 
 .settings-tab-label.active {
-  color: var(--accent-secondary) !important;
+  color: var(--text-main) !important;
   font-weight: 600;
 }
 
 .settings-tab-label.active svg {
   color: var(--accent-secondary) !important;
+}
+
+body.light-theme .settings-tab-label {
+  color: #52525b;
+}
+
+body.light-theme .settings-tab-label:hover {
+  color: #09090b;
+}
+
+body.light-theme .settings-tab-label.active {
+  color: var(--accent-secondary, #09090b) !important;
 }
 
 .liquid-slider-vertical {

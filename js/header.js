@@ -55,6 +55,13 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {
       console.error("Error parsing accent color:", e);
     }
+  } else {
+    if (!isRecruiter && !isSeeker) {
+      document.body.style.setProperty('--accent-secondary', '#2563eb');
+      document.body.style.setProperty('--accent-tertiary', '#3b82f6');
+      document.body.style.setProperty('--border-focus', 'rgba(59, 130, 246, 0.4)');
+      document.body.style.setProperty('--accent-secondary-hover', '#1d4ed8');
+    }
   }
 
   const headerWrapper = document.querySelector('.header-wrapper');
@@ -97,6 +104,13 @@ document.addEventListener("DOMContentLoaded", () => {
           document.body.style.setProperty('--accent-secondary-hover', accentData.hover);
         } catch (e) {
           console.error("Error parsing accent color:", e);
+        }
+      } else {
+        if (!isRecruiter && !isSeeker) {
+          document.body.style.setProperty('--accent-secondary', '#2563eb');
+          document.body.style.setProperty('--accent-tertiary', '#3b82f6');
+          document.body.style.setProperty('--border-focus', 'rgba(59, 130, 246, 0.4)');
+          document.body.style.setProperty('--accent-secondary-hover', '#1d4ed8');
         }
       }
 

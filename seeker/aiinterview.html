@@ -1655,20 +1655,19 @@
 
         const selectEl = document.getElementById('jobRoleSelect');
         if (selectEl) {
-          let found = false;
-          for (let i = 0; i < selectEl.options.length; i++) {
-            if (selectEl.options[i].value.toLowerCase() === urlJobTitle.toLowerCase()) {
-              selectEl.selectedIndex = i;
-              found = true;
-              break;
+          const displayTitle = `Interview for this job: ${urlJobTitle}${urlCompany ? ' at ' + urlCompany : ''}`;
+          const newOpt = new Option(displayTitle, `job:${urlJobTitle}`, true, true);
+          selectEl.add(newOpt, selectEl.firstChild);
+          selectEl.selectedIndex = 0;
+
+          // Toggle jobInterviewHeaderCard display on change
+          selectEl.addEventListener('change', () => {
+            if (selectEl.value.startsWith('job:')) {
+              if (card) card.style.display = 'block';
+            } else {
+              if (card) card.style.display = 'none';
             }
-          }
-          if (!found) {
-            const displayTitle = urlCompany ? `${urlJobTitle} (${urlCompany})` : urlJobTitle;
-            const newOpt = new Option(displayTitle, urlJobTitle, true, true);
-            selectEl.add(newOpt, selectEl.firstChild);
-            selectEl.selectedIndex = 0;
-          }
+          });
         }
       }
 
@@ -1960,7 +1959,12 @@
 
     // --- START INTERVIEW AND FLOW ---
     function startInterview() {
-      selectedRole = document.getElementById("jobRoleSelect").value;
+      const rawRole = document.getElementById("jobRoleSelect").value;
+      if (rawRole.startsWith('job:')) {
+        selectedRole = rawRole.substring(4);
+      } else {
+        selectedRole = rawRole;
+      }
       selectedDifficulty = document.getElementById("difficultySelect").value;
       timerLimit = 0;
       proctorStrictness = document.getElementById("proctorStrictnessSelect").value;

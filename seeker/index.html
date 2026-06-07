@@ -35,6 +35,13 @@
       height: fit-content;
     }
 
+    @media (min-width: 901px) {
+      .profile-sidebar {
+        position: sticky;
+        top: 90px;
+      }
+    }
+
     .profile-avatar-large {
       width: 100px;
       height: 100px;
@@ -524,6 +531,19 @@
       <div class="drawer-footer">
         <button id="applyBtn" class="btn btn-glow" style="flex: 1; padding: 12px; height: 44px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600;" onclick="applyToCurrentJob()">Apply Now</button>
         <button id="mockInterviewBtn" class="btn btn-secondary" style="flex: 1; padding: 12px; height: 44px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: #60a5fa;" onclick="startMockSession()">Mock Interview</button>
+        
+        <!-- Heart Bookmark -->
+        <div class="heart-container" title="Save Job" style="flex-shrink: 0; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; box-sizing: border-box;">
+          <input type="checkbox" class="checkbox" id="saveJobCheckbox" onchange="toggleSaveJobState(this.checked)">
+          <div class="svg-container">
+            <svg viewBox="0 0 24 24" class="svg-outline" xmlns="http://www.w3.org/2000/svg" style="width: 22px; height: 22px;">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <svg viewBox="0 0 24 24" class="svg-filled" xmlns="http://www.w3.org/2000/svg" style="width: 22px; height: 22px;">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -624,7 +644,7 @@
     let seekerSkills = [];
     let lastRecommendedJobs = [];
     let currentDashboardPage = 1;
-    const dashboardJobsPerPage = 5;
+    const dashboardJobsPerPage = 10;
 
     const indianStates = [
       "andhra pradesh", "arunachal pradesh", "assam", "bihar", "chhattisgarh", "goa", "gujarat", "haryana", 
@@ -1138,11 +1158,49 @@
         };
       }
 
+      // Check if job is saved in bookmarks
+      const savedJobIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      const saveBox = document.getElementById('saveJobCheckbox');
+      if (saveBox) {
+        saveBox.checked = savedJobIds.includes(job.id);
+      }
+
       const drawer = document.getElementById('detailDrawer');
       if (drawer) {
         drawer.style.display = 'flex';
         drawer.offsetHeight; // force reflow
         drawer.classList.add('active');
+      }
+    }
+
+    function toggleSaveJobState(checked) {
+      if (!currentSelectedJob) return;
+      const job = currentSelectedJob;
+      let savedJobIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      if (checked) {
+        if (!savedJobIds.includes(job.id)) {
+          savedJobIds.push(job.id);
+        }
+      } else {
+        savedJobIds = savedJobIds.filter(id => id !== job.id);
+      }
+      localStorage.setItem('saved_jobs', JSON.stringify(savedJobIds));
+
+      const toast = document.getElementById("successToast");
+      if (toast) {
+        if (checked) {
+          toast.textContent = "Job saved to your bookmarks!";
+          toast.style.background = "#ff5b89";
+          toast.style.boxShadow = "0 10px 20px rgba(255, 91, 137, 0.3)";
+        } else {
+          toast.textContent = "Job removed from bookmarks.";
+          toast.style.background = "var(--bg-secondary)";
+          toast.style.boxShadow = "none";
+        }
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 3000);
       }
     }
 

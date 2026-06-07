@@ -1323,10 +1323,10 @@ function calculateMatchScore(job, profile) {
 
 app.get("/api/jobs", async (req, res) => {
   try {
-    const { page, limit, email, search, category, location, type, sort, company } = req.query;
+    const { page, limit, email, search, category, location, type, sort, company, ids } = req.query;
 
     // For backwards compatibility: if no pagination or search query is supplied, return the raw jobs array.
-    if (!page && !limit && !email && !search && !category && !location && !type && !sort && !company) {
+    if (!page && !limit && !email && !search && !category && !location && !type && !sort && !company && !ids) {
       const jobs = await dbService.getJobs();
       return res.json(jobs);
     }
@@ -1348,6 +1348,11 @@ app.get("/api/jobs", async (req, res) => {
 
     // Filter jobs
     let filtered = jobs.filter(job => {
+      // 00. Check specific IDs (useful for favourites / bookmarks)
+      if (ids) {
+        const idList = ids.split(',').map(id => String(id).trim());
+        if (!idList.includes(String(job.id))) return false;
+      }
       // 0. Company filter
       if (company) {
         if (company.toLowerCase() === "jobsarthi recruiter") {
