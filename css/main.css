@@ -2892,63 +2892,26 @@ body.light-theme .theme-colors-section {
   border: none !important;
   border-radius: 8px !important;
   color: #212121 !important;
-  z-index: 1;
-  background: transparent !important;
-  position: relative;
+  background-image: linear-gradient(to right, #212121 50%, #e8e8e8 50%) !important;
+  background-size: 200% 100% !important;
+  background-position: right bottom !important;
   font-weight: 700 !important;
   font-size: 0.85rem !important;
   box-shadow: 2px 4px 8px rgba(0,0,0,0.15);
   transition: all 250ms ease !important;
-  overflow: hidden;
   cursor: pointer;
   text-decoration: none;
 }
 
-.btn-details-animated::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #e8e8e8;
-  z-index: -2;
-  transition: all 250ms ease;
-  border-radius: 8px;
-}
-
-.btn-details-animated::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 0;
-  border-radius: 8px;
-  background-color: #212121;
-  z-index: -1;
-  transition: all 250ms ease;
-}
-
 .btn-details-animated:hover {
+  background-position: left bottom !important;
   color: #e8e8e8 !important;
-}
-
-.btn-details-animated:hover::before {
-  width: 100%;
 }
 
 /* Light theme overrides for Details button */
 body.light-theme .btn-details-animated {
   color: #e8e8e8 !important;
-}
-
-body.light-theme .btn-details-animated::after {
-  background: #212121;
-}
-
-body.light-theme .btn-details-animated::before {
-  background-color: #e8e8e8;
+  background-image: linear-gradient(to right, #e8e8e8 50%, #212121 50%) !important;
 }
 
 body.light-theme .btn-details-animated:hover {
@@ -3049,7 +3012,6 @@ body.light-theme .job-card:hover {
 
 /* Liquid Glass UI style sheet */
 .settings-modal-card,
-header.header,
 .header-dropdown-menu,
 .sheet-content,
 .drawer-content {
@@ -3061,12 +3023,29 @@ header.header,
               inset 0 1px 0 0 rgba(255, 255, 255, 0.1) !important;
 }
 
+header.header {
+  background: rgba(9, 9, 11, 0.75) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.1) !important;
+}
+
 body.light-theme .settings-modal-card,
-body.light-theme header.header,
 body.light-theme .header-dropdown-menu,
 body.light-theme .sheet-content,
 body.light-theme .drawer-content {
   background: rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(25px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06), 
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+body.light-theme header.header {
+  background: rgba(255, 255, 255, 0.75) !important;
   backdrop-filter: blur(25px) saturate(190%) !important;
   -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
   border: 1px solid rgba(255, 255, 255, 0.4) !important;
