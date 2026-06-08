@@ -3609,416 +3609,333 @@ body.pastel-dark-theme * {
   font-family: 'Quicksand', 'Fredoka', 'Outfit', sans-serif !important;
 }
 
-/* --- Floating Interactive Sidebar Widget --- */
-.theme-sidebar-widget {
-  position: fixed;
-  left: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10000;
-  transition: all 0.3s ease;
+/* ========================================================
+   JOB SARTHI - REMASTERED PREMIUM DESIGN SYSTEM
+   ======================================================== */
+
+/* 1. Global Glass Pill Floating Header */
+.header {
+  position: sticky !important;
+  top: 16px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: calc(100% - 32px) !important;
+  max-width: 1280px !important;
+  border-radius: 20px !important;
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(24px) saturate(200%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  margin: 0 auto 24px auto !important;
+  padding: 12px 24px !important;
+  z-index: 1000 !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.theme-sidebar-widget ul.w-64 {
-  width: 16rem;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+body.light-theme .header {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
 }
 
-.theme-sidebar-widget li.group {
-  width: 3.5rem;
-  overflow: hidden;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background-color: rgba(24, 24, 27, 0.85);
-  backdrop-filter: blur(12px);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+body.pastel-light-theme .header {
+  background: rgba(253, 244, 255, 0.6) !important;
+  border: 2px solid #ddd6fe !important;
+  box-shadow: 4px 4px 0px 0px #c084fc !important;
 }
 
-/* Hover reveal trigger */
-.theme-sidebar-widget li.group:hover,
-.theme-sidebar-widget li.group:focus-within {
-  width: 16rem;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+body.pastel-dark-theme .header {
+  background: rgba(15, 23, 42, 0.75) !important;
+  border: 2px solid #818cf8 !important;
+  box-shadow: 6px 6px 0px 0px #4f46e5 !important;
 }
 
-.theme-sidebar-widget button.peer {
-  display: flex;
-  width: 100%;
-  cursor: pointer;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  text-align: left;
-  background: transparent;
-  border: none;
-  font-family: inherit;
-  transition: all 0.2s;
-  outline: none;
+/* Header Action Buttons glow styling */
+.header-actions .btn-glow {
+  background: linear-gradient(135deg, #6366f1, #a855f7) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 10px 20px !important;
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3) !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
 }
 
-.theme-sidebar-widget button.peer:active {
-  transform: scale(0.95);
+.header-actions .btn-glow:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5) !important;
 }
 
-.theme-sidebar-widget .peer-icon-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  padding: 6px;
-  width: 34px;
-  height: 34px;
-  box-sizing: border-box;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
+/* 2. Premium Typography & Headline Gradients */
+h1, .page-title, .dashboard-title {
+  font-family: 'Fredoka', 'Quicksand', 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 2.25rem !important;
+  letter-spacing: -0.04em !important;
+  background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 70%, #c084fc 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  margin-bottom: 20px !important;
 }
 
-.theme-sidebar-widget .font-semibold {
-  font-weight: 700;
-  font-size: 0.88rem;
-  letter-spacing: -0.01em;
+body.light-theme h1, body.light-theme .page-title {
+  background: linear-gradient(135deg, #09090b 20%, #4338ca 70%, #6d28d9 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
-/* Expandable content grid */
-.theme-sidebar-widget .grid {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+body.pastel-light-theme h1, body.pastel-light-theme .page-title {
+  background: linear-gradient(135deg, #6b21a8, #db2777) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
-.theme-sidebar-widget li.group:hover .grid,
-.theme-sidebar-widget li.group:focus-within .grid {
-  grid-template-rows: 1fr;
+body.pastel-dark-theme h1, body.pastel-dark-theme .page-title {
+  background: linear-gradient(135deg, #a78bfa, #f472b6) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
-.theme-sidebar-widget .overflow-hidden {
-  overflow: hidden;
+/* 3. Sleek Holographic Cards & Hover Micro-interactions */
+.glass-panel, .glass-card, .job-card {
+  position: relative !important;
+  background: rgba(30, 41, 59, 0.4) !important;
+  backdrop-filter: blur(16px) !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3) !important;
+  overflow: hidden !important;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-/* Theme Adaptive Styles for Sidebar Widget */
-/* Dark / Default Theme */
-body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .theme-sidebar-widget li.group {
-  background-color: rgba(24, 24, 27, 0.85);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .theme-sidebar-widget .font-semibold {
-  color: #f4f4f5;
-}
-
-/* Light Theme */
-body.light-theme .theme-sidebar-widget li.group {
-  background-color: rgba(255, 255, 255, 0.9);
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-body.light-theme .theme-sidebar-widget .font-semibold {
-  color: #18181b;
+/* Interactive card border reflection trail */
+.glass-panel::after, .glass-card::after, .job-card::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: inherit !important;
+  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.02) 100%) !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
 }
 
-/* Pastel Light Theme */
-body.pastel-light-theme .theme-sidebar-widget li.group {
-  background-color: #ffffff;
-  border: 2px solid #ddd6fe;
-  border-radius: 16px;
-  box-shadow: 0 6px 12px rgba(107, 33, 168, 0.05);
-}
-body.pastel-light-theme .theme-sidebar-widget .font-semibold {
-  color: #6b21a8;
+.glass-panel:hover, .glass-card:hover, .job-card:hover {
+  transform: translateY(-5px) scale(1.01) !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+  box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.15) !important;
 }
 
-/* Pastel Dark Theme */
-body.pastel-dark-theme .theme-sidebar-widget li.group {
-  background-color: #0f172a;
-  border: 2px solid #818cf8;
-  border-radius: 16px;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-}
-body.pastel-dark-theme .theme-sidebar-widget .font-semibold {
-  color: #f8fafc;
+/* Light Theme Card overrides */
+body.light-theme .glass-panel,
+body.light-theme .glass-card,
+body.light-theme .job-card {
+  background: rgba(255, 255, 255, 0.7) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.03) !important;
 }
 
-/* Tab Content Styling */
-.theme-sidebar-widget .widget-panel-content {
-  padding: 12px;
-  padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.8rem;
-}
-body.light-theme .theme-sidebar-widget .widget-panel-content {
-  border-top-color: rgba(0, 0, 0, 0.08);
-}
-body.pastel-light-theme .theme-sidebar-widget .widget-panel-content {
-  border-top-color: #ddd6fe;
-}
-body.pastel-dark-theme .theme-sidebar-widget .widget-panel-content {
-  border-top-color: #334155;
+body.light-theme .glass-panel:hover,
+body.light-theme .glass-card:hover,
+body.light-theme .job-card:hover {
+  border-color: rgba(99, 102, 241, 0.2) !important;
+  box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.08) !important;
 }
 
-/* Interactive Theme Switcher inside Widget */
-.widget-theme-circles {
-  display: flex;
-  gap: 10px;
-  padding: 8px 4px;
-  justify-content: space-around;
+/* Pastel Light Card overrides */
+body.pastel-light-theme .glass-panel,
+body.pastel-light-theme .glass-card,
+body.pastel-light-theme .job-card {
+  background: #ffffff !important;
+  border: 3px solid #ddd6fe !important;
+  border-radius: 24px !important;
+  box-shadow: 6px 6px 0px 0px #ddd6fe !important;
 }
 
-.widget-theme-circle {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: all 0.2s ease;
-  position: relative;
+body.pastel-light-theme .glass-panel:hover,
+body.pastel-light-theme .glass-card:hover,
+body.pastel-light-theme .job-card:hover {
+  transform: translate(-3px, -3px) !important;
+  box-shadow: 9px 9px 0px 0px #c084fc !important;
 }
 
-.widget-theme-circle:hover {
-  transform: scale(1.15);
+/* Pastel Dark Card overrides */
+body.pastel-dark-theme .glass-panel,
+body.pastel-dark-theme .glass-card,
+body.pastel-dark-theme .job-card {
+  background: #0f172a !important;
+  border: 3px solid #818cf8 !important;
+  border-radius: 24px !important;
+  box-shadow: 8px 8px 0px 0px #312e81 !important;
 }
 
-.widget-theme-circle.active {
-  border-color: var(--accent-secondary, #2563eb);
-  transform: scale(1.1);
+body.pastel-dark-theme .glass-panel:hover,
+body.pastel-dark-theme .glass-card:hover,
+body.pastel-dark-theme .job-card:hover {
+  transform: translate(-3px, -3px) !important;
+  box-shadow: 11px 11px 0px 0px #4f46e5 !important;
 }
 
-body.pastel-light-theme .widget-theme-circle.active,
-body.pastel-dark-theme .widget-theme-circle.active {
-  border-color: #a78bfa;
+/* 4. Liquid Gloss & Animated Gradient Buttons */
+.btn {
+  border-radius: 14px !important;
+  padding: 10px 22px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
 }
 
-/* Color codes */
-.widget-theme-circle.circle-dark { background: #09090b; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); }
-.widget-theme-circle.circle-light { background: #f4f4f5; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); }
-.widget-theme-circle.circle-pastel-light { background: #f3e8ff; border: 1.5px solid #d8b4fe; }
-.widget-theme-circle.circle-pastel-dark { background: #3b0764; border: 1.5px solid #c084fc; }
-
-/* Notification Item inside widget */
-.widget-notif-item {
-  display: flex;
-  gap: 8px;
-  padding: 8px 4px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-body.light-theme .widget-notif-item { border-bottom-color: rgba(0,0,0,0.05); }
-body.pastel-light-theme .widget-notif-item { border-bottom-color: #f3e8ff; }
-body.pastel-dark-theme .widget-notif-item { border-bottom-color: #1e293b; }
-
-.widget-notif-item:last-child {
-  border-bottom: none;
+.btn-primary, .btn-details-animated {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
 }
 
-.widget-notif-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--accent-secondary, #2563eb);
-  margin-top: 4px;
-  flex-shrink: 0;
-}
-body.pastel-light-theme .widget-notif-dot,
-body.pastel-dark-theme .widget-notif-dot {
-  background-color: #a78bfa;
+.btn-primary:hover, .btn-details-animated:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5) !important;
+  opacity: 1 !important;
 }
 
-/* Chat list scrolling */
-.widget-chat-history {
-  max-height: 150px;
-  overflow-y: auto;
-  padding-right: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.widget-chat-msg {
-  padding: 6px 10px;
-  border-radius: 8px;
-  max-width: 85%;
-  line-height: 1.25;
-  font-size: 0.76rem;
-}
-
-.widget-chat-msg.sarthi {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: var(--text-main);
-  align-self: flex-start;
-}
-body.light-theme .widget-chat-msg.sarthi {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-body.pastel-light-theme .widget-chat-msg.sarthi {
-  background-color: #f3e8ff;
-  color: #6b21a8;
-}
-body.pastel-dark-theme .widget-chat-msg.sarthi {
-  background-color: #1e293b;
-  color: #f8fafc;
-}
-
-.widget-chat-msg.user {
-  background-color: var(--accent-secondary, #2563eb);
-  color: #ffffff;
-  align-self: flex-end;
-}
-body.pastel-light-theme .widget-chat-msg.user,
-body.pastel-dark-theme .widget-chat-msg.user {
-  background-color: #6b21a8;
-}
-
-.widget-chat-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.widget-chat-input {
-  width: 100%;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  background: rgba(0, 0, 0, 0.2) !important;
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: var(--text-main) !important;
-  padding: 6px 30px 6px 8px !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Light theme button customizations */
+body.light-theme .btn-secondary {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme .btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Pastel Light button overrides */
+body.pastel-light-theme .btn {
+  border-radius: 12px !important;
+  border: 2px solid #6b21a8 !important;
+}
+
+body.pastel-light-theme .btn-primary {
+  background: #c084fc !important;
+  color: #3b0764 !important;
+  box-shadow: 3px 3px 0px 0px #6b21a8 !important;
+}
+
+body.pastel-light-theme .btn-primary:hover {
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 5px 5px 0px 0px #6b21a8 !important;
+}
+
+body.pastel-light-theme .btn-secondary {
+  background: #fdf4ff !important;
+  color: #6b21a8 !important;
+  box-shadow: 3px 3px 0px 0px #ddd6fe !important;
+}
+
+body.pastel-light-theme .btn-secondary:hover {
+  background: #f3e8ff !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 4px 4px 0px 0px #ddd6fe !important;
+}
+
+/* 5. Custom Form Controls and Glowing Focus */
+input[type="text"], input[type="email"], input[type="password"], textarea, select {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  color: var(--text-main) !important;
+  padding: 12px 16px !important;
+  font-size: 0.92rem !important;
+  transition: all 0.3s ease !important;
+}
+
+input[type="text"]:focus, input[type="email"]:focus, textarea:focus, select:focus {
+  outline: none !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}
+
+body.light-theme input[type="text"], body.light-theme select {
+  background: rgba(255, 255, 255, 0.7) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+body.light-theme input[type="text"]:focus, body.light-theme select:focus {
+  background: #ffffff !important;
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+}
+
+body.pastel-light-theme input, body.pastel-light-theme select, body.pastel-light-theme textarea {
+  border: 2px solid #ddd6fe !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+}
+
+body.pastel-light-theme input:focus, body.pastel-light-theme select:focus {
+  border-color: #6b21a8 !important;
+  box-shadow: none !important;
+}
+
+/* 6. Capsule Badges */
+.badge {
+  border-radius: 100px !important;
+  padding: 4px 12px !important;
   font-size: 0.75rem !important;
-  height: 28px !important;
-  box-sizing: border-box;
-}
-body.light-theme .widget-chat-input {
-  border-color: rgba(0, 0, 0, 0.15) !important;
-  background: #ffffff !important;
-}
-body.pastel-light-theme .widget-chat-input {
-  border-color: #cbd5e1 !important;
-  background: #ffffff !important;
-}
-body.pastel-dark-theme .widget-chat-input {
-  border-color: #475569 !important;
-  background: #0b0f19 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
 }
 
-.widget-chat-send {
-  position: absolute;
-  right: 6px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px;
-}
-.widget-chat-send:hover {
-  color: var(--accent-secondary, #2563eb);
+/* 7. Grid Dashboard Adjustments */
+.dashboard-grid {
+  gap: 24px !important;
 }
 
-/* Favorites Job list inside widget */
-.widget-fav-item {
-  padding: 6px;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.03);
-  margin-bottom: 6px;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-.widget-fav-item:hover {
-  background: rgba(255,255,255,0.07);
-  border-color: var(--accent-secondary, #2563eb);
-}
-body.light-theme .widget-fav-item {
-  background: rgba(0,0,0,0.02);
-}
-body.light-theme .widget-fav-item:hover {
-  background: rgba(0,0,0,0.05);
-}
-body.pastel-light-theme .widget-fav-item {
-  background: #fdf4ff;
-  border-color: #f3e8ff;
-}
-body.pastel-light-theme .widget-fav-item:hover {
-  background: #f3e8ff;
-  border-color: #c084fc;
-}
-body.pastel-dark-theme .widget-fav-item {
-  background: #1e293b;
-  border-color: #334155;
-}
-body.pastel-dark-theme .widget-fav-item:hover {
-  background: #334155;
-  border-color: #818cf8;
-}
-
-/* Skills Progress inside widget */
-.widget-skills-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.widget-progress-container {
-  height: 6px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 3px;
-  overflow: hidden;
-}
-body.light-theme .widget-progress-container {
-  background: rgba(0,0,0,0.1);
-}
-.widget-progress-bar {
-  height: 100%;
-  background: var(--accent-secondary, #2563eb);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-body.pastel-light-theme .widget-progress-bar,
-body.pastel-dark-theme .widget-progress-bar {
-  background: #6b21a8;
-}
-
-/* Quick Preference switch inside widget */
-.widget-pref-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 0;
-}
-
-@media (max-width: 1024px) {
-  .theme-sidebar-widget {
-    display: none !important;
-  }
-}
-
-/* Compact Mode Overrides */
-body.compact-mode {
-  --card-padding: 12px !important;
-  --section-gap: 12px !important;
-}
-
-body.compact-mode .glass-panel,
-body.compact-mode .glass-card,
-body.compact-mode .job-card {
-  padding: 12px !important;
-  margin-bottom: 8px !important;
-}
-
-body.compact-mode .dashboard-grid,
-body.compact-mode .jobs-feed-layout {
+.job-card-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
   gap: 12px !important;
+  margin-top: 12px !important;
 }
 
-body.compact-mode h1 { font-size: 1.6rem !important; }
-body.compact-mode h2 { font-size: 1.25rem !important; }
-body.compact-mode h3 { font-size: 1.05rem !important; }
-body.compact-mode p { font-size: 0.82rem !important; }
+.job-card-meta-item {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  font-size: 0.78rem !important;
+  color: var(--text-muted) !important;
+}
 
-body.compact-mode .header {
-  padding: 8px 16px !important;
-  height: 56px !important;
+body.light-theme .job-card-meta-item {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+body.pastel-light-theme .job-card-meta-item {
+  background: #fdf4ff !important;
+  border: 1px solid #f3e8ff !important;
+  color: #6b21a8 !important;
 }
