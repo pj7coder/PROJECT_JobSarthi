@@ -338,7 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
                       </div>
                       
                       <!-- Color Accent Options Section -->
-                      <div id="themeColorsSection" class="theme-colors-section" style="display: none; flex-direction: column; gap: 8px; margin-top: 16px;">
+                      <div id="themeColorsSection" class="theme-colors-section" style="display: none;">
                         <span id="themeColorsSectionTitle" class="setting-item-title" style="font-weight: 600;">Accent Color</span>
                         <p class="setting-item-desc" style="margin: 0 0 8px 0; font-size: 0.82rem; color: var(--text-muted);">Personalize the workspace highlight color.</p>
                         <div class="container-items" id="themeColorsContainer">
@@ -800,7 +800,7 @@ document.addEventListener("DOMContentLoaded", () => {
                const colorsSectionTitle = activeModal.querySelector('#themeColorsSectionTitle');
                if (colorsSection) {
                  const isPastelTheme = currentTheme === 'pastel-light' || currentTheme === 'pastel-dark';
-                 colorsSection.style.display = 'flex';
+                 colorsSection.style.display = 'block';
                  if (colorsSectionTitle) {
                    colorsSectionTitle.textContent = isPastelTheme ? 'Pastel Accent Color' : 'Accent Color';
                  }
@@ -1296,7 +1296,7 @@ window.setTheme = function (themeName) {
     const colorsSection = activeModal.querySelector('#themeColorsSection');
     const colorsSectionTitle = activeModal.querySelector('#themeColorsSectionTitle');
     if (colorsSection) {
-      colorsSection.style.display = 'flex';
+      colorsSection.style.display = 'block';
       if (colorsSectionTitle) {
         colorsSectionTitle.textContent = isPastel ? 'Pastel Accent Color' : 'Accent Color';
       }
@@ -1340,31 +1340,58 @@ window.logout = function () {
 
 // Color Accent Lists
 const pastelColors = [
-  { name: 'Lavender Purple', key: 'lavender', primary: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8', css: '--pastel-accent-primary:#6b21a8;--pastel-accent-light:#f3e8ff;--pastel-accent-border:#d8b4fe;--pastel-accent-text:#6b21a8;' },
-  { name: 'Rose Pink', key: 'rose', primary: '#fce7f3', border: '#f9a8d4', text: '#9d174d', css: '--pastel-accent-primary:#be185d;--pastel-accent-light:#fce7f3;--pastel-accent-border:#f9a8d4;--pastel-accent-text:#9d174d;' },
-  { name: 'Sky Blue', key: 'sky', primary: '#e0f2fe', border: '#7dd3fc', text: '#0369a1', css: '--pastel-accent-primary:#0284c7;--pastel-accent-light:#e0f2fe;--pastel-accent-border:#7dd3fc;--pastel-accent-text:#0369a1;' },
-  { name: 'Mint Green', key: 'mint', primary: '#dcfce7', border: '#86efac', text: '#15803d', css: '--pastel-accent-primary:#16a34a;--pastel-accent-light:#dcfce7;--pastel-accent-border:#86efac;--pastel-accent-text:#15803d;' },
-  { name: 'Peach', key: 'peach', primary: '#ffedd5', border: '#fed7aa', text: '#c2410c', css: '--pastel-accent-primary:#ea580c;--pastel-accent-light:#ffedd5;--pastel-accent-border:#fed7aa;--pastel-accent-text:#c2410c;' },
-  { name: 'Lemon', key: 'lemon', primary: '#fef9c3', border: '#fde047', text: '#854d0e', css: '--pastel-accent-primary:#ca8a04;--pastel-accent-light:#fef9c3;--pastel-accent-border:#fde047;--pastel-accent-text:#854d0e;' },
-  { name: 'Aqua Teal', key: 'teal', primary: '#ccfbf1', border: '#5eead4', text: '#0f766e', css: '--pastel-accent-primary:#0d9488;--pastel-accent-light:#ccfbf1;--pastel-accent-border:#5eead4;--pastel-accent-text:#0f766e;' },
-  { name: 'Lilac', key: 'lilac', primary: '#ede9fe', border: '#c4b5fd', text: '#5b21b6', css: '--pastel-accent-primary:#7c3aed;--pastel-accent-light:#ede9fe;--pastel-accent-border:#c4b5fd;--pastel-accent-text:#5b21b6;' },
-  { name: 'Coral', key: 'coral', primary: '#fff1f2', border: '#fda4af', text: '#be123c', css: '--pastel-accent-primary:#f43f5e;--pastel-accent-light:#fff1f2;--pastel-accent-border:#fda4af;--pastel-accent-text:#be123c;' },
-  { name: 'Sand', key: 'sand', primary: '#fef3c7', border: '#fcd34d', text: '#78350f', css: '--pastel-accent-primary:#d97706;--pastel-accent-light:#fef3c7;--pastel-accent-border:#fcd34d;--pastel-accent-text:#78350f;' },
-  { name: 'Blush', key: 'blush', primary: '#fdf2f8', border: '#f0abfc', text: '#86198f', css: '--pastel-accent-primary:#c026d3;--pastel-accent-light:#fdf2f8;--pastel-accent-border:#f0abfc;--pastel-accent-text:#86198f;' },
-  { name: 'Ice', key: 'ice', primary: '#ecfeff', border: '#67e8f9', text: '#0e7490', css: '--pastel-accent-primary:#06b6d4;--pastel-accent-light:#ecfeff;--pastel-accent-border:#67e8f9;--pastel-accent-text:#0e7490;' },
+  { name: 'Lavender',  key: 'lavender', primary: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8' },
+  { name: 'Rose Pink', key: 'rose',     primary: '#fce7f3', border: '#f9a8d4', text: '#9d174d' },
+  { name: 'Sky Blue',  key: 'sky',      primary: '#e0f2fe', border: '#7dd3fc', text: '#0369a1' },
+  { name: 'Mint',      key: 'mint',     primary: '#dcfce7', border: '#86efac', text: '#15803d' },
+  { name: 'Peach',     key: 'peach',    primary: '#ffedd5', border: '#fed7aa', text: '#c2410c' },
+  { name: 'Lemon',     key: 'lemon',    primary: '#fef9c3', border: '#fde047', text: '#854d0e' },
+  { name: 'Teal',      key: 'teal',     primary: '#ccfbf1', border: '#5eead4', text: '#0f766e' },
+  { name: 'Lilac',     key: 'lilac',    primary: '#ede9fe', border: '#c4b5fd', text: '#5b21b6' },
+  { name: 'Coral',     key: 'coral',    primary: '#fff1f2', border: '#fda4af', text: '#be123c' },
+  { name: 'Sand',      key: 'sand',     primary: '#fef3c7', border: '#fcd34d', text: '#78350f' },
+  { name: 'Blush',     key: 'blush',    primary: '#fdf2f8', border: '#f0abfc', text: '#86198f' },
+  { name: 'Ice Blue',  key: 'ice',      primary: '#ecfeff', border: '#67e8f9', text: '#0e7490' },
 ];
 
 // Global Apply Pastel Accent Color function
+// Sets ALL design-system CSS variables so the whole UI changes with the picked accent.
 window.applyPastelAccentColor = function(accentData) {
   if (!accentData) return;
-  // Parse the CSS string and apply each variable
-  const cssVars = accentData.css.split(';').filter(s => s.trim());
-  cssVars.forEach(v => {
-    const [prop, val] = v.split(':');
-    if (prop && val) {
-      document.body.style.setProperty(prop.trim(), val.trim());
-    }
-  });
+
+  const p  = accentData.primary;  // e.g. #f3e8ff (light bg tint)
+  const b  = accentData.border;   // e.g. #d8b4fe (border / mid)
+  const t  = accentData.text;     // e.g. #6b21a8 (dark text / solid fill)
+
+  // -- named pastel accent vars (used by pastel CSS rules) --
+  document.body.style.setProperty('--pastel-accent-primary', t);
+  document.body.style.setProperty('--pastel-accent-light',   p);
+  document.body.style.setProperty('--pastel-accent-border',  b);
+  document.body.style.setProperty('--pastel-accent-text',    t);
+
+  // -- override the CORE design-system vars so every component inherits --
+  const isPastelLight = document.body.classList.contains('pastel-light-theme');
+  if (isPastelLight) {
+    document.body.style.setProperty('--bg-surface',      '#ffffff');
+    document.body.style.setProperty('--border-subtle',   b);
+    document.body.style.setProperty('--border-focus',    t);
+    document.body.style.setProperty('--accent-primary',  t);
+    document.body.style.setProperty('--accent-secondary', p);
+    document.body.style.setProperty('--accent-tertiary',  b);
+    document.body.style.setProperty('--text-main',       '#0f172a');
+    document.body.style.setProperty('--text-muted',      '#475569');
+  } else {
+    // pastel-dark
+    document.body.style.setProperty('--bg-surface',      '#140e26');
+    document.body.style.setProperty('--border-subtle',   '#2a1f44');
+    document.body.style.setProperty('--border-focus',    b);
+    document.body.style.setProperty('--accent-primary',  b);
+    document.body.style.setProperty('--accent-secondary', '#1e1535');
+    document.body.style.setProperty('--accent-tertiary',  '#2d2050');
+    document.body.style.setProperty('--text-main',       '#f8fafc');
+    document.body.style.setProperty('--text-muted',      '#94a3b8');
+  }
+
   localStorage.setItem('pastel_accent_color', JSON.stringify(accentData));
 };
 
@@ -1427,25 +1454,19 @@ window.renderAccentColors = function (modalEl, portalType, currentTheme) {
   const isPastel = theme === 'pastel-light' || theme === 'pastel-dark';
   
   if (isPastel) {
-    // Pastel color accent picker
+    // Pastel color accent picker — use same .item-color style as standard accents
     const savedPastel = localStorage.getItem('pastel_accent_color');
     let activeKey = 'lavender';
     if (savedPastel) {
       try { activeKey = JSON.parse(savedPastel).key; } catch(e) {}
     }
-    
     pastelColors.forEach(color => {
       const btn = document.createElement('button');
-      btn.className = 'item-color pastel-color-btn';
+      btn.className = 'item-color';
       if (color.key === activeKey) btn.classList.add('active');
-      btn.setAttribute('aria-label', color.name);
+      btn.setAttribute('aria-color', color.name);  // used by CSS ::before tooltip
       btn.setAttribute('data-color-key', color.key);
-      btn.title = color.name;
-      // Show as a pastel swatch
-      btn.style.setProperty('--color', color.border);
-      btn.style.background = color.primary;
-      btn.style.border = `2px solid ${color.border}`;
-      
+      btn.style.setProperty('--color', color.border);  // swatch color via CSS ::after
       btn.addEventListener('click', () => {
         container.querySelectorAll('.item-color').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
