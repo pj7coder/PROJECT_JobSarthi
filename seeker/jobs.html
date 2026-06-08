@@ -388,7 +388,6 @@
       width: 12em;
       height: 12em;
       font-size: 14px;
-      transform: scaleX(-1); /* Flips left-to-right */
     }
 
     .wheel,
@@ -408,9 +407,15 @@
     }
 
     .wheel {
-      background: radial-gradient(circle at center, rgba(0,0,0,0) 40%, #5c3d24 41%, #8a5a36 43%, #a67c52 47%, #4a301c 49%);
+      background: transparent;
+      border: 1.2em solid #8a5a36;
+      box-shadow:
+        inset 0 0 0 0.15em #4a301c,
+        0 0 0 0.15em #4a301c,
+        inset 0 4px 12px rgba(0,0,0,0.5),
+        0 4px 16px rgba(0,0,0,0.4);
       z-index: 2;
-      box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+      box-sizing: border-box;
     }
 
     .hamster {
@@ -421,7 +426,7 @@
       height: 3.75em;
       transform: rotate(4deg) translate(-0.8em,1.85em);
       transform-origin: 50% 0;
-      z-index: 1;
+      z-index: 3;
     }
 
     .hamster__head {
@@ -429,7 +434,7 @@
       background: hsl(30,90%,55%);
       border-radius: 70% 30% 0 100% / 40% 25% 25% 60%;
       box-shadow: 0 -0.25em 0 hsl(30,90%,80%) inset,
-    		0.75em -1.55em 0 hsl(30,90%,90%) inset;
+        0.75em -1.55em 0 hsl(30,90%,90%) inset;
       top: 0;
       left: -2em;
       width: 2.75em;
@@ -540,111 +545,85 @@
       transform-origin: 0.25em 0.25em;
     }
 
+    /* Spoke: three wooden planks crossing the inner circle */
     .spoke {
       animation: spoke var(--dur) linear infinite;
-      background: radial-gradient(circle at center, #4a301c 6.8%, rgba(0,0,0,0) 7%),
-                  linear-gradient(rgba(0,0,0,0) 46.5%, #7a4f2f 47% 53%, rgba(0,0,0,0) 53.5%) 50% 50% / 99% 99% no-repeat,
-                  linear-gradient(90deg, rgba(0,0,0,0) 46.5%, #7a4f2f 47% 53%, rgba(0,0,0,0) 53.5%) 50% 50% / 99% 99% no-repeat;
+      z-index: 1;
+      background:
+        linear-gradient(transparent 47%, #6b4226 47% 53%, transparent 53%),
+        linear-gradient(60deg, transparent 47%, #6b4226 47% 53%, transparent 53%),
+        linear-gradient(-60deg, transparent 47%, #6b4226 47% 53%, transparent 53%);
     }
 
-    /* Animations */
+    /* Drop shadow under the wheel */
+    .wheel-and-hamster::after {
+      content: '';
+      position: absolute;
+      bottom: -0.8em;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 70%;
+      height: 0.5em;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
     @keyframes hamster {
-      0%, 100% {
-        transform: rotate(4deg) translate(-0.8em, 1.85em);
-      }
-      50% {
-        transform: rotate(-3deg) translate(-0.8em, 1.6em);
-      }
+      0%, 100% { transform: rotate(4deg) translate(-0.8em, 1.85em); }
+      50%       { transform: rotate(0deg) translate(-0.8em, 1.85em); }
     }
 
     @keyframes hamsterHead {
-      0%, 50%, 100% {
-        transform: rotate(0);
-      }
-      25%, 75% {
-        transform: rotate(6deg);
-      }
+      0%, 100% { transform: rotate(0deg); }
+      25%       { transform: rotate(6deg); }
+      75%       { transform: rotate(-4deg); }
     }
 
     @keyframes hamsterEye {
-      0%, 90%, 100% {
-        transform: scaleY(1);
-      }
-      95% {
-        transform: scaleY(0);
-      }
+      0%, 85%, 100% { transform: scaleY(1); }
+      92%            { transform: scaleY(0); }
     }
 
     @keyframes hamsterEar {
-      0%, 50%, 100% {
-        transform: rotate(0);
-      }
-      25%, 75% {
-        transform: rotate(10deg);
-      }
+      0%, 100% { transform: rotate(0deg); }
+      25%       { transform: rotate(10deg); }
+      75%       { transform: rotate(-8deg); }
     }
 
     @keyframes hamsterBody {
-      0%, 50%, 100% {
-        transform: rotate(2deg);
-      }
-      25%, 75% {
-        transform: rotate(-3deg);
-      }
+      0%, 100% { transform: rotate(2deg); }
+      25%       { transform: rotate(-2deg); }
+      75%       { transform: rotate(3deg); }
     }
 
     @keyframes hamsterFRLimb {
-      0%, 50%, 100% {
-        transform: rotate(60deg) translateZ(-1px);
-      }
-      25%, 75% {
-        transform: rotate(-40deg) translateZ(-1px);
-      }
+      0%, 100% { transform: rotate(60deg) translateZ(-1px); }
+      50%       { transform: rotate(-40deg) translateZ(-1px); }
     }
 
     @keyframes hamsterFLLimb {
-      0%, 50%, 100% {
-        transform: rotate(-40deg);
-      }
-      25%, 75% {
-        transform: rotate(60deg);
-      }
+      0%, 100% { transform: rotate(-40deg); }
+      50%       { transform: rotate(60deg); }
     }
 
     @keyframes hamsterBRLimb {
-      0%, 50%, 100% {
-        transform: rotate(-65deg) translateZ(-1px);
-      }
-      25%, 75% {
-        transform: rotate(25deg) translateZ(-1px);
-      }
+      0%, 100% { transform: rotate(20deg) translateZ(-1px); }
+      50%       { transform: rotate(-60deg) translateZ(-1px); }
     }
 
     @keyframes hamsterBLLimb {
-      0%, 50%, 100% {
-        transform: rotate(25deg);
-      }
-      25%, 75% {
-        transform: rotate(-65deg);
-      }
+      0%, 100% { transform: rotate(-60deg); }
+      50%       { transform: rotate(20deg); }
     }
 
     @keyframes hamsterTail {
-      0%, 50%, 100% {
-        transform: rotate(35deg) translateZ(-1px);
-      }
-      25%, 75% {
-        transform: rotate(10deg) translateZ(-1px);
-      }
+      0%, 100% { transform: rotate(35deg) translateZ(-1px); }
+      50%       { transform: rotate(12deg) translateZ(-1px); }
     }
 
     @keyframes spoke {
-      from {
-        transform: rotate(0);
-      }
-      to {
-        transform: rotate(-1turn);
-      }
+      from { transform: rotate(0); }
+      to   { transform: rotate(-1turn); }
     }
 
     /* Premium Pagination Styling */
