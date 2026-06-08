@@ -4256,3 +4256,126 @@ body.pastel-dark-theme .text-accent {
   margin-top: 16px !important;
 }
 
+
+/* --- Logo Gradient --- */
+.logo-title-text {
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  transition: all 0.3s ease;
+}
+
+/* Default light/dark themes: blue and magenta gradient */
+body:not(.pastel-light-theme):not(.pastel-dark-theme) .logo-title-text {
+  background: linear-gradient(135deg, #3b82f6 30%, #d946ef 90%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* Pastel themes: Customized logo text gradient */
+body.pastel-light-theme .logo-title-text {
+  background: linear-gradient(135deg, var(--pastel-accent-primary, #6b21a8) 0%, var(--pastel-accent-border, #d8b4fe) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5);
+}
+
+body.pastel-dark-theme .logo-title-text {
+  background: linear-gradient(135deg, var(--pastel-accent-border, #c4b5fd) 0%, #fda4af 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* --- Default light & dark theme: Open and Apply buttons --- */
+body.light-theme .btn-open-job,
+body.light-theme .btn-apply {
+  background: var(--accent-secondary, #2563eb) !important;
+  color: #ffffff !important;
+}
+
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .btn-open-job,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .btn-apply {
+  background: var(--accent-secondary, var(--accent-cyan)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2) !important;
+}
+
+/* --- Pastel theme landing page portal card customization --- */
+body.pastel-light-theme .portal-card.seeker-portal-card {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1.8px solid var(--pastel-accent-border, #d8b4fe) !important;
+  box-shadow: 0 10px 30px rgba(107, 33, 168, 0.05) !important;
+}
+body.pastel-light-theme .portal-card.seeker-portal-card:hover {
+  border-color: var(--pastel-accent-primary, #6b21a8) !important;
+  box-shadow: 0 15px 40px rgba(107, 33, 168, 0.12) !important;
+}
+body.pastel-light-theme .portal-card.recruiter-portal-card {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1.8px solid #f9a8d4 !important;
+  box-shadow: 0 10px 30px rgba(157, 23, 77, 0.05) !important;
+}
+body.pastel-light-theme .portal-card.recruiter-portal-card:hover {
+  border-color: #be185d !important;
+  box-shadow: 0 15px 40px rgba(157, 23, 77, 0.12) !important;
+}
+
+body.pastel-dark-theme .portal-card.seeker-portal-card {
+  background: rgba(20, 14, 38, 0.8) !important;
+  border: 1.8px solid var(--pastel-accent-border, rgba(192, 132, 252, 0.3)) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+}
+body.pastel-dark-theme .portal-card.seeker-portal-card:hover {
+  border-color: var(--pastel-accent-primary, rgba(192, 132, 252, 0.6)) !important;
+  box-shadow: 0 15px 40px rgba(139, 92, 246, 0.2) !important;
+}
+body.pastel-dark-theme .portal-card.recruiter-portal-card {
+  background: rgba(20, 14, 38, 0.8) !important;
+  border: 1.8px solid rgba(249, 168, 212, 0.3) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+}
+body.pastel-dark-theme .portal-card.recruiter-portal-card:hover {
+  border-color: #f9a8d4 !important;
+  box-shadow: 0 15px 40px rgba(249, 168, 212, 0.2) !important;
+}
+
+/* Custom SVG / Icon colors for pastel portals */
+body.pastel-light-theme .seeker-portal-card .portal-svg {
+  color: var(--pastel-accent-primary, #6b21a8) !important;
+  filter: drop-shadow(0 0 12px var(--pastel-accent-border, rgba(216, 180, 254, 0.4))) !important;
+}
+body.pastel-light-theme .recruiter-portal-card .portal-svg {
+  color: #be185d !important;
+  filter: drop-shadow(0 0 12px rgba(249, 168, 212, 0.4)) !important;
+}
+body.pastel-light-theme .seeker-portal-card .seeker-color {
+  color: var(--pastel-accent-primary, #6b21a8) !important;
+}
+body.pastel-light-theme .recruiter-portal-card .recruiter-color {
+  color: #be185d !important;
+}
+
+body.pastel-dark-theme .seeker-portal-card .portal-svg {
+  color: var(--pastel-accent-border, #d8b4fe) !important;
+  filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.4)) !important;
+}
+body.pastel-dark-theme .recruiter-portal-card .portal-svg {
+  color: #f9a8d4 !important;
+  filter: drop-shadow(0 0 12px rgba(249, 168, 212, 0.4)) !important;
+}
+body.pastel-dark-theme .seeker-portal-card .seeker-color {
+  color: var(--pastel-accent-border, #d8b4fe) !important;
+}
+body.pastel-dark-theme .recruiter-portal-card .recruiter-color {
+  color: #f9a8d4 !important;
+}
+
+/* --- Body background override for pastel themes to support gradients --- */
+body.pastel-light-theme,
+body.pastel-dark-theme {
+  background: var(--bg-primary) !important;
+  background-attachment: fixed !important;
+}

@@ -42,7 +42,7 @@ window.headerLandingHTML = `
       <a href="#" class="logo" id="logoLink"
         style="display: flex; align-items: center; gap: 10px; cursor: pointer; text-decoration: none; color: inherit;">
         <img src="[PREFIX]assets/jobsarthilogo.png" alt="JobSarthi Logo" class="logo-img">
-        <span>JobSarthi</span>
+        <span class="logo-title-text">JobSarthi</span>
       </a>
     </div>
     <nav>
@@ -125,7 +125,7 @@ window.headerSeekerHTML = `
       <a href="#" class="logo" id="logoLink"
         style="display: flex; align-items: center; gap: 10px; cursor: pointer; text-decoration: none; color: inherit;">
         <img src="[PREFIX]assets/jobsarthilogo.png" alt="JobSarthi Logo" class="logo-img">
-        <span>JobSarthi</span>
+        <span class="logo-title-text">JobSarthi</span>
       </a>
     </div>
     <nav>
@@ -252,7 +252,7 @@ window.headerRecruiterHTML = `
       <a href="#" class="logo" id="logoLink"
         style="display: flex; align-items: center; gap: 10px; cursor: pointer; text-decoration: none; color: inherit;">
         <img src="[PREFIX]assets/jobsarthilogo.png" alt="JobSarthi Logo" class="logo-img">
-        <span>JobSarthi</span>
+        <span class="logo-title-text">JobSarthi</span>
       </a>
     </div>
     <nav>

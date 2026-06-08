@@ -344,6 +344,18 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="container-items" id="themeColorsContainer">
                           <!-- Filled dynamically by JavaScript -->
                         </div>
+                        
+                        <!-- Randomize Button Colors Checkbox -->
+                        <div id="randomColorsSection" style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed var(--border-subtle); padding-top: 12px;">
+                          <div>
+                            <span class="setting-item-title" style="font-weight: 600;">Disco Buttons</span>
+                            <p class="setting-item-desc" style="margin: 0; font-size: 0.82rem; color: var(--text-muted);">Randomize button colors statically (except delete/like buttons).</p>
+                          </div>
+                          <label class="switch-toggle">
+                            <input type="checkbox" id="modalRandomColorsToggle">
+                            <span class="slider-round"></span>
+                          </label>
+                        </div>
                       </div>
 
                       <!-- Special Pastel Themes Section -->
@@ -718,6 +730,14 @@ document.addEventListener("DOMContentLoaded", () => {
                  if (window.applyAllUIPreferences) window.applyAllUIPreferences();
                });
              }
+
+             const modalRandomColorsToggle = modalEl.querySelector('#modalRandomColorsToggle');
+             if (modalRandomColorsToggle) {
+               modalRandomColorsToggle.addEventListener('change', (e) => {
+                 localStorage.setItem('random_button_colors', e.target.checked ? 'true' : 'false');
+                 if (window.applyRandomButtonColors) window.applyRandomButtonColors();
+               });
+             }
              
              const modalCursorToggle = modalEl.querySelector('#modalCursorToggle');
              if (modalCursorToggle) {
@@ -813,6 +833,12 @@ document.addEventListener("DOMContentLoaded", () => {
              const modalAdvancedUIToggle = activeModal.querySelector('#modalAdvancedUIToggle');
              if (modalAdvancedUIToggle) {
                modalAdvancedUIToggle.checked = isAdvancedUI;
+             }
+
+             const isRandomColors = localStorage.getItem('random_button_colors') === 'true';
+             const modalRandomColorsToggle = activeModal.querySelector('#modalRandomColorsToggle');
+             if (modalRandomColorsToggle) {
+               modalRandomColorsToggle.checked = isRandomColors;
              }
              
              const modalCursorToggle = activeModal.querySelector('#modalCursorToggle');
@@ -1306,6 +1332,10 @@ window.setTheme = function (themeName) {
       }
     }
   }
+
+  if (window.applyRandomButtonColors) {
+    window.applyRandomButtonColors();
+  }
 };
 
 // Global Toggle Theme Function
@@ -1340,18 +1370,18 @@ window.logout = function () {
 
 // Color Accent Lists
 const pastelColors = [
-  { name: 'Lavender',  key: 'lavender', primary: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8' },
-  { name: 'Rose Pink', key: 'rose',     primary: '#fce7f3', border: '#f9a8d4', text: '#9d174d' },
-  { name: 'Sky Blue',  key: 'sky',      primary: '#e0f2fe', border: '#7dd3fc', text: '#0369a1' },
-  { name: 'Mint',      key: 'mint',     primary: '#dcfce7', border: '#86efac', text: '#15803d' },
-  { name: 'Peach',     key: 'peach',    primary: '#ffedd5', border: '#fed7aa', text: '#c2410c' },
-  { name: 'Lemon',     key: 'lemon',    primary: '#fef9c3', border: '#fde047', text: '#854d0e' },
-  { name: 'Teal',      key: 'teal',     primary: '#ccfbf1', border: '#5eead4', text: '#0f766e' },
-  { name: 'Lilac',     key: 'lilac',    primary: '#ede9fe', border: '#c4b5fd', text: '#5b21b6' },
-  { name: 'Coral',     key: 'coral',    primary: '#fff1f2', border: '#fda4af', text: '#be123c' },
-  { name: 'Sand',      key: 'sand',     primary: '#fef3c7', border: '#fcd34d', text: '#78350f' },
-  { name: 'Blush',     key: 'blush',    primary: '#fdf2f8', border: '#f0abfc', text: '#86198f' },
-  { name: 'Ice Blue',  key: 'ice',      primary: '#ecfeff', border: '#67e8f9', text: '#0e7490' },
+  { name: 'Lavender',  key: 'lavender', primary: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8', darkBg: '#0f081d', darkSurface: '#170e2a', darkBorder: 'rgba(216, 180, 254, 0.22)' },
+  { name: 'Rose Pink', key: 'rose',     primary: '#fce7f3', border: '#f9a8d4', text: '#be185d', darkBg: '#1d0813', darkSurface: '#2a0e1c', darkBorder: 'rgba(249, 168, 212, 0.22)' },
+  { name: 'Sky Blue',  key: 'sky',      primary: '#e0f2fe', border: '#7dd3fc', text: '#0284c7', darkBg: '#05131e', darkSurface: '#0a1c2a', darkBorder: 'rgba(125, 211, 252, 0.22)' },
+  { name: 'Mint',      key: 'mint',     primary: '#dcfce7', border: '#86efac', text: '#16a34a', darkBg: '#041c10', darkSurface: '#0b291a', darkBorder: 'rgba(134, 239, 172, 0.22)' },
+  { name: 'Peach',     key: 'peach',    primary: '#ffedd5', border: '#fed7aa', text: '#ea580c', darkBg: '#1c0d04', darkSurface: '#2c170b', darkBorder: 'rgba(254, 215, 170, 0.22)' },
+  { name: 'Lemon',     key: 'lemon',    primary: '#fef9c3', border: '#fde047', text: '#ca8a04', darkBg: '#1c1804', darkSurface: '#2c260b', darkBorder: 'rgba(253, 224, 71, 0.22)' },
+  { name: 'Teal',      key: 'teal',     primary: '#ccfbf1', border: '#5eead4', text: '#0d9488', darkBg: '#041a18', darkSurface: '#0a2926', darkBorder: 'rgba(94, 234, 212, 0.22)' },
+  { name: 'Lilac',     key: 'lilac',    primary: '#ede9fe', border: '#c4b5fd', text: '#7c3aed', darkBg: '#0e071c', darkSurface: '#180e2d', darkBorder: 'rgba(196, 181, 253, 0.22)' },
+  { name: 'Coral',     key: 'coral',    primary: '#fff1f2', border: '#fda4af', text: '#f43f5e', darkBg: '#1f050b', darkSurface: '#2f0a14', darkBorder: 'rgba(253, 164, 175, 0.22)' },
+  { name: 'Sand',      key: 'sand',     primary: '#fef3c7', border: '#fcd34d', text: '#d97706', darkBg: '#1c1204', darkSurface: '#2b1d0b', darkBorder: 'rgba(252, 211, 77, 0.22)' },
+  { name: 'Blush',     key: 'blush',    primary: '#fdf2f8', border: '#f0abfc', text: '#c026d3', darkBg: '#1c061d', darkSurface: '#2a0c2c', darkBorder: 'rgba(240, 171, 252, 0.22)' },
+  { name: 'Ice Blue',  key: 'ice',      primary: '#ecfeff', border: '#67e8f9', text: '#06b6d4', darkBg: '#04181c', darkSurface: '#0a262c', darkBorder: 'rgba(103, 232, 249, 0.22)' }
 ];
 
 // Global Apply Pastel Accent Color function
@@ -1372,6 +1402,7 @@ window.applyPastelAccentColor = function(accentData) {
   // -- override the CORE design-system vars so every component inherits --
   const isPastelLight = document.body.classList.contains('pastel-light-theme');
   if (isPastelLight) {
+    document.body.style.setProperty('--bg-primary',      `linear-gradient(135deg, ${p} 0%, #ffffff 60%, ${p} 100%)`);
     document.body.style.setProperty('--bg-surface',      '#ffffff');
     document.body.style.setProperty('--border-subtle',   b);
     document.body.style.setProperty('--border-focus',    t);
@@ -1382,17 +1413,22 @@ window.applyPastelAccentColor = function(accentData) {
     document.body.style.setProperty('--text-muted',      '#475569');
   } else {
     // pastel-dark
-    document.body.style.setProperty('--bg-surface',      '#140e26');
-    document.body.style.setProperty('--border-subtle',   '#2a1f44');
+    const dbg = accentData.darkBg || '#0f081d';
+    const dsf = accentData.darkSurface || '#170e2a';
+    const dbd = accentData.darkBorder || 'rgba(216, 180, 254, 0.22)';
+    document.body.style.setProperty('--bg-primary',      `linear-gradient(135deg, ${dbg} 0%, #05040a 60%, ${dbg} 100%)`);
+    document.body.style.setProperty('--bg-surface',      dsf);
+    document.body.style.setProperty('--border-subtle',   dbd);
     document.body.style.setProperty('--border-focus',    b);
     document.body.style.setProperty('--accent-primary',  b);
-    document.body.style.setProperty('--accent-secondary', '#1e1535');
-    document.body.style.setProperty('--accent-tertiary',  '#2d2050');
+    document.body.style.setProperty('--accent-secondary', dbg);
+    document.body.style.setProperty('--accent-tertiary',  dsf);
     document.body.style.setProperty('--text-main',       '#f8fafc');
     document.body.style.setProperty('--text-muted',      '#94a3b8');
   }
 
   localStorage.setItem('pastel_accent_color', JSON.stringify(accentData));
+  if (window.applyRandomButtonColors) window.applyRandomButtonColors();
 };
 
 // Color Accent Lists
@@ -1504,3 +1540,81 @@ window.renderAccentColors = function (modalEl, portalType, currentTheme) {
     });
   }
 };
+
+// Global function to apply static randomized colors to buttons
+window.applyRandomButtonColors = function() {
+  const enabled = localStorage.getItem('random_button_colors') === 'true';
+  const buttons = document.querySelectorAll('button, .btn, .btn-primary, .btn-secondary, .btn-glow, .btn-open-job, .btn-apply');
+  
+  if (!enabled) {
+    buttons.forEach(btn => {
+      // Don't modify color picker buttons
+      if (!btn.classList.contains('item-color') && !btn.classList.contains('pastel-color-btn')) {
+        btn.style.removeProperty('background');
+        btn.style.removeProperty('background-image');
+        btn.style.removeProperty('color');
+        btn.style.removeProperty('border-color');
+      }
+    });
+    return;
+  }
+  
+  // 12 beautiful pastel colors for button backgrounds
+  const colors = ['#6b21a8', '#be185d', '#0284c7', '#16a34a', '#ea580c', '#ca8a04', '#0d9488', '#7c3aed', '#f43f5e', '#d97706', '#c026d3', '#06b6d4'];
+  
+  buttons.forEach(btn => {
+    // Skip color pickers, theme toggle, delete, remove, like buttons
+    const txt = (btn.innerText || btn.textContent || '').toLowerCase();
+    const isDeleteOrLike = 
+      btn.classList.contains('btn-danger') ||
+      btn.classList.contains('delete-btn') ||
+      btn.classList.contains('btn-like-card') ||
+      btn.classList.contains('item-color') ||
+      btn.classList.contains('pastel-color-btn') ||
+      btn.id === 'themeToggleCheckbox' ||
+      btn.id === 'modalRandomColorsToggle' ||
+      btn.id === 'modalAdvancedUIToggle' ||
+      btn.id === 'modalCursorToggle' ||
+      btn.closest('#themeColorsContainer') ||
+      btn.getAttribute('aria-label') === 'Like' ||
+      btn.getAttribute('aria-label') === 'Bookmark' ||
+      txt.includes('delete') ||
+      txt.includes('like') ||
+      txt.includes('remove') ||
+      txt.includes('reject');
+      
+    if (isDeleteOrLike) {
+      // Let standard red styles apply
+      return;
+    }
+    
+    // Hash button content/class/id to assign a stable ("not changing") random color
+    let hash = 0;
+    const str = btn.innerText || btn.className || btn.id || 'btn';
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colorIndex = Math.abs(hash) % colors.length;
+    const color = colors[colorIndex];
+    
+    // Set colors with !important to override other rules cleanly
+    btn.style.setProperty('background', color, 'important');
+    btn.style.setProperty('background-image', 'none', 'important');
+    btn.style.setProperty('color', '#ffffff', 'important');
+    btn.style.setProperty('border-color', color, 'important');
+  });
+};
+
+// Start periodic checker to colorize dynamically loaded buttons
+setInterval(() => {
+  if (window.applyRandomButtonColors) {
+    window.applyRandomButtonColors();
+  }
+}, 1000);
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    if (window.applyRandomButtonColors) window.applyRandomButtonColors();
+  }, 500);
+});
