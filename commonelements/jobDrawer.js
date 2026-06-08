@@ -133,9 +133,14 @@
       </div>
 
       <!-- Footer -->
-      <div class="drawer-footer">
-        <button id="jd_applyBtn" class="btn btn-glow" style="flex:1;height:44px;font-weight:600;" onclick="window.JobDrawer._onApply()">Apply Now</button>
-        <button id="jd_mockBtn" class="btn btn-secondary" style="flex:1;height:44px;font-weight:600;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);color:#60a5fa;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.JobDrawer._onMock()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg> Mock Interview</button>
+      <div class="drawer-footer" style="display:flex;gap:8px;align-items:center;">
+        <button id="jd_applyBtn" class="btn btn-glow" style="flex:2;height:44px;font-weight:600;" onclick="window.JobDrawer._onApply()">Apply Now</button>
+        <button id="jd_mockBtn" class="btn btn-secondary" style="flex:2;height:44px;font-weight:600;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);color:#60a5fa;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.JobDrawer._onMock()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg> Mock Interview</button>
+        <button id="jd_likeBtn" class="btn btn-secondary" style="width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;transition:all 0.2s;" onclick="window.JobDrawer._onLikeClick(event)" title="Like Job">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        </button>
       </div>
 
     </div>
@@ -315,8 +320,31 @@
 
       // Bookmark state
       const savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      const isSaved = savedIds.includes(job.id);
       const cb = _getEl('jd_saveCheckbox');
-      if (cb) cb.checked = savedIds.includes(job.id);
+      if (cb) cb.checked = isSaved;
+      
+      // Update footer like button state
+      const likeBtn = _getEl('jd_likeBtn');
+      if (likeBtn) {
+        if (isSaved) {
+          likeBtn.style.background = 'rgba(255, 91, 137, 0.15)';
+          likeBtn.style.borderColor = 'rgba(255, 91, 137, 0.4)';
+          likeBtn.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          `;
+        } else {
+          likeBtn.style.background = 'rgba(255,255,255,0.03)';
+          likeBtn.style.borderColor = 'var(--border-subtle)';
+          likeBtn.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          `;
+        }
+      }
 
       // Apply button
       const applyBtn = _getEl('jd_applyBtn');
@@ -372,13 +400,129 @@
 
     _onSaveChange(checked) {
       if (!_currentJob) return;
+      const jobId = _currentJob.id;
       let savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
       if (checked) {
-        if (!savedIds.includes(_currentJob.id)) savedIds.push(_currentJob.id);
+        if (!savedIds.includes(jobId)) savedIds.push(jobId);
       } else {
-        savedIds = savedIds.filter(id => id !== _currentJob.id);
+        savedIds = savedIds.filter(id => id !== jobId);
       }
       localStorage.setItem('saved_jobs', JSON.stringify(savedIds));
+
+      // Sync footer button style
+      const likeBtn = _getEl('jd_likeBtn');
+      if (likeBtn) {
+        if (checked) {
+          likeBtn.style.background = 'rgba(255, 91, 137, 0.15)';
+          likeBtn.style.borderColor = 'rgba(255, 91, 137, 0.4)';
+          likeBtn.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          `;
+        } else {
+          likeBtn.style.background = 'rgba(255,255,255,0.03)';
+          likeBtn.style.borderColor = 'var(--border-subtle)';
+          likeBtn.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          `;
+        }
+      }
+
+      // Sync card like button
+      const cardBtn = document.getElementById(`like_btn_${jobId}`);
+      if (cardBtn) {
+        cardBtn.innerHTML = checked ? `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        ` : `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        `;
+        cardBtn.style.background = checked ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)';
+        cardBtn.style.borderColor = checked ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)';
+      }
+
+      if (_options.onSave) _options.onSave(_currentJob, checked);
+    },
+
+    _onLikeClick(event) {
+      if (event) event.stopPropagation();
+      if (!_currentJob) return;
+      const jobId = _currentJob.id;
+      let savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      const index = savedIds.indexOf(jobId);
+      const checked = index === -1;
+      
+      if (checked) {
+        savedIds.push(jobId);
+      } else {
+        savedIds.splice(index, 1);
+      }
+      localStorage.setItem('saved_jobs', JSON.stringify(savedIds));
+
+      // Sync checkbox state at top
+      const cb = _getEl('jd_saveCheckbox');
+      if (cb) cb.checked = checked;
+
+      // Sync footer button style
+      const likeBtn = _getEl('jd_likeBtn');
+      if (likeBtn) {
+        if (checked) {
+          likeBtn.style.background = 'rgba(255, 91, 137, 0.15)';
+          likeBtn.style.borderColor = 'rgba(255, 91, 137, 0.4)';
+          likeBtn.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          `;
+        } else {
+          likeBtn.style.background = 'rgba(255,255,255,0.03)';
+          likeBtn.style.borderColor = 'var(--border-subtle)';
+          likeBtn.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          `;
+        }
+      }
+
+      // Sync card like button
+      const cardBtn = document.getElementById(`like_btn_${jobId}`);
+      if (cardBtn) {
+        cardBtn.innerHTML = checked ? `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        ` : `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        `;
+        cardBtn.style.background = checked ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)';
+        cardBtn.style.borderColor = checked ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)';
+      }
+
+      // Toast feedback
+      const toast = document.getElementById("successToast");
+      if (toast) {
+        if (checked) {
+          toast.textContent = "Job saved to your bookmarks!";
+          toast.style.background = "#ff5b89";
+          toast.style.boxShadow = "0 10px 20px rgba(255, 91, 137, 0.3)";
+        } else {
+          toast.textContent = "Job removed from bookmarks.";
+          toast.style.background = "var(--bg-secondary)";
+          toast.style.boxShadow = "none";
+        }
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 1500);
+      }
+
       if (_options.onSave) _options.onSave(_currentJob, checked);
     },
 

@@ -701,17 +701,14 @@
 
         <!-- Favourites Filter -->
         <div class="filter-group" style="border-top: 1px dashed var(--border-subtle); padding-top: 12px; margin-top: 12px;">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div id="favouritesFilterItem" onclick="toggleFavouritesOnlyFilter()" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: var(--radius-md); background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); cursor: pointer; transition: all 0.2s;">
             <span style="font-size: 0.85rem; color: var(--text-main); font-weight: 500; display: flex; align-items: center; gap: 6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+              <svg id="favouritesHeartIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
               </svg>
               Favourites (favourites)
             </span>
-            <div>
-              <input type="checkbox" id="favouritesSwitch" onchange="filterJobs()" style="display: none;">
-              <label for="favouritesSwitch" class="custom-switch-label"></label>
-            </div>
+            <span id="favouritesCountBadge" style="font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; background: rgba(255, 91, 137, 0.15); color: #ff5b89; font-weight: 600;">0</span>
           </div>
         </div>
       </aside>
@@ -1158,8 +1155,38 @@
       }
     }
 
+    let showFavouritesOnly = false;
+
+    function updateFavouritesBadge() {
+      const savedJobIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      const badge = document.getElementById('favouritesCountBadge');
+      if (badge) {
+        badge.textContent = savedJobIds.length;
+      }
+    }
+
+    function toggleFavouritesOnlyFilter() {
+      showFavouritesOnly = !showFavouritesOnly;
+      
+      const item = document.getElementById('favouritesFilterItem');
+      const heart = document.getElementById('favouritesHeartIcon');
+      
+      if (showFavouritesOnly) {
+        item.style.background = 'rgba(255, 91, 137, 0.08)';
+        item.style.borderColor = 'rgba(255, 91, 137, 0.3)';
+        if (heart) heart.setAttribute('fill', '#ff5b89');
+      } else {
+        item.style.background = 'rgba(255,255,255,0.02)';
+        item.style.borderColor = 'var(--border-subtle)';
+        if (heart) heart.setAttribute('fill', 'none');
+      }
+      
+      filterJobs(false);
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       loadJobs();
+      updateFavouritesBadge();
     });
 
     function resetAllFilters() {
@@ -1169,6 +1196,18 @@
       
       const checkboxes = document.querySelectorAll('#filterJobTypes input');
       checkboxes.forEach(cb => cb.checked = false);
+      
+      // Reset Favourites Filter State
+      showFavouritesOnly = false;
+      const item = document.getElementById('favouritesFilterItem');
+      const heart = document.getElementById('favouritesHeartIcon');
+      if (item) {
+        item.style.background = 'rgba(255,255,255,0.02)';
+        item.style.borderColor = 'var(--border-subtle)';
+      }
+      if (heart) {
+        heart.setAttribute('fill', 'none');
+      }
       
       filterJobs(false);
     }
@@ -1215,7 +1254,7 @@
 
       const email = localStorage.getItem('seeker_email') || '';
 
-      const isFavouritesOnly = document.getElementById('favouritesSwitch')?.checked;
+      const isFavouritesOnly = showFavouritesOnly;
       let savedIdsStr = '';
       if (isFavouritesOnly) {
         const savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
@@ -1223,7 +1262,7 @@
           container.innerHTML = `
             <div style="text-align: center; padding: 40px; color: var(--text-muted);">
               <h3>No Favourites Saved Yet</h3>
-              <p>Click the heart icon on any job details page to bookmark it!</p>
+              <p>Click the heart icon on any job details page or card to bookmark it!</p>
             </div>
           `;
           const counterEl = document.getElementById('jobsCounter');
@@ -1468,10 +1507,6 @@
           <div class="job-card-actions" onclick="event.stopPropagation()">
             <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-details-animated">Details</button>
             ${actionBtn}
-            <button onclick="startMockForJobId('${job.id}')" class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.82rem; display: inline-flex; align-items: center; justify-content: center; gap: 4px; background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.2); color: var(--accent-secondary);" title="Start Mock Interview">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
-              Mock
-            </button>
             <button onclick="toggleSaveJobFromCard('${job.id}', event)" class="btn btn-like-card" id="like_btn_${job.id}" style="padding: 8px 10px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: ${isSaved ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${isSaved ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)'}; color: var(--text-muted); cursor: pointer; transition: all 0.2s;" title="Save Job">
               ${heartSvg}
             </button>
@@ -1493,7 +1528,25 @@
         getMatchScore: getJobMatchScore,
         getSkillsMatchInfo,
         onSave: (j, checked) => {
-          if (!checked && document.getElementById('favouritesSwitch')?.checked) filterJobs(true);
+          updateFavouritesBadge();
+          // Keep list items in sync
+          const btn = document.getElementById(`like_btn_${j.id}`);
+          if (btn) {
+            btn.innerHTML = checked ? `
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            ` : `
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            `;
+            btn.style.background = checked ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)';
+            btn.style.borderColor = checked ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)';
+          }
+          if (showFavouritesOnly && !checked) {
+            filterJobs(true);
+          }
         },
         onApply: () => applyToCurrentJob()
       });
@@ -1632,9 +1685,11 @@
         }, 1500);
       }
 
-      // If favourites switch is active, filter jobs immediately
-      const favSwitch = document.getElementById('favouritesSwitch');
-      if (favSwitch && favSwitch.checked) {
+      // Update Favourites Badge
+      updateFavouritesBadge();
+
+      // If favourites filter is active, filter jobs immediately
+      if (showFavouritesOnly) {
         if (!checked) {
           filterJobs(true);
         }
