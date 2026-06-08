@@ -85,16 +85,7 @@
             <span>✨ Sarthi AI Skills Analysis</span>
           </div>
           <div id="jd_matchInsight" style="color:var(--text-main);margin-bottom:16px;font-size:0.88rem;line-height:1.5;">Analyzing…</div>
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <div>
-              <span style="font-size:0.72rem;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.5px;">Matched Skills</span>
-              <div id="jd_matchedTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
-            </div>
-            <div>
-              <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Missing / Recommended</span>
-              <div id="jd_missingTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
-            </div>
-          </div>
+          <div id="jd_skillsTableContainer" style="margin-top:8px;"></div>
         </div>
 
         <!-- About the Role -->
@@ -154,49 +145,88 @@
 
   function _renderMatchAnalysis(job) {
     const isLoggedIn = localStorage.getItem('seeker_logged_in') === 'true';
-    const matchedEl = _getEl('jd_matchedTags');
-    const missingEl = _getEl('jd_missingTags');
+    const containerEl = _getEl('jd_skillsTableContainer');
     const insightEl = _getEl('jd_matchInsight');
-    matchedEl.innerHTML = '';
-    missingEl.innerHTML = '';
+    if (!containerEl) return;
+    containerEl.innerHTML = '';
 
-    if (!isLoggedIn) {
-      matchedEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;font-style:italic;">Sign in to see matching skills.</span>';
-      const skills = (job.skills || '').split(',').map(s => s.trim()).filter(Boolean);
-      if (!skills.length) {
-        missingEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;font-style:italic;">No specific skills listed.</span>';
-      } else {
-        skills.forEach(s => missingEl.appendChild(_skillTag(s, 'background:rgba(255,255,255,.04);color:var(--text-muted);border:1px solid var(--border-subtle);padding:4px 10px;border-radius:6px;font-size:.8rem;font-weight:500;')));
-      }
-      insightEl.innerHTML = '<strong>Unlock personalized matching!</strong> Log in to your JobSarthi account to get AI Match analysis.';
+    const skills = (job.skills || '').split(',').map(s => s.trim()).filter(Boolean);
+
+    if (!skills.length) {
+      containerEl.innerHTML = '<div style="color:var(--text-muted);font-size:.85rem;font-style:italic;padding:12px 0;">No specific skills required for this job.</div>';
+      insightEl.innerHTML = 'This job does not specify required skills. You can apply directly.';
       return;
     }
 
-    const getScore = _options.getMatchScore || (() => 0);
-    const getMatch = _options.getSkillsMatchInfo || (() => ({ matched: [], missing: [] }));
-    const score = getScore(job);
-    const info = getMatch(job);
+    let tbodyHtml = '';
 
-    if (!info.matched.length) {
-      matchedEl.innerHTML = '<span style="color:var(--text-dark);font-size:.82rem;font-style:italic;">None matching. Add more skills to your profile.</span>';
+    if (!isLoggedIn) {
+      skills.forEach(skill => {
+        tbodyHtml += `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+            <td style="padding: 10px 12px; font-weight: 500; color: var(--text-main);">${skill}</td>
+            <td style="padding: 10px 12px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">
+              <span style="background: rgba(255,255,255,0.03); padding: 2px 6px; border-radius: 4px; border: 1px dashed var(--border-subtle);">Locked</span>
+            </td>
+          </tr>
+        `;
+      });
+      insightEl.innerHTML = '<strong>Unlock personalized matching!</strong> Log in to your JobSarthi account to see which skills you match.';
     } else {
-      info.matched.forEach(s => matchedEl.appendChild(_skillTag(s, 'background:rgba(16,185,129,.08);color:var(--success);border:1px solid rgba(16,185,129,.25);padding:4px 10px;border-radius:6px;font-size:.8rem;font-weight:600;')));
+      const getScore = _options.getMatchScore || (() => 0);
+      const getMatch = _options.getSkillsMatchInfo || (() => ({ matched: [], missing: [] }));
+      const score = getScore(job);
+      const info = getMatch(job);
+
+      const matchedSet = new Set(info.matched.map(s => s.toLowerCase()));
+
+      skills.forEach(skill => {
+        const isMatched = matchedSet.has(skill.toLowerCase());
+        const statusHtml = isMatched ? `
+          <div style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25);">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        ` : `
+          <div style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25);">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </div>
+        `;
+        tbodyHtml += `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s;">
+            <td style="padding: 10px 12px; font-weight: 500; color: ${isMatched ? 'var(--text-main)' : 'var(--text-muted)'};">${skill}</td>
+            <td style="padding: 10px 12px; text-align: center;">${statusHtml}</td>
+          </tr>
+        `;
+      });
+
+      let insight = '';
+      const top3 = info.matched.slice(0, 3).join(', ');
+      const miss2 = info.missing.slice(0, 2).join(', ');
+      if (score >= 90) insight = `<strong>Outstanding match!</strong> You have almost all the key skills (${top3 || 'listed'}) required for this role. Sarthi recommends applying immediately.`;
+      else if (score >= 80) insight = `<strong>Strong match!</strong> Solid alignment with skills like ${top3 || 'required ones'}. ${miss2 ? 'Consider highlighting projects that use ' + miss2 + '.' : ''}`;
+      else if (score >= 70) insight = `<strong>Good match!</strong> You have relevant foundational skills. Brush up on <strong>${miss2 || 'missing skills'}</strong> to strengthen your application.`;
+      else insight = `<strong>Moderate alignment.</strong> This role emphasizes <strong>${info.missing.slice(0, 3).join(', ') || 'additional skills'}</strong>. Tailor your resume to highlight transferable skills.`;
+      insightEl.innerHTML = insight;
     }
 
-    if (!info.missing.length) {
-      missingEl.innerHTML = '<span style="color:var(--success);font-size:.82rem;font-weight:600;">🎉 Perfect match! You possess all listed skills.</span>';
-    } else {
-      info.missing.forEach(s => missingEl.appendChild(_skillTag(s, 'background:rgba(255,255,255,.04);color:var(--text-muted);border:1px solid var(--border-subtle);padding:4px 10px;border-radius:6px;font-size:.8rem;font-weight:500;')));
-    }
-
-    let insight = '';
-    const top3 = info.matched.slice(0, 3).join(', ');
-    const miss2 = info.missing.slice(0, 2).join(', ');
-    if (score >= 90) insight = `<strong>Outstanding match!</strong> You have almost all the key skills (${top3}) required for this role. Sarthi recommends applying immediately.`;
-    else if (score >= 80) insight = `<strong>Strong match!</strong> Solid alignment with skills like ${top3}. ${miss2 ? 'Consider highlighting projects that use ' + miss2 + '.' : ''}`;
-    else if (score >= 70) insight = `<strong>Good match!</strong> You have relevant foundational skills. Brush up on <strong>${miss2}</strong> to strengthen your application.`;
-    else insight = `<strong>Moderate alignment.</strong> This role emphasizes <strong>${info.missing.slice(0, 3).join(', ')}</strong>. Tailor your resume to highlight transferable skills.`;
-    insightEl.innerHTML = insight;
+    containerEl.innerHTML = `
+      <table style="width:100%; border-collapse:collapse; margin-top:8px; font-size:0.88rem; text-align:left;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <th style="padding: 8px 12px; font-weight: 600; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px;">Required Skill</th>
+            <th style="padding: 8px 12px; font-weight: 600; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; width: 80px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tbodyHtml}
+        </tbody>
+      </table>
+    `;
   }
 
   // ── Public API ──────────────────────────────────────────────────────────────
