@@ -66,19 +66,6 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <!-- Heart Bookmark -->
-          <div class="heart-container" title="Save Job" id="jd_heartWrapper"
-               style="background:rgba(255,255,255,0.05);border:1px solid var(--border-subtle);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;width:38px;height:38px;box-sizing:border-box;">
-            <input type="checkbox" class="checkbox" id="jd_saveCheckbox" onchange="window.JobDrawer._onSaveChange(this.checked)">
-            <div class="svg-container">
-              <svg viewBox="0 0 24 24" class="svg-outline" xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px;">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-              <svg viewBox="0 0 24 24" class="svg-filled" xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px;">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-            </div>
-          </div>
           <!-- Close -->
           <button onclick="window.JobDrawer.close()" style="padding:6px 12px;font-size:0.8rem;display:flex;align-items:center;gap:5px;border:1px solid var(--border-subtle);background:transparent;cursor:pointer;border-radius:6px;color:var(--text-main);">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -321,8 +308,6 @@
       // Bookmark state
       const savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
       const isSaved = savedIds.includes(job.id);
-      const cb = _getEl('jd_saveCheckbox');
-      if (cb) cb.checked = isSaved;
       
       // Update footer like button state
       const likeBtn = _getEl('jd_likeBtn');
@@ -398,58 +383,6 @@
       }
     },
 
-    _onSaveChange(checked) {
-      if (!_currentJob) return;
-      const jobId = _currentJob.id;
-      let savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
-      if (checked) {
-        if (!savedIds.includes(jobId)) savedIds.push(jobId);
-      } else {
-        savedIds = savedIds.filter(id => id !== jobId);
-      }
-      localStorage.setItem('saved_jobs', JSON.stringify(savedIds));
-
-      // Sync footer button style
-      const likeBtn = _getEl('jd_likeBtn');
-      if (likeBtn) {
-        if (checked) {
-          likeBtn.style.background = 'rgba(255, 91, 137, 0.15)';
-          likeBtn.style.borderColor = 'rgba(255, 91, 137, 0.4)';
-          likeBtn.innerHTML = `
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-          `;
-        } else {
-          likeBtn.style.background = 'rgba(255,255,255,0.03)';
-          likeBtn.style.borderColor = 'var(--border-subtle)';
-          likeBtn.innerHTML = `
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-          `;
-        }
-      }
-
-      // Sync card like button
-      const cardBtn = document.getElementById(`like_btn_${jobId}`);
-      if (cardBtn) {
-        cardBtn.innerHTML = checked ? `
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-          </svg>
-        ` : `
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-          </svg>
-        `;
-        cardBtn.style.background = checked ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)';
-        cardBtn.style.borderColor = checked ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)';
-      }
-
-      if (_options.onSave) _options.onSave(_currentJob, checked);
-    },
-
     _onLikeClick(event) {
       if (event) event.stopPropagation();
       if (!_currentJob) return;
@@ -464,10 +397,6 @@
         savedIds.splice(index, 1);
       }
       localStorage.setItem('saved_jobs', JSON.stringify(savedIds));
-
-      // Sync checkbox state at top
-      const cb = _getEl('jd_saveCheckbox');
-      if (cb) cb.checked = checked;
 
       // Sync footer button style
       const likeBtn = _getEl('jd_likeBtn');
@@ -543,6 +472,31 @@
       const skills = encodeURIComponent((_currentJob.skills || '').slice(0, 300));
       // Works from both /seeker/ context and any sub-dir
       window.location.href = `aiinterview.html?jobId=${jobId}&jobTitle=${title}&company=${company}&jobSkills=${skills}`;
+    },
+
+    syncLikeState(jobId, isSaved) {
+      if (_currentJob && String(_currentJob.id) === String(jobId)) {
+        const likeBtn = _getEl('jd_likeBtn');
+        if (likeBtn) {
+          if (isSaved) {
+            likeBtn.style.background = 'rgba(255, 91, 137, 0.15)';
+            likeBtn.style.borderColor = 'rgba(255, 91, 137, 0.4)';
+            likeBtn.innerHTML = `
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            `;
+          } else {
+            likeBtn.style.background = 'rgba(255,255,255,0.03)';
+            likeBtn.style.borderColor = 'var(--border-subtle)';
+            likeBtn.innerHTML = `
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            `;
+          }
+        }
+      }
     },
 
     /** Return the currently selected job object (for host pages). */

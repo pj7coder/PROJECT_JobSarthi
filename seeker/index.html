@@ -1366,9 +1366,8 @@
       }
 
       // Update drawer save state if currently open
-      if (window.JobDrawer && window.JobDrawer.currentJob && String(window.JobDrawer.currentJob.id) === String(jobId)) {
-        const cb = document.getElementById('jd_saveCheckbox');
-        if (cb) cb.checked = checked;
+      if (window.JobDrawer) {
+        window.JobDrawer.syncLikeState(jobId, checked);
       }
 
       // Toast feedback
