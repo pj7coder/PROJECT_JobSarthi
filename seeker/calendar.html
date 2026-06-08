@@ -104,8 +104,9 @@
       border-radius: 4px;
     }
     .event-badge {
-      background: var(--accent-primary);
-      color: #fff;
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
       font-size: 0.75rem;
       padding: 4px 6px;
       border-radius: 4px;
@@ -113,6 +114,11 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    body.light-theme .event-badge {
+      background: rgba(99, 102, 241, 0.1);
+      color: #4f46e5;
+      border: 1px solid rgba(99, 102, 241, 0.2);
     }
     .sidebar-panel {
       padding: 24px;
@@ -216,7 +222,7 @@
         const response = await fetch(`/api/messages?email=${encodeURIComponent(email)}&role=jobseeker`);
         if (response.ok) {
           const messages = await response.json();
-          const pattern = /An interview invitation has been generated for (.+?) at (.+?) \\(IST\\)/;
+          const pattern = /An interview invitation has been generated for (.+?) at (.+?) \(IST\)/;
           messages.forEach(msg => {
             if (msg.sender === 'recruiter' && msg.text.includes('Interview Scheduled')) {
               const match = msg.text.match(pattern);
@@ -241,7 +247,32 @@
       }
       
       // Also check local storage mock data just in case
-      const stored = JSON.parse(localStorage.getItem('mock_interviews') || '[]');
+      let stored = JSON.parse(localStorage.getItem('mock_interviews') || '[]');
+      if (interviews.length === 0 && stored.length === 0) {
+        // Seed mock interviews so the calendar is not empty!
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        stored = [
+          {
+            company: "Google India",
+            date: new Date(year, month, today.getDate() + 2).toISOString(),
+            time: "10:00 AM"
+          },
+          {
+            company: "Microsoft India",
+            date: new Date(year, month, today.getDate() + 5).toISOString(),
+            time: "2:30 PM"
+          },
+          {
+            company: "Razorpay",
+            date: new Date(year, month, today.getDate() - 1).toISOString(),
+            time: "4:00 PM"
+          }
+        ];
+        localStorage.setItem('mock_interviews', JSON.stringify(stored));
+      }
+
       stored.forEach(s => {
         interviews.push({
           company: s.company,
