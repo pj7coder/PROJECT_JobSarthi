@@ -3817,4 +3817,239 @@ body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .job-car
   display: none !important;
 }
 
-
+
+/* ================================================================
+   PASTEL THEME — COMPLETE UI REDESIGN
+   Driven by --pastel-accent-* CSS custom properties set via JS
+   ================================================================ */
+
+/* Default pastel accent variables (Lavender Purple) */
+body.pastel-light-theme, body.pastel-dark-theme {
+  --pastel-accent-primary: #6b21a8;
+  --pastel-accent-light: #f3e8ff;
+  --pastel-accent-border: #d8b4fe;
+  --pastel-accent-text: #6b21a8;
+}
+
+/* Custom Scrollbar */
+body.pastel-light-theme ::-webkit-scrollbar-thumb {
+  background: var(--pastel-accent-border); border-radius: 99px;
+}
+body.pastel-dark-theme ::-webkit-scrollbar-thumb {
+  background: rgba(192, 132, 252, 0.35); border-radius: 99px;
+}
+
+/* Page Background */
+body.pastel-light-theme {
+  background: linear-gradient(135deg, #faf5ff 0%, #f8fafc 50%, #fdf2f8 100%) !important;
+}
+body.pastel-light-theme::before {
+  background: radial-gradient(circle at 20% 20%, var(--pastel-accent-light, #f3e8ff) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, #fce7f3 0%, transparent 50%) !important;
+  opacity: 0.6 !important;
+}
+body.pastel-dark-theme {
+  background: linear-gradient(135deg, #0d0f1a 0%, #0a0d16 50%, #100818 100%) !important;
+}
+
+/* Typography */
+body.pastel-light-theme h1, body.pastel-light-theme h2,
+body.pastel-light-theme h3, body.pastel-light-theme h4 {
+  color: var(--pastel-accent-primary, #6b21a8) !important;
+}
+body.pastel-dark-theme h1, body.pastel-dark-theme h2,
+body.pastel-dark-theme h3, body.pastel-dark-theme h4 {
+  color: #e9d5ff !important;
+}
+
+/* Header */
+body.pastel-light-theme header.header, body.pastel-light-theme .header {
+  background: rgba(255,255,255,0.75) !important;
+  border: 1.5px solid var(--pastel-accent-border, #d8b4fe) !important;
+  box-shadow: 0 4px 20px rgba(107,33,168,0.08), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+}
+body.pastel-dark-theme header.header, body.pastel-dark-theme .header {
+  background: rgba(15,10,30,0.75) !important;
+  border: 1.5px solid rgba(192,132,252,0.25) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+}
+
+/* Cards */
+body.pastel-light-theme .glass-panel, body.pastel-light-theme .glass-card,
+body.pastel-light-theme .card, body.pastel-light-theme .job-card,
+body.pastel-light-theme .job-item, body.pastel-light-theme .profile-sidebar,
+body.pastel-light-theme .shortcuts-panel, body.pastel-light-theme .drawer-content,
+body.pastel-light-theme .settings-modal-card, body.pastel-light-theme .header-dropdown-menu {
+  background: rgba(255,255,255,0.9) !important;
+  border: 1.5px solid var(--pastel-accent-border, #d8b4fe) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 12px rgba(107,33,168,0.06) !important;
+  backdrop-filter: blur(8px) !important;
+}
+body.pastel-light-theme .job-card:hover, body.pastel-light-theme .glass-card:hover {
+  border-color: var(--pastel-accent-primary, #6b21a8) !important;
+  box-shadow: 0 6px 24px rgba(107,33,168,0.12) !important;
+  transform: translateY(-2px) !important;
+}
+body.pastel-dark-theme .glass-panel, body.pastel-dark-theme .glass-card,
+body.pastel-dark-theme .card, body.pastel-dark-theme .job-card,
+body.pastel-dark-theme .job-item, body.pastel-dark-theme .profile-sidebar,
+body.pastel-dark-theme .shortcuts-panel, body.pastel-dark-theme .drawer-content,
+body.pastel-dark-theme .settings-modal-card, body.pastel-dark-theme .header-dropdown-menu {
+  background: rgba(20,14,38,0.85) !important;
+  border: 1.5px solid rgba(192,132,252,0.2) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.4) !important;
+  backdrop-filter: blur(12px) !important;
+}
+body.pastel-dark-theme .job-card:hover, body.pastel-dark-theme .glass-card:hover {
+  border-color: rgba(192,132,252,0.5) !important;
+  box-shadow: 0 8px 32px rgba(139,92,246,0.18) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Buttons — Pill Style */
+body.pastel-light-theme .btn-glow, body.pastel-light-theme .btn-primary {
+  background: var(--pastel-accent-primary, #6b21a8) !important;
+  color: #ffffff !important; border: none !important;
+  border-radius: 999px !important; font-weight: 700 !important;
+  box-shadow: 0 3px 12px rgba(107,33,168,0.3) !important;
+}
+body.pastel-light-theme .btn-glow:hover, body.pastel-light-theme .btn-primary:hover {
+  transform: translateY(-2px) scale(1.03) !important;
+  box-shadow: 0 6px 20px rgba(107,33,168,0.4) !important; opacity: 0.92 !important;
+}
+body.pastel-light-theme .btn-secondary {
+  background: var(--pastel-accent-light, #f3e8ff) !important;
+  color: var(--pastel-accent-primary, #6b21a8) !important;
+  border: 1.5px solid var(--pastel-accent-border, #d8b4fe) !important;
+  border-radius: 999px !important; font-weight: 600 !important;
+}
+body.pastel-dark-theme .btn-glow, body.pastel-dark-theme .btn-primary {
+  background: linear-gradient(135deg, var(--pastel-accent-primary, #7c3aed), rgba(139,92,246,0.8)) !important;
+  color: #ffffff !important; border: none !important;
+  border-radius: 999px !important; font-weight: 700 !important;
+  box-shadow: 0 3px 16px rgba(124,58,237,0.4) !important;
+}
+body.pastel-dark-theme .btn-glow:hover, body.pastel-dark-theme .btn-primary:hover {
+  transform: translateY(-2px) scale(1.03) !important;
+  box-shadow: 0 6px 24px rgba(124,58,237,0.5) !important;
+}
+body.pastel-dark-theme .btn-secondary {
+  background: rgba(139,92,246,0.12) !important; color: #c4b5fd !important;
+  border: 1.5px solid rgba(192,132,252,0.3) !important;
+  border-radius: 999px !important; font-weight: 600 !important;
+}
+
+/* Active Nav Links */
+body.pastel-light-theme .nav-link.active {
+  background: var(--pastel-accent-light, #f3e8ff) !important;
+  color: var(--pastel-accent-primary, #6b21a8) !important;
+  border-radius: 999px !important; padding: 4px 12px !important;
+}
+body.pastel-dark-theme .nav-link.active {
+  background: rgba(139,92,246,0.15) !important; color: #e9d5ff !important;
+  border-radius: 999px !important; padding: 4px 12px !important;
+}
+
+/* Inputs */
+body.pastel-light-theme .form-control, body.pastel-light-theme .search-input,
+body.pastel-light-theme select {
+  border: 1.5px solid var(--pastel-accent-border, #d8b4fe) !important;
+  border-radius: 12px !important; background: #ffffff !important;
+}
+body.pastel-light-theme .form-control:focus, body.pastel-light-theme .search-input:focus {
+  border-color: var(--pastel-accent-primary, #6b21a8) !important;
+  box-shadow: 0 0 0 3px rgba(107,33,168,0.12) !important;
+}
+body.pastel-dark-theme .form-control, body.pastel-dark-theme .search-input,
+body.pastel-dark-theme select {
+  border: 1.5px solid rgba(192,132,252,0.25) !important;
+  border-radius: 12px !important;
+  background: rgba(15,10,30,0.6) !important; color: #f8fafc !important;
+}
+body.pastel-dark-theme .form-control:focus, body.pastel-dark-theme .search-input:focus {
+  border-color: rgba(192,132,252,0.6) !important;
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.15) !important;
+}
+
+/* Tags & Badges */
+body.pastel-light-theme .skill-tag, body.pastel-light-theme .tag,
+body.pastel-light-theme .job-skill-tag, body.pastel-light-theme .badge {
+  background: var(--pastel-accent-light, #f3e8ff) !important;
+  border: 1px solid var(--pastel-accent-border, #d8b4fe) !important;
+  color: var(--pastel-accent-primary, #6b21a8) !important;
+  border-radius: 999px !important; font-weight: 600 !important;
+}
+body.pastel-dark-theme .skill-tag, body.pastel-dark-theme .tag,
+body.pastel-dark-theme .job-skill-tag, body.pastel-dark-theme .badge {
+  background: rgba(139,92,246,0.15) !important;
+  border: 1px solid rgba(192,132,252,0.3) !important;
+  color: #e9d5ff !important; border-radius: 999px !important; font-weight: 600 !important;
+}
+
+/* Settings Modal */
+body.pastel-light-theme .settings-modal-left {
+  background: rgba(249,245,255,0.95) !important;
+  border-right: 1.5px solid var(--pastel-accent-border, #d8b4fe) !important;
+}
+body.pastel-light-theme .settings-tab-label.active {
+  color: var(--pastel-accent-primary, #6b21a8) !important;
+  background: var(--pastel-accent-light, #f3e8ff) !important; border-radius: 10px !important;
+}
+body.pastel-light-theme .liquid-slider-vertical {
+  background: var(--pastel-accent-light, #f3e8ff) !important;
+  border-color: var(--pastel-accent-border, #d8b4fe) !important;
+}
+body.pastel-dark-theme .settings-modal-left {
+  background: rgba(10,8,20,0.9) !important;
+  border-right: 1.5px solid rgba(192,132,252,0.2) !important;
+}
+body.pastel-dark-theme .settings-tab-label.active {
+  color: #e9d5ff !important;
+  background: rgba(139,92,246,0.15) !important; border-radius: 10px !important;
+}
+body.pastel-dark-theme .liquid-slider-vertical {
+  background: rgba(139,92,246,0.12) !important;
+  border-color: rgba(192,132,252,0.25) !important;
+}
+
+/* Landing Page Pastel Headings */
+body.pastel-light-theme .hero-title, body.pastel-light-theme .landing-title {
+  background: linear-gradient(135deg, var(--pastel-accent-primary, #6b21a8), #be185d) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.pastel-dark-theme .hero-title, body.pastel-dark-theme .landing-title {
+  background: linear-gradient(135deg, #c084fc, #f9a8d4) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* Mobile Bottom Nav */
+body.pastel-light-theme .mobile-bottom-nav {
+  background: rgba(255,255,255,0.92) !important;
+  border-top: 1.5px solid var(--pastel-accent-border, #d8b4fe) !important;
+  backdrop-filter: blur(12px) !important;
+}
+body.pastel-light-theme .mobile-nav-item.active { color: var(--pastel-accent-primary, #6b21a8) !important; }
+body.pastel-dark-theme .mobile-bottom-nav {
+  background: rgba(15,10,30,0.92) !important;
+  border-top: 1.5px solid rgba(192,132,252,0.2) !important;
+  backdrop-filter: blur(12px) !important;
+}
+body.pastel-dark-theme .mobile-nav-item.active { color: #c084fc !important; }
+
+/* Pastel Color Swatches in Settings */
+.pastel-color-btn {
+  width: 28px !important; height: 28px !important;
+  border-radius: 50% !important; cursor: pointer !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+.pastel-color-btn:hover { transform: scale(1.2) !important; }
+.pastel-color-btn.active {
+  box-shadow: 0 0 0 3px white, 0 0 0 5px var(--color) !important;
+  transform: scale(1.1) !important;
+}

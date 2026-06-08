@@ -338,8 +338,8 @@ document.addEventListener("DOMContentLoaded", () => {
                       </div>
                       
                       <!-- Color Accent Options Section -->
-                      <div id="themeColorsSection" class="theme-colors-section" style="display: none;">
-                        <span class="setting-item-title" style="font-weight: 600;">Accent Color</span>
+                      <div id="themeColorsSection" class="theme-colors-section" style="display: none; flex-direction: column; gap: 8px; margin-top: 16px;">
+                        <span id="themeColorsSectionTitle" class="setting-item-title" style="font-weight: 600;">Accent Color</span>
                         <p class="setting-item-desc" style="margin: 0 0 8px 0; font-size: 0.82rem; color: var(--text-muted);">Personalize the workspace highlight color.</p>
                         <div class="container-items" id="themeColorsContainer">
                           <!-- Filled dynamically by JavaScript -->
@@ -797,14 +797,15 @@ document.addEventListener("DOMContentLoaded", () => {
                // Render accent color options on all pages
                const isRecruiter = document.body.classList.contains('recruiter-page');
                const colorsSection = activeModal.querySelector('#themeColorsSection');
+               const colorsSectionTitle = activeModal.querySelector('#themeColorsSectionTitle');
                if (colorsSection) {
-                 if (currentTheme === 'light' || currentTheme === 'dark') {
-                   colorsSection.style.display = 'flex';
-                 } else {
-                   colorsSection.style.display = 'none';
+                 const isPastelTheme = currentTheme === 'pastel-light' || currentTheme === 'pastel-dark';
+                 colorsSection.style.display = 'flex';
+                 if (colorsSectionTitle) {
+                   colorsSectionTitle.textContent = isPastelTheme ? 'Pastel Accent Color' : 'Accent Color';
                  }
                  if (window.renderAccentColors) {
-                   window.renderAccentColors(activeModal, isRecruiter ? 'recruiter' : 'seeker');
+                   window.renderAccentColors(activeModal, isRecruiter ? 'recruiter' : 'seeker', currentTheme);
                  }
                }
  
@@ -1243,43 +1244,41 @@ window.setTheme = function (themeName) {
   document.body.classList.remove('light-theme', 'pastel-light-theme', 'pastel-dark-theme');
   document.documentElement.classList.remove('light-theme', 'pastel-light-theme', 'pastel-dark-theme');
 
+  const isPastel = themeName === 'pastel-light' || themeName === 'pastel-dark';
+
   if (themeName === 'light') {
     document.body.classList.add('light-theme');
     document.documentElement.classList.add('light-theme');
     localStorage.setItem('theme', 'light');
-    // Re-apply saved accent color
+    // Re-apply saved accent color for light
     const savedAccent = localStorage.getItem('accent_color');
     if (savedAccent) {
-      try {
-        window.applyAccentColor(JSON.parse(savedAccent));
-      } catch(e) {}
+      try { window.applyAccentColor(JSON.parse(savedAccent)); } catch(e) {}
     }
   } else if (themeName === 'pastel-light') {
     document.body.classList.add('pastel-light-theme');
     document.documentElement.classList.add('pastel-light-theme');
     localStorage.setItem('theme', 'pastel-light');
-    // Remove custom accent properties so pastel variables take over
-    document.body.style.removeProperty('--accent-secondary');
-    document.body.style.removeProperty('--accent-tertiary');
-    document.body.style.removeProperty('--border-focus');
-    document.body.style.removeProperty('--accent-secondary-hover');
+    // Re-apply saved pastel accent
+    const savedPastelAccent = localStorage.getItem('pastel_accent_color');
+    if (savedPastelAccent) {
+      try { window.applyPastelAccentColor(JSON.parse(savedPastelAccent)); } catch(e) {}
+    }
   } else if (themeName === 'pastel-dark') {
     document.body.classList.add('pastel-dark-theme');
     document.documentElement.classList.add('pastel-dark-theme');
     localStorage.setItem('theme', 'pastel-dark');
-    // Remove custom accent properties so pastel variables take over
-    document.body.style.removeProperty('--accent-secondary');
-    document.body.style.removeProperty('--accent-tertiary');
-    document.body.style.removeProperty('--border-focus');
-    document.body.style.removeProperty('--accent-secondary-hover');
+    // Re-apply saved pastel accent
+    const savedPastelAccent = localStorage.getItem('pastel_accent_color');
+    if (savedPastelAccent) {
+      try { window.applyPastelAccentColor(JSON.parse(savedPastelAccent)); } catch(e) {}
+    }
   } else {
     localStorage.setItem('theme', 'dark');
-    // Re-apply saved accent color
+    // Re-apply saved accent color for dark
     const savedAccent = localStorage.getItem('accent_color');
     if (savedAccent) {
-      try {
-        window.applyAccentColor(JSON.parse(savedAccent));
-      } catch(e) {}
+      try { window.applyAccentColor(JSON.parse(savedAccent)); } catch(e) {}
     }
   }
   
@@ -1291,19 +1290,19 @@ window.setTheme = function (themeName) {
   const activeModal = document.getElementById('globalSettingsModal');
   if (activeModal) {
     activeModal.querySelectorAll('.theme-card').forEach(card => {
-      if (card.getAttribute('data-theme') === themeName) {
-        card.classList.add('active');
-      } else {
-        card.classList.remove('active');
-      }
+      card.classList.toggle('active', card.getAttribute('data-theme') === themeName);
     });
 
     const colorsSection = activeModal.querySelector('#themeColorsSection');
+    const colorsSectionTitle = activeModal.querySelector('#themeColorsSectionTitle');
     if (colorsSection) {
-      if (themeName === 'light' || themeName === 'dark') {
-        colorsSection.style.display = 'flex';
-      } else {
-        colorsSection.style.display = 'none';
+      colorsSection.style.display = 'flex';
+      if (colorsSectionTitle) {
+        colorsSectionTitle.textContent = isPastel ? 'Pastel Accent Color' : 'Accent Color';
+      }
+      const isRecruiter = document.body.classList.contains('recruiter-page');
+      if (window.renderAccentColors) {
+        window.renderAccentColors(activeModal, isRecruiter ? 'recruiter' : 'seeker', themeName);
       }
     }
   }
@@ -1337,6 +1336,36 @@ window.logout = function () {
   const isLanding = !window.location.pathname.includes('/seeker/') && !window.location.pathname.includes('/recruiter/');
   const prefix = isLanding ? './' : '../';
   window.location.replace(`${prefix}index.html`);
+};
+
+// Color Accent Lists
+const pastelColors = [
+  { name: 'Lavender Purple', key: 'lavender', primary: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8', css: '--pastel-accent-primary:#6b21a8;--pastel-accent-light:#f3e8ff;--pastel-accent-border:#d8b4fe;--pastel-accent-text:#6b21a8;' },
+  { name: 'Rose Pink', key: 'rose', primary: '#fce7f3', border: '#f9a8d4', text: '#9d174d', css: '--pastel-accent-primary:#be185d;--pastel-accent-light:#fce7f3;--pastel-accent-border:#f9a8d4;--pastel-accent-text:#9d174d;' },
+  { name: 'Sky Blue', key: 'sky', primary: '#e0f2fe', border: '#7dd3fc', text: '#0369a1', css: '--pastel-accent-primary:#0284c7;--pastel-accent-light:#e0f2fe;--pastel-accent-border:#7dd3fc;--pastel-accent-text:#0369a1;' },
+  { name: 'Mint Green', key: 'mint', primary: '#dcfce7', border: '#86efac', text: '#15803d', css: '--pastel-accent-primary:#16a34a;--pastel-accent-light:#dcfce7;--pastel-accent-border:#86efac;--pastel-accent-text:#15803d;' },
+  { name: 'Peach', key: 'peach', primary: '#ffedd5', border: '#fed7aa', text: '#c2410c', css: '--pastel-accent-primary:#ea580c;--pastel-accent-light:#ffedd5;--pastel-accent-border:#fed7aa;--pastel-accent-text:#c2410c;' },
+  { name: 'Lemon', key: 'lemon', primary: '#fef9c3', border: '#fde047', text: '#854d0e', css: '--pastel-accent-primary:#ca8a04;--pastel-accent-light:#fef9c3;--pastel-accent-border:#fde047;--pastel-accent-text:#854d0e;' },
+  { name: 'Aqua Teal', key: 'teal', primary: '#ccfbf1', border: '#5eead4', text: '#0f766e', css: '--pastel-accent-primary:#0d9488;--pastel-accent-light:#ccfbf1;--pastel-accent-border:#5eead4;--pastel-accent-text:#0f766e;' },
+  { name: 'Lilac', key: 'lilac', primary: '#ede9fe', border: '#c4b5fd', text: '#5b21b6', css: '--pastel-accent-primary:#7c3aed;--pastel-accent-light:#ede9fe;--pastel-accent-border:#c4b5fd;--pastel-accent-text:#5b21b6;' },
+  { name: 'Coral', key: 'coral', primary: '#fff1f2', border: '#fda4af', text: '#be123c', css: '--pastel-accent-primary:#f43f5e;--pastel-accent-light:#fff1f2;--pastel-accent-border:#fda4af;--pastel-accent-text:#be123c;' },
+  { name: 'Sand', key: 'sand', primary: '#fef3c7', border: '#fcd34d', text: '#78350f', css: '--pastel-accent-primary:#d97706;--pastel-accent-light:#fef3c7;--pastel-accent-border:#fcd34d;--pastel-accent-text:#78350f;' },
+  { name: 'Blush', key: 'blush', primary: '#fdf2f8', border: '#f0abfc', text: '#86198f', css: '--pastel-accent-primary:#c026d3;--pastel-accent-light:#fdf2f8;--pastel-accent-border:#f0abfc;--pastel-accent-text:#86198f;' },
+  { name: 'Ice', key: 'ice', primary: '#ecfeff', border: '#67e8f9', text: '#0e7490', css: '--pastel-accent-primary:#06b6d4;--pastel-accent-light:#ecfeff;--pastel-accent-border:#67e8f9;--pastel-accent-text:#0e7490;' },
+];
+
+// Global Apply Pastel Accent Color function
+window.applyPastelAccentColor = function(accentData) {
+  if (!accentData) return;
+  // Parse the CSS string and apply each variable
+  const cssVars = accentData.css.split(';').filter(s => s.trim());
+  cssVars.forEach(v => {
+    const [prop, val] = v.split(':');
+    if (prop && val) {
+      document.body.style.setProperty(prop.trim(), val.trim());
+    }
+  });
+  localStorage.setItem('pastel_accent_color', JSON.stringify(accentData));
 };
 
 // Color Accent Lists
@@ -1388,45 +1417,69 @@ window.applyAccentColor = function (accentData) {
 };
 
 // Render color items dynamically in settings modal
-window.renderAccentColors = function (modalEl, portalType) {
+window.renderAccentColors = function (modalEl, portalType, currentTheme) {
   const container = modalEl.querySelector('#themeColorsContainer');
   if (!container) return;
   
-  // Clear container
   container.innerHTML = '';
   
-  const colorsList = (portalType === 'seeker') ? seekerColors : recruiterColors;
-  const savedAccent = localStorage.getItem('accent_color');
-  let activeKey = '';
+  const theme = currentTheme || localStorage.getItem('theme') || 'dark';
+  const isPastel = theme === 'pastel-light' || theme === 'pastel-dark';
   
-  if (savedAccent) {
-    try {
-      const parsed = JSON.parse(savedAccent);
-      const match = colorsList.find(c => c.secondary.toLowerCase() === parsed.secondary.toLowerCase());
-      if (match) activeKey = match.key;
-    } catch(e) {}
-  }
-  
-  if (!activeKey) {
-    activeKey = colorsList[0].key;
-  }
-  
-  colorsList.forEach(color => {
-    const btn = document.createElement('button');
-    btn.className = 'item-color';
-    if (color.key === activeKey) {
-      btn.classList.add('active');
+  if (isPastel) {
+    // Pastel color accent picker
+    const savedPastel = localStorage.getItem('pastel_accent_color');
+    let activeKey = 'lavender';
+    if (savedPastel) {
+      try { activeKey = JSON.parse(savedPastel).key; } catch(e) {}
     }
-    btn.setAttribute('aria-color', color.name);
-    btn.setAttribute('data-color-key', color.key);
-    btn.style.setProperty('--color', color.secondary);
     
-    btn.addEventListener('click', () => {
-      container.querySelectorAll('.item-color').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      window.applyAccentColor(color);
+    pastelColors.forEach(color => {
+      const btn = document.createElement('button');
+      btn.className = 'item-color pastel-color-btn';
+      if (color.key === activeKey) btn.classList.add('active');
+      btn.setAttribute('aria-label', color.name);
+      btn.setAttribute('data-color-key', color.key);
+      btn.title = color.name;
+      // Show as a pastel swatch
+      btn.style.setProperty('--color', color.border);
+      btn.style.background = color.primary;
+      btn.style.border = `2px solid ${color.border}`;
+      
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.item-color').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        window.applyPastelAccentColor(color);
+      });
+      container.appendChild(btn);
     });
+  } else {
+    // Standard accent color picker for light/dark themes
+    const colorsList = (portalType === 'seeker') ? seekerColors : recruiterColors;
+    const savedAccent = localStorage.getItem('accent_color');
+    let activeKey = '';
+    if (savedAccent) {
+      try {
+        const parsed = JSON.parse(savedAccent);
+        const match = colorsList.find(c => c.secondary.toLowerCase() === parsed.secondary.toLowerCase());
+        if (match) activeKey = match.key;
+      } catch(e) {}
+    }
+    if (!activeKey) activeKey = colorsList[0].key;
     
-    container.appendChild(btn);
-  });
+    colorsList.forEach(color => {
+      const btn = document.createElement('button');
+      btn.className = 'item-color';
+      if (color.key === activeKey) btn.classList.add('active');
+      btn.setAttribute('aria-color', color.name);
+      btn.setAttribute('data-color-key', color.key);
+      btn.style.setProperty('--color', color.secondary);
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.item-color').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        window.applyAccentColor(color);
+      });
+      container.appendChild(btn);
+    });
+  }
 };
