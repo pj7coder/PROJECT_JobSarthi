@@ -13,7 +13,7 @@
       window.location.replace('login_signup.html');
     }
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light' || savedTheme === 'pastel') {
+    if (savedTheme && savedTheme !== 'dark') {
       document.documentElement.classList.add(savedTheme + '-theme');
       document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add(savedTheme + '-theme');

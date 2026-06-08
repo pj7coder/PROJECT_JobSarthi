@@ -5,6 +5,14 @@
   <script>
     if (localStorage.getItem('seeker_logged_in') !== 'true') {
       window.location.replace('login_signup.html');
+    } else {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme && savedTheme !== 'dark') {
+        document.documentElement.classList.add(savedTheme + '-theme');
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(savedTheme + '-theme');
+        });
+      }
     }
   </script>
   <meta charset="UTF-8">
