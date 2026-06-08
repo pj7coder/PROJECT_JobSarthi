@@ -1086,6 +1086,11 @@ document.addEventListener("DOMContentLoaded", () => {
         window.applyAllUIPreferences();
       }
 
+      // Inject the Sarthi interactive theme sidebar widget
+      if (typeof injectSidebarWidget === 'function') {
+        injectSidebarWidget();
+      }
+
     } catch (err) {
       console.error("Error initializing common header components:", err);
     }
@@ -1103,6 +1108,341 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Failed to load header templates script from " + script.src);
     };
     document.head.appendChild(script);
+  }
+
+  function injectSidebarWidget() {
+    if (document.getElementById('sarthiThemeSidebarWidget')) return;
+    
+    // Show only in candidate/recruiter portals
+    if (!isSeeker && !isRecruiter) return;
+
+    const widgetContainer = document.createElement('div');
+    widgetContainer.id = 'sarthiThemeSidebarWidget';
+    widgetContainer.className = 'theme-sidebar-widget';
+
+    // Retrieve skills profile data
+    let skillsCount = 0;
+    let totalRequiredSkills = 5;
+    try {
+      const profileData = JSON.parse(localStorage.getItem('seeker_profile_data') || '{}');
+      const userSkills = profileData.skills || [];
+      skillsCount = userSkills.length;
+    } catch(e) {}
+    const skillProgressVal = Math.min(100, Math.round((skillsCount / totalRequiredSkills) * 100)) || 40;
+
+    widgetContainer.innerHTML = `
+      <ul class="w-64 flex flex-col gap-1">
+        <!-- 1. Theme Selector -->
+        <li class="group">
+          <button class="peer">
+            <div class="peer-icon-container" style="background: rgba(139, 92, 246, 0.1); border: 2px solid rgba(139, 92, 246, 0.2); color: #a78bfa;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div class="font-semibold">Quick Themes</div>
+          </button>
+          <div class="grid">
+            <div class="overflow-hidden">
+              <div class="widget-panel-content">
+                <div class="widget-theme-circles">
+                  <div class="widget-theme-circle circle-dark" data-theme="dark" title="Dark Theme"></div>
+                  <div class="widget-theme-circle circle-light" data-theme="light" title="Light Theme"></div>
+                  <div class="widget-theme-circle circle-pastel-light" data-theme="pastel-light" title="Pastel Light"></div>
+                  <div class="widget-theme-circle circle-pastel-dark" data-theme="pastel-dark" title="Pastel Dark"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- 2. Favorites -->
+        <li class="group">
+          <button class="peer">
+            <div class="peer-icon-container" style="background: rgba(255, 91, 137, 0.1); border: 2px solid rgba(255, 91, 137, 0.2); color: #ff5b89;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </div>
+            <div class="font-semibold">Liked Jobs</div>
+          </button>
+          <div class="grid">
+            <div class="overflow-hidden">
+              <div class="widget-panel-content">
+                <div id="widgetFavList" style="max-height: 150px; overflow-y: auto; padding-right: 4px;">
+                  <!-- Loaded dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- 3. Sarthi Chat -->
+        <li class="group">
+          <button class="peer">
+            <div class="peer-icon-container" style="background: rgba(16, 185, 129, 0.1); border: 2px solid rgba(16, 185, 129, 0.2); color: #10b981;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <div class="font-semibold">Sarthi AI Chat</div>
+          </button>
+          <div class="grid">
+            <div class="overflow-hidden">
+              <div class="widget-panel-content">
+                <div class="widget-chat-history" id="widgetChatHistory">
+                  <div class="widget-chat-msg sarthi">Hello! Ask me anything about job matching, resume optimization, or interview prep.</div>
+                </div>
+                <div class="widget-chat-input-wrapper">
+                  <input type="text" class="widget-chat-input" id="widgetChatInput" placeholder="Type a message...">
+                  <button class="widget-chat-send" id="widgetChatSendBtn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- 4. Skills Analysis -->
+        <li class="group">
+          <button class="peer">
+            <div class="peer-icon-container" style="background: rgba(59, 130, 246, 0.1); border: 2px solid rgba(59, 130, 246, 0.2); color: #3b82f6;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </div>
+            <div class="font-semibold">Skills Analysis</div>
+          </button>
+          <div class="grid">
+            <div class="overflow-hidden">
+              <div class="widget-panel-content">
+                <div class="widget-skills-summary">
+                  <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+                    <span>Profile strength</span>
+                    <strong>${skillProgressVal}%</strong>
+                  </div>
+                  <div class="widget-progress-container">
+                    <div class="widget-progress-bar" style="width: ${skillProgressVal}%;"></div>
+                  </div>
+                  <p style="font-size:0.7rem; color:var(--text-muted); margin: 4px 0 0 0;">Add more verified skills in your Profile portal to unlock premium job recommendations.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- 5. Notifications -->
+        <li class="group">
+          <button class="peer">
+            <div class="peer-icon-container" style="background: rgba(245, 158, 11, 0.1); border: 2px solid rgba(245, 158, 11, 0.2); color: #f59e0b;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </div>
+            <div class="font-semibold">Alerts</div>
+          </button>
+          <div class="grid">
+            <div class="overflow-hidden">
+              <div class="widget-panel-content" id="widgetNotifsList">
+                <div class="widget-notif-item">
+                  <div class="widget-notif-dot"></div>
+                  <div>
+                    <div style="font-weight:700; color:var(--text-main);">New Job Match</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted);">A role matching your React skills was posted 1h ago.</div>
+                  </div>
+                </div>
+                <div class="widget-notif-item">
+                  <div class="widget-notif-dot"></div>
+                  <div>
+                    <div style="font-weight:700; color:var(--text-main);">Interview Scheduled</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted);">AI interview mock prep is ready for Software Engineer.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- 6. Preferences -->
+        <li class="group">
+          <button class="peer">
+            <div class="peer-icon-container" style="background: rgba(100, 116, 139, 0.1); border: 2px solid rgba(100, 116, 139, 0.2); color: #94a3b8;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </div>
+            <div class="font-semibold">Preferences</div>
+          </button>
+          <div class="grid">
+            <div class="overflow-hidden">
+              <div class="widget-panel-content">
+                <div class="widget-pref-row">
+                  <span style="color:var(--text-main);">Compact Layout</span>
+                  <input type="checkbox" id="widgetCompactToggle" style="cursor:pointer;">
+                </div>
+                <div class="widget-pref-row">
+                  <span style="color:var(--text-main);">Cursor Trail</span>
+                  <input type="checkbox" id="widgetCursorToggle" style="cursor:pointer;">
+                </div>
+                <div class="widget-pref-row">
+                  <span style="color:var(--text-main);">Sound FX</span>
+                  <input type="checkbox" id="widgetSoundToggle" style="cursor:pointer;">
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    `;
+    
+    document.body.appendChild(widgetContainer);
+
+    // --- Theme Switches ---
+    const activeTheme = localStorage.getItem('theme') || 'dark';
+    const circles = widgetContainer.querySelectorAll('.widget-theme-circle');
+    circles.forEach(circle => {
+      const themeName = circle.getAttribute('data-theme');
+      if (themeName === activeTheme) {
+        circle.classList.add('active');
+      }
+      circle.addEventListener('click', () => {
+        circles.forEach(c => c.classList.remove('active'));
+        circle.classList.add('active');
+        window.setTheme(themeName);
+      });
+    });
+
+    // --- Wire Up Preferences ---
+    const compactToggle = widgetContainer.querySelector('#widgetCompactToggle');
+    const isCompact = localStorage.getItem('compact_mode_enabled') === 'true';
+    if (isCompact) {
+      document.body.classList.add('compact-mode');
+      if (compactToggle) compactToggle.checked = true;
+    }
+    if (compactToggle) {
+      compactToggle.addEventListener('change', () => {
+        const checked = compactToggle.checked;
+        if (checked) {
+          document.body.classList.add('compact-mode');
+          localStorage.setItem('compact_mode_enabled', 'true');
+        } else {
+          document.body.classList.remove('compact-mode');
+          localStorage.setItem('compact_mode_enabled', 'false');
+        }
+      });
+    }
+
+    const cursorToggle = widgetContainer.querySelector('#widgetCursorToggle');
+    const isCursorEnabled = localStorage.getItem('splash_cursor_enabled') === 'true';
+    if (cursorToggle) {
+      cursorToggle.checked = isCursorEnabled;
+      cursorToggle.addEventListener('change', () => {
+        const checked = cursorToggle.checked;
+        localStorage.setItem('splash_cursor_enabled', checked ? 'true' : 'false');
+        if (window.applyAllUIPreferences) window.applyAllUIPreferences();
+      });
+    }
+
+    const soundToggle = widgetContainer.querySelector('#widgetSoundToggle');
+    const isSoundEnabled = localStorage.getItem('sound_fx_enabled') === 'true';
+    if (soundToggle) {
+      soundToggle.checked = isSoundEnabled;
+      soundToggle.addEventListener('change', () => {
+        localStorage.setItem('sound_fx_enabled', soundToggle.checked ? 'true' : 'false');
+      });
+    }
+
+    // --- Wire Up Favorites List ---
+    window.renderSidebarFavorites = function() {
+      const favListEl = widgetContainer.querySelector('#widgetFavList');
+      if (!favListEl) return;
+      
+      const savedDetails = JSON.parse(localStorage.getItem('saved_job_details') || '{}');
+      const savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      
+      const activeJobs = savedIds.map(id => savedDetails[id] || { id, title: `Saved Job`, company: 'Details on page load' });
+      
+      if (activeJobs.length === 0) {
+        favListEl.innerHTML = `<div style="text-align:center; padding:12px; color:var(--text-muted); font-size:0.75rem;">No bookmarked jobs yet.</div>`;
+        return;
+      }
+      
+      favListEl.innerHTML = activeJobs.map(job => `
+        <div class="widget-fav-item" onclick="openJobFromWidget('${job.id}')">
+          <div style="font-weight:700; color:var(--text-main); font-size:0.76rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${job.title}</div>
+          <div style="font-size:0.7rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${job.company}</div>
+        </div>
+      `).join('');
+    };
+
+    window.openJobFromWidget = function(jobId) {
+      if (window.location.pathname.includes('/seeker/jobs.html')) {
+        if (window.openJobDetails) {
+          window.openJobDetails(jobId);
+        } else {
+          const card = document.querySelector(`[data-job-id="${jobId}"]`) || document.getElementById(`job_card_${jobId}`);
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.click();
+          }
+        }
+      } else {
+        localStorage.setItem('auto_open_job_id', jobId);
+        window.location.href = 'jobs.html';
+      }
+    };
+
+    window.renderSidebarFavorites();
+    widgetContainer.addEventListener('mouseenter', () => {
+      window.renderSidebarFavorites();
+    });
+
+    // --- Wire Up Interactive Chat ---
+    const chatInput = widgetContainer.querySelector('#widgetChatInput');
+    const sendBtn = widgetContainer.querySelector('#widgetChatSendBtn');
+    const chatHistory = widgetContainer.querySelector('#widgetChatHistory');
+
+    const sendMsg = () => {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      const userMsgDiv = document.createElement('div');
+      userMsgDiv.className = 'widget-chat-msg user';
+      userMsgDiv.textContent = text;
+      chatHistory.appendChild(userMsgDiv);
+      chatInput.value = '';
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+
+      setTimeout(() => {
+        let reply = "I'm here to help! Ask me about interview practice, search filters, or profile metrics.";
+        const lower = text.toLowerCase();
+        if (lower.includes('hello') || lower.includes('hi')) {
+          reply = "Hello! Sarthi here. Hope you are having a great career building day today!";
+        } else if (lower.includes('interview')) {
+          reply = "I can help prepare you for interviews. Open any job drawer and click 'Mock Interview'!";
+        } else if (lower.includes('job') || lower.includes('work')) {
+          reply = "Search and filter matching jobs inside the Jobs portal, then click like to bookmark.";
+        } else if (lower.includes('theme') || lower.includes('look')) {
+          reply = "You can switch themes directly at the top of this sidebar widget!";
+        } else if (lower.includes('profile') || lower.includes('skills')) {
+          reply = "Your verified skills are displayed in the Skills Analysis panel on the dashboard.";
+        }
+
+        const sarthiMsgDiv = document.createElement('div');
+        sarthiMsgDiv.className = 'widget-chat-msg sarthi';
+        sarthiMsgDiv.textContent = reply;
+        chatHistory.appendChild(sarthiMsgDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+      }, 800);
+    };
+
+    sendBtn.addEventListener('click', sendMsg);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMsg();
+    });
   }
 });
 
@@ -1307,6 +1647,16 @@ window.setTheme = function (themeName) {
       }
     }
   }
+
+  // Sync sidebar theme circles
+  const sidebarCircles = document.querySelectorAll('.widget-theme-circle');
+  sidebarCircles.forEach(circle => {
+    if (circle.getAttribute('data-theme') === themeName) {
+      circle.classList.add('active');
+    } else {
+      circle.classList.remove('active');
+    }
+  });
 };
 
 // Global Toggle Theme Function

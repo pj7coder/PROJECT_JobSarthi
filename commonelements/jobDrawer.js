@@ -423,8 +423,20 @@
       
       if (checked) {
         savedIds.push(jobId);
+        // Cache job details for sidebar favorites list
+        let savedDetails = JSON.parse(localStorage.getItem('saved_job_details') || '{}');
+        savedDetails[jobId] = {
+          id: jobId,
+          title: _currentJob.title || 'Opportunity',
+          company: _currentJob.company || 'Company Details',
+          location: _currentJob.location || 'Remote'
+        };
+        localStorage.setItem('saved_job_details', JSON.stringify(savedDetails));
       } else {
         savedIds.splice(index, 1);
+        let savedDetails = JSON.parse(localStorage.getItem('saved_job_details') || '{}');
+        delete savedDetails[jobId];
+        localStorage.setItem('saved_job_details', JSON.stringify(savedDetails));
       }
       localStorage.setItem('saved_jobs', JSON.stringify(savedIds));
 

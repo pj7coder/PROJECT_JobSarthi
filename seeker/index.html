@@ -1353,8 +1353,25 @@
       
       if (checked) {
         savedJobIds.push(jobId);
+        // Cache job details for sidebar favorites list
+        if (typeof lastRecommendedJobs !== 'undefined') {
+          const job = lastRecommendedJobs.find(j => j.id === jobId || j._id === jobId);
+          if (job) {
+            let savedDetails = JSON.parse(localStorage.getItem('saved_job_details') || '{}');
+            savedDetails[jobId] = {
+              id: jobId,
+              title: job.title || 'Opportunity',
+              company: job.company || 'Company Details',
+              location: job.location || 'Remote'
+            };
+            localStorage.setItem('saved_job_details', JSON.stringify(savedDetails));
+          }
+        }
       } else {
         savedJobIds.splice(index, 1);
+        let savedDetails = JSON.parse(localStorage.getItem('saved_job_details') || '{}');
+        delete savedDetails[jobId];
+        localStorage.setItem('saved_job_details', JSON.stringify(savedDetails));
       }
       localStorage.setItem('saved_jobs', JSON.stringify(savedJobIds));
 
