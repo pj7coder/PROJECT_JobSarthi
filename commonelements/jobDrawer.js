@@ -10,32 +10,41 @@
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  /** Strip HTML tags and decode HTML entities from a string. */
-  function decodeHtmlToText(html) {
+  /** Robustly decode HTML entities (handles double-encoded text). */
+  function decodeHtml(html) {
     if (!html) return '';
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    return doc.body.textContent || '';
+    const txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    let decoded = txt.value;
+    let limit = 5;
+    while (limit > 0 && (decoded.includes('&lt;') || decoded.includes('&gt;') || decoded.includes('&amp;') || decoded.includes('&#') || decoded.includes('&quot;'))) {
+      txt.innerHTML = decoded;
+      decoded = txt.value;
+      limit--;
+    }
+    return decoded;
   }
 
-  /** Convert raw description (may be HTML-encoded or raw HTML) to clean readable HTML. */
+  /** Convert raw description to clean readable plain text, stripping all tags. */
   function sanitizeDescription(raw) {
-    if (!raw) return '<em>No description provided.</em>';
-    // If the string contains HTML entity sequences (&lt; etc.), decode them first
-    let decoded = raw;
-    if (raw.includes('&lt;') || raw.includes('&#')) {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = raw;
-      decoded = tmp.innerHTML; // browsers auto-decode once inserted
-    }
-    // Now strip tags to get plain text, preserving newlines from <br>/<p>/<li>
+    if (!raw) return 'No description provided.';
+    
+    // First, decode HTML entities completely
+    let decoded = decodeHtml(raw);
+    
+    // Parse the HTML structure
     const wrapper = document.createElement('div');
     wrapper.innerHTML = decoded;
-    // Replace block-level tags with newlines
-    wrapper.querySelectorAll('p, div, li, br').forEach(el => {
+    
+    // Append newlines to block elements to preserve line breaks
+    wrapper.querySelectorAll('p, div, li, br, h1, h2, h3, h4, h5, h6').forEach(el => {
       el.insertAdjacentText('afterend', '\n');
     });
-    let text = (wrapper.textContent || '').trim();
-    // Collapse 3+ blank lines
+    
+    // Extract the text content
+    let text = (wrapper.textContent || wrapper.innerText || '').trim();
+    
+    // Remove excessive consecutive blank lines
     text = text.replace(/\n{3,}/g, '\n\n');
     return text;
   }
@@ -48,7 +57,7 @@
       
       <!-- Header -->
       <div class="drawer-header">
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
           <div class="job-card-logo" id="jd_logo" style="font-size:1.8rem;width:48px;height:48px;flex-shrink:0;">💼</div>
           <div style="min-width:0;">
             <h2 id="jd_title" style="font-size:1.2rem;color:var(--text-main);margin:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Job Title</h2>
@@ -126,7 +135,7 @@
       <!-- Footer -->
       <div class="drawer-footer">
         <button id="jd_applyBtn" class="btn btn-glow" style="flex:1;height:44px;font-weight:600;" onclick="window.JobDrawer._onApply()">Apply Now</button>
-        <button id="jd_mockBtn" class="btn btn-secondary" style="flex:1;height:44px;font-weight:600;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);color:#60a5fa;" onclick="window.JobDrawer._onMock()">🎯 Mock Interview</button>
+        <button id="jd_mockBtn" class="btn btn-secondary" style="flex:1;height:44px;font-weight:600;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);color:#60a5fa;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.JobDrawer._onMock()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg> Mock Interview</button>
       </div>
 
     </div>
@@ -226,16 +235,54 @@
       _getEl('jd_title').textContent = job.title || 'Untitled Role';
       _getEl('jd_company').textContent = job.company || 'Company';
 
-      // Meta row
-      const metaParts = [
-        job.location ? `📍 ${job.location}` : '',
-        job.salary ? `💰 ${job.salary.split(' / ')[0]}` : '',
-        job.type ? `⏱ ${job.type}` : ''
-      ].filter(Boolean);
-      _getEl('jd_meta').textContent = metaParts.join('  ·  ');
+      // Meta row without emojis, using clean styles and small SVGs
+      let metaHtml = '';
+      if (job.location) {
+        metaHtml += `
+          <span style="display:inline-flex;align-items:center;gap:4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            ${job.location}
+          </span>
+        `;
+      }
+      if (job.salary) {
+        metaHtml += `
+          <span style="display:inline-flex;align-items:center;gap:4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            ${job.salary.split(' / ')[0]}
+          </span>
+        `;
+      }
+      if (job.type) {
+        metaHtml += `
+          <span style="display:inline-flex;align-items:center;gap:4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            ${job.type}
+          </span>
+        `;
+      }
+      _getEl('jd_meta').innerHTML = metaHtml;
 
       // Badges
-      _getEl('jd_badges').innerHTML = `<span style="padding:4px 10px;border-radius:6px;font-size:.75rem;background:rgba(99,102,241,.15);color:var(--accent-primary);border:1px solid rgba(99,102,241,.25);">${job.type || 'Full-time'}</span>`;
+      const isLoggedIn = localStorage.getItem('seeker_logged_in') === 'true';
+      const getScore = _options.getMatchScore || (() => null);
+      const matchVal = isLoggedIn ? getScore(job) : null;
+      let matchBadge = '';
+      if (matchVal !== null && matchVal > 0) {
+        let matchStyle = '';
+        if (matchVal >= 80) {
+          matchStyle = 'color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.05);';
+        } else if (matchVal >= 50) {
+          matchStyle = 'color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.05);';
+        } else {
+          matchStyle = 'color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.05);';
+        }
+        matchBadge = `<span style="padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:600;display:inline-flex;align-items:center;${matchStyle}">${matchVal}% Match</span>`;
+      }
+      _getEl('jd_badges').innerHTML = `
+        <span style="padding:4px 10px;border-radius:6px;font-size:.75rem;background:rgba(99,102,241,.15);color:var(--accent-primary);border:1px solid rgba(99,102,241,.25);">${job.type || 'Full-time'}</span>
+        ${matchBadge}
+      `;
 
       // Description (sanitize HTML entities)
       _fullDesc = sanitizeDescription(job.description);

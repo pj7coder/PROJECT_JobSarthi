@@ -1411,8 +1411,39 @@ app.get("/api/jobs", async (req, res) => {
 
     // Score jobs
     filtered = filtered.map(job => {
-      const score = calculateMatchScore(job, preprocessedProfile);
-      return { ...job, matchScore: score };
+      let score = calculateMatchScore(job, preprocessedProfile);
+      
+      // If no seeker profile is active, default to a neutral base score of 50
+      if (!preprocessedProfile) {
+        score = 50;
+      }
+      
+      // Apply search query relevance boost
+      if (search) {
+        const query = search.toLowerCase();
+        let boost = 0;
+        if (job.title && job.title.toLowerCase() === query) {
+          boost += 40; // Exact title match
+        } else if (job.title && job.title.toLowerCase().includes(query)) {
+          boost += 25; // Partial title match
+        }
+        
+        if (job.skills && String(job.skills).toLowerCase().includes(query)) {
+          boost += 15; // Skill match
+        }
+        
+        if (job.company && job.company.toLowerCase().includes(query)) {
+          boost += 10; // Company name match
+        }
+        
+        if (job.description && job.description.toLowerCase().includes(query)) {
+          boost += 5; // Description match
+        }
+        
+        score += boost;
+      }
+      
+      return { ...job, matchScore: Math.min(100, Math.max(0, score)) };
     });
 
     // Sort jobs

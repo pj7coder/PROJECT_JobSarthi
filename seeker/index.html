@@ -462,6 +462,9 @@
   </main>
 
   <!-- Job Details Drawer — rendered by commonelements/jobDrawer.js on demand -->
+  <div class="applied-alert" id="successToast" style="position: fixed; bottom: 30px; right: 30px; padding: 16px 24px; background: var(--success); color: #fff; border-radius: var(--radius-md); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); display: none; z-index: 2000; font-weight: 600;">
+    Application submitted successfully! Recruiter will contact you soon.
+  </div>
 
 
   <!-- Unified Floating Sarthi AI Pill -->
@@ -1102,14 +1105,35 @@
           const matchVal = (localStorage.getItem('seeker_logged_in') === 'true') ? job.matchScore : null;
           let matchPill = '';
           if (matchVal !== null && matchVal > 0) {
-            let matchStyle = 'color: var(--text-muted); border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.02);';
-            if (matchVal >= 85) {
+            let matchStyle = '';
+            if (matchVal >= 80) {
               matchStyle = 'color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.05);';
-            } else if (matchVal >= 70) {
+            } else if (matchVal >= 50) {
               matchStyle = 'color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.05);';
+            } else {
+              matchStyle = 'color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.05);';
             }
             matchPill = `<span class="match-badge" style="font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; ${matchStyle}">${matchVal}% Match</span>`;
           }
+
+          const isApplied = (JSON.parse(localStorage.getItem('applied_jobs') || '[]')).includes(job.id);
+          const actionBtn = job.isSample ? `
+            <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center;">${isApplied ? 'Applied' : 'Apply'}</button>
+          ` : `
+            <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Open</a>
+          `;
+
+          const savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+          const isSaved = savedIds.includes(job.id);
+          const heartSvg = isSaved ? `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          ` : `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          `;
 
           const card = document.createElement('div');
           card.className = 'glass-card job-card';
@@ -1136,13 +1160,16 @@
                 </div>
               </div>
             </div>
-            <div class="job-card-actions">
+            <div class="job-card-actions" onclick="event.stopPropagation()">
               <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-details-animated">Details</button>
-              ${job.isSample ? `
-                <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center;">Apply</button>
-              ` : `
-                <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Open</a>
-              `}
+              ${actionBtn}
+              <button onclick="startMockForJobId('${job.id}')" class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.82rem; display: inline-flex; align-items: center; justify-content: center; gap: 4px; background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.2); color: var(--accent-secondary);" title="Start Mock Interview">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                Mock
+              </button>
+              <button onclick="toggleSaveJobFromCard('${job.id}', event)" class="btn btn-like-card" id="like_btn_${job.id}" style="padding: 8px 10px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: ${isSaved ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${isSaved ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)'}; color: var(--text-muted); cursor: pointer; transition: all 0.2s;" title="Save Job">
+                ${heartSvg}
+              </button>
             </div>
           `;
           recommendedContainer.appendChild(card);
@@ -1285,6 +1312,70 @@
         closeClickPanel(e);
       }
     });
+
+    function startMockForJobId(jobId) {
+      const jobsList = (typeof lastRecommendedJobs !== 'undefined' ? lastRecommendedJobs : []);
+      const job = jobsList.find(j => String(j.id) === String(jobId) || String(j._id) === String(jobId));
+      if (job) {
+        const title = encodeURIComponent(job.title || '');
+        const company = encodeURIComponent(job.company || '');
+        const skills = encodeURIComponent((job.skills || '').slice(0, 300));
+        window.location.href = `aiinterview.html?jobId=${jobId}&jobTitle=${title}&company=${company}&jobSkills=${skills}`;
+      }
+    }
+
+    function toggleSaveJobFromCard(jobId, event) {
+      if (event) event.stopPropagation();
+      let savedJobIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      const index = savedJobIds.indexOf(jobId);
+      const checked = index === -1;
+      
+      if (checked) {
+        savedJobIds.push(jobId);
+      } else {
+        savedJobIds.splice(index, 1);
+      }
+      localStorage.setItem('saved_jobs', JSON.stringify(savedJobIds));
+
+      // Update heart icon on card
+      const btn = document.getElementById(`like_btn_${jobId}`);
+      if (btn) {
+        btn.innerHTML = checked ? `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        ` : `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        `;
+        btn.style.background = checked ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)';
+      }
+
+      // Update drawer save state if currently open
+      if (window.JobDrawer && window.JobDrawer.currentJob && String(window.JobDrawer.currentJob.id) === String(jobId)) {
+        const cb = document.getElementById('jd_saveCheckbox');
+        if (cb) cb.checked = checked;
+      }
+
+      // Toast feedback
+      const toast = document.getElementById("successToast");
+      if (toast) {
+        if (checked) {
+          toast.textContent = "Job saved to your bookmarks!";
+          toast.style.background = "#ff5b89";
+          toast.style.boxShadow = "0 10px 20px rgba(255, 91, 137, 0.3)";
+        } else {
+          toast.textContent = "Job removed from bookmarks.";
+          toast.style.background = "var(--bg-secondary)";
+          toast.style.boxShadow = "none";
+        }
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 1500);
+      }
+    }
   </script>
   <script src="../commonelements/jobDrawer.js"></script>
   <script src="../js/header.js"></script>
