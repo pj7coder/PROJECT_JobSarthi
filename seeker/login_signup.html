@@ -22,10 +22,11 @@
     }
 
     // Theme initializer
-    if (localStorage.getItem('theme') === 'light') {
-      document.documentElement.classList.add('light-theme');
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light' || savedTheme === 'pastel') {
+      document.documentElement.classList.add(savedTheme + '-theme');
       document.addEventListener('DOMContentLoaded', () => {
-        document.body.classList.add('light-theme');
+        document.body.classList.add(savedTheme + '-theme');
       });
     }
   </script>

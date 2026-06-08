@@ -9,10 +9,11 @@
     content="Browse, filter, and apply to hundreds of tech roles fetched from top companies using Sarthi AI.">
   <link rel="stylesheet" href="../css/main.css">
   <script>
-    if (localStorage.getItem('theme') === 'light') {
-      document.documentElement.classList.add('light-theme');
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light' || savedTheme === 'pastel') {
+      document.documentElement.classList.add(savedTheme + '-theme');
       document.addEventListener('DOMContentLoaded', () => {
-        document.body.classList.add('light-theme');
+        document.body.classList.add(savedTheme + '-theme');
       });
     }
   </script>
@@ -379,251 +380,6 @@
       30% {
         transform: translateY(-6px);
       }
-    }
-
-    /* Hamster Loader Animation */
-    .wheel-and-hamster {
-      --dur: 1s;
-      position: relative;
-      width: 12em;
-      height: 12em;
-      font-size: 14px;
-    }
-
-    .wheel,
-    .hamster,
-    .hamster div,
-    .spoke {
-      position: absolute;
-    }
-
-    .wheel,
-    .spoke {
-      border-radius: 50%;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    .wheel {
-      background: transparent;
-      border: 1.2em solid #8a5a36;
-      box-shadow:
-        inset 0 0 0 0.15em #4a301c,
-        0 0 0 0.15em #4a301c,
-        inset 0 4px 12px rgba(0,0,0,0.5),
-        0 4px 16px rgba(0,0,0,0.4);
-      z-index: 2;
-      box-sizing: border-box;
-    }
-
-    .hamster {
-      animation: hamster var(--dur) ease-in-out infinite;
-      top: 50%;
-      left: calc(50% - 3.5em);
-      width: 7em;
-      height: 3.75em;
-      transform: rotate(4deg) translate(-0.8em,1.85em);
-      transform-origin: 50% 0;
-      z-index: 3;
-    }
-
-    .hamster__head {
-      animation: hamsterHead var(--dur) ease-in-out infinite;
-      background: hsl(30,90%,55%);
-      border-radius: 70% 30% 0 100% / 40% 25% 25% 60%;
-      box-shadow: 0 -0.25em 0 hsl(30,90%,80%) inset,
-        0.75em -1.55em 0 hsl(30,90%,90%) inset;
-      top: 0;
-      left: -2em;
-      width: 2.75em;
-      height: 2.5em;
-      transform-origin: 100% 50%;
-    }
-
-    .hamster__ear {
-      animation: hamsterEar var(--dur) ease-in-out infinite;
-      background: hsl(0,90%,85%);
-      border-radius: 50%;
-      box-shadow: -0.25em 0 hsl(30,90%,55%) inset;
-      top: -0.25em;
-      right: -0.25em;
-      width: 0.75em;
-      height: 0.75em;
-      transform-origin: 50% 75%;
-    }
-
-    .hamster__eye {
-      animation: hamsterEye var(--dur) linear infinite;
-      background-color: hsl(0,0%,0%);
-      border-radius: 50%;
-      top: 0.375em;
-      left: 1.25em;
-      width: 0.5em;
-      height: 0.5em;
-    }
-
-    .hamster__nose {
-      background: hsl(0,90%,75%);
-      border-radius: 35% 65% 85% 15% / 70% 50% 50% 30%;
-      top: 0.75em;
-      left: 0;
-      width: 0.2em;
-      height: 0.25em;
-    }
-
-    .hamster__body {
-      animation: hamsterBody var(--dur) ease-in-out infinite;
-      background: hsl(30,90%,90%);
-      border-radius: 50% 30% 50% 30% / 15% 60% 40% 40%;
-      box-shadow: 0.1em 0.75em 0 hsl(30,90%,55%) inset,
-    		0.15em -0.5em 0 hsl(30,90%,80%) inset;
-      top: 0.25em;
-      left: 2em;
-      width: 4.5em;
-      height: 3em;
-      transform-origin: 17% 50%;
-      transform-style: preserve-3d;
-    }
-
-    .hamster__limb--fr,
-    .hamster__limb--fl {
-      clip-path: polygon(0 0,100% 0,70% 80%,60% 100%,0% 100%,40% 80%);
-      top: 2em;
-      left: 0.5em;
-      width: 1em;
-      height: 1.5em;
-      transform-origin: 50% 0;
-    }
-
-    .hamster__limb--fr {
-      animation: hamsterFRLimb var(--dur) linear infinite;
-      background: linear-gradient(hsl(30,90%,80%) 80%,hsl(0,90%,75%) 80%);
-      transform: rotate(15deg) translateZ(-1px);
-    }
-
-    .hamster__limb--fl {
-      animation: hamsterFLLimb var(--dur) linear infinite;
-      background: linear-gradient(hsl(30,90%,90%) 80%,hsl(0,90%,85%) 80%);
-      transform: rotate(15deg);
-    }
-
-    .hamster__limb--br,
-    .hamster__limb--bl {
-      border-radius: 0.75em 0.75em 0 0;
-      clip-path: polygon(0 0,100% 0,100% 30%,70% 90%,70% 100%,30% 100%,40% 90%,0% 30%);
-      top: 1em;
-      left: 2.8em;
-      width: 1.5em;
-      height: 2.5em;
-      transform-origin: 50% 30%;
-    }
-
-    .hamster__limb--br {
-      animation: hamsterBRLimb var(--dur) linear infinite;
-      background: linear-gradient(hsl(30,90%,80%) 90%,hsl(0,90%,75%) 90%);
-      transform: rotate(-25deg) translateZ(-1px);
-    }
-
-    .hamster__limb--bl {
-      animation: hamsterBLLimb var(--dur) linear infinite;
-      background: linear-gradient(hsl(30,90%,90%) 90%,hsl(0,90%,85%) 90%);
-      transform: rotate(-25deg);
-    }
-
-    .hamster__tail {
-      animation: hamsterTail var(--dur) linear infinite;
-      background: hsl(0,90%,85%);
-      border-radius: 0.25em 50% 50% 0.25em;
-      box-shadow: 0 -0.2em 0 hsl(0,90%,75%) inset;
-      top: 1.5em;
-      right: -0.5em;
-      width: 1em;
-      height: 0.5em;
-      transform: rotate(30deg) translateZ(-1px);
-      transform-origin: 0.25em 0.25em;
-    }
-
-    /* Spoke: three wooden planks crossing the inner circle */
-    .spoke {
-      animation: spoke var(--dur) linear infinite;
-      z-index: 1;
-      background:
-        linear-gradient(transparent 47%, #6b4226 47% 53%, transparent 53%),
-        linear-gradient(60deg, transparent 47%, #6b4226 47% 53%, transparent 53%),
-        linear-gradient(-60deg, transparent 47%, #6b4226 47% 53%, transparent 53%);
-    }
-
-    /* Drop shadow under the wheel */
-    .wheel-and-hamster::after {
-      content: '';
-      position: absolute;
-      bottom: -0.8em;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 70%;
-      height: 0.5em;
-      background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, transparent 70%);
-      border-radius: 50%;
-    }
-
-    @keyframes hamster {
-      0%, 100% { transform: rotate(4deg) translate(-0.8em, 1.85em); }
-      50%       { transform: rotate(0deg) translate(-0.8em, 1.85em); }
-    }
-
-    @keyframes hamsterHead {
-      0%, 100% { transform: rotate(0deg); }
-      25%       { transform: rotate(6deg); }
-      75%       { transform: rotate(-4deg); }
-    }
-
-    @keyframes hamsterEye {
-      0%, 85%, 100% { transform: scaleY(1); }
-      92%            { transform: scaleY(0); }
-    }
-
-    @keyframes hamsterEar {
-      0%, 100% { transform: rotate(0deg); }
-      25%       { transform: rotate(10deg); }
-      75%       { transform: rotate(-8deg); }
-    }
-
-    @keyframes hamsterBody {
-      0%, 100% { transform: rotate(2deg); }
-      25%       { transform: rotate(-2deg); }
-      75%       { transform: rotate(3deg); }
-    }
-
-    @keyframes hamsterFRLimb {
-      0%, 100% { transform: rotate(60deg) translateZ(-1px); }
-      50%       { transform: rotate(-40deg) translateZ(-1px); }
-    }
-
-    @keyframes hamsterFLLimb {
-      0%, 100% { transform: rotate(-40deg); }
-      50%       { transform: rotate(60deg); }
-    }
-
-    @keyframes hamsterBRLimb {
-      0%, 100% { transform: rotate(20deg) translateZ(-1px); }
-      50%       { transform: rotate(-60deg) translateZ(-1px); }
-    }
-
-    @keyframes hamsterBLLimb {
-      0%, 100% { transform: rotate(-60deg); }
-      50%       { transform: rotate(20deg); }
-    }
-
-    @keyframes hamsterTail {
-      0%, 100% { transform: rotate(35deg) translateZ(-1px); }
-      50%       { transform: rotate(12deg) translateZ(-1px); }
-    }
-
-    @keyframes spoke {
-      from { transform: rotate(0); }
-      to   { transform: rotate(-1turn); }
     }
 
     /* Premium Pagination Styling */
@@ -1310,22 +1066,10 @@
       if (container) {
         container.innerHTML = `
           <div class="loading-container">
-            <div class="wheel-and-hamster" aria-label="Orange and tan hamster running in a metal wheel" role="img">
-              <div class="wheel"></div>
-              <div class="hamster">
-                <div class="hamster__body"></div>
-                <div class="hamster__head">
-                  <div class="hamster__ear"></div>
-                  <div class="hamster__eye"></div>
-                  <div class="hamster__nose"></div>
-                </div>
-                <div class="hamster__limb--fr"></div>
-                <div class="hamster__limb--fl"></div>
-                <div class="hamster__limb--br"></div>
-                <div class="hamster__limb--bl"></div>
-                <div class="hamster__tail"></div>
-              </div>
-              <div class="spoke"></div>
+            <div class="loading-wave">
+              <div class="loading-dot"></div>
+              <div class="loading-dot"></div>
+              <div class="loading-dot"></div>
             </div>
           </div>
         `;
@@ -1489,22 +1233,10 @@
       if (container) {
         container.innerHTML = `
           <div class="loading-container">
-            <div class="wheel-and-hamster" aria-label="Orange and tan hamster running in a metal wheel" role="img">
-              <div class="wheel"></div>
-              <div class="hamster">
-                <div class="hamster__body"></div>
-                <div class="hamster__head">
-                  <div class="hamster__ear"></div>
-                  <div class="hamster__eye"></div>
-                  <div class="hamster__nose"></div>
-                </div>
-                <div class="hamster__limb--fr"></div>
-                <div class="hamster__limb--fl"></div>
-                <div class="hamster__limb--br"></div>
-                <div class="hamster__limb--bl"></div>
-                <div class="hamster__tail"></div>
-              </div>
-              <div class="spoke"></div>
+            <div class="loading-wave">
+              <div class="loading-dot"></div>
+              <div class="loading-dot"></div>
+              <div class="loading-dot"></div>
             </div>
           </div>
         `;
