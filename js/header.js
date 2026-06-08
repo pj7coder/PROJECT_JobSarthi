@@ -350,17 +350,7 @@ document.addEventListener("DOMContentLoaded", () => {
                           <!-- Filled dynamically by JavaScript -->
                         </div>
                         
-                        <!-- Randomize Button Colors Checkbox -->
-                        <div id="randomColorsSection" style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed var(--border-subtle); padding-top: 12px;">
-                          <div>
-                            <span class="setting-item-title" style="font-weight: 600;">Disco Buttons</span>
-                            <p class="setting-item-desc" style="margin: 0; font-size: 0.82rem; color: var(--text-muted);">Randomize button colors statically (except delete/like buttons).</p>
-                          </div>
-                          <label class="switch-toggle">
-                            <input type="checkbox" id="modalRandomColorsToggle">
-                            <span class="slider-round"></span>
-                          </label>
-                        </div>
+
                       </div>
 
                     </div>
@@ -713,13 +703,6 @@ document.addEventListener("DOMContentLoaded", () => {
                });
              }
 
-             const modalRandomColorsToggle = modalEl.querySelector('#modalRandomColorsToggle');
-             if (modalRandomColorsToggle) {
-               modalRandomColorsToggle.addEventListener('change', (e) => {
-                 localStorage.setItem('random_button_colors', e.target.checked ? 'true' : 'false');
-                 if (window.applyRandomButtonColors) window.applyRandomButtonColors();
-               });
-             }
              
              const modalCursorToggle = modalEl.querySelector('#modalCursorToggle');
              if (modalCursorToggle) {
@@ -816,11 +799,6 @@ document.addEventListener("DOMContentLoaded", () => {
                modalAdvancedUIToggle.checked = isAdvancedUI;
              }
 
-             const isRandomColors = localStorage.getItem('random_button_colors') === 'true';
-             const modalRandomColorsToggle = activeModal.querySelector('#modalRandomColorsToggle');
-             if (modalRandomColorsToggle) {
-               modalRandomColorsToggle.checked = isRandomColors;
-             }
              
              const modalCursorToggle = activeModal.querySelector('#modalCursorToggle');
              if (modalCursorToggle) {
@@ -1296,10 +1274,6 @@ window.setTheme = function (themeName) {
       }
     }
   }
-
-  if (window.applyRandomButtonColors) {
-    window.applyRandomButtonColors();
-  }
 };
 
 // Global Toggle Theme Function
@@ -1414,79 +1388,4 @@ window.renderAccentColors = function (modalEl, portalType, currentTheme) {
   });
 };
 
-// Global function to apply static randomized colors to buttons
-window.applyRandomButtonColors = function() {
-  const enabled = localStorage.getItem('random_button_colors') === 'true';
-  const buttons = document.querySelectorAll('button, .btn, .btn-primary, .btn-secondary, .btn-glow, .btn-open-job, .btn-apply');
-  
-  if (!enabled) {
-    buttons.forEach(btn => {
-      // Don't modify color picker buttons
-      if (!btn.classList.contains('item-color')) {
-        btn.style.removeProperty('background');
-        btn.style.removeProperty('background-image');
-        btn.style.removeProperty('color');
-        btn.style.removeProperty('border-color');
-      }
-    });
-    return;
-  }
-  
-  // 12 beautiful colors for button backgrounds
-  const colors = ['#6b21a8', '#be185d', '#0284c7', '#16a34a', '#ea580c', '#ca8a04', '#0d9488', '#7c3aed', '#f43f5e', '#d97706', '#c026d3', '#06b6d4'];
-  
-  buttons.forEach(btn => {
-    // Skip color pickers, theme toggle, delete, remove, like buttons
-    const txt = (btn.innerText || btn.textContent || '').toLowerCase();
-    const isDeleteOrLike = 
-      btn.classList.contains('btn-danger') ||
-      btn.classList.contains('delete-btn') ||
-      btn.classList.contains('btn-like-card') ||
-      btn.classList.contains('item-color') ||
-      btn.id === 'themeToggleCheckbox' ||
-      btn.id === 'modalRandomColorsToggle' ||
-      btn.id === 'modalAdvancedUIToggle' ||
-      btn.id === 'modalCursorToggle' ||
-      btn.closest('#themeColorsContainer') ||
-      btn.getAttribute('aria-label') === 'Like' ||
-      btn.getAttribute('aria-label') === 'Bookmark' ||
-      txt.includes('delete') ||
-      txt.includes('like') ||
-      txt.includes('remove') ||
-      txt.includes('reject');
-      
-    if (isDeleteOrLike) {
-      // Let standard red styles apply
-      return;
-    }
-    
-    // Hash button content/class/id to assign a stable ("not changing") random color
-    let hash = 0;
-    const str = btn.innerText || btn.className || btn.id || 'btn';
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const colorIndex = Math.abs(hash) % colors.length;
-    const color = colors[colorIndex];
-    
-    // Set colors with !important to override other rules cleanly
-    btn.style.setProperty('background', color, 'important');
-    btn.style.setProperty('background-image', 'none', 'important');
-    btn.style.setProperty('color', '#ffffff', 'important');
-    btn.style.setProperty('border-color', color, 'important');
-  });
-};
 
-// Start periodic checker to colorize dynamically loaded buttons
-setInterval(() => {
-  if (window.applyRandomButtonColors) {
-    window.applyRandomButtonColors();
-  }
-}, 1000);
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    if (window.applyRandomButtonColors) window.applyRandomButtonColors();
-  }, 500);
-});
