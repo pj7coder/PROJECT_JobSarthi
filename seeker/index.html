@@ -407,7 +407,10 @@
   <main class="container">
     <div class="dashboard-grid">
       <!-- Profile Sidebar -->
-      <aside class="glass-panel profile-sidebar">
+      <aside class="glass-panel profile-sidebar" style="position: relative;">
+        <a href="calendar.html" title="My Interviews Calendar" style="position: absolute; top: 16px; left: 16px; color: var(--text-main); font-size: 1.4rem; text-decoration: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+          📅
+        </a>
         <div class="profile-avatar-large" id="sidebarAvatar">C</div>
         <h2 class="seeker-name" id="sidebarName">Candidate Profile</h2>
         <p class="seeker-title" id="sidebarTitle">Software Seeker</p>

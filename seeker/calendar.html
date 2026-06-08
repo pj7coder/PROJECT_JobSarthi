@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interview Calendar - JobSarthi Seeker</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <script>
+    if (localStorage.getItem('seeker_logged_in') !== 'true') {
+      window.location.replace('login_signup.html');
+    }
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme && savedTheme !== 'dark') {
+      document.documentElement.classList.add(savedTheme + '-theme');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add(savedTheme + '-theme');
+      });
+    }
+  </script>
+  <style>
+    body {
+      overflow: hidden;
+    }
+    .calendar-container {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      margin-top: 24px;
+      height: calc(100vh - 120px);
+      box-sizing: border-box;
+    }
+    @media (max-width: 900px) {
+      .calendar-container {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: auto;
+      }
+      body {
+        overflow: auto;
+      }
+    }
+    .calendar-main {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow: hidden;
+    }
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: auto repeat(6, 1fr);
+      gap: 8px;
+      flex: 1;
+      overflow: hidden;
+    }
+    .day-header {
+      text-align: center;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding-bottom: 8px;
+    }
+    .day-cell {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    .day-cell.today {
+      border-color: var(--accent-secondary);
+      background: rgba(59, 130, 246, 0.05);
+    }
+    .day-number {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      align-self: flex-end;
+      margin-bottom: 4px;
+    }
+    .events-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow-y: auto;
+    }
+    .events-container::-webkit-scrollbar {
+      width: 4px;
+    }
+    .events-container::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 4px;
+    }
+    .event-badge {
+      background: var(--accent-primary);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 4px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar-panel {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+    .upcoming-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-right: 4px;
+    }
+    .upcoming-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .upcoming-list::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 4px;
+    }
+    .event-card {
+      padding: 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+    }
+    .event-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 1rem;
+      color: var(--text-main);
+    }
+    .event-card p {
+      margin: 4px 0 0 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <div class="header-wrapper"></div>
+
+  <main class="container">
+    <div class="calendar-container">
+      <section class="glass-panel calendar-main">
+        <div class="calendar-header">
+          <h2 style="margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 8px;">
+            <a href="index.html" style="color: var(--text-muted); text-decoration: none; font-size: 1.2rem;">←</a> 
+            <span id="monthYearDisplay">Month Year</span>
+          </h2>
+          <div>
+            <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="changeMonth(-1)">Prev</button>
+            <button class="btn btn-primary" style="padding: 6px 12px; margin-left: 8px;" onclick="changeMonth(1)">Next</button>
+          </div>
+        </div>
+        <div class="calendar-grid" id="calendarGrid">
+          <div class="day-header">Sun</div>
+          <div class="day-header">Mon</div>
+          <div class="day-header">Tue</div>
+          <div class="day-header">Wed</div>
+          <div class="day-header">Thu</div>
+          <div class="day-header">Fri</div>
+          <div class="day-header">Sat</div>
+          <!-- Days populated dynamically -->
+        </div>
+      </section>
+      
+      <aside class="glass-panel sidebar-panel">
+        <h3 style="margin: 0; font-size: 1.2rem; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;">Upcoming Interviews</h3>
+        <div id="upcomingEventsList" class="upcoming-list">
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Loading...</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script src="../js/header.js"></script>
+  <script>
+    let currentDate = new Date();
+    let interviews = [];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchInterviews();
+    });
+
+    async function fetchInterviews() {
+      const email = localStorage.getItem('seeker_email');
+      if (!email) return;
+
+      try {
+        const response = await fetch(`/api/messages?email=${encodeURIComponent(email)}&role=jobseeker`);
+        if (response.ok) {
+          const messages = await response.json();
+          const pattern = /An interview invitation has been generated for (.+?) at (.+?) \\(IST\\)/;
+          messages.forEach(msg => {
+            if (msg.sender === 'recruiter' && msg.text.includes('Interview Scheduled')) {
+              const match = msg.text.match(pattern);
+              if (match) {
+                const dateStr = match[1]; 
+                const timeStr = match[2]; 
+                const parsedDate = new Date(dateStr);
+                if (!isNaN(parsedDate)) {
+                  interviews.push({
+                    company: msg.companyName || msg.recruiterName,
+                    date: parsedDate,
+                    timeStr: timeStr,
+                    fullDateStr: dateStr
+                  });
+                }
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.error("Error fetching interviews:", e);
+      }
+      
+      // Also check local storage mock data just in case
+      const stored = JSON.parse(localStorage.getItem('mock_interviews') || '[]');
+      stored.forEach(s => {
+        interviews.push({
+          company: s.company,
+          date: new Date(s.date),
+          timeStr: s.time,
+          fullDateStr: new Date(s.date).toDateString()
+        });
+      });
+
+      renderCalendar();
+      renderSidebar();
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = \`
+        <div class="day-header">Sun</div>
+        <div class="day-header">Mon</div>
+        <div class="day-header">Tue</div>
+        <div class="day-header">Wed</div>
+        <div class="day-header">Thu</div>
+        <div class="day-header">Fri</div>
+        <div class="day-header">Sat</div>
+      \`;
+
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      document.getElementById('monthYearDisplay').textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      
+      const today = new Date();
+
+      for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'day-cell';
+        emptyCell.style.opacity = '0.3';
+        grid.appendChild(emptyCell);
+      }
+
+      // calculate rows needed
+      const totalCells = firstDay + daysInMonth;
+      const rows = Math.ceil(totalCells / 7);
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+        if (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) {
+          cell.classList.add('today');
+        }
+
+        const num = document.createElement('div');
+        num.className = 'day-number';
+        num.textContent = d;
+        cell.appendChild(num);
+
+        const eventsCont = document.createElement('div');
+        eventsCont.className = 'events-container';
+
+        const dayInterviews = interviews.filter(inv => inv.date.getFullYear() === year && inv.date.getMonth() === month && inv.date.getDate() === d);
+        dayInterviews.forEach(inv => {
+          const badge = document.createElement('div');
+          badge.className = 'event-badge';
+          badge.textContent = \`\${inv.timeStr} \${inv.company}\`;
+          badge.title = \`\${inv.company} Interview at \${inv.timeStr}\`;
+          eventsCont.appendChild(badge);
+        });
+
+        cell.appendChild(eventsCont);
+        grid.appendChild(cell);
+      }
+
+      // fill remaining cells in last row
+      const remaining = (rows * 7) - totalCells;
+      for (let i = 0; i < remaining; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'day-cell';
+        emptyCell.style.opacity = '0.3';
+        grid.appendChild(emptyCell);
+      }
+    }
+
+    function renderSidebar() {
+      const list = document.getElementById('upcomingEventsList');
+      list.innerHTML = '';
+      
+      const upcoming = interviews.filter(inv => {
+        const endOfDay = new Date();
+        endOfDay.setHours(0,0,0,0);
+        return inv.date >= endOfDay;
+      }).sort((a,b) => a.date - b.date);
+
+      if (upcoming.length === 0) {
+        list.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No upcoming interviews scheduled.</p>';
+        return;
+      }
+
+      upcoming.forEach(inv => {
+        const card = document.createElement('div');
+        card.className = 'event-card';
+        card.innerHTML = \`
+          <h4>\${inv.company}</h4>
+          <p>📅 \${inv.fullDateStr}</p>
+          <p>⏰ \${inv.timeStr} (IST)</p>
+        \`;
+        list.appendChild(card);
+      });
+    }
+
+    function changeMonth(delta) {
+      currentDate.setMonth(currentDate.getMonth() + delta);
+      renderCalendar();
+    }
+  </script>
+</body>
+</html>

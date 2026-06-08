@@ -1,4 +1,4 @@
-﻿/* JobSarthi - Human Made UI Design System */
+/* JobSarthi - Human Made UI Design System */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Quicksand:wght@300..700&display=swap');
 
@@ -3147,12 +3147,9 @@ body.light-theme .liquid-slider-vertical {
   transition: all 0.3s ease;
 }
 
-/* Default light/dark themes: blue and magenta gradient */
+/* Default light/dark themes: solid color */
 body .logo-title-text {
-  background: linear-gradient(135deg, #3b82f6 30%, #d946ef 90%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
+  color: var(--text-main) !important;
 }
 
 /* --- Default light & dark theme: Open and Apply buttons --- */
