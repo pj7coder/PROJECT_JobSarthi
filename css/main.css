@@ -3609,333 +3609,212 @@ body.pastel-dark-theme * {
   font-family: 'Quicksand', 'Fredoka', 'Outfit', sans-serif !important;
 }
 
-/* ========================================================
-   JOB SARTHI - REMASTERED PREMIUM DESIGN SYSTEM
-   ======================================================== */
+/* ============================================================
+   JOBSARTHI – TARGETED DESIGN IMPROVEMENTS (non-destructive)
+   ============================================================ */
 
-/* 1. Global Glass Pill Floating Header */
-.header {
-  position: sticky !important;
-  top: 16px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  width: calc(100% - 32px) !important;
-  max-width: 1280px !important;
-  border-radius: 20px !important;
-  background: rgba(15, 23, 42, 0.45) !important;
-  backdrop-filter: blur(24px) saturate(200%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  margin: 0 auto 24px auto !important;
-  padding: 12px 24px !important;
-  z-index: 1000 !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+/* ─── 1. Dark theme: cyan accent colour (user-requested) ─── */
+/* Only applied to default (dark) theme – does NOT touch light */
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) {
+  --accent-cyan: #06b6d4;      /* cyan-500  */
+  --accent-cyan-hover: #0891b2; /* cyan-600  */
+  --accent-cyan-glow: rgba(6, 182, 212, 0.25);
+  --accent-cyan-subtle: rgba(6, 182, 212, 0.08);
 }
 
-body.light-theme .header {
-  background: rgba(255, 255, 255, 0.5) !important;
-  border-color: rgba(0, 0, 0, 0.06) !important;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
-}
-
-body.pastel-light-theme .header {
-  background: rgba(253, 244, 255, 0.6) !important;
-  border: 2px solid #ddd6fe !important;
-  box-shadow: 4px 4px 0px 0px #c084fc !important;
-}
-
-body.pastel-dark-theme .header {
-  background: rgba(15, 23, 42, 0.75) !important;
-  border: 2px solid #818cf8 !important;
-  box-shadow: 6px 6px 0px 0px #4f46e5 !important;
-}
-
-/* Header Action Buttons glow styling */
-.header-actions .btn-glow {
-  background: linear-gradient(135deg, #6366f1, #a855f7) !important;
-  color: #ffffff !important;
+/* Dark theme primary CTA buttons → cyan */
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .btn-glow,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .btn-primary {
+  background: var(--accent-cyan) !important;
+  color: #000000 !important;
   border: none !important;
-  border-radius: 12px !important;
-  padding: 10px 20px !important;
-  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3) !important;
-  font-weight: 600 !important;
-  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 16px var(--accent-cyan-glow) !important;
 }
 
-.header-actions .btn-glow:hover {
-  transform: translateY(-2px) scale(1.02) !important;
-  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5) !important;
-}
-
-/* 2. Premium Typography & Headline Gradients */
-h1, .page-title, .dashboard-title {
-  font-family: 'Fredoka', 'Quicksand', 'Inter', sans-serif !important;
-  font-weight: 800 !important;
-  font-size: 2.25rem !important;
-  letter-spacing: -0.04em !important;
-  background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 70%, #c084fc 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  margin-bottom: 20px !important;
-}
-
-body.light-theme h1, body.light-theme .page-title {
-  background: linear-gradient(135deg, #09090b 20%, #4338ca 70%, #6d28d9 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-}
-
-body.pastel-light-theme h1, body.pastel-light-theme .page-title {
-  background: linear-gradient(135deg, #6b21a8, #db2777) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-}
-
-body.pastel-dark-theme h1, body.pastel-dark-theme .page-title {
-  background: linear-gradient(135deg, #a78bfa, #f472b6) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-}
-
-/* 3. Sleek Holographic Cards & Hover Micro-interactions */
-.glass-panel, .glass-card, .job-card {
-  position: relative !important;
-  background: rgba(30, 41, 59, 0.4) !important;
-  backdrop-filter: blur(16px) !important;
-  border-radius: 24px !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3) !important;
-  overflow: hidden !important;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-/* Interactive card border reflection trail */
-.glass-panel::after, .glass-card::after, .job-card::after {
-  content: "" !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  border-radius: inherit !important;
-  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.02) 100%) !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
-}
-
-.glass-panel:hover, .glass-card:hover, .job-card:hover {
-  transform: translateY(-5px) scale(1.01) !important;
-  border-color: rgba(99, 102, 241, 0.25) !important;
-  box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.15) !important;
-}
-
-/* Light Theme Card overrides */
-body.light-theme .glass-panel,
-body.light-theme .glass-card,
-body.light-theme .job-card {
-  background: rgba(255, 255, 255, 0.7) !important;
-  border: 1px solid rgba(0, 0, 0, 0.05) !important;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.03) !important;
-}
-
-body.light-theme .glass-panel:hover,
-body.light-theme .glass-card:hover,
-body.light-theme .job-card:hover {
-  border-color: rgba(99, 102, 241, 0.2) !important;
-  box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.08) !important;
-}
-
-/* Pastel Light Card overrides */
-body.pastel-light-theme .glass-panel,
-body.pastel-light-theme .glass-card,
-body.pastel-light-theme .job-card {
-  background: #ffffff !important;
-  border: 3px solid #ddd6fe !important;
-  border-radius: 24px !important;
-  box-shadow: 6px 6px 0px 0px #ddd6fe !important;
-}
-
-body.pastel-light-theme .glass-panel:hover,
-body.pastel-light-theme .glass-card:hover,
-body.pastel-light-theme .job-card:hover {
-  transform: translate(-3px, -3px) !important;
-  box-shadow: 9px 9px 0px 0px #c084fc !important;
-}
-
-/* Pastel Dark Card overrides */
-body.pastel-dark-theme .glass-panel,
-body.pastel-dark-theme .glass-card,
-body.pastel-dark-theme .job-card {
-  background: #0f172a !important;
-  border: 3px solid #818cf8 !important;
-  border-radius: 24px !important;
-  box-shadow: 8px 8px 0px 0px #312e81 !important;
-}
-
-body.pastel-dark-theme .glass-panel:hover,
-body.pastel-dark-theme .glass-card:hover,
-body.pastel-dark-theme .job-card:hover {
-  transform: translate(-3px, -3px) !important;
-  box-shadow: 11px 11px 0px 0px #4f46e5 !important;
-}
-
-/* 4. Liquid Gloss & Animated Gradient Buttons */
-.btn {
-  border-radius: 14px !important;
-  padding: 10px 22px !important;
-  font-weight: 600 !important;
-  letter-spacing: -0.01em !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  position: relative !important;
-  overflow: hidden !important;
-}
-
-.btn-primary, .btn-details-animated {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
-}
-
-.btn-primary:hover, .btn-details-animated:hover {
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .btn-glow:hover,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .btn-primary:hover {
+  background: var(--accent-cyan-hover) !important;
+  box-shadow: 0 6px 24px var(--accent-cyan-glow) !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5) !important;
-  opacity: 1 !important;
 }
 
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: var(--text-main) !important;
-  backdrop-filter: blur(8px) !important;
+/* Dark theme: skill tags / badges cyan tint */
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .skill-tag,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .job-skill-tag {
+  background: var(--accent-cyan-subtle) !important;
+  border-color: rgba(6, 182, 212, 0.2) !important;
+  color: #67e8f9 !important;
 }
 
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  transform: translateY(-1px) !important;
+/* Dark theme: active nav link / tab indicator cyan */
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .nav-link.active,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .tab-btn.active,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .settings-tab-btn.active {
+  color: var(--accent-cyan) !important;
+  border-bottom-color: var(--accent-cyan) !important;
 }
 
-/* Light theme button customizations */
-body.light-theme .btn-secondary {
-  background: rgba(0, 0, 0, 0.02) !important;
-  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+/* Dark theme: input/search focus glow cyan */
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .search-input:focus,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .form-control:focus {
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 0 3px var(--accent-cyan-subtle) !important;
 }
 
-body.light-theme .btn-secondary:hover {
-  background: rgba(0, 0, 0, 0.06) !important;
+/* Dark theme: "Open" / apply buttons */
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .btn-open-job,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .btn-apply {
+  background: var(--accent-cyan) !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 12px var(--accent-cyan-glow) !important;
 }
 
-/* Pastel Light button overrides */
-body.pastel-light-theme .btn {
-  border-radius: 12px !important;
-  border: 2px solid #6b21a8 !important;
+/* Dark theme: card hover border glow */
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .glass-card:hover,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .job-card:hover {
+  border-color: rgba(6, 182, 212, 0.25) !important;
+  box-shadow: 0 8px 24px rgba(6, 182, 212, 0.08) !important;
 }
 
-body.pastel-light-theme .btn-primary {
-  background: #c084fc !important;
-  color: #3b0764 !important;
-  box-shadow: 3px 3px 0px 0px #6b21a8 !important;
+/* Dark theme: liked/saved heart icon active state */
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .like-icon-active,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .btn-like-card[data-liked="true"] {
+  border-color: var(--accent-cyan) !important;
+  color: var(--accent-cyan) !important;
 }
 
-body.pastel-light-theme .btn-primary:hover {
-  transform: translate(-2px, -2px) !important;
-  box-shadow: 5px 5px 0px 0px #6b21a8 !important;
+/* ─── 2. Fix broken header positioning from previous override ─── */
+/* The .header already has correct sticky positioning defined at ~line 350.
+   Ensure no conflicting transform/left that was accidentally added. */
+.header {
+  left: unset !important;
+  transform: none !important;
 }
 
-body.pastel-light-theme .btn-secondary {
-  background: #fdf4ff !important;
+/* ─── 3. Fix h1 / page-title text visibility ─── */
+/* Remove gradient text-fill that made text invisible */
+h1, .page-title, .dashboard-title {
+  -webkit-text-fill-color: unset !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+  background-image: none !important;
+}
+
+/* Pastel themes still get their nice gradient headings */
+body.pastel-light-theme h1,
+body.pastel-light-theme .page-title,
+body.pastel-light-theme .section-title {
   color: #6b21a8 !important;
-  box-shadow: 3px 3px 0px 0px #ddd6fe !important;
+  -webkit-text-fill-color: #6b21a8 !important;
 }
 
-body.pastel-light-theme .btn-secondary:hover {
-  background: #f3e8ff !important;
-  transform: translate(-1px, -1px) !important;
-  box-shadow: 4px 4px 0px 0px #ddd6fe !important;
+body.pastel-dark-theme h1,
+body.pastel-dark-theme .page-title,
+body.pastel-dark-theme .section-title {
+  color: #a78bfa !important;
+  -webkit-text-fill-color: #a78bfa !important;
 }
 
-/* 5. Custom Form Controls and Glowing Focus */
-input[type="text"], input[type="email"], input[type="password"], textarea, select {
-  background: rgba(15, 23, 42, 0.4) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 14px !important;
+/* ─── 4. Fix inputs – remove broken global opacity overrides ─── */
+/* Remove the heavy dark background forced onto ALL inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+textarea,
+select {
+  background: inherit !important;
+  border: inherit !important;
+  border-radius: inherit !important;
+  padding: inherit !important;
+  color: inherit !important;
+}
+
+/* Re-apply correct defaults per theme, using form-control class which the portal uses */
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .form-control,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .search-input,
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) select.form-control {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid var(--border-subtle) !important;
   color: var(--text-main) !important;
-  padding: 12px 16px !important;
-  font-size: 0.92rem !important;
-  transition: all 0.3s ease !important;
 }
 
-input[type="text"]:focus, input[type="email"]:focus, textarea:focus, select:focus {
-  outline: none !important;
-  border-color: rgba(99, 102, 241, 0.5) !important;
-  background: rgba(15, 23, 42, 0.6) !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+/* ─── 5. Fix .btn – remove broken padding override for all btns ─── */
+.btn {
+  overflow: visible !important;
 }
 
-body.light-theme input[type="text"], body.light-theme select {
-  background: rgba(255, 255, 255, 0.7) !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
+/* ─── 6. Fix job-card ::after overlay blocking clicks ─── */
+.glass-panel::after,
+.glass-card::after,
+.job-card::after {
+  content: none !important;
 }
 
-body.light-theme input[type="text"]:focus, body.light-theme select:focus {
-  background: #ffffff !important;
-  border-color: #4f46e5 !important;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
-}
-
-body.pastel-light-theme input, body.pastel-light-theme select, body.pastel-light-theme textarea {
-  border: 2px solid #ddd6fe !important;
-  border-radius: 12px !important;
-  background: #ffffff !important;
-}
-
-body.pastel-light-theme input:focus, body.pastel-light-theme select:focus {
-  border-color: #6b21a8 !important;
-  box-shadow: none !important;
-}
-
-/* 6. Capsule Badges */
-.badge {
-  border-radius: 100px !important;
-  padding: 4px 12px !important;
-  font-size: 0.75rem !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 4px !important;
-}
-
-/* 7. Grid Dashboard Adjustments */
-.dashboard-grid {
-  gap: 24px !important;
-}
-
-.job-card-meta {
+/* ─── 7. Recruiter portal – header icon circle style fix ─── */
+.header .header-icon-btn,
+.header .icon-btn,
+.header .nav-icon-btn {
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 50% !important;
+  width: 36px !important;
+  height: 36px !important;
   display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 12px !important;
-  margin-top: 12px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: background 0.2s ease !important;
 }
 
-.job-card-meta-item {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  padding: 4px 10px !important;
-  border-radius: 8px !important;
-  font-size: 0.78rem !important;
-  color: var(--text-muted) !important;
+body.light-theme .header .header-icon-btn,
+body.light-theme .header .icon-btn,
+body.light-theme .header .nav-icon-btn {
+  background: rgba(0,0,0,0.04) !important;
+  border: 1px solid rgba(0,0,0,0.07) !important;
 }
 
-body.light-theme .job-card-meta-item {
-  background: rgba(0, 0, 0, 0.02) !important;
-  border-color: rgba(0, 0, 0, 0.04) !important;
+.header .header-icon-btn:hover,
+.header .icon-btn:hover {
+  background: rgba(255,255,255,0.1) !important;
 }
 
-body.pastel-light-theme .job-card-meta-item {
-  background: #fdf4ff !important;
-  border: 1px solid #f3e8ff !important;
-  color: #6b21a8 !important;
-}
+/* ─── 8. Pastel theme form inputs stay clean ─── */
+body.pastel-light-theme .form-control,
+body.pastel-light-theme select,
+body.pastel-light-theme input {
+  background: #ffffff !important;
+  border: 2px solid #ddd6fe !important;
+  border-radius: 10px !important;
+  color: #3b0764 !important;
+}
+
+body.pastel-light-theme .form-control:focus,
+body.pastel-light-theme select:focus,
+body.pastel-light-theme input:focus {
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 0 3px rgba(168,85,247,0.12) !important;
+}
+
+body.pastel-dark-theme .form-control,
+body.pastel-dark-theme select,
+body.pastel-dark-theme input {
+  background: rgba(15,23,42,0.5) !important;
+  border: 1px solid #475569 !important;
+  border-radius: 10px !important;
+  color: #f8fafc !important;
+}
+
+/* ─── 9. Dark theme job card micro-improvements ─── */
+body:not(.light-theme):not(.pastel-light-theme):not(.pastel-dark-theme) .job-card {
+  border-color: rgba(255,255,255,0.06) !important;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* ─── 10. Filter panel – remove accidental "Favourites" button duplicate ─── */
+/* The filter panel favourites item should only be shown once */
+.filter-panel .favourites-filter-btn + .favourites-filter-btn {
+  display: none !important;
+}
+
+
