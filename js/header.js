@@ -89,36 +89,41 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // 3. Initialize theme state
-      const savedTheme = localStorage.getItem('theme') || 'dark';
+      let savedTheme = localStorage.getItem('theme') || 'dark';
+      if (savedTheme === 'pastel-light') {
+        savedTheme = 'light';
+        localStorage.setItem('theme', 'light');
+      } else if (savedTheme === 'pastel-dark') {
+        savedTheme = 'dark';
+        localStorage.setItem('theme', 'dark');
+      }
       document.documentElement.classList.remove('light-theme', 'pastel-light-theme', 'pastel-dark-theme');
       document.body.classList.remove('light-theme', 'pastel-light-theme', 'pastel-dark-theme');
-      if (savedTheme !== 'dark') {
-        document.documentElement.classList.add(savedTheme + '-theme');
-        document.body.classList.add(savedTheme + '-theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.add('light-theme');
+        document.body.classList.add('light-theme');
       }
       const checkbox = document.getElementById('themeToggleCheckbox');
-      if (checkbox) checkbox.checked = (savedTheme === 'light' || savedTheme === 'pastel-light');
+      if (checkbox) checkbox.checked = (savedTheme === 'light');
 
       // 3a. Initialize accent color state
-      if (savedTheme === 'light' || savedTheme === 'dark') {
-        const savedAccent = localStorage.getItem('accent_color');
-        if (savedAccent) {
-          try {
-            const accentData = JSON.parse(savedAccent);
-            document.body.style.setProperty('--accent-secondary', accentData.secondary);
-            document.body.style.setProperty('--accent-tertiary', accentData.tertiary);
-            document.body.style.setProperty('--border-focus', accentData.focus);
-            document.body.style.setProperty('--accent-secondary-hover', accentData.hover);
-          } catch (e) {
-            console.error("Error parsing accent color:", e);
-          }
-        } else {
-          if (!isRecruiter && !isSeeker) {
-            document.body.style.setProperty('--accent-secondary', '#2563eb');
-            document.body.style.setProperty('--accent-tertiary', '#3b82f6');
-            document.body.style.setProperty('--border-focus', 'rgba(59, 130, 246, 0.4)');
-            document.body.style.setProperty('--accent-secondary-hover', '#1d4ed8');
-          }
+      const savedAccent = localStorage.getItem('accent_color');
+      if (savedAccent) {
+        try {
+          const accentData = JSON.parse(savedAccent);
+          document.body.style.setProperty('--accent-secondary', accentData.secondary);
+          document.body.style.setProperty('--accent-tertiary', accentData.tertiary);
+          document.body.style.setProperty('--border-focus', accentData.focus);
+          document.body.style.setProperty('--accent-secondary-hover', accentData.hover);
+        } catch (e) {
+          console.error("Error parsing accent color:", e);
+        }
+      } else {
+        if (!isRecruiter && !isSeeker) {
+          document.body.style.setProperty('--accent-secondary', '#2563eb');
+          document.body.style.setProperty('--accent-tertiary', '#3b82f6');
+          document.body.style.setProperty('--border-focus', 'rgba(59, 130, 246, 0.4)');
+          document.body.style.setProperty('--accent-secondary-hover', '#1d4ed8');
         }
       }
 
@@ -358,29 +363,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                       </div>
 
-                      <!-- Special Pastel Themes Section -->
-                      <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-subtle);">
-                        <h4>Pastel Themes</h4>
-                        <p class="tab-desc">Clean design with rounded panels and colorful borders.</p>
-                        <div class="theme-cards-container">
-                          <!-- Pastel Light Theme Card -->
-                          <div class="theme-card" id="themeCardPastelLight" data-theme="pastel-light">
-                            <div class="theme-card-preview theme-preview-pastel-light" style="background: #f8fafc; border-color: #cbd5e1; display: flex; flex-direction: column; gap: 4px; padding: 6px;">
-                              <div class="preview-header" style="height: 10px; background: #f3e8ff; border: 2.5px solid #d8b4fe; border-radius: 3px;"></div>
-                              <div class="preview-body" style="flex: 1; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 3px;"></div>
-                            </div>
-                            <div class="theme-card-label">Pastel Light</div>
-                          </div>
-                          <!-- Pastel Dark Theme Card -->
-                          <div class="theme-card" id="themeCardPastelDark" data-theme="pastel-dark">
-                            <div class="theme-card-preview theme-preview-pastel-dark" style="background: #0f172a; border-color: #1e293b; display: flex; flex-direction: column; gap: 4px; padding: 6px;">
-                              <div class="preview-header" style="height: 10px; background: #3b0764; border: 1.5px solid #c084fc; border-radius: 3px;"></div>
-                              <div class="preview-body" style="flex: 1; background: #0f172a; border: 1.5px solid #1e293b; border-radius: 3px;"></div>
-                            </div>
-                            <div class="theme-card-label">Pastel Dark</div>
-                          </div>
-                        </div>
-                      </div>
                     </div>
 
                     <!-- Tab Content: UI/UX -->
@@ -819,10 +801,9 @@ document.addEventListener("DOMContentLoaded", () => {
                const colorsSection = activeModal.querySelector('#themeColorsSection');
                const colorsSectionTitle = activeModal.querySelector('#themeColorsSectionTitle');
                if (colorsSection) {
-                 const isPastelTheme = currentTheme === 'pastel-light' || currentTheme === 'pastel-dark';
                  colorsSection.style.display = 'block';
                  if (colorsSectionTitle) {
-                   colorsSectionTitle.textContent = isPastelTheme ? 'Pastel Accent Color' : 'Accent Color';
+                   colorsSectionTitle.textContent = 'Accent Color';
                  }
                  if (window.renderAccentColors) {
                    window.renderAccentColors(activeModal, isRecruiter ? 'recruiter' : 'seeker', currentTheme);
@@ -1267,10 +1248,11 @@ window.applyAllUIPreferences = function () {
 
 // Global Set Theme Function
 window.setTheme = function (themeName) {
+  if (themeName === 'pastel-light') themeName = 'light';
+  if (themeName === 'pastel-dark') themeName = 'dark';
+
   document.body.classList.remove('light-theme', 'pastel-light-theme', 'pastel-dark-theme');
   document.documentElement.classList.remove('light-theme', 'pastel-light-theme', 'pastel-dark-theme');
-
-  const isPastel = themeName === 'pastel-light' || themeName === 'pastel-dark';
 
   if (themeName === 'light') {
     document.body.classList.add('light-theme');
@@ -1280,24 +1262,6 @@ window.setTheme = function (themeName) {
     const savedAccent = localStorage.getItem('accent_color');
     if (savedAccent) {
       try { window.applyAccentColor(JSON.parse(savedAccent)); } catch(e) {}
-    }
-  } else if (themeName === 'pastel-light') {
-    document.body.classList.add('pastel-light-theme');
-    document.documentElement.classList.add('pastel-light-theme');
-    localStorage.setItem('theme', 'pastel-light');
-    // Re-apply saved pastel accent
-    const savedPastelAccent = localStorage.getItem('pastel_accent_color');
-    if (savedPastelAccent) {
-      try { window.applyPastelAccentColor(JSON.parse(savedPastelAccent)); } catch(e) {}
-    }
-  } else if (themeName === 'pastel-dark') {
-    document.body.classList.add('pastel-dark-theme');
-    document.documentElement.classList.add('pastel-dark-theme');
-    localStorage.setItem('theme', 'pastel-dark');
-    // Re-apply saved pastel accent
-    const savedPastelAccent = localStorage.getItem('pastel_accent_color');
-    if (savedPastelAccent) {
-      try { window.applyPastelAccentColor(JSON.parse(savedPastelAccent)); } catch(e) {}
     }
   } else {
     localStorage.setItem('theme', 'dark');
@@ -1310,7 +1274,7 @@ window.setTheme = function (themeName) {
   
   // Sync header checkbox if present
   const checkbox = document.getElementById('themeToggleCheckbox');
-  if (checkbox) checkbox.checked = (themeName === 'light' || themeName === 'pastel-light');
+  if (checkbox) checkbox.checked = (themeName === 'light');
 
   // Sync active state visually on theme cards if modal is open
   const activeModal = document.getElementById('globalSettingsModal');
@@ -1324,7 +1288,7 @@ window.setTheme = function (themeName) {
     if (colorsSection) {
       colorsSection.style.display = 'block';
       if (colorsSectionTitle) {
-        colorsSectionTitle.textContent = isPastel ? 'Pastel Accent Color' : 'Accent Color';
+        colorsSectionTitle.textContent = 'Accent Color';
       }
       const isRecruiter = document.body.classList.contains('recruiter-page');
       if (window.renderAccentColors) {
@@ -1343,12 +1307,8 @@ window.toggleTheme = function () {
   const currentTheme = localStorage.getItem('theme') || 'dark';
   if (currentTheme === 'light') {
     window.setTheme('dark');
-  } else if (currentTheme === 'dark') {
+  } else {
     window.setTheme('light');
-  } else if (currentTheme === 'pastel-light') {
-    window.setTheme('pastel-dark');
-  } else if (currentTheme === 'pastel-dark') {
-    window.setTheme('pastel-light');
   }
 };
 
@@ -1368,68 +1328,8 @@ window.logout = function () {
   window.location.replace(`${prefix}index.html`);
 };
 
-// Color Accent Lists
-const pastelColors = [
-  { name: 'Lavender',  key: 'lavender', primary: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8', darkBg: '#0f081d', darkSurface: '#170e2a', darkBorder: 'rgba(216, 180, 254, 0.22)' },
-  { name: 'Rose Pink', key: 'rose',     primary: '#fce7f3', border: '#f9a8d4', text: '#be185d', darkBg: '#1d0813', darkSurface: '#2a0e1c', darkBorder: 'rgba(249, 168, 212, 0.22)' },
-  { name: 'Sky Blue',  key: 'sky',      primary: '#e0f2fe', border: '#7dd3fc', text: '#0284c7', darkBg: '#05131e', darkSurface: '#0a1c2a', darkBorder: 'rgba(125, 211, 252, 0.22)' },
-  { name: 'Mint',      key: 'mint',     primary: '#dcfce7', border: '#86efac', text: '#16a34a', darkBg: '#041c10', darkSurface: '#0b291a', darkBorder: 'rgba(134, 239, 172, 0.22)' },
-  { name: 'Peach',     key: 'peach',    primary: '#ffedd5', border: '#fed7aa', text: '#ea580c', darkBg: '#1c0d04', darkSurface: '#2c170b', darkBorder: 'rgba(254, 215, 170, 0.22)' },
-  { name: 'Lemon',     key: 'lemon',    primary: '#fef9c3', border: '#fde047', text: '#ca8a04', darkBg: '#1c1804', darkSurface: '#2c260b', darkBorder: 'rgba(253, 224, 71, 0.22)' },
-  { name: 'Teal',      key: 'teal',     primary: '#ccfbf1', border: '#5eead4', text: '#0d9488', darkBg: '#041a18', darkSurface: '#0a2926', darkBorder: 'rgba(94, 234, 212, 0.22)' },
-  { name: 'Lilac',     key: 'lilac',    primary: '#ede9fe', border: '#c4b5fd', text: '#7c3aed', darkBg: '#0e071c', darkSurface: '#180e2d', darkBorder: 'rgba(196, 181, 253, 0.22)' },
-  { name: 'Coral',     key: 'coral',    primary: '#fff1f2', border: '#fda4af', text: '#f43f5e', darkBg: '#1f050b', darkSurface: '#2f0a14', darkBorder: 'rgba(253, 164, 175, 0.22)' },
-  { name: 'Sand',      key: 'sand',     primary: '#fef3c7', border: '#fcd34d', text: '#d97706', darkBg: '#1c1204', darkSurface: '#2b1d0b', darkBorder: 'rgba(252, 211, 77, 0.22)' },
-  { name: 'Blush',     key: 'blush',    primary: '#fdf2f8', border: '#f0abfc', text: '#c026d3', darkBg: '#1c061d', darkSurface: '#2a0c2c', darkBorder: 'rgba(240, 171, 252, 0.22)' },
-  { name: 'Ice Blue',  key: 'ice',      primary: '#ecfeff', border: '#67e8f9', text: '#06b6d4', darkBg: '#04181c', darkSurface: '#0a262c', darkBorder: 'rgba(103, 232, 249, 0.22)' }
-];
 
-// Global Apply Pastel Accent Color function
-// Sets ALL design-system CSS variables so the whole UI changes with the picked accent.
-window.applyPastelAccentColor = function(accentData) {
-  if (!accentData) return;
 
-  const p  = accentData.primary;  // e.g. #f3e8ff (light bg tint)
-  const b  = accentData.border;   // e.g. #d8b4fe (border / mid)
-  const t  = accentData.text;     // e.g. #6b21a8 (dark text / solid fill)
-
-  // -- named pastel accent vars (used by pastel CSS rules) --
-  document.body.style.setProperty('--pastel-accent-primary', t);
-  document.body.style.setProperty('--pastel-accent-light',   p);
-  document.body.style.setProperty('--pastel-accent-border',  b);
-  document.body.style.setProperty('--pastel-accent-text',    t);
-
-  // -- override the CORE design-system vars so every component inherits --
-  const isPastelLight = document.body.classList.contains('pastel-light-theme');
-  if (isPastelLight) {
-    document.body.style.setProperty('--bg-primary',      `linear-gradient(135deg, ${p} 0%, #ffffff 60%, ${p} 100%)`);
-    document.body.style.setProperty('--bg-surface',      '#ffffff');
-    document.body.style.setProperty('--border-subtle',   b);
-    document.body.style.setProperty('--border-focus',    t);
-    document.body.style.setProperty('--accent-primary',  t);
-    document.body.style.setProperty('--accent-secondary', p);
-    document.body.style.setProperty('--accent-tertiary',  b);
-    document.body.style.setProperty('--text-main',       '#0f172a');
-    document.body.style.setProperty('--text-muted',      '#475569');
-  } else {
-    // pastel-dark
-    const dbg = accentData.darkBg || '#0f081d';
-    const dsf = accentData.darkSurface || '#170e2a';
-    const dbd = accentData.darkBorder || 'rgba(216, 180, 254, 0.22)';
-    document.body.style.setProperty('--bg-primary',      `linear-gradient(135deg, ${dbg} 0%, #05040a 60%, ${dbg} 100%)`);
-    document.body.style.setProperty('--bg-surface',      dsf);
-    document.body.style.setProperty('--border-subtle',   dbd);
-    document.body.style.setProperty('--border-focus',    b);
-    document.body.style.setProperty('--accent-primary',  b);
-    document.body.style.setProperty('--accent-secondary', dbg);
-    document.body.style.setProperty('--accent-tertiary',  dsf);
-    document.body.style.setProperty('--text-main',       '#f8fafc');
-    document.body.style.setProperty('--text-muted',      '#94a3b8');
-  }
-
-  localStorage.setItem('pastel_accent_color', JSON.stringify(accentData));
-  if (window.applyRandomButtonColors) window.applyRandomButtonColors();
-};
 
 // Color Accent Lists
 const seekerColors = [
@@ -1486,59 +1386,32 @@ window.renderAccentColors = function (modalEl, portalType, currentTheme) {
   
   container.innerHTML = '';
   
-  const theme = currentTheme || localStorage.getItem('theme') || 'dark';
-  const isPastel = theme === 'pastel-light' || theme === 'pastel-dark';
-  
-  if (isPastel) {
-    // Pastel color accent picker — use same .item-color style as standard accents
-    const savedPastel = localStorage.getItem('pastel_accent_color');
-    let activeKey = 'lavender';
-    if (savedPastel) {
-      try { activeKey = JSON.parse(savedPastel).key; } catch(e) {}
-    }
-    pastelColors.forEach(color => {
-      const btn = document.createElement('button');
-      btn.className = 'item-color';
-      if (color.key === activeKey) btn.classList.add('active');
-      btn.setAttribute('aria-color', color.name);  // used by CSS ::before tooltip
-      btn.setAttribute('data-color-key', color.key);
-      btn.style.setProperty('--color', color.border);  // swatch color via CSS ::after
-      btn.addEventListener('click', () => {
-        container.querySelectorAll('.item-color').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        window.applyPastelAccentColor(color);
-      });
-      container.appendChild(btn);
-    });
-  } else {
-    // Standard accent color picker for light/dark themes
-    const colorsList = (portalType === 'seeker') ? seekerColors : recruiterColors;
-    const savedAccent = localStorage.getItem('accent_color');
-    let activeKey = '';
-    if (savedAccent) {
-      try {
-        const parsed = JSON.parse(savedAccent);
-        const match = colorsList.find(c => c.secondary.toLowerCase() === parsed.secondary.toLowerCase());
-        if (match) activeKey = match.key;
-      } catch(e) {}
-    }
-    if (!activeKey) activeKey = colorsList[0].key;
-    
-    colorsList.forEach(color => {
-      const btn = document.createElement('button');
-      btn.className = 'item-color';
-      if (color.key === activeKey) btn.classList.add('active');
-      btn.setAttribute('aria-color', color.name);
-      btn.setAttribute('data-color-key', color.key);
-      btn.style.setProperty('--color', color.secondary);
-      btn.addEventListener('click', () => {
-        container.querySelectorAll('.item-color').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        window.applyAccentColor(color);
-      });
-      container.appendChild(btn);
-    });
+  const colorsList = (portalType === 'seeker') ? seekerColors : recruiterColors;
+  const savedAccent = localStorage.getItem('accent_color');
+  let activeKey = '';
+  if (savedAccent) {
+    try {
+      const parsed = JSON.parse(savedAccent);
+      const match = colorsList.find(c => c.secondary.toLowerCase() === parsed.secondary.toLowerCase());
+      if (match) activeKey = match.key;
+    } catch(e) {}
   }
+  if (!activeKey) activeKey = colorsList[0].key;
+  
+  colorsList.forEach(color => {
+    const btn = document.createElement('button');
+    btn.className = 'item-color';
+    if (color.key === activeKey) btn.classList.add('active');
+    btn.setAttribute('aria-color', color.name);
+    btn.setAttribute('data-color-key', color.key);
+    btn.style.setProperty('--color', color.secondary);
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.item-color').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      window.applyAccentColor(color);
+    });
+    container.appendChild(btn);
+  });
 };
 
 // Global function to apply static randomized colors to buttons
@@ -1549,7 +1422,7 @@ window.applyRandomButtonColors = function() {
   if (!enabled) {
     buttons.forEach(btn => {
       // Don't modify color picker buttons
-      if (!btn.classList.contains('item-color') && !btn.classList.contains('pastel-color-btn')) {
+      if (!btn.classList.contains('item-color')) {
         btn.style.removeProperty('background');
         btn.style.removeProperty('background-image');
         btn.style.removeProperty('color');
@@ -1559,7 +1432,7 @@ window.applyRandomButtonColors = function() {
     return;
   }
   
-  // 12 beautiful pastel colors for button backgrounds
+  // 12 beautiful colors for button backgrounds
   const colors = ['#6b21a8', '#be185d', '#0284c7', '#16a34a', '#ea580c', '#ca8a04', '#0d9488', '#7c3aed', '#f43f5e', '#d97706', '#c026d3', '#06b6d4'];
   
   buttons.forEach(btn => {
@@ -1570,7 +1443,6 @@ window.applyRandomButtonColors = function() {
       btn.classList.contains('delete-btn') ||
       btn.classList.contains('btn-like-card') ||
       btn.classList.contains('item-color') ||
-      btn.classList.contains('pastel-color-btn') ||
       btn.id === 'themeToggleCheckbox' ||
       btn.id === 'modalRandomColorsToggle' ||
       btn.id === 'modalAdvancedUIToggle' ||
