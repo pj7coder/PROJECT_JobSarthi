@@ -22,18 +22,56 @@
   <style>
     .applicants-layout {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
+      grid-template-columns: 280px 1fr;
+      gap: 30px;
       margin-top: 30px;
+      align-items: start;
     }
 
-    .pipeline-header {
-      padding: 16px 24px;
+    @media (max-width: 900px) {
+      .applicants-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sidebar-filter-panel {
+      position: sticky;
+      top: 90px;
+      height: fit-content;
+      padding: 24px;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 10;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar-filter-panel {
+        position: relative !important;
+        top: 0 !important;
+      }
+    }
+
+    .stage-tab {
+      display: flex;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.02) !important;
+      border: 1px solid var(--glass-border) !important;
+      color: var(--text-muted) !important;
+      transition: var(--transition-normal);
+    }
+
+    .stage-tab:hover {
+      background: rgba(255, 255, 255, 0.06) !important;
+      color: var(--text-main) !important;
+    }
+
+    .stage-tab.active {
+      background: var(--accent-secondary) !important;
+      color: #ffffff !important;
+      border-color: var(--accent-secondary) !important;
+      box-shadow: 0 0 12px rgba(217, 70, 239, 0.3) !important;
     }
 
     .applicant-item {
@@ -171,31 +209,46 @@
   <main class="container">
 
 
-    <!-- Pipeline Header panel -->
-    <div class="glass-panel pipeline-header" style="margin-top: 30px;">
-      <div style="display: flex; gap: 12px; align-items: center;">
-        <span style="color: var(--text-muted); font-size: 0.9rem;">Filter by Role:</span>
-        <select id="roleFilter" class="form-control" style="padding: 8px 16px;" onchange="renderApplicants()">
-          <option value="all">All Roles</option>
-          <option value="Frontend Developer">Frontend Developer</option>
-          <option value="UI/UX Designer">UI/UX Designer</option>
-          <option value="Python Developer">Python Developer</option>
-        </select>
-      </div>
+    <div class="applicants-layout">
+      <!-- Left Side: Sidebar Filter & Status Tabs Panel (Sticky/Static) -->
+      <aside class="glass-panel sidebar-filter-panel" style="margin-top: 30px;">
+        <h2 style="font-size: 1.15rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 10px; font-weight: 700;">Filters & Stages</h2>
+        
+        <!-- Stages / Tabs -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <span style="color: var(--text-muted); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Application Stage</span>
+          <button class="btn btn-secondary stage-tab active" id="tab-all" onclick="setStageFilter('all')" style="justify-content: flex-start; text-align: left; padding: 10px 14px; font-size: 0.85rem; width: 100%;">📁 All Applicants</button>
+          <button class="btn btn-secondary stage-tab" id="tab-shortlisted" onclick="setStageFilter('Shortlisted')" style="justify-content: flex-start; text-align: left; padding: 10px 14px; font-size: 0.85rem; width: 100%;">🟢 Accepted / Shortlisted</button>
+          <button class="btn btn-secondary stage-tab" id="tab-interviewing" onclick="setStageFilter('Interviewing')" style="justify-content: flex-start; text-align: left; padding: 10px 14px; font-size: 0.85rem; width: 100%;">🔵 Interviewing</button>
+          <button class="btn btn-secondary stage-tab" id="tab-rejected" onclick="setStageFilter('Rejected')" style="justify-content: flex-start; text-align: left; padding: 10px 14px; font-size: 0.85rem; width: 100%;">🔴 Rejected</button>
+        </div>
 
-      <div style="display: flex; gap: 12px; align-items: center;">
-        <span style="color: var(--text-muted); font-size: 0.9rem;">Sort by:</span>
-        <select id="sortFilter" class="form-control" style="padding: 8px 16px;" onchange="renderApplicants()">
-          <option value="matchDesc">Match Score: High to Low</option>
-          <option value="matchAsc">Match Score: Low to High</option>
-          <option value="name">Candidate Name</option>
-        </select>
-      </div>
-    </div>
+        <!-- Role Filter -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="roleFilter" style="color: var(--text-muted); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Filter by Role</label>
+          <select id="roleFilter" class="form-control" style="width: 100%; padding: 8px 12px; background: rgba(0, 0, 0, 0.2); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 6px;" onchange="renderApplicants()">
+            <option value="all">All Roles</option>
+            <option value="Frontend Developer">Frontend Developer</option>
+            <option value="UI/UX Designer">UI/UX Designer</option>
+            <option value="Python Developer">Python Developer</option>
+          </select>
+        </div>
 
-    <!-- Applicants Board -->
-    <div class="applicants-layout" id="applicantsContainer">
-      <!-- Items loaded via script -->
+        <!-- Sort Filter -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="sortFilter" style="color: var(--text-muted); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Sort by</label>
+          <select id="sortFilter" class="form-control" style="width: 100%; padding: 8px 12px; background: rgba(0, 0, 0, 0.2); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 6px;" onchange="renderApplicants()">
+            <option value="matchDesc">Match Score: High to Low</option>
+            <option value="matchAsc">Match Score: Low to High</option>
+            <option value="name">Candidate Name</option>
+          </select>
+        </div>
+      </aside>
+
+      <!-- Right Side: Scrollable Applicants Board -->
+      <section class="applicants-list-container" id="applicantsContainer" style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
+        <!-- Items loaded via script -->
+      </section>
     </div>
   </main>
 
@@ -250,6 +303,15 @@
   <script>
     let selectedCandidate = null;
     let applicantsList = [];
+    let activeStageFilter = 'all';
+
+    function setStageFilter(stage) {
+      activeStageFilter = stage;
+      document.querySelectorAll('.stage-tab').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('tab-' + stage.toLowerCase());
+      if (activeBtn) activeBtn.classList.add('active');
+      renderApplicants();
+    }
 
     document.addEventListener("DOMContentLoaded", () => {
       const comp = localStorage.getItem('recruiter_company') || 'InnovateTech';
@@ -325,6 +387,7 @@
 
       // Filter
       let filtered = applicantsList.filter(c => {
+        if (activeStageFilter !== 'all' && c.status !== activeStageFilter) return false;
         if (roleFilter === 'all') return true;
         return c.role === roleFilter;
       });
@@ -386,9 +449,15 @@
               ${skillsList.length > 6 ? `<span class="badge" style="color: var(--text-dark); border: 1px solid var(--border-subtle);">+${skillsList.length - 6} more</span>` : ''}
             </div>
           </div>
-          <div class="applicant-actions">
+          <div class="applicant-actions" style="display: flex; align-items: center; gap: 8px;">
             <span class="score-badge" style="${scoreStyle}">${c.match}% Fit</span>
-            <button class="btn btn-details-animated" onclick="openCandidateDrawer('${c.id}')">Review Profile</button>
+            <button class="btn btn-details-animated" onclick="openCandidateDrawer('${c.id}')">View Profile</button>
+            <button class="btn btn-icon btn-accept" onclick="updateCandidateStatusDirect('${c.id}', 'Shortlisted')" title="Accept / Shortlist" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); width: 36px; height: 36px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(16, 185, 129, 0.2)'" onmouseout="this.style.background='rgba(16, 185, 129, 0.1)'">
+              <i data-lucide="check" style="width: 18px; height: 18px;"></i>
+            </button>
+            <button class="btn btn-icon btn-reject" onclick="updateCandidateStatusDirect('${c.id}', 'Rejected')" title="Reject" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); width: 36px; height: 36px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'">
+              <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+            </button>
           </div>
         `;
 
@@ -475,16 +544,15 @@
         actionsDiv.appendChild(b1);
       }
 
-      if (selectedCandidate.status !== 'Interviewing') {
-        const b2 = document.createElement('button');
-        b2.className = 'btn btn-primary';
-        b2.style.flex = '1';
-        b2.style.background = 'var(--accent-secondary)';
-        b2.style.color = '#ffffff';
-        b2.textContent = 'Schedule Interview';
-        b2.onclick = () => updateCandidateStatus('Interviewing');
-        actionsDiv.appendChild(b2);
-      }
+      // Always show Schedule Interview button in the candidate profile details
+      const b2 = document.createElement('button');
+      b2.className = 'btn btn-primary';
+      b2.style.flex = '1';
+      b2.style.background = 'var(--accent-secondary)';
+      b2.style.color = '#ffffff';
+      b2.textContent = 'Schedule Interview';
+      b2.onclick = () => openScheduleModal();
+      actionsDiv.appendChild(b2);
 
       if (selectedCandidate.status !== 'Rejected') {
         const b3 = document.createElement('button');
@@ -518,7 +586,6 @@
         selectedCandidate.status = status;
         document.getElementById('candidateDrawer').style.display = 'none';
         
-        // Reload all applicants from database to keep lists perfectly synced
         const comp = localStorage.getItem('recruiter_company') || 'InnovateTech';
         loadApplicants(comp);
       } catch (err) {
@@ -526,8 +593,150 @@
         alert("Failed to update status on server.");
       }
     }
+
+    async function updateCandidateStatusDirect(id, status) {
+      try {
+        const response = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants/${id}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        if (!response.ok) throw new Error("Failed to update status");
+        
+        const candidate = applicantsList.find(c => c.id === id);
+        if (candidate) {
+          candidate.status = status;
+        }
+        renderApplicants();
+      } catch (err) {
+        console.error(err);
+        alert("Failed to update status on server.");
+      }
+    }
+
+    function openScheduleModal() {
+      if (!selectedCandidate) return;
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const yyyy = tomorrow.getFullYear();
+      const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const dd = String(tomorrow.getDate()).padStart(2, '0');
+      document.getElementById('interviewDate').value = `${yyyy}-${mm}-${dd}`;
+      document.getElementById('interviewTime').value = "15:00";
+      
+      document.getElementById('scheduleModal').style.display = 'flex';
+    }
+
+    function closeScheduleModal() {
+      document.getElementById('scheduleModal').style.display = 'none';
+    }
+
+    async function confirmScheduleInterview() {
+      const dateVal = document.getElementById('interviewDate').value;
+      const timeVal = document.getElementById('interviewTime').value;
+      if (!dateVal || !timeVal) {
+        alert("Please select both a date and a time.");
+        return;
+      }
+
+      const dateObj = new Date(dateVal);
+      const formattedDate = dateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      const [hours, minutes] = timeVal.split(':');
+      const suffix = Number(hours) >= 12 ? 'PM' : 'AM';
+      const formattedHours = ((Number(hours) + 11) % 12 + 1);
+      const formattedTime = `${formattedHours}:${minutes} ${suffix}`;
+
+      if (!selectedCandidate) return;
+      
+      const recruiterEmail = localStorage.getItem('recruiter_email');
+      const recruiterCompany = localStorage.getItem('recruiter_company') || 'Company';
+      const finalRecruiterName = recruiterCompany + ' HR';
+      
+      const inviteMsg = `📅 <strong>Interview Scheduled:</strong> An interview invitation has been generated for ${formattedDate} at ${formattedTime} (IST). Please check your email calendar details.`;
+
+      closeScheduleModal();
+      document.getElementById('candidateDrawer').style.display = 'none';
+
+      try {
+        // 1. Update candidate status to 'Interviewing' on the server
+        const statusResponse = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants/${selectedCandidate.id}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Interviewing' })
+        });
+        if (!statusResponse.ok) throw new Error("Failed to update status");
+
+        // 2. Send message to seeker on the server
+        const msgResponse = await fetch((window.API_BASE_URL || '') + '/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seekerEmail: selectedCandidate.email,
+            seekerName: selectedCandidate.name,
+            recruiterEmail: recruiterEmail,
+            recruiterName: finalRecruiterName,
+            companyName: recruiterCompany,
+            sender: 'recruiter',
+            text: inviteMsg
+          })
+        });
+        if (!msgResponse.ok) throw new Error("Failed to send invite message");
+
+        // 3. Add event to recruiter's calendar (local storage)
+        const events = JSON.parse(localStorage.getItem('recruiter_calendar_events') || '{}');
+        if (!events[dateVal]) {
+          events[dateVal] = [];
+        }
+        const exists = events[dateVal].some(ev => ev.title.includes(selectedCandidate.name));
+        if (!exists) {
+          events[dateVal].push({
+            type: 'interview',
+            title: `Interview with ${selectedCandidate.name} (${selectedCandidate.role})`,
+            time: formattedTime
+          });
+          localStorage.setItem('recruiter_calendar_events', JSON.stringify(events));
+        }
+
+        // Reload applicants
+        const comp = localStorage.getItem('recruiter_company') || 'InnovateTech';
+        loadApplicants(comp);
+        
+        alert(`Interview successfully scheduled with ${selectedCandidate.name} for ${formattedDate} at ${formattedTime}!`);
+      } catch (err) {
+        console.error("Error scheduling interview:", err);
+        alert('Failed to schedule interview. Please try again.');
+      }
+    }
   
   </script>
+
+  <!-- Schedule Interview Modal -->
+  <div class="drawer-overlay" id="scheduleModal" style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); z-index: 100000; padding: 20px;">
+    <div class="glass-panel" style="width: 400px; max-width: 100%; padding: 28px; display: flex; flex-direction: column; gap: 20px; box-shadow: none !important; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 12px;">
+      <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin: 0;">Schedule Interview</h3>
+      
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Select Date</label>
+        <input type="date" id="interviewDate" class="form-control" style="width: 100%; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-subtle); padding: 8px 12px; border-radius: 6px;">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Select Time</label>
+        <input type="time" id="interviewTime" class="form-control" style="width: 100%; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-subtle); padding: 8px 12px; border-radius: 6px;">
+      </div>
+
+      <div style="display: gap: 12px; margin-top: 8px; display: flex;">
+        <button class="btn btn-secondary" style="flex: 1; padding: 10px; border-radius: 6px;" onclick="closeScheduleModal()">Cancel</button>
+        <button class="btn btn-primary" style="flex: 1; padding: 10px; border-radius: 6px; background: var(--accent-secondary); color: #ffffff;" onclick="confirmScheduleInterview()">Schedule</button>
+      </div>
+    </div>
+  </div>
   
   <script src="../js/header.js"></script>
 
