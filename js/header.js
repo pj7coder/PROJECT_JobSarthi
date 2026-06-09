@@ -158,6 +158,14 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.appendChild(splashScript);
       }
 
+      // Inject CalendarPopup script dynamically for seeker pages if not loaded
+      if (isSeeker && !document.getElementById('calendarPopupScript')) {
+        const calScript = document.createElement('script');
+        calScript.id = 'calendarPopupScript';
+        calScript.src = prefix + 'commonelements/calendarPopup.js';
+        document.body.appendChild(calScript);
+      }
+
       // 4. Identify role and check authentication
       const isLanding = !isRecruiter && !isSeeker;
       const isJobsPage = window.location.pathname.includes('jobs.html');

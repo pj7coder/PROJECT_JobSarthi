@@ -138,6 +138,16 @@ window.headerSeekerHTML = `
       </ul>
     </nav>
     <div class="header-actions">
+      <!-- Calendar Trigger -->
+      <button class="btn-icon" aria-label="Calendar" onclick="window.CalendarPopup.open()" style="background: transparent; border: none; color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 6px; border-radius: 50%; transition: background 0.2s;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </button>
+
       <!-- Notification Trigger -->
       <div class="header-dropdown-container">
         <button class="btn-icon dropdown-trigger" aria-label="Notifications">
