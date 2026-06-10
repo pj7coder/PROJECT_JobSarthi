@@ -3137,6 +3137,31 @@
           auditBox.appendChild(item);
         });
       }
+
+      // Save report to database
+      const seekerEmail = localStorage.getItem('seeker_email');
+      if (seekerEmail) {
+        fetch((window.API_BASE_URL || '') + "/api/sarthi/interviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: seekerEmail,
+            role: selectedRole,
+            difficulty: selectedDifficulty,
+            score: isNaN(finalScorePct) ? 0 : finalScorePct,
+            suspicionScore: suspicionScore,
+            history: interviewHistory
+          })
+        }).then(res => {
+          if (!res.ok) {
+            console.error("Failed to save interview report to database");
+          } else {
+            console.log("Interview report saved successfully!");
+          }
+        }).catch(err => {
+          console.error("Error saving interview report:", err);
+        });
+      }
     }
   </script>
 </body>

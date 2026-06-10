@@ -745,6 +745,25 @@ const dbService = {
     local.messages.push(msg);
     await writeLocalDB(local);
     return msg;
+  },
+  createInterviewReport: async (report) => {
+    if (mongoDb) {
+      await mongoDb.collection("interviews").insertOne(report);
+      return report;
+    }
+    const local = await readLocalDB();
+    if (!local.interviews) local.interviews = [];
+    local.interviews.push(report);
+    await writeLocalDB(local);
+    return report;
+  },
+  getInterviewReports: async (email) => {
+    if (mongoDb) {
+      return await mongoDb.collection("interviews").find({ email: email.toLowerCase() }).toArray();
+    }
+    const local = await readLocalDB();
+    const reports = local.interviews || [];
+    return reports.filter(r => r.email && r.email.toLowerCase() === email.toLowerCase());
   }
 };
 
@@ -2341,6 +2360,43 @@ If it is a SUBSEQUENT question:
       difficultyChange: "maintain",
       nextQuestion: "Can you explain the main lifecycle methods or stages in web application performance optimization?"
     });
+  }
+});
+
+app.post("/api/sarthi/interviews", async (req, res) => {
+  try {
+    const { email, role, difficulty, score, suspicionScore, history } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const report = {
+      email: email.toLowerCase(),
+      role: role || "Software Developer",
+      difficulty: difficulty || "Intermediate",
+      score: score !== undefined ? score : 0,
+      suspicionScore: suspicionScore !== undefined ? suspicionScore : 0,
+      history: history || [],
+      timestamp: new Date().toISOString()
+    };
+    const saved = await dbService.createInterviewReport(report);
+    res.status(201).json(saved);
+  } catch (err) {
+    console.error("Failed to save interview report:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/api/sarthi/interviews", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const reports = await dbService.getInterviewReports(email);
+    res.json(reports);
+  } catch (err) {
+    console.error("Failed to get interview reports:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

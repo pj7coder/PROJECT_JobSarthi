@@ -20,16 +20,15 @@
   </script>
   <style>
     body {
-      overflow: hidden; /* No scroll on page */
+      overflow-y: auto; /* Allow scroll on page */
     }
     .main-wrapper {
-      height: calc(100vh - 80px); /* Adjust for header height */
+      min-height: calc(100vh - 80px); /* Adjust for header height */
       display: flex;
       flex-direction: column;
       gap: 16px;
       padding-top: 20px;
-      padding-bottom: 20px;
-      overflow: hidden;
+      padding-bottom: 30px;
       box-sizing: border-box;
     }
     .top-stats {
@@ -63,8 +62,8 @@
       display: grid;
       grid-template-columns: 2fr 1fr;
       gap: 16px;
-      flex: 1;
-      min-height: 0; /* Important for nested flex scroll/overflow */
+      height: 350px;
+      flex-shrink: 0;
     }
     .chart-panel {
       display: flex;
@@ -263,7 +262,77 @@
       </div>
     </div>
 
+    <!-- AI Interviews Section -->
+    <div class="glass-panel interviews-panel" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+          🎙️ AI Mock Interview History & Reports
+        </h3>
+        <a href="aiinterview.html" class="btn btn-primary" style="font-size: 0.8rem; padding: 6px 12px; border-radius: var(--radius-md); text-decoration: none;">
+          Take New Interview
+        </a>
+      </div>
+      <div id="noInterviewsMessage" style="display: none; padding: 30px; text-align: center; color: var(--text-muted); font-size: 0.85rem; background: rgba(255, 255, 255, 0.01); border: 1px dashed var(--border-subtle); border-radius: var(--radius-md);">
+        No mock interviews taken yet. Complete an AI interview to see your reports here.
+      </div>
+      <div id="interviewsList" style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- Interview items will be inserted here -->
+      </div>
+    </div>
+
   </main>
+
+  <!-- Detailed Report Modal -->
+  <div id="reportModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+    <div class="glass-panel" style="width: 100%; max-width: 800px; max-height: 85vh; display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+      
+      <!-- Modal Header -->
+      <div style="padding: 20px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 id="modalTitle" style="font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--text-main);">AI Interview Evaluation Report</h3>
+          <p id="modalSubtitle" style="font-size: 0.8rem; color: var(--text-muted); margin: 4px 0 0;">Role & Difficulty</p>
+        </div>
+        <button onclick="closeReportModal()" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; font-size: 1.5rem; line-height: 1;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div style="padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Score Summary Cards -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; text-align: center;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Overall Score</div>
+            <div id="modalScore" style="font-size: 1.6rem; font-weight: 800; color: var(--accent-secondary); margin: 6px 0;">N/A</div>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; text-align: center;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Proctor Suspicion</div>
+            <div id="modalSuspicion" style="font-size: 1.6rem; font-weight: 800; color: var(--warning); margin: 6px 0;">N/A</div>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; text-align: center;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Date & Time</div>
+            <div id="modalDate" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin: 12px 0 6px;">N/A</div>
+          </div>
+        </div>
+
+        <!-- Q&A transcript -->
+        <div>
+          <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin: 0 0 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+            Question & Answer Transcript
+          </h4>
+          <div id="modalTranscript" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Transcript entries -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding: 16px 20px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; background: rgba(0,0,0,0.2);">
+        <button onclick="closeReportModal()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem; border-radius: var(--radius-md);">Close</button>
+      </div>
+
+    </div>
+  </div>
 
   <script src="../js/header.js"></script>
   <script>
@@ -342,6 +411,136 @@
           skillsContainer.appendChild(skillDiv);
         });
       }
+
+      // Fetch AI Interviews
+      if (email) {
+        try {
+          const res = await fetch((window.API_BASE_URL || '') + `/api/sarthi/interviews?email=${encodeURIComponent(email)}`);
+          if (res.ok) {
+            window.savedInterviews = await res.json();
+            renderInterviewsList(window.savedInterviews);
+          }
+        } catch (e) {
+          console.error("Failed to load mock interviews for analytics:", e);
+        }
+      } else {
+        renderInterviewsList([]);
+      }
+    }
+
+    function renderInterviewsList(reports) {
+      const listContainer = document.getElementById('interviewsList');
+      const noMessage = document.getElementById('noInterviewsMessage');
+      
+      if (!reports || reports.length === 0) {
+        noMessage.style.display = 'block';
+        listContainer.innerHTML = '';
+        return;
+      }
+      
+      noMessage.style.display = 'none';
+      listContainer.innerHTML = '';
+      
+      // Sort reports chronologically descending (newest first)
+      const sortedReports = [...reports].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      window.savedInterviews = sortedReports; // update order to match indices
+      
+      sortedReports.forEach((report, index) => {
+        const dateStr = new Date(report.timestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+        const scoreColor = report.score >= 70 ? 'var(--success)' : (report.score >= 50 ? 'var(--warning)' : 'var(--danger)');
+        const proctorColor = report.suspicionScore >= 50 ? 'var(--danger)' : 'var(--success)';
+        const proctorText = report.suspicionScore >= 50 ? `Flagged (${report.suspicionScore}%)` : 'Passed';
+        
+        const item = document.createElement('div');
+        item.className = 'interview-item';
+        item.style.cssText = `
+          display: flex; 
+          align-items: center; 
+          justify-content: space-between; 
+          padding: 12px 16px; 
+          background: rgba(255, 255, 255, 0.02); 
+          border: 1px solid var(--border-subtle); 
+          border-radius: var(--radius-md); 
+          transition: all 0.2s;
+        `;
+        item.setAttribute('onmouseover', "this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='var(--accent-secondary)';");
+        item.setAttribute('onmouseout', "this.style.background='rgba(255,255,255,0.02)'; this.style.borderColor='var(--border-subtle)';");
+        
+        item.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(99, 102, 241, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--accent-secondary);">🎙️</div>
+            <div>
+              <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${report.role}</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 1px;">
+                ${dateStr} &bull; Level: ${report.difficulty}
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 20px;">
+            <div style="text-align: right;">
+              <div style="font-size: 0.7rem; color: var(--text-muted);">Score</div>
+              <div style="font-size: 0.95rem; font-weight: 700; color: ${scoreColor};">${report.score}%</div>
+            </div>
+            <div style="text-align: right; min-width: 80px;">
+              <div style="font-size: 0.7rem; color: var(--text-muted);">Proctor</div>
+              <div style="font-size: 0.78rem; font-weight: 600; color: ${proctorColor};">${proctorText}</div>
+            </div>
+            <button class="btn btn-secondary" onclick="openReportDetails(${index})" style="font-size: 0.75rem; padding: 5px 10px; border-radius: var(--radius-md);">View Details</button>
+          </div>
+        `;
+        listContainer.appendChild(item);
+      });
+    }
+
+    function openReportDetails(index) {
+      const report = window.savedInterviews[index];
+      if (!report) return;
+      
+      document.getElementById('modalTitle').textContent = `AI Interview Report: ${report.role}`;
+      document.getElementById('modalSubtitle').textContent = `Session Level: ${report.difficulty}`;
+      document.getElementById('modalScore').textContent = `${report.score}%`;
+      
+      const suspicionText = report.suspicionScore >= 50 ? `${report.suspicionScore}% (Flagged)` : `${report.suspicionScore}% (Passed)`;
+      const suspicionColor = report.suspicionScore >= 50 ? 'var(--danger)' : 'var(--success)';
+      document.getElementById('modalSuspicion').textContent = suspicionText;
+      document.getElementById('modalSuspicion').style.color = suspicionColor;
+      
+      const dateStr = new Date(report.timestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+      document.getElementById('modalDate').textContent = dateStr;
+      
+      const transcriptBox = document.getElementById('modalTranscript');
+      transcriptBox.innerHTML = '';
+      
+      if (!report.history || report.history.length === 0) {
+        transcriptBox.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">No question transcript available for this session.</p>';
+      } else {
+        report.history.forEach((item, qIdx) => {
+          const ratingColor = item.score >= 7 ? 'var(--success)' : (item.score >= 5 ? 'var(--warning)' : 'var(--danger)');
+          const borderClass = item.score >= 7 ? 'border-left: 3px solid var(--success);' : (item.score >= 5 ? 'border-left: 3px solid var(--warning);' : 'border-left: 3px solid var(--danger);');
+          
+          const block = document.createElement('div');
+          block.style.cssText = `
+            ${borderClass}
+            padding-left: 12px;
+            margin-bottom: 4px;
+          `;
+          block.innerHTML = `
+            <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main); margin-bottom: 2px;">Q${qIdx + 1}: ${item.question}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; line-height: 1.4;"><strong>Response:</strong> ${item.answer}</div>
+            <div style="font-size: 0.75rem; font-style: italic; color: var(--accent-tertiary);">
+              ⭐ Score: <span style="font-weight:700; color:${ratingColor};">${item.score}/10</span> &bull; <span>Evaluation: ${item.feedback}</span>
+            </div>
+          `;
+          transcriptBox.appendChild(block);
+        });
+      }
+      
+      const modal = document.getElementById('reportModal');
+      modal.style.display = 'flex';
+    }
+
+    function closeReportModal() {
+      document.getElementById('reportModal').style.display = 'none';
     }
   </script>
 </body>
