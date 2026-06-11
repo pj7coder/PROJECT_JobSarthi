@@ -1059,87 +1059,19 @@ async function sendPasswordResetEmail(email, token, role, origin) {
   const baseOrigin = origin ? origin.replace(/\/$/, '') : 'http://localhost:3000';
   const resetLink = `${baseOrigin}/change_password.html?token=${token}&email=${encodeURIComponent(email)}`;
   console.log(`[PASSWORD RESET LINK GENERATED]: ${resetLink}`);
-  
-  const scratchDir = path.join(__dirname, "scratch");
-  try {
-    await fs.mkdir(scratchDir, { recursive: true });
-    const emailFile = path.join(scratchDir, `reset-email-${email}.html`);
-    const emailHtmlContent = `
-      <html>
-        <body style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
-          <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <h2 style="color: #38bdf8; margin-bottom: 20px;">JobSarthi Password Reset</h2>
-            <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1;">You requested a password reset for your JobSarthi account. Please click the button below to choose a new password.</p>
-            <div style="margin: 30px 0;">
-              <a href="${resetLink}" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Change Password</a>
-            </div>
-            <p style="font-size: 12px; color: #64748b;">If you did not request this, you can safely ignore this email.</p>
-            <p style="font-size: 11px; color: #475569; word-break: break-all; margin-top: 20px;">Or copy link: <br>${resetLink}</p>
-          </div>
-        </body>
-      </html>
-    `;
-    await fs.writeFile(emailFile, emailHtmlContent, "utf-8");
-    console.log(`[PASSWORD RESET] HTML mock email saved to: ${emailFile}`);
-  } catch (err) {
-    console.error("Failed to write mock email file:", err);
-  }
 
-  let host = process.env.SMTP_HOST || "smtp.ethereal.email";
-  let port = parseInt(process.env.SMTP_PORT) || 587;
-  let secure = host.includes("gmail") ? (port === 465) : (process.env.SMTP_SECURE === "true");
-  let user = process.env.SMTP_USER;
-  let pass = process.env.SMTP_PASS;
-
-  let finalUser = user;
-  let finalPass = pass;
-  let isEthereal = false;
-
-  if (!user || !pass) {
-    try {
-      console.log("No SMTP credentials found. Creating Ethereal test account...");
-      const testAccount = await nodemailer.createTestAccount();
-      host = "smtp.ethereal.email";
-      port = 587;
-      secure = false;
-      finalUser = testAccount.user;
-      finalPass = testAccount.pass;
-      isEthereal = true;
-      console.log(`Created Ethereal test account: ${finalUser}`);
-    } catch (ethRealErr) {
-      console.warn("Ethereal account creation failed, falling back to defaults:", ethRealErr.message);
-      finalUser = "ethereal_test_user";
-      finalPass = "ethereal_test_pass";
-    }
-  }
-
-  // Force port 587 and secure: false for Gmail SMTP on Render to avoid port 465 blocks
-  if (process.env.RENDER && host.toLowerCase().includes("gmail")) {
-    port = 587;
-    secure = false;
-  }
-
-  let transportConfig = {
-    host,
-    port,
-    secure,
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === "true",
     auth: {
-      user: finalUser,
-      pass: finalPass
-    },
-    // Force IPv4-only DNS lookup to completely bypass IPv6 ENETUNREACH errors
-    lookup: (hostname, options, callback) => {
-      dns.lookup(hostname, { family: 4 }, callback);
-    },
-    connectionTimeout: 15000, // 15 seconds timeout
-    greetingTimeout: 15000,
-    socketTimeout: 15000
-  };
-
-  const transporter = nodemailer.createTransport(transportConfig);
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
+  });
 
   const mailOptions = {
-    from: `"JobSarthi" <${finalUser || 'support@jobsarthi.ai'}>`,
+    from: `"JobSarthi" <${process.env.SMTP_USER || 'support@jobsarthi.ai'}>`,
     to: email,
     subject: "Reset Your JobSarthi Password",
     html: `
@@ -1157,18 +1089,12 @@ async function sendPasswordResetEmail(email, token, role, origin) {
     `
   };
 
-  if (finalUser && finalPass) {
-    try {
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`[PASSWORD RESET] Email sent successfully: ${info.messageId}`);
-      if (isEthereal) {
-        const previewUrl = nodemailer.getTestMessageUrl(info);
-        console.log(`[PASSWORD RESET] Ethereal preview URL: ${previewUrl}`);
-      }
-    } catch (mailErr) {
-      console.error("Nodemailer failed to send email:", mailErr.message);
-      throw new Error(`Email delivery failed: ${mailErr.message}`);
-    }
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[PASSWORD RESET] Email sent successfully: ${info.messageId}`);
+  } catch (mailErr) {
+    console.error("Nodemailer failed to send email:", mailErr.message);
+    throw new Error(`Email delivery failed: ${mailErr.message}`);
   }
 }
 
