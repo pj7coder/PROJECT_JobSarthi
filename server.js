@@ -253,6 +253,16 @@ app.use((req, res, next) => {
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()"); // Restrict browser APIs
   res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload"); // Force HTTPS
+  res.setHeader("Content-Security-Policy",                         // Prevent XSS script injection
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "img-src 'self' data: blob: https://res.cloudinary.com https://logo.clearbit.com https://upload.wikimedia.org; " +
+    "media-src 'self' blob: https://res.cloudinary.com; " +
+    "connect-src 'self' https://project-jobsarthi.onrender.com https://jobsarthi.vercel.app; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "frame-ancestors 'none';"
+  );
   res.removeHeader("X-Powered-By");                                // Hide Express fingerprint
   next();
 });
@@ -956,7 +966,11 @@ const dbService = {
   },
   getApplications: async (companyName) => {
     if (mongoDb) {
-      const query = companyName ? { companyName: { $regex: new RegExp("^" + companyName + "$", "i") } } : {};
+      // Escape special regex chars to prevent NoSQL injection (SECURITY FIX)
+      const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const query = companyName
+        ? { companyName: { $regex: new RegExp("^" + escapeRegex(companyName.slice(0, 100)) + "$", "i") } }
+        : {};
       return await mongoDb.collection("applications").find(query).toArray();
     }
     const local = await readLocalDB();
@@ -3362,13 +3376,23 @@ app.get("*", (req, res) => {
 async function ensureAdminRecruiter() {
   try {
     const adminEmail = "recruiter@gmail.com";
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    // [SECURITY] ADMIN_PASSWORD must be set in environment — never hardcode it
+    if (!adminPassword) {
+      console.warn("[SECURITY] ADMIN_PASSWORD env var not set. Skipping admin account setup. Set ADMIN_PASSWORD in your environment variables.");
+      return;
+    }
+
     const adminUser = await dbService.findUserByEmail(adminEmail);
     if (!adminUser) {
-      console.log("Creating admin recruiter account (recruiter@gmail.com)...");
+      console.log("[AUTH] Creating admin recruiter account...");
+      const salt = bcrypt.genSaltSync(12);
+      const hashedPassword = bcrypt.hashSync(adminPassword, salt);
       const newAdmin = {
         fullName: "Sarthi Admin HR",
         email: adminEmail,
-        password: "qwertyuiop123",
+        password: hashedPassword,   // [SECURITY] bcrypt-hashed, never plaintext
         role: "recruiter",
         company: "JobSarthi Recruiter",
         createdAt: new Date().toISOString()
@@ -3380,23 +3404,17 @@ async function ensureAdminRecruiter() {
         local.users.push(newAdmin);
         await writeLocalDB(local);
       }
-      console.log("Successfully created admin recruiter account.");
+      console.log("[AUTH] Admin recruiter account created with hashed password.");
     } else {
-      if (mongoDb) {
+      // [SECURITY] Do NOT reset the admin password on every boot.
+      // Only ensure the role is correct if the account already exists.
+      if (mongoDb && adminUser.role !== "recruiter") {
         await mongoDb.collection("users").updateOne(
           { email: adminEmail },
-          { $set: { password: "qwertyuiop123", role: "recruiter" } }
+          { $set: { role: "recruiter" } }
         );
-      } else {
-        const local = await readLocalDB();
-        const userIdx = local.users.findIndex(u => u.email.toLowerCase() === adminEmail);
-        if (userIdx !== -1) {
-          local.users[userIdx].password = "qwertyuiop123";
-          local.users[userIdx].role = "recruiter";
-          await writeLocalDB(local);
-        }
       }
-      console.log("Admin recruiter account verified.");
+      console.log("[AUTH] Admin recruiter account verified.");
     }
   } catch (err) {
     console.error("Failed to ensure admin recruiter:", err);

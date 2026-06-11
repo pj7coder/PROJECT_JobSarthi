@@ -5,5 +5,6 @@ ngrok.exe
 *.log
 .DS_Store
 scratch/
+db.json
 
 .vercel
