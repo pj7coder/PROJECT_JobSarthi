@@ -15,8 +15,10 @@ import crypto from "crypto";
 
 dotenv.config();
 
-// Override local DNS to prevent connection failure to MongoDB Atlas
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+// Override local DNS to prevent connection failure to MongoDB Atlas (only in local development)
+if (!process.env.RENDER) {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
 if (typeof dns.setDefaultResultOrder === 'function') {
   dns.setDefaultResultOrder('ipv4first');
 }
@@ -1195,22 +1197,12 @@ app.post("/api/auth/forgot-password", async (req, res) => {
 
     // Send the simulated / real email
     const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || `http://localhost:${PORT || 3000}`;
-    let emailSent = false;
-    let emailError = null;
-    try {
-      await sendPasswordResetEmail(cleanEmail, token, user.role, origin);
-      emailSent = true;
-    } catch (sendErr) {
-      console.warn("SMTP sending failed, falling back to client-side redirection:", sendErr.message);
-      emailError = sendErr.message;
-    }
+    await sendPasswordResetEmail(cleanEmail, token, user.role, origin);
 
     res.json({ 
       success: true, 
-      message: emailSent ? "Password reset link sent successfully!" : "SMTP email delivery failed, falling back to direct redirect.", 
-      token, 
-      emailSent,
-      emailError
+      message: "Password reset link shared to your email id. Please check your inbox.", 
+      token
     });
   } catch (err) {
     console.error("Forgot password API error:", err);

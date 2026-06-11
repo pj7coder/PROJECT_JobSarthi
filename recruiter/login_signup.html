@@ -543,13 +543,8 @@
         
         const result = await response.json();
         if (response.ok) {
-          if (result.emailSent) {
-            alert('Password changing link shared to your email id. Please check your inbox.');
-            backToSignIn();
-          } else {
-            alert('Note: SMTP email delivery failed (connection timed out or login failed), but for testing purposes we will redirect you directly to the password changing page.');
-            window.location.href = `../change_password.html?email=${encodeURIComponent(email)}&token=${result.token}`;
-          }
+          alert('Password changing link shared to your email id. Please check your inbox.');
+          backToSignIn();
         } else {
           alert(result.error || 'Failed to send reset link.');
         }
