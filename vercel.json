@@ -5,10 +5,18 @@
       "schedule": "0 0 * * *"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/:path((?!cron-collect|send-email).*)",
-      "destination": "https://project-jobsarthi.onrender.com/api/:path"
+      "src": "/api/cron-collect",
+      "dest": "/api/cron-collect.js"
+    },
+    {
+      "src": "/api/send-email",
+      "dest": "/api/send-email.js"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "https://project-jobsarthi.onrender.com/api/$1"
     }
   ]
 }
