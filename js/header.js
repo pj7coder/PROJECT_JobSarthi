@@ -457,11 +457,9 @@ document.addEventListener("DOMContentLoaded", () => {
                           <span class="setting-item-desc">Choose language for interface text</span>
                         </div>
                         <select class="setting-select" id="modalLanguageSelect">
-                          <option value="en">English (US)</option>
-                          <option value="en-gb">English (UK)</option>
-                          <option value="hi">हिन्दी (Hindi)</option>
-                          <option value="es">Español (Spanish)</option>
+                          <option value="en">English</option>
                           <option value="fr">Français (French)</option>
+                          <option value="ar">العربية (Arabic)</option>
                         </select>
                       </div>
                     </div>

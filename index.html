@@ -27,9 +27,6 @@
   <link rel="stylesheet" href="css/landing.css">
   <link rel="stylesheet" href="css/VariableProximity.css">
   <link rel="stylesheet" href="css/LogoLoop.css">
-  <!-- Arabic font for RTL support -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* Preloader CSS to prevent Flash of Unstyled Content (FOUC) */
@@ -47,11 +44,13 @@
       justify-content: center;
       transition: opacity 0.4s ease, visibility 0.4s ease;
     }
+
     #page-preloader.fade-out {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
     }
+
     .shiny-text {
       font-family: 'Roboto Flex', sans-serif;
       font-size: 1.25rem;
@@ -71,6 +70,7 @@
       0% {
         background-position: 150% center;
       }
+
       100% {
         background-position: -50% center;
       }
@@ -683,24 +683,23 @@
     <section id="hero" class="hero-layout">
       <div class="hero-left"
         style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <h1 id="heroHeadline" class="hero-headline variable-proximity reveal"
-          data-i18n="hero_headline"
-          style="font-size: 3.5rem; line-height: 1.1; margin-bottom: 24px; font-weight: 800; width: 100%; font-family: 'Inter', -apple-system, sans-serif;">
+        <h1 id="heroHeadline" class="hero-headline variable-proximity"
+          style="font-size: 3.5rem; line-height: 1.1; margin-bottom: 24px; font-weight: 800; width: 100%; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
           Welcome to JobSarthi
         </h1>
-        <p id="heroSubtitle" class="hero-subtitle reveal reveal-delay-1"
-          data-i18n="hero_subtitle"
-          style="font-size: 1.05rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 36px; max-width: 680px; text-align: center; font-family: 'Inter', -apple-system, sans-serif;">
+        <p id="heroSubtitle" class="hero-subtitle"
+          style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 36px; max-width: 680px; text-align: center; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
           Your intelligent companion in navigating modern careers. Powered by Sarthi AI, connecting talented seekers
           with top company recruiter pipelines.
         </p>
         <div class="hero-ctas" style="display: flex; justify-content: center; width: 100%;">
-          <a href="#portal" class="cssbuttons-io-button reveal reveal-delay-2">
-            <span data-i18n="hero_cta">Get Started</span>
+          <a href="#portal" class="cssbuttons-io-button">
+            Get Started
             <div class="icon">
               <svg height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 0h24v24H0z" fill="none"></path>
-                <path d="M16.172 11l-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2z" fill="currentColor"></path>
+                <path d="M16.172 11l-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2z"
+                  fill="currentColor"></path>
               </svg>
             </div>
           </a>
@@ -721,47 +720,53 @@
     <!-- Choose Your Journey portals -->
     <section id="portal" style="padding: 40px 0; border-top: 1px solid var(--border-subtle);">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h2 data-i18n="portal_title" style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">Choose Your Journey</h2>
-        <p data-i18n="portal_subtitle" style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Select one of our
+        <h2 style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">Choose Your Journey</h2>
+        <p style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Select one of our
           customized dashboards below to begin.</p>
       </div>
 
       <div class="portals-grid">
         <!-- Finder / Seeker Card (Left) -->
         <div class="portal-card seeker-portal-card" onclick="window.location.href='seeker/login_signup.html'">
-          <div class="portal-card-glow" style="background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.15), transparent 70%);"></div>
-          
+          <div class="portal-card-glow"
+            style="background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.15), transparent 70%);"></div>
+
           <div class="portal-icon-wrapper">
-            <svg class="portal-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="portal-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <circle cx="18" cy="18" r="3" />
               <line x1="22" y1="22" x2="20" y2="20" />
             </svg>
           </div>
-          
-          <div class="portal-static-title seeker-color" data-i18n="seeker_title">Want to Find a Job</div>
-          
+
+          <div class="portal-static-title seeker-color">Want to Find a Job</div>
+
           <div class="portal-text">
-            <p data-i18n="seeker_desc">Create your profile, complete assessments, earn skills validation, and talk to your career companion Sarthi AI.</p>
+            <p>Create your profile, complete assessments, earn skills validation, and talk to your career companion
+              Sarthi AI.</p>
           </div>
         </div>
 
         <!-- Recruiter Card (Right) -->
         <div class="portal-card recruiter-portal-card" onclick="window.location.href='recruiter/login_signup.html'">
-          <div class="portal-card-glow" style="background: radial-gradient(circle at 50% 50%, rgba(217, 70, 239, 0.15), transparent 70%);"></div>
-          
+          <div class="portal-card-glow"
+            style="background: radial-gradient(circle at 50% 50%, rgba(217, 70, 239, 0.15), transparent 70%);"></div>
+
           <div class="portal-icon-wrapper">
-            <svg class="portal-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="portal-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
             </svg>
           </div>
-          
-          <div class="portal-static-title recruiter-color" data-i18n="recruiter_title">Need an Employee</div>
-          
+
+          <div class="portal-static-title recruiter-color">Need an Employee</div>
+
           <div class="portal-text">
-            <p data-i18n="recruiter_desc">Post listings, manage active applicant pools, view verified skill assessments, and optimize hiring pipelines.</p>
+            <p>Post listings, manage active applicant pools, view verified skill assessments, and optimize hiring
+              pipelines.</p>
           </div>
         </div>
       </div>
@@ -773,40 +778,56 @@
     </section>
 
     <!-- 3D Dome Gallery and Employer Partner Section -->
-    <section id="employer-gallery-section" style="padding: 40px 0; background: var(--bg-primary); border-top: 1px solid var(--border-subtle); overflow: hidden; position: relative;">
+    <section id="employer-gallery-section"
+      style="padding: 40px 0; background: var(--bg-primary); border-top: 1px solid var(--border-subtle); overflow: hidden; position: relative;">
 
-      <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2;">
+      <div class="container"
+        style="max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2;">
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 48px;">
-          
+
           <!-- Column 1: Interactive 3D Dome Gallery -->
-          <div style="flex: 1 1 500px; display: flex; align-items: center; justify-content: center; position: relative; min-height: 560px;">
+          <div
+            style="flex: 1 1 500px; display: flex; align-items: center; justify-content: center; position: relative; min-height: 560px;">
             <div id="domeGalleryContainer" style="width: 100%; height: 560px;"></div>
           </div>
-          
+
           <!-- Column 2: Compelling Copy & Stats -->
           <div style="flex: 1 1 450px; display: flex; flex-direction: column; gap: 24px; text-align: left;">
-            
-            <h2 style="font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 800; line-height: 1.2; letter-spacing: -1px; color: var(--text-main); margin: 0; font-family: var(--font-sans);">
+
+            <h2
+              style="font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 800; line-height: 1.2; letter-spacing: -1px; color: var(--text-main); margin: 0; font-family: var(--font-sans);">
               Direct Pipelines to <span style="color: #06b6d4;">250+ Top Brands</span>
             </h2>
-            
-            <p style="font-size: 1.05rem; line-height: 1.6; color: var(--text-muted); margin: 0; font-family: var(--font-sans);">
-              Skip the traditional application queue. JobSarthi's algorithmic matching maps your skills, portfolio metrics, and verified test credentials directly to key hiring decision makers at leading technology, banking, and creative companies.
+
+            <p
+              style="font-size: 1.05rem; line-height: 1.6; color: var(--text-muted); margin: 0; font-family: var(--font-sans);">
+              Skip the traditional application queue. JobSarthi's algorithmic matching maps your skills, portfolio
+              metrics, and verified test credentials directly to key hiring decision makers at leading technology,
+              banking, and creative companies.
             </p>
-            
+
             <!-- Statistics Grid -->
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 24px;">
+            <div
+              style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 24px;">
               <div>
-                <h3 style="font-size: 2.2rem; font-weight: 800; color: #06b6d4; margin: 0; font-family: var(--font-sans);">24 ms</h3>
-                <p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; font-family: var(--font-sans);">Average Application Dispatch Time</p>
+                <h3
+                  style="font-size: 2.2rem; font-weight: 800; color: #06b6d4; margin: 0; font-family: var(--font-sans);">
+                  24 ms</h3>
+                <p
+                  style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; font-family: var(--font-sans);">
+                  Average Application Dispatch Time</p>
               </div>
               <div>
-                <h3 style="font-size: 2.2rem; font-weight: 800; color: #06b6d4; margin: 0; font-family: var(--font-sans);">94%</h3>
-                <p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; font-family: var(--font-sans);">ATS Compatibility Pass Rate</p>
+                <h3
+                  style="font-size: 2.2rem; font-weight: 800; color: #06b6d4; margin: 0; font-family: var(--font-sans);">
+                  94%</h3>
+                <p
+                  style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; font-family: var(--font-sans);">
+                  ATS Compatibility Pass Rate</p>
               </div>
             </div>
           </div>
-          
+
         </div>
       </div>
     </section>
@@ -814,8 +835,8 @@
     <!-- Success Reviews Section -->
     <section id="reviews" style="padding: 40px 0 20px 0; border-top: 1px solid var(--border-subtle);">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h2 data-i18n="reviews_title" style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">User Success Reviews</h2>
-        <p data-i18n="reviews_subtitle" style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Hear from both finders
+        <h2 style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">User Success Reviews</h2>
+        <p style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Hear from both finders
           and recruiters who rely on JobSarthi.</p>
       </div>
 
@@ -907,7 +928,8 @@
             </div>
             <p
               style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
-              "JobSarthi's automated pipeline is pure gold. It matches high-intent seekers directly with our stack requirements, cutting time-to-hire by 50%."
+              "JobSarthi's automated pipeline is pure gold. It matches high-intent seekers directly with our stack
+              requirements, cutting time-to-hire by 50%."
             </p>
           </div>
           <div
@@ -932,7 +954,8 @@
             </div>
             <p
               style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
-              "The mock AI interviews are extremely realistic. The constructive, real-time feedback helped me overcome my interview anxiety and land my current role."
+              "The mock AI interviews are extremely realistic. The constructive, real-time feedback helped me overcome
+              my interview anxiety and land my current role."
             </p>
           </div>
           <div
@@ -957,7 +980,8 @@
             </div>
             <p
               style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
-              "We hired three senior developers through JobSarthi in under two weeks. The platform's automated skills verification makes it a game-changer for engineering teams."
+              "We hired three senior developers through JobSarthi in under two weeks. The platform's automated skills
+              verification makes it a game-changer for engineering teams."
             </p>
           </div>
           <div
@@ -982,7 +1006,8 @@
             </div>
             <p
               style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
-              "The personalized job recommendations are spot on. I didn't have to scroll through hundreds of irrelevant postings; JobSarthi matched me directly to fitting roles."
+              "The personalized job recommendations are spot on. I didn't have to scroll through hundreds of irrelevant
+              postings; JobSarthi matched me directly to fitting roles."
             </p>
           </div>
           <div
@@ -1007,7 +1032,8 @@
             </div>
             <p
               style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
-              "The recruiter interface is simple yet powerful. Seeing pre-assessed candidates with transparent breakdown scores is exactly what modern hiring needs."
+              "The recruiter interface is simple yet powerful. Seeing pre-assessed candidates with transparent breakdown
+              scores is exactly what modern hiring needs."
             </p>
           </div>
           <div
@@ -1056,8 +1082,11 @@
     onclick="event.preventDefault(); event.stopPropagation(); var target = document.getElementById('sarthi-scroll-section'); if (target) { window.scrollTo({top: target.getBoundingClientRect().top + window.scrollY + 100, behavior: 'smooth'}); }"
     class="gemini-pill-border"
     style="position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; color: var(--text-main) !important; box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important; cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans), sans-serif; text-decoration: none; transition: opacity 0.4s ease, transform 0.4s ease; transform-origin: bottom right;">
-    <div style="position: absolute; top: 0; left: -100%; width: 60px; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 100%); transform: skewX(-25deg); pointer-events: none; transition: transform 0.6s ease; z-index: 2;" class="sarthi-btn-shine"></div>
-    <span style="font-weight: 600; font-size: 0.95rem; letter-spacing: 0.5px; z-index: 4; pointer-events: none;">Sarthi</span>
+    <div
+      style="position: absolute; top: 0; left: -100%; width: 60px; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 100%); transform: skewX(-25deg); pointer-events: none; transition: transform 0.6s ease; z-index: 2;"
+      class="sarthi-btn-shine"></div>
+    <span
+      style="font-weight: 600; font-size: 0.95rem; letter-spacing: 0.5px; z-index: 4; pointer-events: none;">Sarthi</span>
   </a>
 
   <style>
@@ -1065,9 +1094,11 @@
       transform: translateX(350px) skewX(-25deg) !important;
       transition: transform 0.75s cubic-bezier(0.25, 1, 0.5, 1) !important;
     }
+
     #floatingSarthiBtn:hover {
       transform: scale(1.05) !important;
     }
+
     body.light-theme #floatingSarthiBtn {
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
     }
@@ -1077,54 +1108,80 @@
   <div id="clickExpandedContent" class="gemini-pill-border"
     style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; flex-direction: column; width: 350px; height: 460px; max-width: calc(100vw - 40px); max-height: calc(100vh - 80px); border-radius: 24px; background: var(--sarthi-bg-expanded); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); box-sizing: border-box; padding: 20px 24px; justify-content: space-between; overflow: hidden; opacity: 0; pointer-events: none; transform: scale(0.15); transform-origin: bottom right; transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); font-family: var(--font-sans); will-change: transform, opacity;">
     <!-- Panel Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0; z-index: 10;">
+    <div
+      style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0; z-index: 10;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="font-size: 1.15rem;">✨</span>
         <span style="font-weight: 700; font-size: 1.05rem; letter-spacing: 0.5px;">Sarthi AI Tools</span>
       </div>
-      <button id="clickCloseBtn" onclick="closeClickPanel(event)" style="background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; z-index: 10;">✕</button>
+      <button id="clickCloseBtn" onclick="closeClickPanel(event)"
+        style="background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; z-index: 10;">✕</button>
     </div>
 
     <!-- Vertical Card Stack -->
     <div style="display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: center; z-index: 10;">
       <!-- Card 1: Interview Mode -->
-      <a href="seeker/aiinterview.html" onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') !== 'true') { event.preventDefault(); window.location.href = 'seeker/login_signup.html'; }" class="sarthi-tool-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
-        <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(6,182,212,0.05)); border: 1px solid rgba(6,182,212,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">🎙️</div>
+      <a href="seeker/aiinterview.html"
+        onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') !== 'true') { event.preventDefault(); window.location.href = 'seeker/login_signup.html'; }"
+        class="sarthi-tool-card"
+        style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+        <div
+          style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(6,182,212,0.05)); border: 1px solid rgba(6,182,212,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+          🎙️</div>
         <div style="flex: 1; text-align: left;">
           <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Interview Mode</h4>
           <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Real-time voice mock trials</p>
         </div>
-        <span class="tool-arrow" style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        <span class="tool-arrow"
+          style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
       </a>
 
       <!-- Card 2: Resume Analyser -->
-      <a href="seeker/index.html#skills" onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') !== 'true') { event.preventDefault(); window.location.href = 'seeker/login_signup.html'; }" class="sarthi-tool-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
-        <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(217,70,239,0.2), rgba(217,70,239,0.05)); border: 1px solid rgba(217,70,239,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">📄</div>
+      <a href="seeker/index.html#skills"
+        onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') !== 'true') { event.preventDefault(); window.location.href = 'seeker/login_signup.html'; }"
+        class="sarthi-tool-card"
+        style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+        <div
+          style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(217,70,239,0.2), rgba(217,70,239,0.05)); border: 1px solid rgba(217,70,239,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+          📄</div>
         <div style="flex: 1; text-align: left;">
           <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Resume Analyser</h4>
           <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Instant ATS score & tips</p>
         </div>
-        <span class="tool-arrow" style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        <span class="tool-arrow"
+          style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
       </a>
 
       <!-- Card 3: Job Tracker -->
-      <a href="seeker/index.html#applications" onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') !== 'true') { event.preventDefault(); window.location.href = 'seeker/login_signup.html'; }" class="sarthi-tool-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
-        <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.05)); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">📈</div>
+      <a href="seeker/index.html#applications"
+        onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') !== 'true') { event.preventDefault(); window.location.href = 'seeker/login_signup.html'; }"
+        class="sarthi-tool-card"
+        style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+        <div
+          style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.05)); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+          📈</div>
         <div style="flex: 1; text-align: left;">
           <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Job Tracker</h4>
           <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Visual application pipeline</p>
         </div>
-        <span class="tool-arrow" style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        <span class="tool-arrow"
+          style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
       </a>
 
       <!-- Card 4: Career Guide -->
-      <a href="seeker/index.html" onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') !== 'true') { event.preventDefault(); window.location.href = 'seeker/login_signup.html'; }" class="sarthi-tool-card" style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
-        <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.05)); border: 1px solid rgba(99,102,241,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">🗺️</div>
+      <a href="seeker/index.html"
+        onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') !== 'true') { event.preventDefault(); window.location.href = 'seeker/login_signup.html'; }"
+        class="sarthi-tool-card"
+        style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+        <div
+          style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.05)); border: 1px solid rgba(99,102,241,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+          🗺️</div>
         <div style="flex: 1; text-align: left;">
           <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Career Guide</h4>
           <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">AI roadmap recommendations</p>
         </div>
-        <span class="tool-arrow" style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        <span class="tool-arrow"
+          style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
       </a>
     </div>
   </div>
@@ -1133,515 +1190,582 @@
   <div id="floatingExpandedContent" class="gemini-pill-border"
     style="position: fixed; top: 50%; left: 50%; transform: translate(calc(-50% + (50vw - 100px)), calc(-50% + (50vh - 57px))) scale(0.15); z-index: 1000; display: flex; flex-direction: column; width: 950px; height: 480px; max-width: calc(100vw - 80px); max-height: calc(100vh - 120px); border-radius: 24px; background: var(--sarthi-bg-expanded); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); box-sizing: border-box; overflow: hidden; opacity: 0; pointer-events: none; transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); font-family: var(--font-sans); will-change: transform, opacity;">
 
-      <!-- Panel Header -->
-      <div
-        style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 18px 24px 10px 24px; border-bottom: 1px solid var(--border-subtle); box-sizing: border-box; flex-shrink: 0; background: var(--sarthi-header-bg); z-index: 10;">
-        <div style="text-align: left;">
-          <h3
-            style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-            Sarthi AI
-          </h3>
-          <p style="margin: 2px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Scroll down or up to slide through
-            features</p>
+    <!-- Panel Header -->
+    <div
+      style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 18px 24px 10px 24px; border-bottom: 1px solid var(--border-subtle); box-sizing: border-box; flex-shrink: 0; background: var(--sarthi-header-bg); z-index: 10;">
+      <div style="text-align: left;">
+        <h3
+          style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          Sarthi AI
+        </h3>
+        <p style="margin: 2px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Scroll down or up to slide through
+          features</p>
+      </div>
+      <!-- Dot Navigation Indicators inside panel -->
+      <div style="display: flex; gap: 10px; z-index: 20; align-items: center;" id="sarthiPanelDots">
+        <div class="sarthi-dot active" data-index="0"
+          style="width: 28px; height: 10px; border-radius: 5px; background: #06b6d4; box-shadow: 0 0 10px rgba(6, 182, 212, 0.8); transition: all 0.3s; cursor: pointer;">
         </div>
-        <!-- Dot Navigation Indicators inside panel -->
-        <div style="display: flex; gap: 10px; z-index: 20; align-items: center;" id="sarthiPanelDots">
-          <div class="sarthi-dot active" data-index="0"
-            style="width: 28px; height: 10px; border-radius: 5px; background: #06b6d4; box-shadow: 0 0 10px rgba(6, 182, 212, 0.8); transition: all 0.3s; cursor: pointer;">
+        <div class="sarthi-dot" data-index="1"
+          style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+        </div>
+        <div class="sarthi-dot" data-index="2"
+          style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+        </div>
+        <div class="sarthi-dot" data-index="3"
+          style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Slides Container -->
+    <div style="width: 100%; flex: 1; overflow: hidden; position: relative; box-sizing: border-box;">
+      <div id="sarthiSlideTrack" style="width: 100%; height: 100%; position: relative; box-sizing: border-box;">
+
+        <!-- Slide 1: Interview Mode -->
+        <div class="sarthi-slide" data-slide-index="0"
+          style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 1; pointer-events: auto; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+          <!-- Left: Video Panel -->
+          <div
+            style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+            <video src="assets/sarthivideo1.mp4" autoplay loop muted playsinline
+              style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+            <span
+              style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(6,182,212,0.6)); pointer-events: none; z-index: 1;">🎙️</span>
           </div>
-          <div class="sarthi-dot" data-index="1"
-            style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+          <!-- Right: Details -->
+          <div
+            style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+            <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Interview Mode</h4>
+            <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+              Practice real-time mock interviews with Sarthi AI. Get verbal feedback, score assessments, and refine
+              your speaking confidence for top tech roles.
+            </p>
+            <button class="btn btn-glow"
+              onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') === 'true') { window.location.href='seeker/aiinterview.html'; } else { window.location.href='seeker/login_signup.html'; }"
+              style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: #0891b2; border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+              Launch Simulator
+            </button>
           </div>
-          <div class="sarthi-dot" data-index="2"
-            style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+        </div>
+
+        <!-- Slide 2: Resume Analyser -->
+        <div class="sarthi-slide" data-slide-index="1"
+          style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+          <!-- Left: Video Panel -->
+          <div
+            style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(217,70,239,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+            <video src="assets/sarthivideo2.mp4" autoplay loop muted playsinline
+              style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+            <span
+              style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(217,70,239,0.6)); pointer-events: none; z-index: 1;">📄</span>
           </div>
-          <div class="sarthi-dot" data-index="3"
-            style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+          <!-- Right: Details -->
+          <div
+            style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+            <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Resume Analyser</h4>
+            <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+              Get instant resume scores, structural assessments, and tailored bullet point revisions to optimize your
+              visibility for company pipelines.
+            </p>
+            <button class="btn btn-glow"
+              onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') === 'true') { window.location.href='seeker/index.html#skills'; } else { window.location.href='seeker/login_signup.html'; }"
+              style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: #d946ef; border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+              Analyse Portfolio
+            </button>
+          </div>
+        </div>
+
+        <!-- Slide 3: Job Tracker -->
+        <div class="sarthi-slide" data-slide-index="2"
+          style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+          <!-- Left: Video Panel -->
+          <div
+            style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+            <video src="assets/sarthivideo3.mp4" autoplay loop muted playsinline
+              style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+            <span
+              style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(245,158,11,0.6)); pointer-events: none; z-index: 1;">📈</span>
+          </div>
+          <!-- Right: Details -->
+          <div
+            style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+            <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Job Tracker</h4>
+            <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+              Monitor your application stages with our interactive Kanban tracking board. Stay on top of interviews,
+              offers, and follow-ups.
+            </p>
+            <button class="btn btn-glow"
+              onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') === 'true') { window.location.href='seeker/index.html#applications'; } else { window.location.href='seeker/login_signup.html'; }"
+              style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: #d97706; border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+              Open Tracker
+            </button>
+          </div>
+        </div>
+
+        <!-- Slide 4: Career Guide -->
+        <div class="sarthi-slide" data-slide-index="3"
+          style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+          <!-- Left: Video Panel -->
+          <div
+            style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+            <video src="assets/sarthivideo4.mp4" autoplay loop muted playsinline
+              style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+            <span
+              style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(99,102,241,0.6)); pointer-events: none; z-index: 1;">🗺️</span>
+          </div>
+          <!-- Right: Details -->
+          <div
+            style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+            <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Career Guide</h4>
+            <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+              Generate customized fullstack roadmaps, track skill acquisition milestones, and explore target learning
+              modules designed for your career progression.
+            </p>
+            <button class="btn btn-glow"
+              onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') === 'true') { window.location.href='seeker/index.html'; } else { window.location.href='seeker/login_signup.html'; }"
+              style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: #4f46e5; border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+              Generate Roadmap
+            </button>
           </div>
         </div>
       </div>
-
-      <!-- Tab Slides Container -->
-      <div style="width: 100%; flex: 1; overflow: hidden; position: relative; box-sizing: border-box;">
-        <div id="sarthiSlideTrack" style="width: 100%; height: 100%; position: relative; box-sizing: border-box;">
-
-          <!-- Slide 1: Interview Mode -->
-          <div class="sarthi-slide" data-slide-index="0"
-            style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 1; pointer-events: auto; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
-            <!-- Left: Video Panel -->
-            <div
-              style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-              <video src="assets/sarthivideo1.mp4" autoplay loop muted playsinline
-                style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
-              <span
-                style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(6,182,212,0.6)); pointer-events: none; z-index: 1;">🎙️</span>
-            </div>
-            <!-- Right: Details -->
-            <div
-              style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
-              <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Interview Mode</h4>
-              <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
-                Practice real-time mock interviews with Sarthi AI. Get verbal feedback, score assessments, and refine
-                your speaking confidence for top tech roles.
-              </p>
-              <button class="btn btn-glow"
-                onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') === 'true') { window.location.href='seeker/aiinterview.html'; } else { window.location.href='seeker/login_signup.html'; }"
-                style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: #0891b2; border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
-                Launch Simulator
-              </button>
-            </div>
-          </div>
-
-          <!-- Slide 2: Resume Analyser -->
-          <div class="sarthi-slide" data-slide-index="1"
-            style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
-            <!-- Left: Video Panel -->
-            <div
-              style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(217,70,239,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-              <video src="assets/sarthivideo2.mp4" autoplay loop muted playsinline
-                style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
-              <span
-                style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(217,70,239,0.6)); pointer-events: none; z-index: 1;">📄</span>
-            </div>
-            <!-- Right: Details -->
-            <div
-              style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
-              <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Resume Analyser</h4>
-              <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
-                Get instant resume scores, structural assessments, and tailored bullet point revisions to optimize your
-                visibility for company pipelines.
-              </p>
-              <button class="btn btn-glow"
-                onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') === 'true') { window.location.href='seeker/index.html#skills'; } else { window.location.href='seeker/login_signup.html'; }"
-                style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: #d946ef; border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
-                Analyse Portfolio
-              </button>
-            </div>
-          </div>
-
-          <!-- Slide 3: Job Tracker -->
-          <div class="sarthi-slide" data-slide-index="2"
-            style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
-            <!-- Left: Video Panel -->
-            <div
-              style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-              <video src="assets/sarthivideo3.mp4" autoplay loop muted playsinline
-                style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
-              <span
-                style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(245,158,11,0.6)); pointer-events: none; z-index: 1;">📈</span>
-            </div>
-            <!-- Right: Details -->
-            <div
-              style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
-              <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Job Tracker</h4>
-              <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
-                Monitor your application stages with our interactive Kanban tracking board. Stay on top of interviews,
-                offers, and follow-ups.
-              </p>
-              <button class="btn btn-glow"
-                onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') === 'true') { window.location.href='seeker/index.html#applications'; } else { window.location.href='seeker/login_signup.html'; }"
-                style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: #d97706; border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
-                Open Tracker
-              </button>
-            </div>
-          </div>
-
-          <!-- Slide 4: Career Guide -->
-          <div class="sarthi-slide" data-slide-index="3"
-            style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
-            <!-- Left: Video Panel -->
-            <div
-              style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-              <video src="assets/sarthivideo4.mp4" autoplay loop muted playsinline
-                style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
-              <span
-                style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(99,102,241,0.6)); pointer-events: none; z-index: 1;">🗺️</span>
-            </div>
-            <!-- Right: Details -->
-            <div
-              style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
-              <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Career Guide</h4>
-              <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
-                Generate customized fullstack roadmaps, track skill acquisition milestones, and explore target learning
-                modules designed for your career progression.
-              </p>
-              <button class="btn btn-glow"
-                onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') === 'true') { window.location.href='seeker/index.html'; } else { window.location.href='seeker/login_signup.html'; }"
-                style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: #4f46e5; border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
-                Generate Roadmap
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+    </div>
   </div>
 
-      <footer
-        style="border-top: 1px solid var(--glass-border); padding: 20px 0; text-align: center; color: var(--text-dark); font-size: 0.85rem; position: relative; z-index: 5; margin: 0;">
-        <p data-i18n="footer">&copy; 2026 JobSarthi Platform. Created with advanced UI animations. All rights reserved.</p>
-      </footer>
+  <footer
+    style="border-top: 1px solid var(--glass-border); padding: 20px 0; text-align: center; color: var(--text-dark); font-size: 0.85rem; position: relative; z-index: 5; margin: 0;">
+    <p>&copy; 2026 JobSarthi Platform. Created with advanced UI animations. All rights reserved.</p>
+  </footer>
 
   <script>
-        // 1. Mini Chat Widget logic
-        function toggleMiniChat() {
-          const widget = document.getElementById('miniChatWidget');
-          widget.style.display = widget.style.display === 'none' ? 'flex' : 'none';
+    // 1. Mini Chat Widget logic
+    function toggleMiniChat() {
+      const widget = document.getElementById('miniChatWidget');
+      widget.style.display = widget.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    function openDemoChat() {
+      const widget = document.getElementById('miniChatWidget');
+      widget.style.display = 'flex';
+      widget.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    const miniHistory = [];
+
+    async function sendMiniQuestion(question) {
+      const body = document.getElementById('miniChatBody');
+
+      const userBubble = document.createElement('div');
+      userBubble.className = 'mini-bubble mini-bubble-user';
+      userBubble.textContent = question;
+      body.appendChild(userBubble);
+      body.scrollTop = body.scrollHeight;
+
+      const loading = document.createElement('div');
+      loading.className = 'mini-bubble mini-bubble-ai';
+      loading.id = 'miniLoading';
+      loading.innerHTML = `<div class="typing-indicator" style="padding: 2px 4px;"><span class="dot" style="width:4px; height:4px;"></span><span class="dot" style="width:4px; height:4px;"></span><span class="dot" style="width:4px; height:4px;"></span></div>`;
+      body.appendChild(loading);
+      body.scrollTop = body.scrollHeight;
+
+      miniHistory.push({ role: 'user', content: question });
+
+      try {
+        const response = await fetch((window.API_BASE_URL || '') + '/api/sarthi/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: question, chatHistory: miniHistory })
+        });
+
+        const result = await response.json();
+        const loadingEl = document.getElementById('miniLoading');
+        if (loadingEl) loadingEl.remove();
+
+        const reply = result.reply || "I'm having trouble connecting right now.";
+        miniHistory.push({ role: 'assistant', content: reply });
+
+        const aiBubble = document.createElement('div');
+        aiBubble.className = 'mini-bubble mini-bubble-ai';
+        aiBubble.innerHTML = reply;
+        body.appendChild(aiBubble);
+        body.scrollTop = body.scrollHeight;
+      } catch (err) {
+        console.error("Mini chat error:", err);
+        const loadingEl = document.getElementById('miniLoading');
+        if (loadingEl) loadingEl.remove();
+
+        const aiBubble = document.createElement('div');
+        aiBubble.className = 'mini-bubble mini-bubble-ai';
+        aiBubble.innerHTML = "Oops! Connection error. Please verify that the backend is running.";
+        body.appendChild(aiBubble);
+        body.scrollTop = body.scrollHeight;
+      }
+    }
+
+    // 2. Shrink pill header on scroll
+    const scrollHeader = document.querySelector('.header');
+    window.addEventListener('scroll', () => {
+      if (scrollHeader) {
+        if (window.scrollY > 40) {
+          scrollHeader.classList.add('scrolled');
+        } else {
+          scrollHeader.classList.remove('scrolled');
         }
+      }
+    }, { passive: true });
 
-        function openDemoChat() {
-          const widget = document.getElementById('miniChatWidget');
-          widget.style.display = 'flex';
-          widget.scrollIntoView({ behavior: 'smooth' });
+    // 3. Dynamic video rotation loop
+    let currentVideoIndex = 1;
+    const videoElement = document.getElementById('introVideo');
+    if (videoElement) {
+      videoElement.addEventListener('ended', () => {
+        currentVideoIndex++;
+        loadVideoByIndex(currentVideoIndex);
+      });
+      videoElement.addEventListener('error', () => {
+        if (currentVideoIndex > 1) {
+          currentVideoIndex = 1;
+          loadVideoByIndex(currentVideoIndex);
         }
+      });
+      function loadVideoByIndex(index) {
+        videoElement.src = `assets/video${index}.mp4`;
+        videoElement.play().catch(e => console.warn("Failed to play video:", e));
+      }
+    }
 
-        const miniHistory = [];
+    // 4. Scroll-driven expanding Sarthi AI pill interaction
+    let sarthiMode = 'minimized';
+    let lastSarthiMode = null;
+    let lastActiveIdx = null;
 
-        async function sendMiniQuestion(question) {
-          const body = document.getElementById('miniChatBody');
+    let cachedSlides = [];
+    let cachedDots = [];
+    let sarthiScrollSectionEl = null;
+    let floatingBtnEl = null;
+    let smallContentEl = null;
+    let expandedContentEl = null;
+    let clickContentEl = null;
+    let cachedWindowWidth = window.innerWidth;
+    let cachedWindowHeight = window.innerHeight;
+    let cachedSectionTopDoc = 0;
+    let cachedMaxScroll = 0;
 
-          const userBubble = document.createElement('div');
-          userBubble.className = 'mini-bubble mini-bubble-user';
-          userBubble.textContent = question;
-          body.appendChild(userBubble);
-          body.scrollTop = body.scrollHeight;
+    function updateCachedSarthiDimensions() {
+      cachedWindowWidth = window.innerWidth;
+      cachedWindowHeight = window.innerHeight;
+      sizeChanged = true;
+      sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
+      if (sarthiScrollSectionEl) {
+        const rect = sarthiScrollSectionEl.getBoundingClientRect();
+        cachedSectionTopDoc = rect.top + window.scrollY;
+      }
+      cachedMaxScroll = document.documentElement.scrollHeight - cachedWindowHeight;
+    }
 
-          const loading = document.createElement('div');
-          loading.className = 'mini-bubble mini-bubble-ai';
-          loading.id = 'miniLoading';
-          loading.innerHTML = `<div class="typing-indicator" style="padding: 2px 4px;"><span class="dot" style="width:4px; height:4px;"></span><span class="dot" style="width:4px; height:4px;"></span><span class="dot" style="width:4px; height:4px;"></span></div>`;
-          body.appendChild(loading);
-          body.scrollTop = body.scrollHeight;
+    function cacheSarthiElements() {
+      cachedSlides = Array.from(document.querySelectorAll('#sarthiSlideTrack .sarthi-slide'));
+      cachedDots = Array.from(document.querySelectorAll('#sarthiPanelDots .sarthi-dot'));
+      sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
+      smallContentEl = document.getElementById('floatingSmallContent');
+      expandedContentEl = document.getElementById('floatingExpandedContent');
+      clickContentEl = document.getElementById('clickExpandedContent');
+      if (clickContentEl) {
+        clickContentEl.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
+        clickContentEl.style.willChange = 'transform, opacity';
+      }
+      if (expandedContentEl) {
+        expandedContentEl.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
+        expandedContentEl.style.willChange = 'transform, opacity';
+      }
+    }
 
-          miniHistory.push({ role: 'user', content: question });
+    let sizeChanged = false;
+    function updateSarthiState(forceUpdate = false) {
+      const W = cachedWindowWidth;
+      const H = cachedWindowHeight;
 
-          try {
-            const response = await fetch((window.API_BASE_URL || '') + '/api/sarthi/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: question, chatHistory: miniHistory })
-            });
+      let targetBtnOpacity = 0;
+      let targetClickOpacity = 0;
+      let targetScrollOpacity = 0;
 
-            const result = await response.json();
-            const loadingEl = document.getElementById('miniLoading');
-            if (loadingEl) loadingEl.remove();
+      let targetBtnTransform = 'scale(0.15)';
+      let targetClickTransform = 'scale(0.15)';
+      let targetScrollTransform = 'translate(calc(-50% + (50vw - 100px)), calc(-50% + (50vh - 57px))) scale(0.15)';
 
-            const reply = result.reply || "I'm having trouble connecting right now.";
-            miniHistory.push({ role: 'assistant', content: reply });
+      if (sarthiMode === 'minimized') {
+        targetBtnOpacity = 1;
+        targetBtnTransform = 'scale(1)';
+      } else if (sarthiMode === 'clickExpanded') {
+        targetClickOpacity = 1;
+        targetClickTransform = 'scale(1)';
+      } else if (sarthiMode === 'scrollExpanded') {
+        targetScrollOpacity = 1;
+        targetScrollTransform = 'translate(-50%, -43%) scale(1)';
+      }
 
-            const aiBubble = document.createElement('div');
-            aiBubble.className = 'mini-bubble mini-bubble-ai';
-            aiBubble.innerHTML = reply;
-            body.appendChild(aiBubble);
-            body.scrollTop = body.scrollHeight;
-          } catch (err) {
-            console.error("Mini chat error:", err);
-            const loadingEl = document.getElementById('miniLoading');
-            if (loadingEl) loadingEl.remove();
-
-            const aiBubble = document.createElement('div');
-            aiBubble.className = 'mini-bubble mini-bubble-ai';
-            aiBubble.innerHTML = "Oops! Connection error. Please verify that the backend is running.";
-            body.appendChild(aiBubble);
-            body.scrollTop = body.scrollHeight;
-          }
-        }
-
-        // 2. Shrink pill header on scroll
-        const scrollHeader = document.querySelector('.header');
-        window.addEventListener('scroll', () => {
-          if (scrollHeader) {
-            if (window.scrollY > 40) {
-              scrollHeader.classList.add('scrolled');
-            } else {
-              scrollHeader.classList.remove('scrolled');
-            }
-          }
-        }, { passive: true });
-
-        // 3. Dynamic video rotation loop
-        let currentVideoIndex = 1;
-        const videoElement = document.getElementById('introVideo');
-        if (videoElement) {
-          videoElement.addEventListener('ended', () => {
-            currentVideoIndex++;
-            loadVideoByIndex(currentVideoIndex);
-          });
-          videoElement.addEventListener('error', () => {
-            if (currentVideoIndex > 1) {
-              currentVideoIndex = 1;
-              loadVideoByIndex(currentVideoIndex);
-            }
-          });
-          function loadVideoByIndex(index) {
-            videoElement.src = `assets/video${index}.mp4`;
-            videoElement.play().catch(e => console.warn("Failed to play video:", e));
-          }
-        }
-
-        // 4. Scroll-driven expanding Sarthi AI pill interaction
-        let sarthiMode = 'minimized';
-        let lastSarthiMode = null;
-        let lastActiveIdx = null;
-
-        let cachedSlides = [];
-        let cachedDots = [];
-        let sarthiScrollSectionEl = null;
-        let floatingBtnEl = null;
-        let smallContentEl = null;
-        let expandedContentEl = null;
-        let clickContentEl = null;
-        let cachedWindowWidth = window.innerWidth;
-        let cachedWindowHeight = window.innerHeight;
-        let cachedSectionTopDoc = 0;
-        let cachedMaxScroll = 0;
-
-        function updateCachedSarthiDimensions() {
-          cachedWindowWidth = window.innerWidth;
-          cachedWindowHeight = window.innerHeight;
-          sizeChanged = true;
-          sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
-          if (sarthiScrollSectionEl) {
-            const rect = sarthiScrollSectionEl.getBoundingClientRect();
-            cachedSectionTopDoc = rect.top + window.scrollY;
-          }
-          cachedMaxScroll = document.documentElement.scrollHeight - cachedWindowHeight;
-        }
-
-        function cacheSarthiElements() {
-          cachedSlides = Array.from(document.querySelectorAll('#sarthiSlideTrack .sarthi-slide'));
-          cachedDots = Array.from(document.querySelectorAll('#sarthiPanelDots .sarthi-dot'));
-          sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
-          smallContentEl = document.getElementById('floatingSmallContent');
-          expandedContentEl = document.getElementById('floatingExpandedContent');
-          clickContentEl = document.getElementById('clickExpandedContent');
-          if (clickContentEl) {
+      if (sarthiMode !== lastSarthiMode || forceUpdate || sizeChanged) {
+        // Note: floatingBtnEl visibility is controlled by IntersectionObserver (set up below)
+        // No button show/hide here - it's handled separately
+        if (clickContentEl) {
+          if (sarthiMode === 'clickExpanded') {
             clickContentEl.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
-            clickContentEl.style.willChange = 'transform, opacity';
+          } else {
+            clickContentEl.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
           }
-          if (expandedContentEl) {
+          clickContentEl.style.opacity = targetClickOpacity;
+          clickContentEl.style.pointerEvents = targetClickOpacity > 0.5 ? 'auto' : 'none';
+          clickContentEl.style.transform = targetClickTransform;
+        }
+        if (expandedContentEl) {
+          if (sarthiMode === 'scrollExpanded') {
             expandedContentEl.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
-            expandedContentEl.style.willChange = 'transform, opacity';
+          } else {
+            expandedContentEl.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
           }
+          expandedContentEl.style.opacity = targetScrollOpacity;
+          expandedContentEl.style.pointerEvents = targetScrollOpacity > 0.5 ? 'auto' : 'none';
+          expandedContentEl.style.transform = targetScrollTransform;
         }
+        lastSarthiMode = sarthiMode;
+        sizeChanged = false;
+      }
 
-        let sizeChanged = false;
-        function updateSarthiState(forceUpdate = false) {
-          const W = cachedWindowWidth;
-          const H = cachedWindowHeight;
+      if (sarthiMode === 'scrollExpanded' && sarthiScrollSectionEl) {
+        const startActive = cachedSectionTopDoc - 150;
+        const activeRange = sarthiScrollSectionEl.offsetHeight;
+        const pct = (window.scrollY - startActive) / activeRange;
+        const clampedPct = Math.max(0, Math.min(1, pct));
 
-          let targetBtnOpacity = 0;
-          let targetClickOpacity = 0;
-          let targetScrollOpacity = 0;
-
-          let targetBtnTransform = 'scale(0.15)';
-          let targetClickTransform = 'scale(0.15)';
-          let targetScrollTransform = 'translate(calc(-50% + (50vw - 100px)), calc(-50% + (50vh - 57px))) scale(0.15)';
-
-          if (sarthiMode === 'minimized') {
-            targetBtnOpacity = 1;
-            targetBtnTransform = 'scale(1)';
-          } else if (sarthiMode === 'clickExpanded') {
-            targetClickOpacity = 1;
-            targetClickTransform = 'scale(1)';
-          } else if (sarthiMode === 'scrollExpanded') {
-            targetScrollOpacity = 1;
-            targetScrollTransform = 'translate(-50%, -43%) scale(1)';
-          }
-
-          if (sarthiMode !== lastSarthiMode || forceUpdate || sizeChanged) {
-            // Note: floatingBtnEl visibility is controlled by IntersectionObserver (set up below)
-            // No button show/hide here - it's handled separately
-            if (clickContentEl) {
-              if (sarthiMode === 'clickExpanded') {
-                clickContentEl.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
-              } else {
-                clickContentEl.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
-              }
-              clickContentEl.style.opacity = targetClickOpacity;
-              clickContentEl.style.pointerEvents = targetClickOpacity > 0.5 ? 'auto' : 'none';
-              clickContentEl.style.transform = targetClickTransform;
-            }
-            if (expandedContentEl) {
-              if (sarthiMode === 'scrollExpanded') {
-                expandedContentEl.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
-              } else {
-                expandedContentEl.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
-              }
-              expandedContentEl.style.opacity = targetScrollOpacity;
-              expandedContentEl.style.pointerEvents = targetScrollOpacity > 0.5 ? 'auto' : 'none';
-              expandedContentEl.style.transform = targetScrollTransform;
-            }
-            lastSarthiMode = sarthiMode;
-            sizeChanged = false;
-          }
-
-          if (sarthiMode === 'scrollExpanded' && sarthiScrollSectionEl) {
-            const startActive = cachedSectionTopDoc - 150;
-            const activeRange = sarthiScrollSectionEl.offsetHeight;
-            const pct = (window.scrollY - startActive) / activeRange;
-            const clampedPct = Math.max(0, Math.min(1, pct));
-            
-            let activeIdx = 0;
-            if (clampedPct > 0.1 && clampedPct < 0.9) {
-              const midPct = (clampedPct - 0.1) / 0.8;
-              activeIdx = Math.floor(midPct * 4);
-            } else if (clampedPct >= 0.9) {
-              activeIdx = 3;
-            }
-            activeIdx = Math.max(0, Math.min(3, activeIdx));
-
-            if (activeIdx !== lastActiveIdx) {
-              cachedSlides.forEach((slide, idx) => {
-                slide.style.opacity = (idx === activeIdx) ? '1' : '0';
-                slide.style.pointerEvents = (idx === activeIdx) ? 'auto' : 'none';
-              });
-              cachedDots.forEach((dot, idx) => {
-                if (idx === activeIdx) {
-                  dot.style.width = '28px'; dot.style.height = '10px'; dot.style.borderRadius = '5px'; dot.style.background = '#06b6d4'; dot.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.8)';
-                } else {
-                  dot.style.width = '10px'; dot.style.height = '10px'; dot.style.borderRadius = '5px'; dot.style.background = 'var(--sarthi-dot-inactive)'; dot.style.boxShadow = 'none';
-                }
-              });
-              lastActiveIdx = activeIdx;
-            }
-          }
+        let activeIdx = 0;
+        if (clampedPct > 0.1 && clampedPct < 0.9) {
+          const midPct = (clampedPct - 0.1) / 0.8;
+          activeIdx = Math.floor(midPct * 4);
+        } else if (clampedPct >= 0.9) {
+          activeIdx = 3;
         }
+        activeIdx = Math.max(0, Math.min(3, activeIdx));
 
-        function updateSarthiSlideMobile(index) {
-          index = Math.max(0, Math.min(3, index));
+        if (activeIdx !== lastActiveIdx) {
           cachedSlides.forEach((slide, idx) => {
-            slide.style.opacity = (idx === index) ? '1' : '0';
-            slide.style.pointerEvents = (idx === index) ? 'auto' : 'none';
+            slide.style.opacity = (idx === activeIdx) ? '1' : '0';
+            slide.style.pointerEvents = (idx === activeIdx) ? 'auto' : 'none';
           });
           cachedDots.forEach((dot, idx) => {
-            if (idx === index) {
-              dot.classList.add('active'); dot.style.width = '28px'; dot.style.height = '10px'; dot.style.background = '#06b6d4';
+            if (idx === activeIdx) {
+              dot.style.width = '28px'; dot.style.height = '10px'; dot.style.borderRadius = '5px'; dot.style.background = '#06b6d4'; dot.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.8)';
             } else {
-              dot.classList.remove('active'); dot.style.width = '10px'; dot.style.height = '10px'; dot.style.background = 'var(--sarthi-dot-inactive)';
+              dot.style.width = '10px'; dot.style.height = '10px'; dot.style.borderRadius = '5px'; dot.style.background = 'var(--sarthi-dot-inactive)'; dot.style.boxShadow = 'none';
             }
           });
+          lastActiveIdx = activeIdx;
         }
+      }
+    }
 
-        function closeClickPanel(event) {
-          if (event) event.stopPropagation();
-          sarthiMode = 'minimized';
-          updateSarthiState(true);
+    function updateSarthiSlideMobile(index) {
+      index = Math.max(0, Math.min(3, index));
+      cachedSlides.forEach((slide, idx) => {
+        slide.style.opacity = (idx === index) ? '1' : '0';
+        slide.style.pointerEvents = (idx === index) ? 'auto' : 'none';
+      });
+      cachedDots.forEach((dot, idx) => {
+        if (idx === index) {
+          dot.classList.add('active'); dot.style.width = '28px'; dot.style.height = '10px'; dot.style.background = '#06b6d4';
+        } else {
+          dot.classList.remove('active'); dot.style.width = '10px'; dot.style.height = '10px'; dot.style.background = 'var(--sarthi-dot-inactive)';
         }
+      });
+    }
 
-        let scrollActive = false;
-        window.addEventListener('scroll', () => {
-          const isMobile = cachedWindowWidth <= 768;
-          if (isMobile) {
-            // mobile visibility also handled by IntersectionObserver
-            if (sarthiMode === 'clickExpanded') { sarthiMode = 'minimized'; }
+    function closeClickPanel(event) {
+      if (event) event.stopPropagation();
+      sarthiMode = 'minimized';
+      updateSarthiState(true);
+    }
+
+    let scrollActive = false;
+    window.addEventListener('scroll', () => {
+      const isMobile = cachedWindowWidth <= 768;
+      if (isMobile) {
+        // mobile visibility also handled by IntersectionObserver
+        if (sarthiMode === 'clickExpanded') { sarthiMode = 'minimized'; }
+        return;
+      }
+
+      if (sarthiMode === 'clickExpanded') {
+        sarthiMode = 'minimized';
+        if (!scrollActive) {
+          scrollActive = true;
+          requestAnimationFrame(() => {
+            updateSarthiState();
+            scrollActive = false;
+          });
+        }
+        return;
+      }
+
+      let nextMode = 'minimized';
+      if (sarthiScrollSectionEl) {
+        // Only switch to scrollExpanded once the Sarthi section has scrolled almost to the top of the viewport
+        // and remains active until scrolling past the section.
+        const sectionEntersViewport = cachedSectionTopDoc - 150;
+        const sectionLeavesViewport = cachedSectionTopDoc + sarthiScrollSectionEl.offsetHeight - 150;
+        if (window.scrollY >= sectionEntersViewport && window.scrollY <= sectionLeavesViewport && cachedSectionTopDoc > 0) {
+          nextMode = 'scrollExpanded';
+        }
+      }
+
+      if (nextMode !== sarthiMode) {
+        sarthiMode = nextMode;
+        if (sarthiMode !== 'scrollExpanded') {
+          lastActiveIdx = null;
+        }
+        if (!scrollActive) {
+          scrollActive = true;
+          requestAnimationFrame(() => {
+            updateSarthiState();
+            scrollActive = false;
+          });
+        }
+      } else if (sarthiMode === 'scrollExpanded') {
+        if (!scrollActive) {
+          scrollActive = true;
+          requestAnimationFrame(() => {
+            updateSarthiState();
+            scrollActive = false;
+          });
+        }
+      }
+    }, { passive: true });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      cacheSarthiElements();
+      updateCachedSarthiDimensions();
+
+      const isMobile = cachedWindowWidth <= 768;
+      if (isMobile) {
+        // Move sarthi panel below review section statically
+        const panel = expandedContentEl;
+        if (sarthiScrollSectionEl && panel) {
+          panel.style.position = 'relative';
+          panel.style.width = '100%';
+          panel.style.maxWidth = '850px';
+          panel.style.height = '480px';
+          panel.style.opacity = '1';
+          panel.style.pointerEvents = 'auto';
+          panel.style.borderRadius = 'var(--radius-lg)';
+          panel.style.background = 'var(--sarthi-bg-expanded)';
+          panel.style.border = '1px solid var(--border-subtle)';
+          panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
+          panel.style.margin = '0 auto';
+          panel.style.overflow = 'hidden';
+
+          // Add Gemini border class
+          panel.classList.add('gemini-pill-border');
+
+          sarthiScrollSectionEl.innerHTML = '';
+          sarthiScrollSectionEl.appendChild(panel);
+          sarthiScrollSectionEl.style.minHeight = 'auto';
+          sarthiScrollSectionEl.style.height = 'auto';
+          sarthiScrollSectionEl.style.padding = '40px 0';
+
+          // Ensure minimized state elements on floatingSarthiBtn are visible
+          if (smallContentEl) {
+            smallContentEl.style.opacity = '1';
+            smallContentEl.style.pointerEvents = 'auto';
+          }
+        }
+      } else {
+        setTimeout(() => {
+          window.dispatchEvent(new Event('scroll'));
+        }, 100);
+      }
+
+      cachedDots.forEach(dot => {
+        dot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const targetIdx = parseInt(dot.getAttribute('data-index'));
+          if (isNaN(targetIdx)) return;
+
+          if (cachedWindowWidth <= 768) {
+            updateSarthiSlideMobile(targetIdx);
             return;
           }
 
-          if (sarthiMode === 'clickExpanded') {
-            sarthiMode = 'minimized';
-            if (!scrollActive) {
-              scrollActive = true;
-              requestAnimationFrame(() => {
-                updateSarthiState();
-                scrollActive = false;
-              });
-            }
-            return;
-          }
-
-          let nextMode = 'minimized';
           if (sarthiScrollSectionEl) {
-            // Only switch to scrollExpanded once the Sarthi section has scrolled almost to the top of the viewport
-            // and remains active until scrolling past the section.
-            const sectionEntersViewport = cachedSectionTopDoc - 150;
-            const sectionLeavesViewport = cachedSectionTopDoc + sarthiScrollSectionEl.offsetHeight - 150;
-            if (window.scrollY >= sectionEntersViewport && window.scrollY <= sectionLeavesViewport && cachedSectionTopDoc > 0) {
-              nextMode = 'scrollExpanded';
-            }
-          }
+            const startActive = cachedSectionTopDoc - 150;
+            const activeRange = sarthiScrollSectionEl.offsetHeight;
 
-          if (nextMode !== sarthiMode) {
-            sarthiMode = nextMode;
-            if (sarthiMode !== 'scrollExpanded') {
-              lastActiveIdx = null;
-            }
-            if (!scrollActive) {
-              scrollActive = true;
-              requestAnimationFrame(() => {
-                updateSarthiState();
-                scrollActive = false;
-              });
-            }
-          } else if (sarthiMode === 'scrollExpanded') {
-            if (!scrollActive) {
-              scrollActive = true;
-              requestAnimationFrame(() => {
-                updateSarthiState();
-                scrollActive = false;
-              });
-            }
+            // Calculate target scroll position based on slide segment center inside [0.1, 0.9] range
+            const targetPct = 0.1 + (targetIdx + 0.5) * 0.2;
+            const targetScrollY = startActive + targetPct * activeRange;
+
+            window.scrollTo({
+              top: targetScrollY,
+              behavior: 'smooth'
+            });
           }
+        });
+      });
+
+      // Swipe gestures for sarthiSlideTrack on mobile
+      const slideTrack = document.getElementById('sarthiSlideTrack');
+      if (slideTrack) {
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        slideTrack.addEventListener('touchstart', (e) => {
+          touchStartX = e.changedTouches[0].clientX;
         }, { passive: true });
 
-        window.addEventListener('DOMContentLoaded', () => {
-          cacheSarthiElements();
-          updateCachedSarthiDimensions();
+        slideTrack.addEventListener('touchend', (e) => {
+          touchEndX = e.changedTouches[0].clientX;
+          const diffX = touchEndX - touchStartX;
 
-          const isMobile = cachedWindowWidth <= 768;
-          if (isMobile) {
-            // Move sarthi panel below review section statically
-            const panel = expandedContentEl;
-            if (sarthiScrollSectionEl && panel) {
-              panel.style.position = 'relative';
-              panel.style.width = '100%';
-              panel.style.maxWidth = '850px';
-              panel.style.height = '480px';
-              panel.style.opacity = '1';
-              panel.style.pointerEvents = 'auto';
-              panel.style.borderRadius = 'var(--radius-lg)';
-              panel.style.background = 'var(--sarthi-bg-expanded)';
-              panel.style.border = '1px solid var(--border-subtle)';
-              panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
-              panel.style.margin = '0 auto';
-              panel.style.overflow = 'hidden';
-              
-              // Add Gemini border class
-              panel.classList.add('gemini-pill-border');
+          if (Math.abs(diffX) > 50) {
+            if (cachedWindowWidth <= 768) {
+              const activeDot = document.querySelector('#sarthiPanelDots .sarthi-dot.active');
+              let currentIdx = activeDot ? parseInt(activeDot.getAttribute('data-index')) : 0;
+              if (isNaN(currentIdx)) currentIdx = 0;
 
-              sarthiScrollSectionEl.innerHTML = '';
-              sarthiScrollSectionEl.appendChild(panel);
-              sarthiScrollSectionEl.style.minHeight = 'auto';
-              sarthiScrollSectionEl.style.height = 'auto';
-              sarthiScrollSectionEl.style.padding = '40px 0';
-              
-              // Ensure minimized state elements on floatingSarthiBtn are visible
-              if (smallContentEl) {
-                smallContentEl.style.opacity = '1';
-                smallContentEl.style.pointerEvents = 'auto';
+              let targetIdx = currentIdx;
+              if (diffX < -50) { // Swiped left -> Next slide
+                if (targetIdx < 3) targetIdx++;
+              } else if (diffX > 50) { // Swiped right -> Previous slide
+                if (targetIdx > 0) targetIdx--;
               }
-            }
-          } else {
-            setTimeout(() => {
-              window.dispatchEvent(new Event('scroll'));
-            }, 100);
-          }
 
-          cachedDots.forEach(dot => {
-            dot.addEventListener('click', (e) => {
-              e.stopPropagation();
-              const targetIdx = parseInt(dot.getAttribute('data-index'));
-              if (isNaN(targetIdx)) return;
-
-              if (cachedWindowWidth <= 768) {
+              if (targetIdx !== currentIdx) {
                 updateSarthiSlideMobile(targetIdx);
-                return;
+              }
+              return;
+            }
+
+            if (sarthiScrollSectionEl) {
+              const startActive = cachedSectionTopDoc - 150;
+              const activeRange = sarthiScrollSectionEl.offsetHeight;
+              const currentScroll = window.scrollY;
+              const pct = (currentScroll - startActive) / activeRange;
+              const clampedPct = Math.max(0, Math.min(1, pct));
+
+              let currentIdx = 0;
+              if (clampedPct > 0.1 && clampedPct < 0.9) {
+                const midPct = (clampedPct - 0.1) / 0.8;
+                currentIdx = Math.floor(midPct * 4);
+              } else if (clampedPct >= 0.9) {
+                currentIdx = 3;
               }
 
-              if (sarthiScrollSectionEl) {
-                const startActive = cachedSectionTopDoc - 150;
-                const activeRange = sarthiScrollSectionEl.offsetHeight;
-                
-                // Calculate target scroll position based on slide segment center inside [0.1, 0.9] range
+              let targetIdx = currentIdx;
+              if (diffX < -50) { // Swiped left -> Next slide
+                if (targetIdx < 3) targetIdx++;
+              } else if (diffX > 50) { // Swiped right -> Previous slide
+                if (targetIdx > 0) targetIdx--;
+              }
+
+              if (targetIdx !== currentIdx) {
                 const targetPct = 0.1 + (targetIdx + 0.5) * 0.2;
                 const targetScrollY = startActive + targetPct * activeRange;
 
@@ -1650,327 +1774,268 @@
                   behavior: 'smooth'
                 });
               }
-            });
-          });
+            }
+          }
+        }, { passive: true });
+      }
+    });
 
-          // Swipe gestures for sarthiSlideTrack on mobile
-          const slideTrack = document.getElementById('sarthiSlideTrack');
-          if (slideTrack) {
-            let touchStartX = 0;
-            let touchEndX = 0;
+    // 9. Portal Carousels Logic
+    document.addEventListener('DOMContentLoaded', () => {
+      setupCarousel('finder');
+      setupCarousel('recruiter');
 
-            slideTrack.addEventListener('touchstart', (e) => {
-              touchStartX = e.changedTouches[0].clientX;
-            }, { passive: true });
 
-            slideTrack.addEventListener('touchend', (e) => {
-              touchEndX = e.changedTouches[0].clientX;
-              const diffX = touchEndX - touchStartX;
-              
-              if (Math.abs(diffX) > 50) {
-                if (cachedWindowWidth <= 768) {
-                  const activeDot = document.querySelector('#sarthiPanelDots .sarthi-dot.active');
-                  let currentIdx = activeDot ? parseInt(activeDot.getAttribute('data-index')) : 0;
-                  if (isNaN(currentIdx)) currentIdx = 0;
-                  
-                  let targetIdx = currentIdx;
-                  if (diffX < -50) { // Swiped left -> Next slide
-                    if (targetIdx < 3) targetIdx++;
-                  } else if (diffX > 50) { // Swiped right -> Previous slide
-                    if (targetIdx > 0) targetIdx--;
-                  }
-                  
-                  if (targetIdx !== currentIdx) {
-                    updateSarthiSlideMobile(targetIdx);
-                  }
-                  return;
-                }
+      // Smooth scroll navigation with event delegation (handles dynamic elements like Dock links)
+      document.addEventListener('click', (e) => {
+        const link = e.target.closest('a[href^="#"]');
+        if (link) {
+          const targetId = link.getAttribute('href');
+          if (targetId && targetId.startsWith('#') && targetId.length > 1) {
+            e.preventDefault();
+            const targetSection = document.querySelector(targetId);
+            if (targetSection) {
+              const headerOffset = targetId === '#hero' ? 0 : 90;
+              const elementPosition = targetSection.getBoundingClientRect().top;
+              let offsetPosition = targetId === '#hero' ? 0 : (elementPosition + window.scrollY - headerOffset);
 
-                if (sarthiScrollSectionEl) {
-                  const startActive = cachedSectionTopDoc - 150;
-                  const activeRange = sarthiScrollSectionEl.offsetHeight;
-                  const currentScroll = window.scrollY;
-                  const pct = (currentScroll - startActive) / activeRange;
-                  const clampedPct = Math.max(0, Math.min(1, pct));
-                  
-                  let currentIdx = 0;
-                  if (clampedPct > 0.1 && clampedPct < 0.9) {
-                    const midPct = (clampedPct - 0.1) / 0.8;
-                    currentIdx = Math.floor(midPct * 4);
-                  } else if (clampedPct >= 0.9) {
-                    currentIdx = 3;
-                  }
-
-                  let targetIdx = currentIdx;
-                  if (diffX < -50) { // Swiped left -> Next slide
-                    if (targetIdx < 3) targetIdx++;
-                  } else if (diffX > 50) { // Swiped right -> Previous slide
-                    if (targetIdx > 0) targetIdx--;
-                  }
-                  
-                  if (targetIdx !== currentIdx) {
-                    const targetPct = 0.1 + (targetIdx + 0.5) * 0.2;
-                    const targetScrollY = startActive + targetPct * activeRange;
-
-                    window.scrollTo({
-                      top: targetScrollY,
-                      behavior: 'smooth'
-                    });
-                  }
-                }
+              // If target is Sarthi scroll section, scroll a bit deeper so the panel expands and shows the first card
+              if (targetId === '#sarthi-scroll-section') {
+                offsetPosition = elementPosition + window.scrollY + 100;
               }
-            }, { passive: true });
+
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              });
+            }
+          }
+        }
+      });
+
+      // Update active nav link on scroll using high-performance cached offsets
+      let sectionOffsets = {};
+      function updateSectionOffsets() {
+        ['hero', 'portal', 'sarthi-scroll-section', 'employer-gallery-section', 'reviews'].forEach(id => {
+          const section = document.getElementById(id);
+          if (section) {
+            const rect = section.getBoundingClientRect();
+            sectionOffsets[id] = rect.top + window.scrollY;
+          }
+        });
+        runScrollUpdate();
+      }
+      window.addEventListener('resize', updateSectionOffsets, { passive: true });
+      window.addEventListener('load', updateSectionOffsets, { passive: true });
+
+      updateSectionOffsets();
+      setTimeout(updateSectionOffsets, 250);
+
+      function runScrollUpdate() {
+        let currentSectionId = 'hero';
+        const currentScroll = window.scrollY;
+
+        ['hero', 'portal', 'sarthi-scroll-section', 'employer-gallery-section', 'reviews'].forEach(id => {
+          if (sectionOffsets[id] !== undefined) {
+            const offset = sectionOffsets[id];
+            if (currentScroll >= offset - 150) {
+              currentSectionId = id;
+            }
           }
         });
 
-        // 9. Portal Carousels Logic
-        document.addEventListener('DOMContentLoaded', () => {
-          setupCarousel('finder');
-          setupCarousel('recruiter');
+        const activeLinks = document.querySelectorAll('.dock-item, .nav-link');
+        activeLinks.forEach(link => {
+          if (link.getAttribute('href') === `#${currentSectionId}`) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        });
+      }
 
-
-          // Smooth scroll navigation with event delegation (handles dynamic elements like Dock links)
-          document.addEventListener('click', (e) => {
-            const link = e.target.closest('a[href^="#"]');
-            if (link) {
-              const targetId = link.getAttribute('href');
-              if (targetId && targetId.startsWith('#') && targetId.length > 1) {
-                e.preventDefault();
-                const targetSection = document.querySelector(targetId);
-                if (targetSection) {
-                  const headerOffset = targetId === '#hero' ? 0 : 90;
-                  const elementPosition = targetSection.getBoundingClientRect().top;
-                  let offsetPosition = targetId === '#hero' ? 0 : (elementPosition + window.scrollY - headerOffset);
-
-                  // If target is Sarthi scroll section, scroll a bit deeper so the panel expands and shows the first card
-                  if (targetId === '#sarthi-scroll-section') {
-                    offsetPosition = elementPosition + window.scrollY + 100;
-                  }
-
-                  window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                  });
-                }
-              }
-            }
-          });
-
-          // Update active nav link on scroll using high-performance cached offsets
-          let sectionOffsets = {};
-          function updateSectionOffsets() {
-            ['hero', 'portal', 'sarthi-scroll-section', 'employer-gallery-section', 'reviews'].forEach(id => {
-              const section = document.getElementById(id);
-              if (section) {
-                const rect = section.getBoundingClientRect();
-                sectionOffsets[id] = rect.top + window.scrollY;
-              }
-            });
+      let navTicking = false;
+      window.addEventListener('scroll', () => {
+        if (!navTicking) {
+          window.requestAnimationFrame(() => {
             runScrollUpdate();
+            navTicking = false;
+          });
+          navTicking = true;
+        }
+      }, { passive: true });
+
+      function setupCarousel(type) {
+        const container = document.querySelector(`.carousel-container[data-carousel="${type}"]`);
+        if (!container) return;
+
+        const slides = container.querySelectorAll('.carousel-slide');
+        const dots = container.querySelectorAll('.carousel-dot');
+        let currentIndex = 0;
+        let intervalId = null;
+
+        function showSlide(index) {
+          slides.forEach((slide, i) => {
+            if (i === index) {
+              slide.classList.add('active');
+            } else {
+              slide.classList.remove('active');
+            }
+          });
+
+          dots.forEach((dot, i) => {
+            if (i === index) {
+              dot.classList.add('active');
+            } else {
+              dot.classList.remove('active');
+            }
+          });
+
+          currentIndex = index;
+        }
+
+        function nextSlide() {
+          let nextIndex = (currentIndex + 1) % slides.length;
+          showSlide(nextIndex);
+        }
+
+        function startAutoPlay() {
+          stopAutoPlay();
+          intervalId = setInterval(nextSlide, 5000);
+        }
+
+        function stopAutoPlay() {
+          if (intervalId) {
+            clearInterval(intervalId);
           }
-          window.addEventListener('resize', updateSectionOffsets, { passive: true });
-          window.addEventListener('load', updateSectionOffsets, { passive: true });
-          
-          updateSectionOffsets();
-          setTimeout(updateSectionOffsets, 250);
+        }
 
-          function runScrollUpdate() {
-            let currentSectionId = 'hero';
-            const currentScroll = window.scrollY;
-
-            ['hero', 'portal', 'sarthi-scroll-section', 'employer-gallery-section', 'reviews'].forEach(id => {
-              if (sectionOffsets[id] !== undefined) {
-                const offset = sectionOffsets[id];
-                if (currentScroll >= offset - 150) {
-                  currentSectionId = id;
-                }
-              }
-            });
-
-            const activeLinks = document.querySelectorAll('.dock-item, .nav-link');
-            activeLinks.forEach(link => {
-              if (link.getAttribute('href') === `#${currentSectionId}`) {
-                link.classList.add('active');
-              } else {
-                link.classList.remove('active');
-              }
-            });
-          }
-
-          let navTicking = false;
-          window.addEventListener('scroll', () => {
-            if (!navTicking) {
-              window.requestAnimationFrame(() => {
-                runScrollUpdate();
-                navTicking = false;
-              });
-              navTicking = true;
-            }
-          }, { passive: true });
-
-          function setupCarousel(type) {
-            const container = document.querySelector(`.carousel-container[data-carousel="${type}"]`);
-            if (!container) return;
-
-            const slides = container.querySelectorAll('.carousel-slide');
-            const dots = container.querySelectorAll('.carousel-dot');
-            let currentIndex = 0;
-            let intervalId = null;
-
-            function showSlide(index) {
-              slides.forEach((slide, i) => {
-                if (i === index) {
-                  slide.classList.add('active');
-                } else {
-                  slide.classList.remove('active');
-                }
-              });
-
-              dots.forEach((dot, i) => {
-                if (i === index) {
-                  dot.classList.add('active');
-                } else {
-                  dot.classList.remove('active');
-                }
-              });
-
-              currentIndex = index;
-            }
-
-            function nextSlide() {
-              let nextIndex = (currentIndex + 1) % slides.length;
-              showSlide(nextIndex);
-            }
-
-            function startAutoPlay() {
-              stopAutoPlay();
-              intervalId = setInterval(nextSlide, 5000);
-            }
-
-            function stopAutoPlay() {
-              if (intervalId) {
-                clearInterval(intervalId);
-              }
-            }
-
-            // Add click events to dots
-            dots.forEach(dot => {
-              dot.addEventListener('click', () => {
-                const index = parseInt(dot.getAttribute('data-index'));
-                showSlide(index);
-                startAutoPlay(); // Restart timer on user interaction
-              });
-            });
-
-            // Initialize
-            showSlide(0);
-            startAutoPlay();
-          }
+        // Add click events to dots
+        dots.forEach(dot => {
+          dot.addEventListener('click', () => {
+            const index = parseInt(dot.getAttribute('data-index'));
+            showSlide(index);
+            startAutoPlay(); // Restart timer on user interaction
+          });
         });
-      </script>
 
-      <!-- GSAP and ScrollTrigger -->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+        // Initialize
+        showSlide(0);
+        startAutoPlay();
+      }
+    });
+  </script>
 
-      <!-- Custom SplitText and VariableProximity Scripts -->
-      <script src="js/SplitText.js"></script>
-      <script src="js/VariableProximity.js"></script>
-      <script src="js/LogoLoop.js"></script>
-      <script src="js/DomeGallery.js"></script>
+  <!-- GSAP and ScrollTrigger — SRI hashes sourced from cdnjs API -->
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"
+    integrity="sha512-7eHRwcbYkK4d9g/6tD/mhkf++eoTHwpNM9woBxtPUBWm67zeAfFC+HrdoE2GanKeocly/VxeLvIqwvCdk7qScg=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"
+    integrity="sha512-onMTRKJBKz8M1TnqqDuGBlowlH0ohFzMXYRNebz+yOcc5TQr/zAKsthzhuv0hiyUKEiQEQXEynnXCvNTOk50dg=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"></script>
 
-      <!-- JobSarthi Shared Header Script -->
-      <script src="js/header.js"></script>
+  <!-- Custom SplitText and VariableProximity Scripts -->
+  <script src="js/SplitText.js"></script>
+  <script src="js/VariableProximity.js"></script>
+  <script src="js/LogoLoop.js"></script>
+  <script src="js/DomeGallery.js"></script>
 
-      <!-- Initialize SplitText & VariableProximity for Hero introductory text -->
-      <script>
-        document.addEventListener('DOMContentLoaded', () => {
-          const headlineEl = document.getElementById('heroHeadline');
-          const subtitleEl = document.getElementById('heroSubtitle');
+  <!-- JobSarthi Shared Header Script -->
+  <script src="js/header.js"></script>
 
-          if (headlineEl) {
-            new SplitText(headlineEl, {
-              delay: 45,
-              duration: 0.8,
-              ease: 'power3.out',
-              from: { opacity: 0, y: 30 },
-              to: { opacity: 1, y: 0 },
-              onLetterAnimationComplete: () => {
-                new VariableProximity(headlineEl, {
-                  fromFontVariationSettings: "'wght' 400, 'opsz' 9",
-                  toFontVariationSettings: "'wght' 1000, 'opsz' 40",
-                  container: document.querySelector('.hero-left'),
-                  radius: 120,
-                  falloff: 'linear'
-                });
-              }
-            });
-          }
+  <!-- Initialize SplitText & VariableProximity for Hero introductory text -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const headlineEl = document.getElementById('heroHeadline');
+      const subtitleEl = document.getElementById('heroSubtitle');
 
-          if (subtitleEl) {
-            new SplitText(subtitleEl, {
-              delay: 12,
-              duration: 0.8,
-              ease: 'power3.out',
-              from: { opacity: 0, y: 20 },
-              to: { opacity: 1, y: 0 }
-            });
-          }
-
-          // Initialize LogoLoop for Success Reviews ticker
-          const reviewsContainer = document.getElementById('reviewsLoopContainer');
-          if (reviewsContainer) {
-            new LogoLoop(reviewsContainer, {
-              speed: 45,
-              gap: 24,
-              itemWidth: 340,
-              hoverSpeed: 0,
-              scaleOnHover: true,
-              fadeOut: true
-            });
-          }
-
-          // Initialize Interactive 3D DomeGallery
-          const domeContainer = document.getElementById('domeGalleryContainer');
-          if (domeContainer) {
-            const companyImages = [
-              'assets/company/cmp1.png',
-              'assets/company/cmp2.png',
-              'assets/company/cmp3.jpg',
-              'assets/company/cmp4.png',
-              'assets/company/cmp5.png',
-              'assets/company/cmp6.png',
-              'assets/company/cmp7.png',
-              'assets/company/cmp8.png',
-              'assets/company/cmp9.png',
-              'assets/company/cmp10.png',
-              'assets/company/cmp11.png',
-              'assets/company/cmp12.png',
-              'assets/company/cmp13.png',
-              'assets/company/cmp14.png',
-              'assets/company/cmp15.png',
-              'assets/company/cmp16.png',
-              'assets/company/cmp17.jpg',
-              'assets/company/cmp18.png',
-              'assets/company/cmp19.png',
-              'assets/company/cmp20.png',
-              'assets/company/cmp21.png',
-              'assets/company/cmp22.png',
-              'assets/company/cmp23.png',
-              'assets/company/cmp24.jpg',
-              'assets/company/cmp25.jpg'
-            ];
-            new DomeGallery(domeContainer, {
-              images: companyImages,
-              segments: 20,
-              radius: 380,
-              dragSensitivity: 0.18,
-              dragDampening: 0.94,
-              autoRotateSpeed: 0.04
+      if (headlineEl) {
+        new SplitText(headlineEl, {
+          delay: 45,
+          duration: 0.8,
+          ease: 'power3.out',
+          from: { opacity: 0, y: 30 },
+          to: { opacity: 1, y: 0 },
+          onLetterAnimationComplete: () => {
+            new VariableProximity(headlineEl, {
+              fromFontVariationSettings: "'wght' 400, 'opsz' 9",
+              toFontVariationSettings: "'wght' 1000, 'opsz' 40",
+              container: document.querySelector('.hero-left'),
+              radius: 120,
+              falloff: 'linear'
             });
           }
         });
-      </script>
+      }
+
+      if (subtitleEl) {
+        new SplitText(subtitleEl, {
+          delay: 12,
+          duration: 0.8,
+          ease: 'power3.out',
+          from: { opacity: 0, y: 20 },
+          to: { opacity: 1, y: 0 }
+        });
+      }
+
+      // Initialize LogoLoop for Success Reviews ticker
+      const reviewsContainer = document.getElementById('reviewsLoopContainer');
+      if (reviewsContainer) {
+        new LogoLoop(reviewsContainer, {
+          speed: 45,
+          gap: 24,
+          itemWidth: 340,
+          hoverSpeed: 0,
+          scaleOnHover: true,
+          fadeOut: true
+        });
+      }
+
+      // Initialize Interactive 3D DomeGallery
+      const domeContainer = document.getElementById('domeGalleryContainer');
+      if (domeContainer) {
+        const companyImages = [
+          'assets/company/cmp1.png',
+          'assets/company/cmp2.png',
+          'assets/company/cmp3.jpg',
+          'assets/company/cmp4.png',
+          'assets/company/cmp5.png',
+          'assets/company/cmp6.png',
+          'assets/company/cmp7.png',
+          'assets/company/cmp8.png',
+          'assets/company/cmp9.png',
+          'assets/company/cmp10.png',
+          'assets/company/cmp11.png',
+          'assets/company/cmp12.png',
+          'assets/company/cmp13.png',
+          'assets/company/cmp14.png',
+          'assets/company/cmp15.png',
+          'assets/company/cmp16.png',
+          'assets/company/cmp17.jpg',
+          'assets/company/cmp18.png',
+          'assets/company/cmp19.png',
+          'assets/company/cmp20.png',
+          'assets/company/cmp21.png',
+          'assets/company/cmp22.png',
+          'assets/company/cmp23.png',
+          'assets/company/cmp24.jpg',
+          'assets/company/cmp25.jpg'
+        ];
+        new DomeGallery(domeContainer, {
+          images: companyImages,
+          segments: 20,
+          radius: 380,
+          dragSensitivity: 0.18,
+          dragDampening: 0.94,
+          autoRotateSpeed: 0.04
+        });
+      }
+    });
+  </script>
 
 
 
@@ -1978,7 +2043,7 @@
 
 <script>
   // ─── Floating Sarthi Button Visibility Controller ───
-  (function() {
+  (function () {
     var btn = document.getElementById('floatingSarthiBtn');
     var target = document.getElementById('sarthi-scroll-section');
     if (!btn || !target) return;
@@ -2004,80 +2069,28 @@
     }
 
     window.addEventListener('scroll', checkVisibility, { passive: true });
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', function () {
       updateOffset();
       checkVisibility();
     }, { passive: true });
-    window.addEventListener('load', function() {
+    window.addEventListener('load', function () {
       updateOffset();
       checkVisibility();
     }, { passive: true });
 
     updateOffset();
     checkVisibility();
-    
+
     // Fallback checks for settle/delayed layouts
-    setTimeout(function() {
+    setTimeout(function () {
       updateOffset();
       checkVisibility();
     }, 200);
-    setTimeout(function() {
+    setTimeout(function () {
       updateOffset();
       checkVisibility();
     }, 500);
   })();
-</script>
-<!-- i18n Engine -->
-<script src="js/i18n.js"></script>
-
-<script>
-  // ── Scroll Reveal Observer ──
-  (function() {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.classList.add('visible');
-          observer.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-  })();
-
-  // ── Language Switcher injection into header ──
-  // Injected after header.js renders the header
-  function injectLangSwitcher() {
-    const actions = document.querySelector('.header-actions');
-    if (!actions || document.getElementById('langSwitcher')) return;
-    const sw = document.createElement('div');
-    sw.id = 'langSwitcher';
-    sw.className = 'lang-switcher';
-    sw.innerHTML = `
-      <button class="lang-btn" data-lang="en" onclick="window.i18n.setLang('en')">EN</button>
-      <button class="lang-btn" data-lang="fr" onclick="window.i18n.setLang('fr')">FR</button>
-      <button class="lang-btn" data-lang="ar" onclick="window.i18n.setLang('ar')">ع</button>
-    `;
-    actions.insertBefore(sw, actions.firstChild);
-    // Set active state
-    sw.querySelectorAll('.lang-btn').forEach(b => {
-      b.classList.toggle('lang-btn-active', b.getAttribute('data-lang') === window.i18n.getCurrentLang());
-    });
-  }
-
-  // Try immediately, then retry after header.js loads
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(injectLangSwitcher, 300);
-    setTimeout(injectLangSwitcher, 800);
-    setTimeout(injectLangSwitcher, 1500);
-
-    // Re-apply scroll reveal after dynamic content loads
-    setTimeout(() => {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
-      }, { threshold: 0.1 });
-      document.querySelectorAll('.reveal:not(.visible)').forEach(el => observer.observe(el));
-    }, 500);
-  });
 </script>
 
 </html>
