@@ -1080,14 +1080,21 @@ async function sendPasswordResetEmail(email, token, role, origin) {
     console.error("Failed to write mock email file:", err);
   }
 
+  const host = process.env.SMTP_HOST || "smtp.ethereal.email";
+  const port = parseInt(process.env.SMTP_PORT) || 587;
+  const secure = host.includes("gmail") ? (port === 465) : (process.env.SMTP_SECURE === "true");
+
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.ethereal.email",
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === "true",
+    host,
+    port,
+    secure,
     auth: {
       user: process.env.SMTP_USER || "ethereal_test_user",
       pass: process.env.SMTP_PASS || "ethereal_test_pass"
-    }
+    },
+    connectionTimeout: 10000, // 10 seconds timeout
+    greetingTimeout: 10000,
+    socketTimeout: 10000
   });
 
   let finalUser = process.env.SMTP_USER;
@@ -1109,7 +1116,7 @@ async function sendPasswordResetEmail(email, token, role, origin) {
   }
 
   const mailOptions = {
-    from: `"JobSarthi Support" <${finalUser || 'support@jobsarthi.ai'}>`,
+    from: `"JobSarthi" <${finalUser || 'support@jobsarthi.ai'}>`,
     to: email,
     subject: "Reset Your JobSarthi Password",
     html: `
@@ -1133,6 +1140,7 @@ async function sendPasswordResetEmail(email, token, role, origin) {
       console.log(`[PASSWORD RESET] Email sent successfully: ${info.messageId}`);
     } catch (mailErr) {
       console.error("Nodemailer failed to send email:", mailErr.message);
+      throw new Error(`Email delivery failed: ${mailErr.message}`);
     }
   }
 }
@@ -1181,7 +1189,7 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     res.json({ success: true, message: "Password reset link sent successfully!", token });
   } catch (err) {
     console.error("Forgot password API error:", err);
-    res.status(500).json({ error: "Internal server error during password reset request." });
+    res.status(500).json({ error: err.message || "Internal server error during password reset request." });
   }
 });
 
