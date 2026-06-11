@@ -3,55 +3,48 @@
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Quicksand:wght@300..700&display=swap');
 
 :root {
-  /* Elegant Dark Mode Palette (Human Made SaaS Style) */
-  --bg-primary: #09090b;
-  /* zinc-950 */
-  --bg-secondary: #09090b;
-  /* zinc-950 */
-  --bg-surface: #18181b;
-  /* zinc-900 */
+  /* ── Tactical Obsidian Dark Theme ── */
+  --bg-primary:   #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-surface:   #141414;
 
-  --accent-primary: #ffffff;
-  /* Pure white for high contrast */
-  --accent-secondary: #27272a;
-  /* zinc-800 for buttons/active paginations */
-  --accent-tertiary: #3f3f46;
-  /* zinc-700 */
+  --accent-primary:   #f5f5f7;
+  --accent-secondary: #1c1c1e;
+  --accent-tertiary:  #2c2c2e;
 
-  --text-main: #fafafa;
-  /* zinc-50 */
-  --text-muted: #a1a1aa;
-  /* zinc-400 */
-  --text-dark: #71717a;
-  /* zinc-500 */
+  --neon-cyan:   #2f7de1;
 
-  --border-subtle: #27272a;
-  --border-focus: #3f3f46;
-  --glass-border: #27272a;
+  --text-main:  #f5f5f7;
+  --text-muted: #86868b;
+  --text-dark:  #6e6e73;
 
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --border-subtle: rgba(255,255,255,0.08);
+  --border-focus:  rgba(255,255,255,0.14);
+  --glass-border:  rgba(255,255,255,0.08);
 
-  /* Sarthi specific */
-  --sarthi-bg-minimized: rgba(9, 9, 11, 0.7);
-  --sarthi-bg-expanded: rgba(9, 9, 11, 0.85);
-  --sarthi-header-bg: rgba(9, 9, 11, 0.45);
-  --sarthi-dot-inactive: rgba(255, 255, 255, 0.45);
+  --success: #30d158;
+  --warning: #ffd60a;
+  --danger:  #ff453a;
+
+  /* Sarthi panel */
+  --sarthi-bg-minimized: rgba(10,10,10,0.80);
+  --sarthi-bg-expanded:  rgba(14,14,14,0.90);
+  --sarthi-header-bg:    rgba(10,10,10,0.55);
+  --sarthi-dot-inactive: rgba(255,255,255,0.3);
 
   /* Fonts */
-  --font-display: 'Inter', -apple-system, sans-serif;
-  --font-sans: 'Inter', -apple-system, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-sans:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Transitions */
-  --transition-fast: 0.15s ease;
+  --transition-fast:   0.15s ease;
   --transition-normal: 0.25s ease;
-  --transition-slow: 0.4s ease;
+  --transition-slow:   0.4s ease;
 
-  /* Border Radius */
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 12px;
+  /* Border Radius — generous Apple feel */
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   20px;
   --radius-full: 9999px;
 }
 
@@ -105,29 +98,30 @@
   }
 }
 
-/* Light Theme Variables */
+/* ── Apple Light Theme ── */
 body.light-theme {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f4f4f5;
-  --bg-surface: #ffffff;
+  --bg-primary:   #f5f5f7;
+  --bg-secondary: #ffffff;
+  --bg-surface:   #ffffff;
 
-  --accent-primary: #09090b;
-  --accent-secondary: #e4e4e7;
-  --accent-tertiary: #d4d4d8;
+  --accent-primary:   #1d1d1f;
+  --accent-secondary: #e8e8ed;
+  --accent-tertiary:  #d2d2d7;
 
-  --text-main: #09090b;
-  --text-muted: #71717a;
-  --text-dark: #a1a1aa;
+  --neon-cyan: #0058bc;
 
-  --border-subtle: #e4e4e7;
-  --border-focus: #d4d4d8;
-  --glass-border: #e4e4e7;
+  --text-main:  #1d1d1f;
+  --text-muted: #6e6e73;
+  --text-dark:  #86868b;
 
-  /* Sarthi specific */
-  --sarthi-bg-minimized: rgba(255, 255, 255, 0.75);
-  --sarthi-bg-expanded: rgba(255, 255, 255, 0.9);
-  --sarthi-header-bg: rgba(255, 255, 255, 0.55);
-  --sarthi-dot-inactive: rgba(0, 0, 0, 0.25);
+  --border-subtle: rgba(0,0,0,0.08);
+  --border-focus:  rgba(0,0,0,0.14);
+  --glass-border:  rgba(0,0,0,0.08);
+
+  --sarthi-bg-minimized: rgba(255,255,255,0.85);
+  --sarthi-bg-expanded:  rgba(255,255,255,0.95);
+  --sarthi-header-bg:    rgba(255,255,255,0.62);
+  --sarthi-dot-inactive: rgba(0,0,0,0.25);
 }
 
 * {
@@ -167,21 +161,15 @@ body.light-theme::before {
   background: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.03), transparent 60%);
 }
 
-/* Hide AI blobs and canvas completely */
-.liquid-blob-container,
-#networkCanvas,
-.bg-glow-1,
-.bg-glow-2 {
-  display: none !important;
-}
+/* Blobs and canvas — show on landing page, hide on portal pages */
+.landing-body .liquid-blob-container,
+.landing-body #networkCanvas { display: block !important; }
 
-/* Legacy element resets (kept minimal) */
-.orbit-ring,
-.sarthi-sphere-container,
-.liquid-blob-container,
-#networkCanvas {
-  display: none !important;
-}
+body:not(.landing-body) .liquid-blob-container,
+body:not(.landing-body) #networkCanvas,
+.bg-glow-1, .bg-glow-2 { display: none !important; }
+
+.orbit-ring, .sarthi-sphere-container { display: none !important; }
 
 /* Scrollbar */
 ::-webkit-scrollbar {

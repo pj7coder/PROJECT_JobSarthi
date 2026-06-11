@@ -27,6 +27,9 @@
   <link rel="stylesheet" href="css/landing.css">
   <link rel="stylesheet" href="css/VariableProximity.css">
   <link rel="stylesheet" href="css/LogoLoop.css">
+  <!-- Arabic font for RTL support -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* Preloader CSS to prevent Flash of Unstyled Content (FOUC) */
@@ -680,18 +683,20 @@
     <section id="hero" class="hero-layout">
       <div class="hero-left"
         style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <h1 id="heroHeadline" class="hero-headline variable-proximity"
-          style="font-size: 3.5rem; line-height: 1.1; margin-bottom: 24px; font-weight: 800; width: 100%; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
+        <h1 id="heroHeadline" class="hero-headline variable-proximity reveal"
+          data-i18n="hero_headline"
+          style="font-size: 3.5rem; line-height: 1.1; margin-bottom: 24px; font-weight: 800; width: 100%; font-family: 'Inter', -apple-system, sans-serif;">
           Welcome to JobSarthi
         </h1>
-        <p id="heroSubtitle" class="hero-subtitle"
-          style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 36px; max-width: 680px; text-align: center; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
+        <p id="heroSubtitle" class="hero-subtitle reveal reveal-delay-1"
+          data-i18n="hero_subtitle"
+          style="font-size: 1.05rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 36px; max-width: 680px; text-align: center; font-family: 'Inter', -apple-system, sans-serif;">
           Your intelligent companion in navigating modern careers. Powered by Sarthi AI, connecting talented seekers
           with top company recruiter pipelines.
         </p>
         <div class="hero-ctas" style="display: flex; justify-content: center; width: 100%;">
-          <a href="#portal" class="cssbuttons-io-button">
-            Get Started
+          <a href="#portal" class="cssbuttons-io-button reveal reveal-delay-2">
+            <span data-i18n="hero_cta">Get Started</span>
             <div class="icon">
               <svg height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 0h24v24H0z" fill="none"></path>
@@ -716,8 +721,8 @@
     <!-- Choose Your Journey portals -->
     <section id="portal" style="padding: 40px 0; border-top: 1px solid var(--border-subtle);">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h2 style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">Choose Your Journey</h2>
-        <p style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Select one of our
+        <h2 data-i18n="portal_title" style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">Choose Your Journey</h2>
+        <p data-i18n="portal_subtitle" style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Select one of our
           customized dashboards below to begin.</p>
       </div>
 
@@ -735,10 +740,10 @@
             </svg>
           </div>
           
-          <div class="portal-static-title seeker-color">Want to Find a Job</div>
+          <div class="portal-static-title seeker-color" data-i18n="seeker_title">Want to Find a Job</div>
           
           <div class="portal-text">
-            <p>Create your profile, complete assessments, earn skills validation, and talk to your career companion Sarthi AI.</p>
+            <p data-i18n="seeker_desc">Create your profile, complete assessments, earn skills validation, and talk to your career companion Sarthi AI.</p>
           </div>
         </div>
 
@@ -753,10 +758,10 @@
             </svg>
           </div>
           
-          <div class="portal-static-title recruiter-color">Need an Employee</div>
+          <div class="portal-static-title recruiter-color" data-i18n="recruiter_title">Need an Employee</div>
           
           <div class="portal-text">
-            <p>Post listings, manage active applicant pools, view verified skill assessments, and optimize hiring pipelines.</p>
+            <p data-i18n="recruiter_desc">Post listings, manage active applicant pools, view verified skill assessments, and optimize hiring pipelines.</p>
           </div>
         </div>
       </div>
@@ -809,8 +814,8 @@
     <!-- Success Reviews Section -->
     <section id="reviews" style="padding: 40px 0 20px 0; border-top: 1px solid var(--border-subtle);">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h2 style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">User Success Reviews</h2>
-        <p style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Hear from both finders
+        <h2 data-i18n="reviews_title" style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">User Success Reviews</h2>
+        <p data-i18n="reviews_subtitle" style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Hear from both finders
           and recruiters who rely on JobSarthi.</p>
       </div>
 
@@ -1273,7 +1278,7 @@
 
       <footer
         style="border-top: 1px solid var(--glass-border); padding: 20px 0; text-align: center; color: var(--text-dark); font-size: 0.85rem; position: relative; z-index: 5; margin: 0;">
-        <p>&copy; 2026 JobSarthi Platform. Created with advanced UI animations. All rights reserved.</p>
+        <p data-i18n="footer">&copy; 2026 JobSarthi Platform. Created with advanced UI animations. All rights reserved.</p>
       </footer>
 
   <script>
@@ -2021,6 +2026,58 @@
       checkVisibility();
     }, 500);
   })();
+</script>
+<!-- i18n Engine -->
+<script src="js/i18n.js"></script>
+
+<script>
+  // ── Scroll Reveal Observer ──
+  (function() {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  })();
+
+  // ── Language Switcher injection into header ──
+  // Injected after header.js renders the header
+  function injectLangSwitcher() {
+    const actions = document.querySelector('.header-actions');
+    if (!actions || document.getElementById('langSwitcher')) return;
+    const sw = document.createElement('div');
+    sw.id = 'langSwitcher';
+    sw.className = 'lang-switcher';
+    sw.innerHTML = `
+      <button class="lang-btn" data-lang="en" onclick="window.i18n.setLang('en')">EN</button>
+      <button class="lang-btn" data-lang="fr" onclick="window.i18n.setLang('fr')">FR</button>
+      <button class="lang-btn" data-lang="ar" onclick="window.i18n.setLang('ar')">ع</button>
+    `;
+    actions.insertBefore(sw, actions.firstChild);
+    // Set active state
+    sw.querySelectorAll('.lang-btn').forEach(b => {
+      b.classList.toggle('lang-btn-active', b.getAttribute('data-lang') === window.i18n.getCurrentLang());
+    });
+  }
+
+  // Try immediately, then retry after header.js loads
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(injectLangSwitcher, 300);
+    setTimeout(injectLangSwitcher, 800);
+    setTimeout(injectLangSwitcher, 1500);
+
+    // Re-apply scroll reveal after dynamic content loads
+    setTimeout(() => {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+      }, { threshold: 0.1 });
+      document.querySelectorAll('.reveal:not(.visible)').forEach(el => observer.observe(el));
+    }, 500);
+  });
 </script>
 
 </html>
