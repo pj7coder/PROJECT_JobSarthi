@@ -1085,9 +1085,32 @@ async function sendPasswordResetEmail(email, token, role, origin) {
     console.error("Failed to write mock email file:", err);
   }
 
-  const host = process.env.SMTP_HOST || "smtp.ethereal.email";
-  const port = parseInt(process.env.SMTP_PORT) || 587;
-  const secure = host.includes("gmail") ? (port === 465) : (process.env.SMTP_SECURE === "true");
+  let host = process.env.SMTP_HOST || "smtp.ethereal.email";
+  let port = parseInt(process.env.SMTP_PORT) || 587;
+  let secure = host.includes("gmail") ? (port === 465) : (process.env.SMTP_SECURE === "true");
+
+  // Force port 587 and secure: false for Gmail SMTP on Render to avoid port 465 blocks
+  if (process.env.RENDER && host.toLowerCase().includes("gmail")) {
+    port = 587;
+    secure = false;
+  }
+
+  // Resolve Gmail host to IPv4 dynamically using dns.resolve4 to prevent IPv6 ENETUNREACH errors
+  if (host.toLowerCase().includes("gmail")) {
+    try {
+      const addresses = await new Promise((resolve, reject) => {
+        dns.resolve4(host, (err, addr) => {
+          if (err) reject(err);
+          else resolve(addr);
+        });
+      });
+      if (addresses && addresses.length > 0) {
+        host = addresses[0];
+      }
+    } catch (dnsErr) {
+      console.warn("DNS resolve4 failed for Gmail host, using original hostname:", dnsErr.message);
+    }
+  }
 
   let transportConfig = {
     host,
@@ -1097,10 +1120,13 @@ async function sendPasswordResetEmail(email, token, role, origin) {
       user: process.env.SMTP_USER || "ethereal_test_user",
       pass: process.env.SMTP_PASS || "ethereal_test_pass"
     },
+    tls: {
+      servername: (process.env.SMTP_HOST || "smtp.gmail.com").includes("gmail") ? "smtp.gmail.com" : undefined
+    },
     family: 4, // Force IPv4 connection
-    connectionTimeout: 10000, // 10 seconds timeout
-    greetingTimeout: 10000,
-    socketTimeout: 10000
+    connectionTimeout: 15000, // 15 seconds timeout
+    greetingTimeout: 15000,
+    socketTimeout: 15000
   };
 
   const transporter = nodemailer.createTransport(transportConfig);
