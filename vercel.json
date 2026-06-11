@@ -7,7 +7,7 @@
   ],
   "rewrites": [
     {
-      "source": "/api/:path((?!cron-collect).*)",
+      "source": "/api/:path((?!cron-collect|send-email).*)",
       "destination": "https://project-jobsarthi.onrender.com/api/:path"
     }
   ]

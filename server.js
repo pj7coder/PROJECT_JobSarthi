@@ -1023,6 +1023,11 @@ app.post("/api/auth/signup", async (req, res) => {
 
     await dbService.createUser(newUser);
 
+    // Send Welcome Email in background via Nodemailer
+    sendWelcomeEmail(newUser.email, newUser.fullName, newUser.role).catch(err => {
+      console.error("Welcome email failed to send in background:", err.message);
+    });
+
     res.json({ success: true, user: { id: newUser.id, email: newUser.email, fullName: newUser.fullName, role: newUser.role, company: newUser.company } });
   } catch (err) {
     console.error(err);
@@ -1055,11 +1060,47 @@ app.post("/api/auth/login", async (req, res) => {
 
 // --- Forgot/Reset Password & User Account settings APIs ---
 
-async function sendPasswordResetEmail(email, token, role, origin) {
-  const baseOrigin = origin ? origin.replace(/\/$/, '') : 'http://localhost:3000';
-  const resetLink = `${baseOrigin}/change_password.html?token=${token}&email=${encodeURIComponent(email)}`;
-  console.log(`[PASSWORD RESET LINK GENERATED]: ${resetLink}`);
+// Centralized email helper using Nodemailer SMTP
+async function sendEmail({ to, subject, html, text }) {
+  // Option 1: Use Vercel SMTP proxy if EMAIL_PROXY_URL is configured (Used on Render Free Tier to bypass SMTP block)
+  if (process.env.EMAIL_PROXY_URL) {
+    try {
+      const proxyUrl = `${process.env.EMAIL_PROXY_URL.replace(/\/$/, '')}/api/send-email`;
+      console.log(`[EMAIL PROXY] Routing email to Vercel SMTP proxy: ${proxyUrl}`);
 
+      const response = await fetch(proxyUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          to,
+          subject,
+          html,
+          text,
+          secret: process.env.EMAIL_PROXY_SECRET || "jobsarthi_secure_proxy_secret_123"
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Proxy returned error status ${response.status}`);
+      }
+      console.log(`[EMAIL SENT via Vercel SMTP Proxy] to ${to}: ${data.messageId}`);
+      return data;
+    } catch (proxyErr) {
+      console.error(`[EMAIL PROXY ERROR] Failed to send email via Vercel SMTP proxy:`, proxyErr.message);
+      // If we are in local development, fall back to local SMTP instead of crashing
+      if (!process.env.RENDER) {
+        console.log("[EMAIL FALLBACK] Attempting local SMTP connection...");
+      } else {
+        throw proxyErr;
+      }
+    }
+  }
+
+  // Option 2: Fallback / Local SMTP (Runs on local dev server)
+  console.log(`[EMAIL ATTEMPT] Sending email to ${to} using Nodemailer SMTP...`);
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: parseInt(process.env.SMTP_PORT) || 587,
@@ -1067,35 +1108,155 @@ async function sendPasswordResetEmail(email, token, role, origin) {
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS
+    },
+    // Force IPv4 lookup to prevent ENETUNREACH on IPv6-enabled systems without active routes
+    lookup: (hostname, options, callback) => {
+      dns.lookup(hostname, Object.assign({}, options, { family: 4 }), callback);
     }
   });
 
   const mailOptions = {
     from: `"JobSarthi" <${process.env.SMTP_USER || 'support@jobsarthi.ai'}>`,
-    to: email,
-    subject: "Reset Your JobSarthi Password",
-    html: `
-      <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
-        <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-          <h2 style="color: #38bdf8; margin-bottom: 20px;">JobSarthi Password Reset</h2>
-          <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1;">You requested a password reset for your JobSarthi account. Please click the button below to choose a new password.</p>
-          <div style="margin: 30px 0;">
-            <a href="${resetLink}" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Change Password</a>
-          </div>
-          <p style="font-size: 12px; color: #64748b;">If you did not request this, you can safely ignore this email.</p>
-          <p style="font-size: 11px; color: #475569; word-break: break-all; margin-top: 20px;">Or copy link: <br>${resetLink}</p>
-        </div>
-      </div>
-    `
+    to,
+    subject,
+    text,
+    html
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log(`[PASSWORD RESET] Email sent successfully: ${info.messageId}`);
-  } catch (mailErr) {
-    console.error("Nodemailer failed to send email:", mailErr.message);
-    throw new Error(`Email delivery failed: ${mailErr.message}`);
+    console.log(`[EMAIL SENT] to ${to}: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error(`[EMAIL ERROR] Failed to send email to ${to}:`, error.message);
+    throw error;
   }
+}
+
+async function sendPasswordResetEmail(email, token, role, origin) {
+  const baseOrigin = origin ? origin.replace(/\/$/, '') : 'http://localhost:3000';
+  const resetLink = `${baseOrigin}/change_password.html?token=${token}&email=${encodeURIComponent(email)}`;
+  console.log(`[PASSWORD RESET LINK GENERATED]: ${resetLink}`);
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+      <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h2 style="color: #38bdf8; margin-bottom: 20px;">JobSarthi Password Reset</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1;">You requested a password reset for your JobSarthi account. Please click the button below to choose a new password.</p>
+        <div style="margin: 30px 0;">
+          <a href="${resetLink}" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Change Password</a>
+        </div>
+        <p style="font-size: 12px; color: #64748b;">If you did not request this, you can safely ignore this email.</p>
+        <p style="font-size: 11px; color: #475569; word-break: break-all; margin-top: 20px;">Or copy link: <br>${resetLink}</p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: "Reset Your JobSarthi Password",
+    text: `Reset your password by copying this link: ${resetLink}`,
+    html: htmlContent
+  });
+}
+
+async function sendWelcomeEmail(email, fullName, role) {
+  const roleDisplay = role === "recruiter" ? "Recruiter" : "Job Seeker";
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+      <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h2 style="color: #38bdf8; margin-bottom: 20px;">Welcome to JobSarthi!</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Hi ${fullName},</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Thank you for registering on JobSarthi as a <strong>${roleDisplay}</strong>! We are excited to have you on board.</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Our platform offers cutting-edge tools including:</p>
+        <ul style="font-size: 15px; color: #cbd5e1; text-align: left; line-height: 1.6;">
+          ${role === 'recruiter' 
+            ? `<li>AI-powered applicant matches and profiles</li>
+               <li>Direct candidate messaging and custom job postings</li>
+               <li>AI voice-interview analysis tools</li>`
+            : `<li>AI-powered Resume and Certifications ATS Parsing</li>
+               <li>Interactive AI Mock Voice-Interviews with Sarthi</li>
+               <li>Smart personalized job recommendations based on your skills</li>`
+          }
+        </ul>
+        <div style="margin: 30px 0;">
+          <a href="https://jobsarthi.ai" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Get Started</a>
+        </div>
+        <p style="font-size: 12px; color: #64748b;">If you did not sign up for this account, please contact support.</p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: "Welcome to JobSarthi - Your AI-Powered Career Assistant",
+    text: `Hi ${fullName}, welcome to JobSarthi! We are excited to have you on board as a ${roleDisplay}.`,
+    html: htmlContent
+  });
+}
+
+async function sendApplicationConfirmationEmail({ candidateEmail, candidateName, jobTitle, companyName }) {
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+      <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h2 style="color: #38bdf8; margin-bottom: 20px;">Application Received!</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Hi ${candidateName},</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Your application for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong> has been successfully submitted.</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">The recruiting team at ${companyName} will review your profile and match score. You can track your application status or chat directly with the recruiter in the JobSarthi Seeker portal.</p>
+        <div style="margin: 30px 0;">
+          <a href="https://jobsarthi.ai/seeker" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Seeker Dashboard</a>
+        </div>
+        <p style="font-size: 12px; color: #64748b;">Good luck with your application!</p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: candidateEmail,
+    subject: `Application Confirmation: ${jobTitle} at ${companyName}`,
+    text: `Hi ${candidateName}, your application for ${jobTitle} at ${companyName} has been successfully submitted.`,
+    html: htmlContent
+  });
+}
+
+async function sendStatusUpdateEmail({ candidateEmail, candidateName, jobTitle, companyName, status }) {
+  let statusColor = "#38bdf8";
+  let statusMessage = `Your application status has been updated to: <strong>${status}</strong>.`;
+
+  if (status === "Shortlisted") {
+    statusColor = "#10b981";
+    statusMessage = `Congratulations! You have been <strong>Shortlisted</strong> for the <strong>${jobTitle}</strong> position. The recruiting team will contact you shortly to discuss the next steps.`;
+  } else if (status === "Rejected") {
+    statusColor = "#ef4444";
+    statusMessage = `Thank you for your interest in the <strong>${jobTitle}</strong> position. Unfortunately, we have decided to move forward with other candidates at this time. We appreciate your time and effort and wish you the best in your job search.`;
+  } else if (status === "Interview Scheduled") {
+    statusColor = "#f59e0b";
+    statusMessage = `Great news! An interview has been <strong>Scheduled</strong> for your application to the <strong>${jobTitle}</strong> role. Please check your dashboard or messages to see the details.`;
+  }
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+      <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h2 style="color: ${statusColor}; margin-bottom: 20px;">Application Update</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Hi ${candidateName},</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">There is an update regarding your application for <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left; padding: 15px; background-color: #0f172a; border-left: 4px solid ${statusColor}; border-radius: 4px;">
+          ${statusMessage}
+        </p>
+        <div style="margin: 30px 0;">
+          <a href="https://jobsarthi.ai/seeker" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">View Seeker Dashboard</a>
+        </div>
+        <p style="font-size: 12px; color: #64748b;">This email was sent on behalf of ${companyName} via JobSarthi.</p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: candidateEmail,
+    subject: `Update on your application at ${companyName}: ${status}`,
+    text: `Hi ${candidateName}, there is an update on your application for ${jobTitle} at ${companyName}. Current Status: ${status}.`,
+    html: htmlContent
+  });
 }
 
 app.post("/api/auth/forgot-password", async (req, res) => {
@@ -1864,6 +2025,16 @@ app.post("/api/jobs/:id/apply", async (req, res) => {
 
     await dbService.createApplication(newApp);
 
+    // Send application confirmation email in background
+    sendApplicationConfirmationEmail({
+      candidateEmail: finalEmail,
+      candidateName: finalName,
+      jobTitle: job.title,
+      companyName: job.company
+    }).catch(err => {
+      console.error("Background application confirmation email failed:", err.message);
+    });
+
     // Create welcome chat message from the recruiter
     try {
       const recName = `${job.company} HR`;
@@ -1964,19 +2135,39 @@ app.post("/api/recruiter/applicants/:id/status", async (req, res) => {
       return res.status(400).json({ error: "Status is required." });
     }
 
+    let appDetails = null;
     if (mongoDb) {
-      await mongoDb.collection("applications").updateOne(
-        { id: id },
-        { $set: { status: status } }
-      );
+      appDetails = await mongoDb.collection("applications").findOne({ id: id });
+      if (appDetails) {
+        await mongoDb.collection("applications").updateOne(
+          { id: id },
+          { $set: { status: status } }
+        );
+        appDetails.status = status;
+      }
     } else {
       const local = await readLocalDB();
       const appIdx = local.applications.findIndex(a => a.id === id);
       if (appIdx !== -1) {
         local.applications[appIdx].status = status;
+        appDetails = local.applications[appIdx];
         await writeLocalDB(local);
       }
     }
+
+    if (appDetails) {
+      // Send application status update email in background
+      sendStatusUpdateEmail({
+        candidateEmail: appDetails.candidateEmail,
+        candidateName: appDetails.candidateName,
+        jobTitle: appDetails.jobTitle,
+        companyName: appDetails.companyName,
+        status: status
+      }).catch(err => {
+        console.error("Status update email failed to send in background:", err.message);
+      });
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error("Updating application status failed:", err);
@@ -2863,6 +3054,39 @@ app.all("/api/admin/jobs/collect", async (req, res) => {
   } catch (err) {
     console.error("Job collection endpoint error:", err);
     res.status(500).json({ error: "Job collection pipeline failed." });
+  }
+});
+
+app.post("/api/admin/test-email", async (req, res) => {
+  try {
+    const { toEmail } = req.body;
+    if (!toEmail) {
+      return res.status(400).json({ error: "Recipient email (toEmail) is required." });
+    }
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+        <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+          <h2 style="color: #10b981; margin-bottom: 20px;">Nodemailer Test Email</h2>
+          <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Hello,</p>
+          <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">This is a test email sent from <strong>JobSarthi</strong> using <strong>Nodemailer</strong>.</p>
+          <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">If you received this email, your Nodemailer integration is configured correctly!</p>
+          <p style="font-size: 12px; color: #64748b; margin-top: 30px;">Sent at: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail({
+      to: toEmail,
+      subject: "JobSarthi - Nodemailer Integration Test Success!",
+      text: "Hello! This is a test email sent from JobSarthi using Nodemailer.",
+      html: htmlContent
+    });
+
+    res.json({ success: true, message: `Test email sent successfully to ${toEmail}.` });
+  } catch (err) {
+    console.error("Test email API error:", err);
+    res.status(500).json({ error: `Failed to send test email: ${err.message}` });
   }
 });
 
