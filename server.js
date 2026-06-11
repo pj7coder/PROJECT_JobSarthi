@@ -1085,9 +1085,33 @@ async function sendPasswordResetEmail(email, token, role, origin) {
     console.error("Failed to write mock email file:", err);
   }
 
-  const host = process.env.SMTP_HOST || "smtp.ethereal.email";
+  let host = process.env.SMTP_HOST || "smtp.ethereal.email";
   let port = parseInt(process.env.SMTP_PORT) || 587;
   let secure = host.includes("gmail") ? (port === 465) : (process.env.SMTP_SECURE === "true");
+  let user = process.env.SMTP_USER;
+  let pass = process.env.SMTP_PASS;
+
+  let finalUser = user;
+  let finalPass = pass;
+  let isEthereal = false;
+
+  if (!user || !pass) {
+    try {
+      console.log("No SMTP credentials found. Creating Ethereal test account...");
+      const testAccount = await nodemailer.createTestAccount();
+      host = "smtp.ethereal.email";
+      port = 587;
+      secure = false;
+      finalUser = testAccount.user;
+      finalPass = testAccount.pass;
+      isEthereal = true;
+      console.log(`Created Ethereal test account: ${finalUser}`);
+    } catch (ethRealErr) {
+      console.warn("Ethereal account creation failed, falling back to defaults:", ethRealErr.message);
+      finalUser = "ethereal_test_user";
+      finalPass = "ethereal_test_pass";
+    }
+  }
 
   // Force port 587 and secure: false for Gmail SMTP on Render to avoid port 465 blocks
   if (process.env.RENDER && host.toLowerCase().includes("gmail")) {
@@ -1100,8 +1124,8 @@ async function sendPasswordResetEmail(email, token, role, origin) {
     port,
     secure,
     auth: {
-      user: process.env.SMTP_USER || "ethereal_test_user",
-      pass: process.env.SMTP_PASS || "ethereal_test_pass"
+      user: finalUser,
+      pass: finalPass
     },
     // Force IPv4-only DNS lookup to completely bypass IPv6 ENETUNREACH errors
     lookup: (hostname, options, callback) => {
@@ -1113,24 +1137,6 @@ async function sendPasswordResetEmail(email, token, role, origin) {
   };
 
   const transporter = nodemailer.createTransport(transportConfig);
-
-  let finalUser = process.env.SMTP_USER;
-  let finalPass = process.env.SMTP_PASS;
-  
-  if (!finalUser) {
-    try {
-      console.log("Creating Ethereal test account for nodemailer...");
-      const testAccount = await nodemailer.createTestAccount();
-      transporter.set("auth", {
-        user: testAccount.user,
-        pass: testAccount.pass
-      });
-      finalUser = testAccount.user;
-      finalPass = testAccount.pass;
-    } catch (ethRealErr) {
-      console.warn("Ethereal account creation failed:", ethRealErr.message);
-    }
-  }
 
   const mailOptions = {
     from: `"JobSarthi" <${finalUser || 'support@jobsarthi.ai'}>`,
@@ -1155,6 +1161,10 @@ async function sendPasswordResetEmail(email, token, role, origin) {
     try {
       const info = await transporter.sendMail(mailOptions);
       console.log(`[PASSWORD RESET] Email sent successfully: ${info.messageId}`);
+      if (isEthereal) {
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        console.log(`[PASSWORD RESET] Ethereal preview URL: ${previewUrl}`);
+      }
     } catch (mailErr) {
       console.error("Nodemailer failed to send email:", mailErr.message);
       throw new Error(`Email delivery failed: ${mailErr.message}`);
@@ -3036,58 +3046,6 @@ async function ensureAdminRecruiter() {
     console.error("Failed to ensure admin recruiter:", err);
   }
 }
-
-app.get("/api/auth/test-email", async (req, res) => {
-  let steps = [];
-  try {
-    const host = process.env.SMTP_HOST || "smtp.ethereal.email";
-    const port = parseInt(process.env.SMTP_PORT) || 587;
-    const secure = host.includes("gmail") ? (port === 465) : (process.env.SMTP_SECURE === "true");
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-
-    steps.push({ step: "env", host, port, secure, user: user ? "set" : "missing", pass: pass ? "set" : "missing" });
-
-    steps.push({ step: "dns_lookup_start" });
-    const address = await new Promise((resolve, reject) => {
-      dns.lookup(host, { family: 4 }, (err, addr) => {
-        if (err) reject(err);
-        else resolve(addr);
-      });
-    });
-    steps.push({ step: "dns_lookup_success", resolvedIP: address });
-
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
-      lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { family: 4 }, callback);
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000
-    });
-
-    steps.push({ step: "verify_transporter_start" });
-    await transporter.verify();
-    steps.push({ step: "verify_transporter_success" });
-
-    steps.push({ step: "send_mail_start" });
-    const info = await transporter.sendMail({
-      from: `"JobSarthi Test" <${user}>`,
-      to: "pj7coding@gmail.com",
-      subject: "JobSarthi SMTP Test Connection",
-      text: "Connection is successful!"
-    });
-    steps.push({ step: "send_mail_success", messageId: info.messageId });
-
-    res.json({ success: true, steps });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message, stack: err.stack, steps });
-  }
-});
 
 initDB().then(async () => {
   await ensureAdminRecruiter();
