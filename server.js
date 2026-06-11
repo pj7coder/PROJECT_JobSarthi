@@ -1092,6 +1092,9 @@ async function sendPasswordResetEmail(email, token, role, origin) {
       user: process.env.SMTP_USER || "ethereal_test_user",
       pass: process.env.SMTP_PASS || "ethereal_test_pass"
     },
+    lookup: (hostname, options, callback) => {
+      dns.lookup(hostname, { family: 4 }, callback);
+    },
     connectionTimeout: 10000, // 10 seconds timeout
     greetingTimeout: 10000,
     socketTimeout: 10000
