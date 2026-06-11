@@ -1546,15 +1546,7 @@ window.triggerSettingsForgotPassword = async () => {
     });
 
     if (response.ok) {
-      const data = await response.json();
-      alert('Password reset email has been sent! You will now be redirected to the password changing page.');
-      
-      const prefix = isRecruiter ? '../' : '../';
-      if (data.token) {
-        window.location.href = `${prefix}change_password.html?email=${encodeURIComponent(email)}&token=${data.token}`;
-      } else {
-        window.location.href = `${prefix}change_password.html?email=${encodeURIComponent(email)}`;
-      }
+      alert('Password changing link shared to your email id. Please check your inbox.');
     } else {
       const errData = await response.json();
       alert(errData.error || 'Failed to send password reset email.');

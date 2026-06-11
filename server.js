@@ -1050,8 +1050,9 @@ app.post("/api/auth/login", async (req, res) => {
 
 // --- Forgot/Reset Password & User Account settings APIs ---
 
-async function sendPasswordResetEmail(email, token, role) {
-  const resetLink = `http://localhost:${PORT}/change_password.html?token=${token}&email=${encodeURIComponent(email)}`;
+async function sendPasswordResetEmail(email, token, role, origin) {
+  const baseOrigin = origin ? origin.replace(/\/$/, '') : 'http://localhost:3000';
+  const resetLink = `${baseOrigin}/change_password.html?token=${token}&email=${encodeURIComponent(email)}`;
   console.log(`[PASSWORD RESET LINK GENERATED]: ${resetLink}`);
   
   const scratchDir = path.join(__dirname, "scratch");
@@ -1174,7 +1175,8 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     }
 
     // Send the simulated / real email
-    await sendPasswordResetEmail(cleanEmail, token, user.role);
+    const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || `http://localhost:${PORT || 3000}`;
+    await sendPasswordResetEmail(cleanEmail, token, user.role, origin);
 
     res.json({ success: true, message: "Password reset link sent successfully!", token });
   } catch (err) {
