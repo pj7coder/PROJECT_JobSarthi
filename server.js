@@ -1090,6 +1090,9 @@ async function sendPasswordResetEmail(email, token, role, origin) {
   const secure = host.includes("gmail") ? (port === 465) : (process.env.SMTP_SECURE === "true");
 
   let transportConfig = {
+    host,
+    port,
+    secure,
     auth: {
       user: process.env.SMTP_USER || "ethereal_test_user",
       pass: process.env.SMTP_PASS || "ethereal_test_pass"
@@ -1099,14 +1102,6 @@ async function sendPasswordResetEmail(email, token, role, origin) {
     greetingTimeout: 10000,
     socketTimeout: 10000
   };
-
-  if (host.toLowerCase().includes("gmail")) {
-    transportConfig.service = "gmail";
-  } else {
-    transportConfig.host = host;
-    transportConfig.port = port;
-    transportConfig.secure = secure;
-  }
 
   const transporter = nodemailer.createTransport(transportConfig);
 
