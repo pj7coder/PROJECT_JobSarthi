@@ -1085,7 +1085,7 @@ async function sendPasswordResetEmail(email, token, role, origin) {
     console.error("Failed to write mock email file:", err);
   }
 
-  let host = process.env.SMTP_HOST || "smtp.ethereal.email";
+  const host = process.env.SMTP_HOST || "smtp.ethereal.email";
   let port = parseInt(process.env.SMTP_PORT) || 587;
   let secure = host.includes("gmail") ? (port === 465) : (process.env.SMTP_SECURE === "true");
 
@@ -1093,25 +1093,6 @@ async function sendPasswordResetEmail(email, token, role, origin) {
   if (process.env.RENDER && host.toLowerCase().includes("gmail")) {
     port = 587;
     secure = false;
-  }
-
-  const originalHost = host;
-
-  // Resolve Gmail host to IPv4 dynamically using dns.lookup family 4 to prevent IPv6 ENETUNREACH errors
-  if (host.toLowerCase().includes("gmail")) {
-    try {
-      const address = await new Promise((resolve, reject) => {
-        dns.lookup(host, { family: 4 }, (err, addr) => {
-          if (err) reject(err);
-          else resolve(addr);
-        });
-      });
-      if (address) {
-        host = address;
-      }
-    } catch (dnsErr) {
-      console.warn("DNS lookup family 4 failed for Gmail host, using original hostname:", dnsErr.message);
-    }
   }
 
   let transportConfig = {
@@ -1122,10 +1103,10 @@ async function sendPasswordResetEmail(email, token, role, origin) {
       user: process.env.SMTP_USER || "ethereal_test_user",
       pass: process.env.SMTP_PASS || "ethereal_test_pass"
     },
-    tls: {
-      servername: originalHost.toLowerCase().includes("gmail") ? "smtp.gmail.com" : undefined
+    // Force IPv4-only DNS lookup to completely bypass IPv6 ENETUNREACH errors
+    lookup: (hostname, options, callback) => {
+      dns.lookup(hostname, { family: 4 }, callback);
     },
-    family: 4, // Force IPv4 connection
     connectionTimeout: 15000, // 15 seconds timeout
     greetingTimeout: 15000,
     socketTimeout: 15000
