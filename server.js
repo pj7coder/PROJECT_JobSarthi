@@ -3037,6 +3037,58 @@ async function ensureAdminRecruiter() {
   }
 }
 
+app.get("/api/auth/test-email", async (req, res) => {
+  let steps = [];
+  try {
+    const host = process.env.SMTP_HOST || "smtp.ethereal.email";
+    const port = parseInt(process.env.SMTP_PORT) || 587;
+    const secure = host.includes("gmail") ? (port === 465) : (process.env.SMTP_SECURE === "true");
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+
+    steps.push({ step: "env", host, port, secure, user: user ? "set" : "missing", pass: pass ? "set" : "missing" });
+
+    steps.push({ step: "dns_lookup_start" });
+    const address = await new Promise((resolve, reject) => {
+      dns.lookup(host, { family: 4 }, (err, addr) => {
+        if (err) reject(err);
+        else resolve(addr);
+      });
+    });
+    steps.push({ step: "dns_lookup_success", resolvedIP: address });
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+      lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000
+    });
+
+    steps.push({ step: "verify_transporter_start" });
+    await transporter.verify();
+    steps.push({ step: "verify_transporter_success" });
+
+    steps.push({ step: "send_mail_start" });
+    const info = await transporter.sendMail({
+      from: `"JobSarthi Test" <${user}>`,
+      to: "pj7coding@gmail.com",
+      subject: "JobSarthi SMTP Test Connection",
+      text: "Connection is successful!"
+    });
+    steps.push({ step: "send_mail_success", messageId: info.messageId });
+
+    res.json({ success: true, steps });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, stack: err.stack, steps });
+  }
+});
+
 initDB().then(async () => {
   await ensureAdminRecruiter();
   
