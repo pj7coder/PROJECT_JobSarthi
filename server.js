@@ -1060,76 +1060,34 @@ app.post("/api/auth/login", async (req, res) => {
 
 // --- Forgot/Reset Password & User Account settings APIs ---
 
-// Centralized email helper using Nodemailer SMTP
+// Centralized email helper - routes via Vercel SMTP proxy (bypasses Render Free Tier SMTP block)
 async function sendEmail({ to, subject, html, text }) {
-  // Option 1: Use Vercel SMTP proxy if EMAIL_PROXY_URL is configured (Used on Render Free Tier to bypass SMTP block)
-  if (process.env.EMAIL_PROXY_URL) {
-    try {
-      const proxyUrl = `${process.env.EMAIL_PROXY_URL.replace(/\/$/, '')}/api/send-email`;
-      console.log(`[EMAIL PROXY] Routing email to Vercel SMTP proxy: ${proxyUrl}`);
-
-      const response = await fetch(proxyUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          to,
-          subject,
-          html,
-          text,
-          secret: process.env.EMAIL_PROXY_SECRET || "jobsarthi_secure_proxy_secret_123"
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || `Proxy returned error status ${response.status}`);
-      }
-      console.log(`[EMAIL SENT via Vercel SMTP Proxy] to ${to}: ${data.messageId}`);
-      return data;
-    } catch (proxyErr) {
-      console.error(`[EMAIL PROXY ERROR] Failed to send email via Vercel SMTP proxy:`, proxyErr.message);
-      // If we are in local development, fall back to local SMTP instead of crashing
-      if (!process.env.RENDER) {
-        console.log("[EMAIL FALLBACK] Attempting local SMTP connection...");
-      } else {
-        throw proxyErr;
-      }
-    }
-  }
-
-  // Option 2: Fallback / Local SMTP (Runs on local dev server)
-  console.log(`[EMAIL ATTEMPT] Sending email to ${to} using Nodemailer SMTP...`);
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    },
-    // Force IPv4 lookup to prevent ENETUNREACH on IPv6-enabled systems without active routes
-    lookup: (hostname, options, callback) => {
-      dns.lookup(hostname, Object.assign({}, options, { family: 4 }), callback);
-    }
-  });
-
-  const mailOptions = {
-    from: `"JobSarthi" <${process.env.SMTP_USER || 'support@jobsarthi.ai'}>`,
-    to,
-    subject,
-    text,
-    html
-  };
+  const vercelProxyBase = process.env.EMAIL_PROXY_URL || "https://jobsarthi.vercel.app";
+  const proxyUrl = `${vercelProxyBase.replace(/\/$/, '')}/api/send-email`;
+  console.log(`[EMAIL PROXY] Sending to ${to} via: ${proxyUrl}`);
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[EMAIL SENT] to ${to}: ${info.messageId}`);
-    return info;
-  } catch (error) {
-    console.error(`[EMAIL ERROR] Failed to send email to ${to}:`, error.message);
-    throw error;
+    const response = await fetch(proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to,
+        subject,
+        html,
+        text,
+        secret: process.env.EMAIL_PROXY_SECRET || "jobsarthi_secure_proxy_secret_123"
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || `Proxy error: ${response.status}`);
+    }
+    console.log(`[EMAIL SENT] to ${to}: ${data.messageId}`);
+    return data;
+  } catch (proxyErr) {
+    console.error(`[EMAIL PROXY ERROR] ${proxyErr.message}`);
+    throw proxyErr;
   }
 }
 
