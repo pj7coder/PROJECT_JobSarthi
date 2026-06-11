@@ -15,6 +15,168 @@ import crypto from "crypto";
 
 dotenv.config();
 
+// ============================================================
+// SECURITY LAYER — Rate Limiting, Auth, Headers, Validation
+// ============================================================
+
+// --- In-Memory Rate Limiter (no external dependency needed) ---
+const rateLimitStore = new Map();
+
+function createRateLimiter({ windowMs, max, message }) {
+  // Auto-clean old entries every 5 minutes to prevent memory leaks
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, record] of rateLimitStore.entries()) {
+      if (now - record.startTime > windowMs) rateLimitStore.delete(key);
+    }
+  }, 5 * 60 * 1000);
+
+  return (req, res, next) => {
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.socket.remoteAddress || "unknown";
+    const key = `${ip}:${req.path}`;
+    const now = Date.now();
+    const record = rateLimitStore.get(key);
+
+    if (!record || now - record.startTime > windowMs) {
+      rateLimitStore.set(key, { count: 1, startTime: now });
+      return next();
+    }
+
+    record.count++;
+    if (record.count > max) {
+      const retryAfter = Math.ceil((windowMs - (now - record.startTime)) / 1000);
+      res.set("Retry-After", retryAfter);
+      return res.status(429).json({ error: message || "Too many requests. Please try again later.", retryAfter });
+    }
+    next();
+  };
+}
+
+// Rate limiters for different route groups
+const authRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,                   // 10 login/signup attempts per IP per 15 min
+  message: "Too many authentication attempts. Please wait 15 minutes before trying again."
+});
+
+const forgotPasswordLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,                    // 5 password reset requests per IP per hour
+  message: "Too many password reset requests. Please wait 1 hour before trying again."
+});
+
+const aiRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,       // 1 minute
+  max: 20,                   // 20 AI calls per minute per IP
+  message: "AI rate limit reached. Please wait a moment before making more requests."
+});
+
+const uploadRateLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,  // 10 minutes
+  max: 15,                   // 15 file uploads per 10 min per IP
+  message: "Too many file uploads. Please wait before uploading again."
+});
+
+const generalRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,       // 1 minute
+  max: 100,                  // 100 general API requests per minute per IP
+  message: "Request limit exceeded. Please slow down."
+});
+
+// --- Account Lockout (brute-force login protection) ---
+const loginFailureStore = new Map();
+const MAX_LOGIN_FAILURES = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkAccountLockout(email) {
+  const record = loginFailureStore.get(email);
+  if (!record) return { locked: false };
+  if (Date.now() - record.firstFailure > LOCKOUT_DURATION_MS) {
+    loginFailureStore.delete(email);
+    return { locked: false };
+  }
+  if (record.count >= MAX_LOGIN_FAILURES) {
+    const retryAfterMs = LOCKOUT_DURATION_MS - (Date.now() - record.firstFailure);
+    return { locked: true, retryAfterSeconds: Math.ceil(retryAfterMs / 1000) };
+  }
+  return { locked: false };
+}
+
+function recordLoginFailure(email) {
+  const record = loginFailureStore.get(email);
+  if (!record || Date.now() - record.firstFailure > LOCKOUT_DURATION_MS) {
+    loginFailureStore.set(email, { count: 1, firstFailure: Date.now() });
+  } else {
+    record.count++;
+  }
+}
+
+function clearLoginFailures(email) {
+  loginFailureStore.delete(email);
+}
+
+// --- JWT-based Session Middleware ---
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
+if (!process.env.JWT_SECRET) {
+  console.warn("[SECURITY] WARNING: JWT_SECRET not set in environment. Using a random secret that changes on restart. Set JWT_SECRET in your environment variables for persistent sessions.");
+}
+
+function signJWT(payload) {
+  const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
+  const body = Buffer.from(JSON.stringify({ ...payload, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 })).toString("base64url"); // 7 days
+  const sig = crypto.createHmac("sha256", JWT_SECRET).update(`${header}.${body}`).digest("base64url");
+  return `${header}.${body}.${sig}`;
+}
+
+function verifyJWT(token) {
+  try {
+    const [header, body, sig] = token.split(".");
+    const expectedSig = crypto.createHmac("sha256", JWT_SECRET).update(`${header}.${body}`).digest("base64url");
+    if (sig !== expectedSig) return null;
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString());
+    if (payload.exp < Math.floor(Date.now() / 1000)) return null; // expired
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+// Middleware: require a valid JWT to access protected routes
+function requireAuth(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "Authentication required. Please log in." });
+  const payload = verifyJWT(token);
+  if (!payload) return res.status(401).json({ error: "Session expired or invalid. Please log in again." });
+  req.user = payload;
+  next();
+}
+
+// Middleware: require a specific role
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: "Authentication required." });
+    if (!roles.includes(req.user.role)) return res.status(403).json({ error: "Access forbidden. Insufficient permissions." });
+    next();
+  };
+}
+
+// --- Input Validation & Sanitization Helpers ---
+function sanitizeString(str, maxLength = 500) {
+  if (typeof str !== "string") return "";
+  return str.trim().slice(0, maxLength).replace(/[<>]/g, ""); // strip basic HTML injection chars
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase().trim());
+}
+
+function isStrongPassword(password) {
+  return typeof password === "string" && password.length >= 8;
+}
+
+console.log("[SECURITY] Security layer initialized: Rate limiting, JWT auth, account lockout, input validation.");
+
 // Override local DNS to prevent connection failure to MongoDB Atlas (only in local development)
 if (!process.env.RENDER) {
   dns.setServers(["8.8.8.8", "1.1.1.1"]);
@@ -83,9 +245,51 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+// --- Security Headers (Helmet-equivalent, no external package needed) ---
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");              // Prevent MIME sniffing attacks
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");                  // Prevent clickjacking
+  res.setHeader("X-XSS-Protection", "1; mode=block");              // Legacy XSS browser filter
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()"); // Restrict browser APIs
+  res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload"); // Force HTTPS
+  res.removeHeader("X-Powered-By");                                // Hide Express fingerprint
+  next();
+});
+
+// --- CORS Configuration (locked to known origins) ---
+const ALLOWED_ORIGINS = [
+  "https://jobsarthi.vercel.app",
+  "https://jobsarthi-git-main-pj7coders-projects.vercel.app",
+  "https://jobsarthi-pj7coders-projects.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:3000"
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman, same-origin)
+    if (!origin || ALLOWED_ORIGINS.some(o => origin.startsWith(o))) {
+      return callback(null, true);
+    }
+    console.warn(`[SECURITY] CORS blocked request from origin: ${origin}`);
+    callback(new Error("CORS policy: origin not allowed"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+}));
+
+// --- Request Body Size Limits (protect against payload flooding) ---
+app.use(express.json({ limit: "10mb" }));           // reduced from 50mb - only resumes/images should be large
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+// Large uploads (resume/photo) get a higher limit only on specific routes
+const largeBodyParser = express.json({ limit: "50mb" });
+
+// Apply general rate limiter to all /api/* routes
+app.use("/api", generalRateLimiter);
 
 // Serve static frontend assets with Cache-Control headers to prevent stale cached UI
 app.use(express.static(".", {
@@ -993,24 +1197,33 @@ app.get("/api/ping", (req, res) => {
 
 // --- Authentication APIs ---
 
-app.post("/api/auth/signup", async (req, res) => {
+app.post("/api/auth/signup", authRateLimiter, async (req, res) => {
   try {
     const { email, password, fullName, role, company } = req.body;
+
+    // Input validation
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required." });
     }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Please provide a valid email address." });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ error: "Password must be at least 8 characters long." });
+    }
+
     const finalEmail = email.trim().toLowerCase();
-    const finalPassword = password;
-    const finalFullName = fullName ? fullName.trim() : "User";
-    const finalRole = role || "jobseeker";
+    const finalFullName = sanitizeString(fullName || "User", 100);
+    const finalRole = ["jobseeker", "recruiter"].includes(role) ? role : "jobseeker";
+    const finalCompany = sanitizeString(company || "InnovateTech", 100);
 
     const existing = await dbService.findUserByEmail(finalEmail);
     if (existing) {
       return res.status(400).json({ error: "Email is already registered." });
     }
 
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPassword = bcrypt.hashSync(finalPassword, salt);
+    const salt = bcrypt.genSaltSync(12); // increased from 10 to 12 rounds
+    const hashedPassword = bcrypt.hashSync(password, salt);
 
     const newUser = {
       id: Date.now().toString(),
@@ -1018,42 +1231,77 @@ app.post("/api/auth/signup", async (req, res) => {
       password: hashedPassword,
       fullName: finalFullName,
       role: finalRole,
-      company: finalRole === "recruiter" ? (company || "InnovateTech") : undefined
+      company: finalRole === "recruiter" ? finalCompany : undefined,
+      createdAt: new Date().toISOString()
     };
 
     await dbService.createUser(newUser);
 
-    // Send Welcome Email in background via Nodemailer
+    // Issue a JWT session token
+    const token = signJWT({ id: newUser.id, email: newUser.email, role: newUser.role, company: newUser.company });
+
+    // Send Welcome Email in background
     sendWelcomeEmail(newUser.email, newUser.fullName, newUser.role).catch(err => {
-      console.error("Welcome email failed to send in background:", err.message);
+      console.error("Welcome email failed:", err.message);
     });
 
-    res.json({ success: true, user: { id: newUser.id, email: newUser.email, fullName: newUser.fullName, role: newUser.role, company: newUser.company } });
+    console.log(`[AUTH] New user registered: ${finalEmail} (${finalRole})`);
+    res.json({ success: true, token, user: { id: newUser.id, email: newUser.email, fullName: newUser.fullName, role: newUser.role, company: newUser.company } });
   } catch (err) {
-    console.error(err);
+    console.error("[AUTH] Signup error:", err);
     res.status(500).json({ error: "Server error during registration." });
   }
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", authRateLimiter, async (req, res) => {
   try {
     const { email, password, role } = req.body;
-    const finalEmail = (email || "").toLowerCase();
-    const finalPassword = password || "";
 
-    const user = await dbService.findUserByCredentials(finalEmail, finalPassword);
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Invalid email format." });
+    }
+
+    const finalEmail = email.trim().toLowerCase();
+
+    // Check account lockout before attempting credential lookup
+    const lockout = checkAccountLockout(finalEmail);
+    if (lockout.locked) {
+      return res.status(429).json({
+        error: `Account temporarily locked due to too many failed login attempts. Please try again in ${Math.ceil(lockout.retryAfterSeconds / 60)} minutes.`
+      });
+    }
+
+    const user = await dbService.findUserByCredentials(finalEmail, password || "");
     if (!user) {
-      return res.status(401).json({ error: "Invalid email or password." });
+      recordLoginFailure(finalEmail);
+      const record = loginFailureStore.get(finalEmail);
+      const remaining = MAX_LOGIN_FAILURES - (record?.count || 0);
+      return res.status(401).json({
+        error: remaining > 0
+          ? `Invalid email or password. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining before account lockout.`
+          : "Invalid email or password."
+      });
     }
 
-    // Portal verification
+    // Role-portal mismatch
     if (role && user.role !== role) {
+      recordLoginFailure(finalEmail);
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
-    res.json({ success: true, user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role, company: user.company } });
+    // Successful login — clear failure counter
+    clearLoginFailures(finalEmail);
+
+    // Issue JWT session token
+    const token = signJWT({ id: user.id, email: user.email, role: user.role, company: user.company });
+
+    console.log(`[AUTH] Login: ${finalEmail} (${user.role})`);
+    res.json({ success: true, token, user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role, company: user.company } });
   } catch (err) {
-    console.error(err);
+    console.error("[AUTH] Login error:", err);
     res.status(500).json({ error: "Server error during login." });
   }
 });
@@ -1217,7 +1465,7 @@ async function sendStatusUpdateEmail({ candidateEmail, candidateName, jobTitle, 
   });
 }
 
-app.post("/api/auth/forgot-password", async (req, res) => {
+app.post("/api/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
   try {
     const { email, role } = req.body;
     if (!email) {
@@ -2252,7 +2500,7 @@ Guidelines:
 
 // --- Sarthi AI Chat API ---
 
-app.post("/api/sarthi/chat", async (req, res) => {
+app.post("/api/sarthi/chat", aiRateLimiter, async (req, res) => {
   try {
     const { message, chatHistory } = req.body;
     if (!message) {
@@ -2475,7 +2723,7 @@ const FALLBACK_QUESTIONS = {
   }
 };
 
-app.post("/api/sarthi/interview/next", async (req, res) => {
+app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
   try {
     const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language } = req.body;
     const currentRole = role || "Full Stack Developer";
@@ -2914,7 +3162,7 @@ app.post("/api/seeker/profile", async (req, res) => {
   }
 });
 
-app.post("/api/seeker/parse-resume", async (req, res) => {
+app.post("/api/seeker/parse-resume", uploadRateLimiter, largeBodyParser, async (req, res) => {
   try {
     const { base64Data, mimeType } = req.body;
     if (!base64Data) {
@@ -2955,7 +3203,7 @@ app.post("/api/seeker/parse-resume", async (req, res) => {
   }
 });
 
-app.post("/api/seeker/parse-certificate", async (req, res) => {
+app.post("/api/seeker/parse-certificate", uploadRateLimiter, largeBodyParser, async (req, res) => {
   try {
     const { base64Data, mimeType } = req.body;
     if (!base64Data) {
