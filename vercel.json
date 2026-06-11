@@ -12,7 +12,7 @@
     },
     {
       "src": "/api/send-email",
-      "dest": "/api/send-email.js"
+      "dest": "/api/send-email.mjs"
     },
     {
       "src": "/api/(.*)",
