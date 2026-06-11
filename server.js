@@ -1188,9 +1188,23 @@ app.post("/api/auth/forgot-password", async (req, res) => {
 
     // Send the simulated / real email
     const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || `http://localhost:${PORT || 3000}`;
-    await sendPasswordResetEmail(cleanEmail, token, user.role, origin);
+    let emailSent = false;
+    let emailError = null;
+    try {
+      await sendPasswordResetEmail(cleanEmail, token, user.role, origin);
+      emailSent = true;
+    } catch (sendErr) {
+      console.warn("SMTP sending failed, falling back to client-side redirection:", sendErr.message);
+      emailError = sendErr.message;
+    }
 
-    res.json({ success: true, message: "Password reset link sent successfully!", token });
+    res.json({ 
+      success: true, 
+      message: emailSent ? "Password reset link sent successfully!" : "SMTP email delivery failed, falling back to direct redirect.", 
+      token, 
+      emailSent,
+      emailError
+    });
   } catch (err) {
     console.error("Forgot password API error:", err);
     res.status(500).json({ error: err.message || "Internal server error during password reset request." });
