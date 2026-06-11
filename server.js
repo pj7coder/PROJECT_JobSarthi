@@ -17,7 +17,9 @@ dotenv.config();
 
 // Override local DNS to prevent connection failure to MongoDB Atlas
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
-dns.setDefaultResultOrder('ipv4first');
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 
 // Configure Cloudinary
