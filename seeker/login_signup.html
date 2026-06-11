@@ -204,12 +204,12 @@
 
     .forms-slider {
       display: flex;
-      width: 200%;
+      width: 300%;
       transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .tabs-content {
-      width: 50%;
+      width: 33.333%;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
@@ -452,7 +452,7 @@
               <div class="form-group">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <label class="form-label" for="loginPassword">Password</label>
-                  <a href="#" class="forgot-link">Forgot Password?</a>
+                  <a href="#" id="forgotPasswordLink" class="forgot-link">Forgot Password?</a>
                 </div>
                 <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
               </div>
@@ -489,6 +489,26 @@
             </div>
           </form>
         </div>
+
+        <!-- Forgot Password Form Panel -->
+        <div id="forgotPasswordForm" class="tabs-content">
+          <div class="card-header">
+            <h2 class="card-title">Reset Password</h2>
+            <p class="card-description">Enter your registered email to receive a password reset link.</p>
+          </div>
+          <form onsubmit="handleForgotPassword(event)">
+            <div class="card-content">
+              <div class="form-group">
+                <label class="form-label" for="forgotEmail">Email Address</label>
+                <input type="email" id="forgotEmail" class="form-control" placeholder="you@example.com" required>
+              </div>
+            </div>
+            <div class="card-footer" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+              <button type="submit" class="btn-primary-solid">Send Reset Link</button>
+              <a href="#" id="backToSignInLink" class="forgot-link" style="align-self: center;">Back to Sign In</a>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -506,17 +526,97 @@
       const formsSlider = document.querySelector('.forms-slider');
       const loginForm = document.getElementById('loginForm');
       const signupForm = document.getElementById('signupForm');
+      const forgotForm = document.getElementById('forgotPasswordForm');
 
       if (tab === 'login') {
         slider.style.transform = 'translateX(0)';
         formsSlider.style.transform = 'translateX(0)';
         loginForm.classList.add('active');
         signupForm.classList.remove('active');
+        forgotForm.classList.remove('active');
       } else {
         slider.style.transform = 'translateX(100%)';
-        formsSlider.style.transform = 'translateX(-50%)';
+        formsSlider.style.transform = 'translateX(-33.333%)';
         signupForm.classList.add('active');
         loginForm.classList.remove('active');
+        forgotForm.classList.remove('active');
+      }
+    }
+
+    function showForgotPassword(event) {
+      if (event) event.preventDefault();
+      const formsSlider = document.querySelector('.forms-slider');
+      const loginForm = document.getElementById('loginForm');
+      const signupForm = document.getElementById('signupForm');
+      const forgotForm = document.getElementById('forgotPasswordForm');
+      
+      formsSlider.style.transform = 'translateX(-66.666%)';
+      
+      loginForm.classList.remove('active');
+      signupForm.classList.remove('active');
+      forgotForm.classList.add('active');
+      
+      // Clear tab header active states
+      const tabs = document.querySelectorAll('.tabs-trigger');
+      tabs.forEach(t => t.classList.remove('active'));
+    }
+
+    function backToSignIn(event) {
+      if (event) event.preventDefault();
+      const formsSlider = document.querySelector('.forms-slider');
+      const loginForm = document.getElementById('loginForm');
+      const signupForm = document.getElementById('signupForm');
+      const forgotForm = document.getElementById('forgotPasswordForm');
+      
+      formsSlider.style.transform = 'translateX(0)';
+      
+      loginForm.classList.add('active');
+      signupForm.classList.remove('active');
+      forgotForm.classList.remove('active');
+      
+      const tabs = document.querySelectorAll('.tabs-trigger');
+      tabs.forEach(t => t.classList.remove('active'));
+      tabs[0].classList.add('active');
+      
+      const slider = document.querySelector('.tabs-slider');
+      slider.style.transform = 'translateX(0)';
+    }
+
+    async function handleForgotPassword(event) {
+      event.preventDefault();
+      const email = document.getElementById('forgotEmail').value;
+      const isRecruiter = window.location.pathname.includes('/recruiter/');
+      const role = isRecruiter ? 'recruiter' : 'jobseeker';
+      
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      
+      try {
+        const response = await fetch(API_BASE_URL + '/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, role })
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert('A password reset email has been sent! Check the server logs, the scratch/ folder, or your inbox.');
+          if (result.token) {
+            window.location.href = `../change_password.html?email=${encodeURIComponent(email)}&token=${result.token}`;
+          } else {
+            window.location.href = `../change_password.html?email=${encodeURIComponent(email)}`;
+          }
+        } else {
+          alert(result.error || 'Failed to send reset link.');
+        }
+      } catch (err) {
+        console.error('Error in forgot password request:', err);
+        alert('Server error sending password reset link.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
       }
     }
 
@@ -586,7 +686,9 @@
       }
     }
 
-
+    // Attach event listeners for forgot password flow
+    document.getElementById('forgotPasswordLink')?.addEventListener('click', showForgotPassword);
+    document.getElementById('backToSignInLink')?.addEventListener('click', backToSignIn);
   </script>
 
 </body>

@@ -468,22 +468,37 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     <!-- Tab Content: Account -->
                     <div class="settings-tab-content" id="tab-account" style="display: none;">
-                      <h4>Account & Profile</h4>
-                      <p class="tab-desc">Manage your account details and portal preferences.</p>
-                      <div class="setting-item">
-                        <div class="setting-item-info">
-                          <span class="setting-item-title">Account Type</span>
-                          <span class="setting-item-desc">View your registered portal role</span>
+                      <h4>Account Settings</h4>
+                      <p class="tab-desc">Update your account details and security settings.</p>
+                      
+                      <form id="settingsAccountForm" onsubmit="event.preventDefault(); window.saveAccountDetails();">
+                        <div style="display: grid; gap: 12px; margin-bottom: 16px;">
+                          <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                            <label class="form-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">Full Name</label>
+                            <input type="text" id="settingsFullName" class="form-control" style="background: rgba(255,255,255,0.02);" required>
+                          </div>
+                          
+                          <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                            <label class="form-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">Email Address (Read-only)</label>
+                            <input type="email" id="settingsEmail" class="form-control" style="background: rgba(255,255,255,0.02); opacity: 0.6;" readonly>
+                          </div>
+                          
+                          <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                            <label class="form-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">Mobile Number</label>
+                            <input type="tel" id="settingsMobile" class="form-control" style="background: rgba(255,255,255,0.02);" placeholder="e.g. +91 9876543210">
+                          </div>
+                          
+                          <div class="form-group" id="settingsCompanyGroup" style="display: none; flex-direction: column; gap: 6px;">
+                            <label class="form-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">Company Name</label>
+                            <input type="text" id="settingsCompany" class="form-control" style="background: rgba(255,255,255,0.02);">
+                          </div>
                         </div>
-                        <span class="setting-badge" id="modalAccountType">Candidate</span>
-                      </div>
-                      <div class="setting-item">
-                        <div class="setting-item-info">
-                          <span class="setting-item-title">Data Backup</span>
-                          <span class="setting-item-desc">Export your profile data to JSON format</span>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 16px;">
+                          <button type="submit" class="btn-primary-solid" style="flex: 1; height: 34px; font-size: 0.8rem;">Save Details</button>
+                          <button type="button" class="btn-danger-settings" onclick="window.triggerSettingsForgotPassword();" style="flex: 1; height: 34px; font-size: 0.8rem; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-main); cursor: pointer; transition: all 0.2s;">Change Password</button>
                         </div>
-                        <button class="btn-simple-settings" onclick="alert('Profile data backup started!')">Export Data</button>
-                      </div>
+                      </form>
                     </div>
                     
                     <!-- Tab Content: Notifications -->
@@ -777,6 +792,9 @@ document.addEventListener("DOMContentLoaded", () => {
            const activeModal = document.getElementById('globalSettingsModal');
            if (activeModal) {
              activeModal.classList.add('active');
+             if (window.populateAccountSettings) {
+               window.populateAccountSettings();
+             }
              // Sync theme cards active states
                const currentTheme = localStorage.getItem('theme') || 'dark';
                activeModal.querySelectorAll('.theme-card').forEach(card => {
@@ -1395,5 +1413,162 @@ window.renderAccentColors = function (modalEl, portalType, currentTheme) {
     container.appendChild(btn);
   });
 };
+
+
+// --- Account Settings Operations (API Integrations) ---
+
+window.populateAccountSettings = async () => {
+  const isRecruiter = window.location.pathname.includes('/recruiter/');
+  const email = isRecruiter ? localStorage.getItem('recruiter_email') : localStorage.getItem('seeker_email');
+  if (!email) return;
+
+  const apiBase = (window.location.protocol === 'file:') ? 'http://localhost:3000' : '';
+
+  try {
+    const response = await fetch(`${apiBase}/api/user/account?email=${encodeURIComponent(email)}`);
+    if (response.ok) {
+      const data = await response.json();
+      const nameInput = document.getElementById('settingsFullName');
+      const emailInput = document.getElementById('settingsEmail');
+      const mobileInput = document.getElementById('settingsMobile');
+      const companyInput = document.getElementById('settingsCompany');
+      const companyGroup = document.getElementById('settingsCompanyGroup');
+
+      if (nameInput) nameInput.value = data.fullName || '';
+      if (emailInput) emailInput.value = data.email || '';
+      if (mobileInput) mobileInput.value = data.mobile || '';
+      
+      if (data.role === 'recruiter') {
+        if (companyGroup) companyGroup.style.display = 'flex';
+        if (companyInput) companyInput.value = data.company || '';
+      } else {
+        if (companyGroup) companyGroup.style.display = 'none';
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load account settings data:", err);
+  }
+};
+
+window.saveAccountDetails = async () => {
+  const isRecruiter = window.location.pathname.includes('/recruiter/');
+  const email = isRecruiter ? localStorage.getItem('recruiter_email') : localStorage.getItem('seeker_email');
+  const fullName = document.getElementById('settingsFullName')?.value || '';
+  const mobile = document.getElementById('settingsMobile')?.value || '';
+  const company = document.getElementById('settingsCompany')?.value || '';
+
+  const saveBtn = document.querySelector('#settingsAccountForm button[type="submit"]');
+  const originalText = saveBtn ? saveBtn.textContent : 'Save Details';
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+  }
+
+  const apiBase = (window.location.protocol === 'file:') ? 'http://localhost:3000' : '';
+
+  try {
+    const response = await fetch(`${apiBase}/api/user/update-account`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, fullName, mobile, company })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      alert('Account details updated successfully!');
+      
+      // Update local storage so headers and profile display update dynamically!
+      if (isRecruiter) {
+        localStorage.setItem('recruiter_company', data.user.company || 'InnovateTech');
+      } else {
+        localStorage.setItem('seeker_name', data.user.fullName);
+      }
+      
+      // Re-populate names on dashboard
+      const headerName = document.getElementById('headerProfileName');
+      const popupName = document.getElementById('popupProfileName');
+      const sidebarName = document.getElementById('sidebarName');
+      const welcomeName = document.getElementById('welcomeName');
+      
+      if (headerName) headerName.textContent = data.user.fullName;
+      if (popupName) popupName.textContent = data.user.fullName;
+      if (sidebarName) sidebarName.textContent = data.user.fullName;
+      if (welcomeName) welcomeName.textContent = data.user.fullName.split(' ')[0];
+      
+      // Re-initialize initials
+      const initial = data.user.fullName.charAt(0).toUpperCase();
+      const headerInitials = document.getElementById('headerProfileInitials');
+      const popupInitials = document.getElementById('popupProfileInitials');
+      const sidebarAvatar = document.getElementById('sidebarAvatar');
+      // Only update initials text if there's no img avatar loaded
+      if (headerInitials && !headerInitials.querySelector('img')) headerInitials.textContent = initial;
+      if (popupInitials && !popupInitials.querySelector('img')) popupInitials.textContent = initial;
+      if (sidebarAvatar && !sidebarAvatar.querySelector('img')) sidebarAvatar.textContent = initial;
+
+    } else {
+      const errData = await response.json();
+      alert(errData.error || 'Failed to save account details.');
+    }
+  } catch (err) {
+    console.error("Failed to update account details:", err);
+    alert('Server error saving details.');
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
+  }
+};
+
+window.triggerSettingsForgotPassword = async () => {
+  const isRecruiter = window.location.pathname.includes('/recruiter/');
+  const email = isRecruiter ? localStorage.getItem('recruiter_email') : localStorage.getItem('seeker_email');
+  if (!email) {
+    alert('You must be logged in to change your password.');
+    return;
+  }
+
+  const role = isRecruiter ? 'recruiter' : 'jobseeker';
+  const changeBtn = document.querySelector('#settingsAccountForm button[type="button"]');
+  const originalText = changeBtn ? changeBtn.textContent : 'Change Password';
+  if (changeBtn) {
+    changeBtn.disabled = true;
+    changeBtn.textContent = 'Sending...';
+  }
+
+  const apiBase = (window.location.protocol === 'file:') ? 'http://localhost:3000' : '';
+
+  try {
+    const response = await fetch(`${apiBase}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, role })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      alert('Password reset email has been sent! You will now be redirected to the password changing page.');
+      
+      const prefix = isRecruiter ? '../' : '../';
+      if (data.token) {
+        window.location.href = `${prefix}change_password.html?email=${encodeURIComponent(email)}&token=${data.token}`;
+      } else {
+        window.location.href = `${prefix}change_password.html?email=${encodeURIComponent(email)}`;
+      }
+    } else {
+      const errData = await response.json();
+      alert(errData.error || 'Failed to send password reset email.');
+    }
+  } catch (err) {
+    console.error("Failed to trigger password change:", err);
+    alert('Server error triggering password change.');
+  } finally {
+    if (changeBtn) {
+      changeBtn.disabled = false;
+      changeBtn.textContent = originalText;
+    }
+  }
+};
+
 
 

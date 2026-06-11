@@ -9,6 +9,9 @@ import { MongoClient } from "mongodb";
 import { v2 as cloudinary } from "cloudinary";
 import { runJobCollectionPipeline, syncNextCompany } from "./jobCollector.js";
 import dns from "dns";
+import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -630,11 +633,42 @@ const dbService = {
     return local.users.find(u => u.email.toLowerCase() === email.toLowerCase());
   },
   findUserByCredentials: async (email, password) => {
-    if (mongoDb) {
-      return await mongoDb.collection("users").findOne({ email: email.toLowerCase(), password });
+    const user = await dbService.findUserByEmail(email);
+    if (!user) return null;
+
+    const isHashed = typeof user.password === 'string' && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$'));
+    if (isHashed) {
+      const match = bcrypt.compareSync(password, user.password);
+      return match ? user : null;
+    } else {
+      if (user.password === password) {
+        // Upgrade plaintext password to hashed password in background
+        try {
+          const salt = bcrypt.genSaltSync(10);
+          const hashedPassword = bcrypt.hashSync(password, salt);
+          user.password = hashedPassword;
+          
+          if (mongoDb) {
+            await mongoDb.collection("users").updateOne(
+              { email: user.email.toLowerCase() },
+              { $set: { password: hashedPassword } }
+            );
+          } else {
+            const local = await readLocalDB();
+            const dbUser = local.users.find(u => u.email.toLowerCase() === user.email.toLowerCase());
+            if (dbUser) {
+              dbUser.password = hashedPassword;
+              await writeLocalDB(local);
+            }
+          }
+          console.log(`[SECURITY] Successfully migrated password hash for user: ${email}`);
+        } catch (migErr) {
+          console.error("Failed to migrate password hash:", migErr);
+        }
+        return user;
+      }
+      return null;
     }
-    const local = await readLocalDB();
-    return local.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
   },
   createUser: async (user) => {
     if (mongoDb) {
@@ -970,10 +1004,13 @@ app.post("/api/auth/signup", async (req, res) => {
       return res.status(400).json({ error: "Email is already registered." });
     }
 
+    const salt = bcrypt.genSaltSync(10);
+    const hashedPassword = bcrypt.hashSync(finalPassword, salt);
+
     const newUser = {
       id: Date.now().toString(),
       email: finalEmail,
-      password: finalPassword,
+      password: hashedPassword,
       fullName: finalFullName,
       role: finalRole,
       company: finalRole === "recruiter" ? (company || "InnovateTech") : undefined
@@ -1008,6 +1045,278 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error during login." });
+  }
+});
+
+// --- Forgot/Reset Password & User Account settings APIs ---
+
+async function sendPasswordResetEmail(email, token, role) {
+  const resetLink = `http://localhost:${PORT}/change_password.html?token=${token}&email=${encodeURIComponent(email)}`;
+  console.log(`[PASSWORD RESET LINK GENERATED]: ${resetLink}`);
+  
+  const scratchDir = path.join(__dirname, "scratch");
+  try {
+    await fs.mkdir(scratchDir, { recursive: true });
+    const emailFile = path.join(scratchDir, `reset-email-${email}.html`);
+    const emailHtmlContent = `
+      <html>
+        <body style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+          <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h2 style="color: #38bdf8; margin-bottom: 20px;">JobSarthi Password Reset</h2>
+            <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1;">You requested a password reset for your JobSarthi account. Please click the button below to choose a new password.</p>
+            <div style="margin: 30px 0;">
+              <a href="${resetLink}" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Change Password</a>
+            </div>
+            <p style="font-size: 12px; color: #64748b;">If you did not request this, you can safely ignore this email.</p>
+            <p style="font-size: 11px; color: #475569; word-break: break-all; margin-top: 20px;">Or copy link: <br>${resetLink}</p>
+          </div>
+        </body>
+      </html>
+    `;
+    await fs.writeFile(emailFile, emailHtmlContent, "utf-8");
+    console.log(`[PASSWORD RESET] HTML mock email saved to: ${emailFile}`);
+  } catch (err) {
+    console.error("Failed to write mock email file:", err);
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.ethereal.email",
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: process.env.SMTP_USER || "ethereal_test_user",
+      pass: process.env.SMTP_PASS || "ethereal_test_pass"
+    }
+  });
+
+  let finalUser = process.env.SMTP_USER;
+  let finalPass = process.env.SMTP_PASS;
+  
+  if (!finalUser) {
+    try {
+      console.log("Creating Ethereal test account for nodemailer...");
+      const testAccount = await nodemailer.createTestAccount();
+      transporter.set("auth", {
+        user: testAccount.user,
+        pass: testAccount.pass
+      });
+      finalUser = testAccount.user;
+      finalPass = testAccount.pass;
+    } catch (ethRealErr) {
+      console.warn("Ethereal account creation failed:", ethRealErr.message);
+    }
+  }
+
+  const mailOptions = {
+    from: `"JobSarthi Support" <${finalUser || 'support@jobsarthi.ai'}>`,
+    to: email,
+    subject: "Reset Your JobSarthi Password",
+    html: `
+      <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+        <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+          <h2 style="color: #38bdf8; margin-bottom: 20px;">JobSarthi Password Reset</h2>
+          <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1;">You requested a password reset for your JobSarthi account. Please click the button below to choose a new password.</p>
+          <div style="margin: 30px 0;">
+            <a href="${resetLink}" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Change Password</a>
+          </div>
+          <p style="font-size: 12px; color: #64748b;">If you did not request this, you can safely ignore this email.</p>
+          <p style="font-size: 11px; color: #475569; word-break: break-all; margin-top: 20px;">Or copy link: <br>${resetLink}</p>
+        </div>
+      </div>
+    `
+  };
+
+  if (finalUser && finalPass) {
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`[PASSWORD RESET] Email sent successfully: ${info.messageId}`);
+    } catch (mailErr) {
+      console.error("Nodemailer failed to send email:", mailErr.message);
+    }
+  }
+}
+
+app.post("/api/auth/forgot-password", async (req, res) => {
+  try {
+    const { email, role } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(cleanEmail);
+    
+    if (!user) {
+      return res.status(404).json({ error: "No account found with this email address." });
+    }
+
+    if (role && user.role !== role) {
+      return res.status(400).json({ error: "No account found with this email and role." });
+    }
+
+    // Generate reset token
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiry = Date.now() + 3600000; // 1 hour expiry
+
+    // Save to user
+    if (mongoDb) {
+      await mongoDb.collection("users").updateOne(
+        { email: cleanEmail },
+        { $set: { resetToken: token, resetTokenExpiry: expiry } }
+      );
+    } else {
+      const local = await readLocalDB();
+      const localUser = local.users.find(u => u.email.toLowerCase() === cleanEmail);
+      if (localUser) {
+        localUser.resetToken = token;
+        localUser.resetTokenExpiry = expiry;
+        await writeLocalDB(local);
+      }
+    }
+
+    // Send the simulated / real email
+    await sendPasswordResetEmail(cleanEmail, token, user.role);
+
+    res.json({ success: true, message: "Password reset link sent successfully!", token });
+  } catch (err) {
+    console.error("Forgot password API error:", err);
+    res.status(500).json({ error: "Internal server error during password reset request." });
+  }
+});
+
+app.post("/api/auth/verify-reset-token", async (req, res) => {
+  try {
+    const { email, token } = req.body;
+    if (!email || !token) {
+      return res.status(400).json({ error: "Email and token are required." });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(cleanEmail);
+
+    if (!user || user.resetToken !== token || !user.resetTokenExpiry || user.resetTokenExpiry < Date.now()) {
+      return res.status(400).json({ error: "Invalid or expired password reset token." });
+    }
+
+    res.json({ success: true, role: user.role });
+  } catch (err) {
+    console.error("Verify token error:", err);
+    res.status(500).json({ error: "Internal server error during token verification." });
+  }
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  try {
+    const { email, token, newPassword } = req.body;
+    if (!email || !token || !newPassword) {
+      return res.status(400).json({ error: "All fields are required." });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(cleanEmail);
+
+    if (!user || user.resetToken !== token || !user.resetTokenExpiry || user.resetTokenExpiry < Date.now()) {
+      return res.status(400).json({ error: "Invalid or expired password reset token." });
+    }
+
+    const salt = bcrypt.genSaltSync(10);
+    const hashedPassword = bcrypt.hashSync(newPassword, salt);
+
+    if (mongoDb) {
+      await mongoDb.collection("users").updateOne(
+        { email: cleanEmail },
+        { 
+          $set: { password: hashedPassword },
+          $unset: { resetToken: "", resetTokenExpiry: "" }
+        }
+      );
+    } else {
+      const local = await readLocalDB();
+      const localUser = local.users.find(u => u.email.toLowerCase() === cleanEmail);
+      if (localUser) {
+        localUser.password = hashedPassword;
+        delete localUser.resetToken;
+        delete localUser.resetTokenExpiry;
+        await writeLocalDB(local);
+      }
+    }
+
+    res.json({ success: true, message: "Password updated successfully!" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ error: "Internal server error while resetting password." });
+  }
+});
+
+app.get("/api/user/account", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(cleanEmail);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.json({
+      fullName: user.fullName || "",
+      email: user.email,
+      mobile: user.mobile || "",
+      company: user.company || "",
+      role: user.role
+    });
+  } catch (err) {
+    console.error("Get account API error:", err);
+    res.status(500).json({ error: "Internal server error fetching account details." });
+  }
+});
+
+app.post("/api/user/update-account", async (req, res) => {
+  try {
+    const { email, fullName, mobile, company } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(cleanEmail);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const updatedFields = {
+      fullName: fullName ? fullName.trim() : user.fullName,
+      mobile: mobile ? mobile.trim() : "",
+    };
+    if (user.role === "recruiter" && company) {
+      updatedFields.company = company.trim();
+    }
+
+    if (mongoDb) {
+      await mongoDb.collection("users").updateOne(
+        { email: cleanEmail },
+        { $set: updatedFields }
+      );
+    } else {
+      const local = await readLocalDB();
+      const localUser = local.users.find(u => u.email.toLowerCase() === cleanEmail);
+      if (localUser) {
+        Object.assign(localUser, updatedFields);
+        await writeLocalDB(local);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      user: { 
+        id: user.id, 
+        email: cleanEmail, 
+        fullName: updatedFields.fullName, 
+        role: user.role, 
+        mobile: updatedFields.mobile, 
+        company: updatedFields.company || user.company 
+      } 
+    });
+  } catch (err) {
+    console.error("Update account API error:", err);
+    res.status(500).json({ error: "Internal server error updating account details." });
   }
 });
 
