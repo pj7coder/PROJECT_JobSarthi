@@ -926,16 +926,31 @@
 
       // 4. Fetch Jobs and Populate Recommended Matches (Independent)
       try {
-        let jobs = [];
+        let profileIncomplete = false;
         const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?email=${encodeURIComponent(email)}&limit=50&sort=match-desc&t=${Date.now()}`);
         if (jobsRes.ok) {
           const data = await jobsRes.json();
           jobs = data.jobs || [];
+          profileIncomplete = !!data.profileIncomplete;
         }
 
         const recommendedContainer = document.getElementById('recommendedJobsList');
         if (recommendedContainer) {
-          if (jobs && jobs.length > 0) {
+          if (profileIncomplete) {
+            recommendedContainer.innerHTML = `
+              <div class="glass-panel" style="grid-column: 1 / -1; padding: 40px; text-align: center; border-radius: 16px; border: 1px solid var(--border-subtle); background: var(--bg-surface);">
+                <div style="font-size: 3rem; margin-bottom: 20px;">📄</div>
+                <h3 style="font-size: 1.3rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Resume & Profile Details Required</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; max-width: 480px; margin-left: auto; margin-right: auto;">
+                  Please upload your resume and fill in your details to unlock personalized job recommendations matched by Sarthi AI.
+                </p>
+                <a href="resume.html" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+                  Upload Resume & Details
+                </a>
+              </div>
+            `;
+            document.getElementById('dashboardPaginationContainer').innerHTML = '';
+          } else if (jobs && jobs.length > 0) {
             lastRecommendedJobs = jobs;
             currentDashboardPage = 1;
             renderPaginatedDashboardJobs();
@@ -1085,6 +1100,11 @@
           alert("Application submitted successfully!");
           loadDashboardProfile();
           closeDrawer(null);
+
+          const destUrl = currentSelectedJob.applyUrl || currentSelectedJob.apply_url;
+          if (destUrl && destUrl.startsWith('http')) {
+            window.open(`/apply/${currentSelectedJob.id}?email=${encodeURIComponent(candidateEmail || '')}`, '_blank');
+          }
         } else {
           const errData = await response.json();
           alert(errData.message || "Failed to apply.");
@@ -1158,7 +1178,7 @@
           const actionBtn = job.isSample ? `
             <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center;">${isApplied ? 'Applied' : 'Apply'}</button>
           ` : `
-            <a href="${job.applyUrl || job.apply_url || '#'}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Open</a>
+            <a href="/apply/${job.id}?email=${encodeURIComponent(localStorage.getItem('seeker_email') || '')}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Open</a>
           `;
 
           const savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
@@ -1172,6 +1192,25 @@
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           `;
+
+          let verificationBadge = '';
+          if (job.verification_text) {
+            const score = job.verification_score !== undefined ? job.verification_score : 40;
+            let badgeStyle = 'background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981;';
+            if (score === 0) {
+              badgeStyle = 'background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444;';
+            } else if (score <= 40) {
+              badgeStyle = 'background: rgba(100, 116, 139, 0.08); border: 1px solid rgba(100, 116, 139, 0.2); color: #64748b;';
+            } else if (score <= 60) {
+              badgeStyle = 'background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); color: #f59e0b;';
+            }
+            verificationBadge = `
+              <div class="job-card-meta-item" style="font-size: 0.78rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; ${badgeStyle}">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block; vertical-align:middle;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                ${job.verification_text}
+              </div>
+            `;
+          }
 
           const card = document.createElement('div');
           card.className = 'glass-card job-card';
@@ -1196,6 +1235,7 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                   ${job.type || 'Full-time'}
                 </div>
+                ${verificationBadge}
               </div>
             </div>
             <div class="job-card-actions" onclick="event.stopPropagation()">

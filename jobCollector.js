@@ -346,7 +346,275 @@ export function isJobSuitableForIndia(job) {
   return true;
 }
 
-// --- MAIN PIPELINE PIPELINE PIPELINE PIPELINE ---
+// --- QUALITY VALIDATION & NORMALIZATION ---
+export function generateFingerprint(company, title, location) {
+  const clean = str => (str || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
+  return `${clean(company)}_${clean(title)}_${clean(location)}`;
+}
+
+export function validateAndNormalizeJob(job) {
+  if (!job.title || typeof job.title !== "string" || !job.title.trim()) {
+    return { valid: false, reason: "missing title" };
+  }
+  if (!job.company || typeof job.company !== "string" || !job.company.trim()) {
+    return { valid: false, reason: "missing company" };
+  }
+  if (!job.apply_url || typeof job.apply_url !== "string" || !job.apply_url.trim() || !/^https?:\/\/\S+$/i.test(job.apply_url)) {
+    return { valid: false, reason: "broken apply URL" };
+  }
+
+  const normalized = { ...job };
+  normalized.company = normalized.company.trim();
+  normalized.title = normalized.title.trim();
+  
+  // Location normalization
+  let loc = (normalized.location || "Remote").trim();
+  if (loc.toLowerCase() === "telecommute" || loc.toLowerCase() === "wfh" || loc.toLowerCase() === "anywhere") {
+    loc = "Remote";
+  }
+  normalized.location = loc;
+
+  // Employment type normalization
+  let type = (normalized.employment_type || "Full-time").trim();
+  const typeLower = type.toLowerCase();
+  if (typeLower.includes("full")) {
+    type = "Full-time";
+  } else if (typeLower.includes("part")) {
+    type = "Part-time";
+  } else if (typeLower.includes("contract")) {
+    type = "Contract";
+  } else if (typeLower.includes("intern") || typeLower.includes("co-op")) {
+    type = "Internship";
+  } else {
+    type = "Full-time";
+  }
+  normalized.employment_type = type;
+  normalized.type = type; // compatibility
+
+  // Salary format normalization
+  let salary = (normalized.salary || "Not specified").trim();
+  normalized.salary = salary;
+
+  return { valid: true, job: normalized };
+}
+
+export async function processAndSaveJobs(allCollectedJobs, syncedCompanies, currentSyncTimestamp = new Date()) {
+  const db = await getDB();
+  const stats = {
+    inserted: 0,
+    updated: 0,
+    duplicates_prevented: 0,
+    broken_urls: 0,
+    jobs_closed: 0
+  };
+
+  const processedJobs = [];
+
+  for (const rawJob of allCollectedJobs) {
+    const valResult = validateAndNormalizeJob(rawJob);
+    if (!valResult.valid) {
+      console.warn(`[JobCollector] Job validation failed: ${valResult.reason}`, rawJob.title);
+      stats.broken_urls++;
+      continue;
+    }
+
+    const job = valResult.job;
+    const internalId = generateJobId(job.company, job.title, job.location);
+    const fingerprint = generateFingerprint(job.company, job.title, job.location);
+
+    job.id = internalId;
+    job.internal_id = internalId;
+    job.fingerprint = fingerprint;
+    job.external_job_id = job.source_id || "";
+    job.last_seen_at = currentSyncTimestamp;
+    job.status = "active";
+
+    processedJobs.push(job);
+  }
+
+  if (db) {
+    // Write to MongoDB
+    for (const job of processedJobs) {
+      if (!isJobSuitableForIndia(job)) continue;
+      
+      let existing = null;
+      if (job.external_job_id) {
+        existing = await db.collection("jobs").findOne({
+          external_job_id: job.external_job_id,
+          source: job.source
+        });
+      }
+      if (!existing) {
+        existing = await db.collection("jobs").findOne({
+          fingerprint: job.fingerprint
+        });
+      }
+
+      const normalizedJob = {
+        id: job.id,
+        internal_id: job.internal_id,
+        external_job_id: job.external_job_id,
+        source_id: job.source_id || "",
+        source: job.source,
+        company: job.company,
+        title: job.title,
+        description: job.description,
+        location: job.location,
+        employment_type: job.employment_type,
+        type: job.type,
+        apply_url: job.apply_url,
+        applyUrl: job.apply_url,
+        posted_at: job.posted_date || currentSyncTimestamp,
+        posted_date: job.posted_date || currentSyncTimestamp,
+        last_seen_at: currentSyncTimestamp,
+        status: "active",
+        fingerprint: job.fingerprint,
+        skills: job.skills || "General tech skills",
+        logo: "🌐",
+        category: job.department || "Software Engineering",
+        salary: job.salary || "Not specified",
+        reqs: job.reqs || [
+          "Demonstrated project experience.",
+          "Solid knowledge of core engineering principles.",
+          "Strong communication and collaborative alignment."
+        ],
+        updated_at: currentSyncTimestamp
+      };
+
+      if (existing) {
+        await db.collection("jobs").updateOne(
+          { _id: existing._id },
+          { 
+            $set: {
+              ...normalizedJob,
+              first_seen_at: existing.first_seen_at || existing.created_at || currentSyncTimestamp
+            } 
+          }
+        );
+        stats.updated++;
+        stats.duplicates_prevented++;
+      } else {
+        normalizedJob.first_seen_at = currentSyncTimestamp;
+        normalizedJob.created_at = currentSyncTimestamp;
+        await db.collection("jobs").insertOne(normalizedJob);
+        stats.inserted++;
+      }
+    }
+
+    // Closed Job Detection
+    const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    for (const company of syncedCompanies) {
+      const closedResult = await db.collection("jobs").updateMany(
+        {
+          company: { $regex: new RegExp("^" + escapeRegex(company.name) + "$", "i") },
+          source: company.ats,
+          status: "active",
+          $or: [
+            { last_seen_at: { $lt: currentSyncTimestamp } },
+            { last_seen_at: { $exists: false } }
+          ]
+        },
+        {
+          $set: {
+            status: "closed",
+            verification_score: 0,
+            updated_at: currentSyncTimestamp
+          }
+        }
+      );
+      stats.jobs_closed += closedResult.modifiedCount || 0;
+    }
+
+  } else {
+    // Write to Local db.json
+    const local = await readLocalDB();
+    if (!local.jobs) local.jobs = [];
+
+    for (const job of processedJobs) {
+      if (!isJobSuitableForIndia(job)) continue;
+
+      let existingIdx = -1;
+      if (job.external_job_id) {
+        existingIdx = local.jobs.findIndex(j => j.external_job_id === job.external_job_id && j.source === job.source);
+      }
+      if (existingIdx === -1) {
+        existingIdx = local.jobs.findIndex(j => j.fingerprint === job.fingerprint);
+      }
+
+      const normalizedJob = {
+        id: job.id,
+        internal_id: job.internal_id,
+        external_job_id: job.external_job_id,
+        source_id: job.source_id || "",
+        source: job.source,
+        company: job.company,
+        title: job.title,
+        description: job.description,
+        location: job.location,
+        employment_type: job.employment_type,
+        type: job.type,
+        apply_url: job.apply_url,
+        applyUrl: job.apply_url,
+        posted_at: job.posted_date || currentSyncTimestamp,
+        posted_date: job.posted_date || currentSyncTimestamp,
+        last_seen_at: currentSyncTimestamp,
+        status: "active",
+        fingerprint: job.fingerprint,
+        skills: job.skills || "General tech skills",
+        logo: "🌐",
+        category: job.department || "Software Engineering",
+        salary: job.salary || "Not specified",
+        reqs: job.reqs || [
+          "Demonstrated project experience.",
+          "Solid knowledge of core engineering principles.",
+          "Strong communication and collaborative alignment."
+        ],
+        updated_at: currentSyncTimestamp
+      };
+
+      if (existingIdx !== -1) {
+        const existing = local.jobs[existingIdx];
+        local.jobs[existingIdx] = {
+          ...existing,
+          ...normalizedJob,
+          first_seen_at: existing.first_seen_at || existing.created_at || currentSyncTimestamp
+        };
+        stats.updated++;
+        stats.duplicates_prevented++;
+      } else {
+        normalizedJob.first_seen_at = currentSyncTimestamp;
+        normalizedJob.created_at = currentSyncTimestamp;
+        local.jobs.unshift(normalizedJob);
+        stats.inserted++;
+      }
+    }
+
+    // Closed Job Detection
+    syncedCompanies.forEach(company => {
+      let closedCount = 0;
+      local.jobs.forEach(j => {
+        if (
+          j.company && j.company.toLowerCase() === company.name.toLowerCase() &&
+          j.source === company.ats &&
+          j.status === "active" &&
+          (!j.last_seen_at || new Date(j.last_seen_at) < currentSyncTimestamp)
+        ) {
+          j.status = "closed";
+          j.verification_score = 0;
+          j.updated_at = currentSyncTimestamp;
+          closedCount++;
+        }
+      });
+      stats.jobs_closed += closedCount;
+    });
+
+    await writeLocalDB(local);
+  }
+
+  return stats;
+}
+
+// --- MAIN PIPELINE ---
 export async function runJobCollectionPipeline(targetCompanies) {
   console.log(`[JobCollector] Starting pipeline run for ${targetCompanies.length} companies...`);
   
@@ -367,11 +635,9 @@ export async function runJobCollectionPipeline(targetCompanies) {
         const fetched = await fetchSmartRecruitersJobs(entry.token);
         allCollectedJobs.push(...fetched);
       } else {
-        // Career Page Flow
         const result = await scrapeCareerPage(entry.name, entry.url);
         if (result.atsDetected) {
           console.log(`[JobCollector] Redirecting company ${entry.name} to detected ATS: ${result.atsDetected}`);
-          // Auto route to ATS
           if (result.atsDetected === "greenhouse") {
             const token = extractSlugFromUrl(entry.url, "greenhouse");
             if (token) allCollectedJobs.push(...(await fetchGreenhouseJobs(token)));
@@ -388,101 +654,80 @@ export async function runJobCollectionPipeline(targetCompanies) {
     }
   }
 
-  console.log(`[JobCollector] Normalizing and de-duplicating ${allCollectedJobs.length} collected jobs...`);
+  console.log(`[JobCollector] Normalizing and saving ${allCollectedJobs.length} collected jobs...`);
   
-  const db = await getDB();
-  let insertedCount = 0;
-  let updatedCount = 0;
+  const currentSyncTimestamp = new Date();
+  const stats = await processAndSaveJobs(allCollectedJobs, targetCompanies, currentSyncTimestamp);
+  
+  console.log(`[JobCollector] Pipeline finished. Stats:`, stats);
+  return stats;
+}
 
-  if (db) {
-    // Write to MongoDB
-    for (const job of allCollectedJobs) {
-      if (!isJobSuitableForIndia(job)) continue;
-      const jobId = generateJobId(job.company, job.title, job.location);
-      const query = { id: jobId };
-      
-      const normalizedJob = {
-        id: jobId,
-        title: job.title,
-        company: job.company,
-        logo: "🌐",
-        category: job.department || "Software Engineering",
-        type: job.employment_type || "Full-time",
-        location: job.location || "Remote",
-        salary: job.salary || "Not specified",
-        match: Math.floor(Math.random() * 25) + 75,
-        description: job.description,
-        skills: job.skills || "General tech skills",
-        reqs: [
-          "Demonstrated project experience.",
-          "Solid knowledge of core engineering principles.",
-          "Strong communication and collaborative alignment."
-        ],
-        applyUrl: job.apply_url,
-        source: job.source,
-        source_id: job.source_id,
-        posted_date: job.posted_date || new Date(),
-        updated_at: new Date()
-      };
+// --- GREENHOUSE SYNC ENGINE ---
+export async function runGreenhouseSync() {
+  console.log("[JobCollector] Starting full Greenhouse Sync Engine run...");
+  const greenhouseCompanies = TARGET_COMPANIES.filter(c => c.ats === "greenhouse");
+  console.log(`[JobCollector] Found ${greenhouseCompanies.length} Greenhouse companies to sync.`);
+  
+  const stats = {
+    total_jobs_synced: 0,
+    new_jobs_added: 0,
+    jobs_updated: 0,
+    jobs_closed: 0,
+    duplicates_prevented: 0,
+    sync_failures: 0,
+    broken_urls_detected: 0
+  };
 
-      const existing = await db.collection("jobs").findOne(query);
-      if (existing) {
-        await db.collection("jobs").updateOne(query, { $set: normalizedJob });
-        updatedCount++;
-      } else {
-        normalizedJob.created_at = new Date();
-        await db.collection("jobs").insertOne(normalizedJob);
-        insertedCount++;
+  const currentSyncTimestamp = new Date();
+  const allFetchedJobs = [];
+
+  for (const company of greenhouseCompanies) {
+    try {
+      const jobs = await fetchGreenhouseJobs(company.token);
+      if (jobs && jobs.length > 0) {
+        allFetchedJobs.push(...jobs);
       }
+    } catch (err) {
+      console.error(`[JobCollector] Failed to fetch Greenhouse jobs for ${company.name}:`, err.message);
+      stats.sync_failures++;
     }
-  } else {
-    // Write to Local db.json
-    const local = await readLocalDB();
-    if (!local.jobs) local.jobs = [];
-
-    for (const job of allCollectedJobs) {
-      if (!isJobSuitableForIndia(job)) continue;
-      const jobId = generateJobId(job.company, job.title, job.location);
-      
-      const normalizedJob = {
-        id: jobId,
-        title: job.title,
-        company: job.company,
-        logo: "🌐",
-        category: job.department || "Software Engineering",
-        type: job.employment_type || "Full-time",
-        location: job.location || "Remote",
-        salary: job.salary || "Not specified",
-        match: Math.floor(Math.random() * 25) + 75,
-        description: job.description,
-        skills: job.skills || "General tech skills",
-        reqs: [
-          "Demonstrated project experience.",
-          "Solid knowledge of core engineering principles.",
-          "Strong communication and collaborative alignment."
-        ],
-        applyUrl: job.apply_url,
-        source: job.source,
-        source_id: job.source_id,
-        posted_date: job.posted_date || new Date(),
-        updated_at: new Date()
-      };
-
-      const existingIdx = local.jobs.findIndex(j => j.id === jobId);
-      if (existingIdx !== -1) {
-        local.jobs[existingIdx] = { ...local.jobs[existingIdx], ...normalizedJob };
-        updatedCount++;
-      } else {
-        normalizedJob.created_at = new Date();
-        local.jobs.unshift(normalizedJob);
-        insertedCount++;
-      }
-    }
-    await writeLocalDB(local);
   }
 
-  console.log(`[JobCollector] Pipeline finished. New Inserted: ${insertedCount}, Updated: ${updatedCount}`);
-  return { inserted: insertedCount, updated: updatedCount };
+  console.log(`[JobCollector] Fetched ${allFetchedJobs.length} raw jobs. Processing validation and normalization...`);
+
+  const saveStats = await processAndSaveJobs(allFetchedJobs, greenhouseCompanies, currentSyncTimestamp);
+  stats.new_jobs_added = saveStats.inserted;
+  stats.jobs_updated = saveStats.updated;
+  stats.duplicates_prevented = saveStats.duplicates_prevented;
+  stats.broken_urls_detected = saveStats.broken_urls;
+  stats.total_jobs_synced = allFetchedJobs.length - saveStats.broken_urls;
+  stats.jobs_closed = saveStats.jobs_closed;
+
+  try {
+    const db = await getDB();
+    const syncLog = {
+      id: "sync_log_" + Date.now(),
+      timestamp: currentSyncTimestamp.toISOString(),
+      source: "greenhouse",
+      stats
+    };
+
+    if (db) {
+      await db.collection("sync_logs").insertOne(syncLog);
+    } else {
+      const local = await readLocalDB();
+      if (!local.sync_logs) local.sync_logs = [];
+      local.sync_logs.unshift(syncLog);
+      await writeLocalDB(local);
+    }
+    console.log("[JobCollector] Logged sync stats successfully:", stats);
+  } catch (logErr) {
+    console.error("[JobCollector] Failed to write sync log:", logErr);
+  }
+
+  console.log("[JobCollector] Greenhouse Sync Pipeline completed. Stats:", stats);
+  return stats;
 }
 
 // Utility helper to extract ATS slugs from typical career links

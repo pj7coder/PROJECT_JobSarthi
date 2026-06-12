@@ -403,6 +403,93 @@
       color: #fff;
     }
 
+    /* Light Theme overrides for Calendar Popup */
+    body.light-theme .cal-popup-card {
+      background: #ffffff;
+      border-color: #e4e4e7;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.1);
+      color: #09090b;
+    }
+    body.light-theme .cal-left-panel {
+      background: #ffffff;
+      border-right-color: #e4e4e7;
+    }
+    body.light-theme .cal-right-panel {
+      background: #f4f4f5;
+    }
+    body.light-theme .cal-month-title {
+      color: #09090b;
+    }
+    body.light-theme .cal-date-cell {
+      color: #09090b;
+    }
+    body.light-theme .cal-date-cell.muted {
+      color: #a1a1aa;
+    }
+    body.light-theme .cal-date-cell:hover:not(.muted):not(.selected) {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    body.light-theme .cal-date-cell.selected {
+      background: #09090b !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    body.light-theme .cal-selected-dot {
+      background: #ffffff;
+    }
+    body.light-theme .cal-right-title {
+      color: #09090b;
+    }
+    body.light-theme .cal-event-card {
+      background: #ffffff;
+      border-color: #e4e4e7;
+    }
+    body.light-theme .cal-event-card-title {
+      color: #09090b;
+    }
+    body.light-theme .cal-event-card-detail {
+      color: #71717a;
+    }
+    body.light-theme .cal-todo-text {
+      color: #27272a;
+    }
+    body.light-theme .cal-btn-secondary {
+      background: #ffffff;
+      color: #27272a;
+      border-color: #e4e4e7;
+    }
+    body.light-theme .cal-btn-secondary:hover {
+      background: #f4f4f5;
+      color: #09090b;
+    }
+    body.light-theme .cal-upcoming-item {
+      background: #ffffff;
+      border-color: #e4e4e7;
+    }
+    body.light-theme .cal-upcoming-item:hover {
+      background: #f4f4f5;
+      border-color: #d4d4d8;
+    }
+    body.light-theme .cal-upcoming-info h5 {
+      color: #09090b;
+    }
+    body.light-theme .cal-upcoming-btn:hover {
+      color: #ffffff;
+    }
+    body.light-theme .cal-close-btn {
+      color: #71717a;
+    }
+    body.light-theme .cal-close-btn:hover {
+      color: #09090b;
+      background: rgba(0, 0, 0, 0.05);
+    }
+    body.light-theme .cal-nav-arrow {
+      color: #71717a;
+    }
+    body.light-theme .cal-nav-arrow:hover {
+      color: #09090b;
+    }
+
     @media (max-width: 680px) {
       .cal-popup-card {
         grid-template-columns: 1fr;
@@ -413,6 +500,9 @@
         border-right: none;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         padding-bottom: 16px;
+      }
+      body.light-theme .cal-left-panel {
+        border-bottom-color: #e4e4e7;
       }
       .cal-right-panel {
         max-height: 300px;
@@ -468,48 +558,11 @@
   function _getEl(id) { return document.getElementById(id); }
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
-  async function fetchInterviews() {
-    const email = localStorage.getItem('seeker_email');
-    if (!email) return [];
-
-    const list = [];
-    
-    // 1. Fetch live interview invitations from messages API
-    try {
-      const apiBase = window.API_BASE_URL || '';
-      const response = await fetch(`${apiBase}/api/messages?email=${encodeURIComponent(email)}&role=jobseeker`);
-      if (response.ok) {
-        const messages = await response.json();
-        const pattern = /An interview invitation has been generated for (.+?) at (.+?) \(IST\)/;
-        messages.forEach(msg => {
-          if (msg.sender === 'recruiter' && msg.text.includes('Interview Scheduled')) {
-            const match = msg.text.match(pattern);
-            if (match) {
-              const dateStr = match[1]; 
-              const timeStr = match[2]; 
-              const parsedDate = new Date(dateStr);
-              if (!isNaN(parsedDate)) {
-                list.push({
-                  company: msg.companyName || msg.recruiterName,
-                  date: parsedDate,
-                  timeStr: timeStr,
-                  fullDateStr: dateStr,
-                  jobId: msg.jobId || ''
-                });
-              }
-            }
-          }
-        });
-      }
-    } catch (e) {
-      console.error("[CalendarPopup] Error fetching interviews:", e);
-    }
-
-    // 2. Fetch mock interviews from local storage (if any)
+  function getLocalMockInterviews() {
     let stored = JSON.parse(localStorage.getItem('mock_interviews') || '[]');
     
-    // Seed sample mock interviews if both lists are completely empty, to show a working demo
-    if (list.length === 0 && stored.length === 0) {
+    // Seed sample mock interviews if empty
+    if (stored.length === 0) {
       const today = new Date();
       const year = today.getFullYear();
       const month = today.getMonth();
@@ -536,26 +589,63 @@
       localStorage.setItem('mock_interviews', JSON.stringify(stored));
     }
 
+    const list = [];
     stored.forEach(s => {
-      // Avoid duplicate company bookings on exact same day
       const d = new Date(s.date);
-      const isDuplicate = list.some(item => 
-        item.company.toLowerCase() === s.company.toLowerCase() && 
-        item.date.getFullYear() === d.getFullYear() &&
-        item.date.getMonth() === d.getMonth() &&
-        item.date.getDate() === d.getDate()
-      );
-      if (!isDuplicate) {
-        list.push({
-          company: s.company,
-          date: d,
-          timeStr: s.time,
-          fullDateStr: d.toDateString(),
-          jobId: s.jobId || ''
+      list.push({
+        company: s.company,
+        date: d,
+        timeStr: s.time,
+        fullDateStr: d.toDateString(),
+        jobId: s.jobId || ''
+      });
+    });
+    return list;
+  }
+
+  async function fetchInterviews() {
+    const email = localStorage.getItem('seeker_email');
+    const list = getLocalMockInterviews();
+    if (!email) return list;
+
+    try {
+      const apiBase = window.API_BASE_URL || '';
+      const response = await fetch(`${apiBase}/api/messages?email=${encodeURIComponent(email)}&role=jobseeker`);
+      if (response.ok) {
+        const messages = await response.json();
+        const pattern = /An interview invitation has been generated for (.+?) at (.+?) \(IST\)/;
+        messages.forEach(msg => {
+          if (msg.sender === 'recruiter' && msg.text.includes('Interview Scheduled')) {
+            const match = msg.text.match(pattern);
+            if (match) {
+              const dateStr = match[1]; 
+              const timeStr = match[2]; 
+              const parsedDate = new Date(dateStr);
+              if (!isNaN(parsedDate)) {
+                // Avoid duplicate company bookings on exact same day
+                const isDuplicate = list.some(item => 
+                  item.company.toLowerCase() === (msg.companyName || msg.recruiterName || '').toLowerCase() && 
+                  item.date.getFullYear() === parsedDate.getFullYear() &&
+                  item.date.getMonth() === parsedDate.getMonth() &&
+                  item.date.getDate() === parsedDate.getDate()
+                );
+                if (!isDuplicate) {
+                  list.push({
+                    company: msg.companyName || msg.recruiterName,
+                    date: parsedDate,
+                    timeStr: timeStr,
+                    fullDateStr: dateStr,
+                    jobId: msg.jobId || ''
+                  });
+                }
+              }
+            }
+          }
         });
       }
-    });
-
+    } catch (e) {
+      console.error("[CalendarPopup] Error fetching interviews:", e);
+    }
     return list;
   }
 
@@ -765,24 +855,34 @@
       }
     },
 
-    async open(initialDate = new Date()) {
+    open(initialDate = new Date()) {
       this._inject();
       
       _selectedDate = initialDate;
       _currentMonthDate = new Date(initialDate.getFullYear(), initialDate.getMonth(), 1);
 
-      // Fetch interviews
-      _interviews = await fetchInterviews();
+      // Show popup instantly (0ms delay)
+      document.body.style.overflow = 'hidden';
+      const overlay = _getEl('calPopupOverlay');
+      if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.offsetHeight; // trigger reflow
+        overlay.classList.add('active');
+      }
 
+      // 1. Populate immediately using local storage mock interviews
+      _interviews = getLocalMockInterviews();
       renderCalendar();
       renderRightPanel();
 
-      // Show popup
-      document.body.style.overflow = 'hidden';
-      const overlay = _getEl('calPopupOverlay');
-      overlay.style.display = 'flex';
-      overlay.offsetHeight; // trigger reflow
-      overlay.classList.add('active');
+      // 2. Fetch live data asynchronously in background
+      fetchInterviews().then(list => {
+        _interviews = list;
+        renderCalendar();
+        renderRightPanel();
+      }).catch(err => {
+        console.warn("[CalendarPopup] Background fetch failed:", err);
+      });
     },
 
     close() {

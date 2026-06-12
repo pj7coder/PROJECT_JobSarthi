@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 // GoogleGenerativeAI removed (migrating to Groq)
 import { MongoClient } from "mongodb";
 import { v2 as cloudinary } from "cloudinary";
-import { runJobCollectionPipeline, syncNextCompany } from "./jobCollector.js";
+import { runJobCollectionPipeline, syncNextCompany, runGreenhouseSync } from "./jobCollector.js";
 import dns from "dns";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
@@ -172,7 +172,34 @@ function isValidEmail(email) {
 }
 
 function isStrongPassword(password) {
-  return typeof password === "string" && password.length >= 8;
+  if (typeof password !== "string") return false;
+  if (password.length < 8) return false;
+  
+  // Complexity rules
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  
+  if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+    return false;
+  }
+  
+  // Ban common patterns and weak words
+  const lowerPassword = password.toLowerCase();
+  const commonWeakPasswords = [
+    "password", "qwerty", "123456", "12345678", "admin123", "welcome",
+    "welcome123", "password123", "jobsarthi", "sarthicareer", "letmein",
+    "pass123", "123456789"
+  ];
+  
+  for (const weak of commonWeakPasswords) {
+    if (lowerPassword.includes(weak)) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 console.log("[SECURITY] Security layer initialized: Rate limiting, JWT auth, account lockout, input validation.");
@@ -1021,6 +1048,17 @@ const dbService = {
     const local = await readLocalDB();
     const reports = local.interviews || [];
     return reports.filter(r => r.email && r.email.toLowerCase() === email.toLowerCase());
+  },
+  recordApplyClick: async (clickEvent) => {
+    if (mongoDb) {
+      await mongoDb.collection("apply_clicks").insertOne(clickEvent);
+      return clickEvent;
+    }
+    const local = await readLocalDB();
+    if (!local.apply_clicks) local.apply_clicks = [];
+    local.apply_clicks.push(clickEvent);
+    await writeLocalDB(local);
+    return clickEvent;
   }
 };
 
@@ -1223,7 +1261,7 @@ app.post("/api/auth/signup", authRateLimiter, async (req, res) => {
       return res.status(400).json({ error: "Please provide a valid email address." });
     }
     if (!isStrongPassword(password)) {
-      return res.status(400).json({ error: "Password must be at least 8 characters long." });
+      return res.status(400).json({ error: "Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, a special character, and not be a common/easy password." });
     }
 
     const finalEmail = email.trim().toLowerCase();
@@ -1562,6 +1600,10 @@ app.post("/api/auth/reset-password", async (req, res) => {
 
     if (!user || user.resetToken !== token || !user.resetTokenExpiry || user.resetTokenExpiry < Date.now()) {
       return res.status(400).json({ error: "Invalid or expired password reset token." });
+    }
+
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ error: "Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, a special character, and not be a common/easy password." });
     }
 
     const salt = bcrypt.genSaltSync(10);
@@ -1997,39 +2039,80 @@ function calculateMatchScore(job, profile) {
   return Math.max(0, Math.min(100, finalScore));
 }
 
+function getVerificationStatus(lastSeenAt, status) {
+  if (status === 'closed') {
+    return { score: 0, text: 'Closed' };
+  }
+  if (!lastSeenAt) {
+    return { score: 40, text: 'Verified recently' };
+  }
+  const lastSeen = new Date(lastSeenAt);
+  const now = new Date();
+  const diffTime = Math.abs(now - lastSeen);
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    return { score: 100, text: 'Verified today' };
+  } else if (diffDays === 1) {
+    return { score: 90, text: 'Verified yesterday' };
+  } else if (diffDays <= 2) {
+    return { score: 90, text: `Verified ${diffDays} days ago` };
+  } else if (diffDays <= 7) {
+    return { score: 80, text: `Verified ${diffDays} days ago` };
+  } else if (diffDays <= 14) {
+    return { score: 60, text: `Verified ${diffDays} days ago` };
+  } else {
+    return { score: 40, text: `Verified ${diffDays} days ago` };
+  }
+}
+
 app.get("/api/jobs", async (req, res) => {
   try {
-    const { page, limit, email, search, category, location, type, sort, company, ids } = req.query;
-
-    // For backwards compatibility: if no pagination or search query is supplied, return the raw jobs array.
-    if (!page && !limit && !email && !search && !category && !location && !type && !sort && !company && !ids) {
-      const jobs = await dbService.getJobs();
-      return res.json(jobs);
-    }
+    const { page, limit, email, search, category, location, type, sort, company, ids, includeClosed } = req.query;
 
     const currentPage = parseInt(page) || 1;
     const currentLimit = parseInt(limit) || 20;
 
     let jobs = await dbService.getJobs();
     let seekerProfile = null;
+    let hasResume = false;
 
     if (email) {
       const user = await dbService.findUserByEmail(email);
       if (user && user.profile) {
         seekerProfile = user.profile;
+        if (seekerProfile.resumeUrl || seekerProfile.resumeFileName) {
+          hasResume = true;
+        }
       }
+    }
+
+    // Sort defaults to relevance (match-desc)
+    const isSortingByRelevance = (sort === "match-desc" || !sort);
+
+    // Block relevance-based job listings if seeker hasn't uploaded a resume
+    if (email && isSortingByRelevance && !hasResume) {
+      return res.json({
+        jobs: [],
+        total: 0,
+        profileIncomplete: true,
+        message: "Please upload your resume to see relevant jobs matching your profile."
+      });
     }
 
     const preprocessedProfile = seekerProfile ? preprocessProfile(seekerProfile) : null;
 
     // Filter jobs
     let filtered = jobs.filter(job => {
-      // 00. Check specific IDs (useful for favourites / bookmarks)
+      // Filter out closed jobs unless explicitly requested
+      if (job.status === "closed" && includeClosed !== "true") return false;
+
+      // Check specific IDs (useful for favourites / bookmarks)
       if (ids) {
         const idList = ids.split(',').map(id => String(id).trim());
         if (!idList.includes(String(job.id))) return false;
       }
-      // 0. Company filter
+      // Company filter
       if (company) {
         if (company.toLowerCase() === "jobsarthi recruiter") {
           if (job.company.toLowerCase() !== "jobsarthi recruiter" && !job.isSample) return false;
@@ -2038,7 +2121,7 @@ app.get("/api/jobs", async (req, res) => {
         }
       }
 
-      // 1. Search text query filter
+      // Search text query filter
       if (search) {
         const query = search.toLowerCase();
         const matchesSearch = (job.title && job.title.toLowerCase().includes(query)) || 
@@ -2049,18 +2132,18 @@ app.get("/api/jobs", async (req, res) => {
         if (!matchesSearch) return false;
       }
 
-      // 2. Category filter
+      // Category filter
       if (category) {
         if (job.category !== category) return false;
       }
 
-      // 3. Location filter
+      // Location filter
       if (location) {
         const jobLocs = getJobLocationsGroup(job);
         if (!jobLocs.includes(location)) return false;
       }
 
-      // 4. Job Type filter
+      // Job Type filter
       if (type) {
         const checkedTypes = type.split(',').map(t => t.toLowerCase());
         const physicalTypes = checkedTypes.filter(t => t !== "remote");
@@ -2085,45 +2168,46 @@ app.get("/api/jobs", async (req, res) => {
       return true;
     });
 
-    // Score jobs
+    // Score & Enrich jobs dynamically
     filtered = filtered.map(job => {
       let score = calculateMatchScore(job, preprocessedProfile);
-      
-      // If no seeker profile is active, default to a neutral base score of 50
       if (!preprocessedProfile) {
         score = 50;
       }
       
-      // Apply search query relevance boost
       if (search) {
         const query = search.toLowerCase();
         let boost = 0;
         if (job.title && job.title.toLowerCase() === query) {
-          boost += 40; // Exact title match
+          boost += 40;
         } else if (job.title && job.title.toLowerCase().includes(query)) {
-          boost += 25; // Partial title match
+          boost += 25;
         }
-        
         if (job.skills && String(job.skills).toLowerCase().includes(query)) {
-          boost += 15; // Skill match
+          boost += 15;
         }
-        
         if (job.company && job.company.toLowerCase().includes(query)) {
-          boost += 10; // Company name match
+          boost += 10;
         }
-        
         if (job.description && job.description.toLowerCase().includes(query)) {
-          boost += 5; // Description match
+          boost += 5;
         }
-        
         score += boost;
       }
       
-      return { ...job, matchScore: Math.min(100, Math.max(0, score)) };
+      const matchScore = Math.min(100, Math.max(0, score));
+      const v = getVerificationStatus(job.last_seen_at || job.updated_at || job.posted_date || job.created_at, job.status || 'active');
+
+      return {
+        ...job,
+        matchScore,
+        verification_score: v.score,
+        verification_text: v.text
+      };
     });
 
     // Sort jobs
-    if (sort === "match-desc") {
+    if (sort === "match-desc" || !sort) {
       filtered.sort((a, b) => b.matchScore - a.matchScore);
     } else if (sort === "date-desc") {
       filtered.sort((a, b) => new Date(b.posted_date || b.created_at || 0) - new Date(a.posted_date || a.created_at || 0));
@@ -2132,20 +2216,16 @@ app.get("/api/jobs", async (req, res) => {
     } else if (sort === "company-asc") {
       filtered.sort((a, b) => (a.company || "").localeCompare(b.company || ""));
     } else {
-      // Default: sort by match score if profile available, else date-desc
-      if (seekerProfile) {
-        filtered.sort((a, b) => b.matchScore - a.matchScore);
-      } else {
-        filtered.sort((a, b) => new Date(b.posted_date || b.created_at || 0) - new Date(a.posted_date || a.created_at || 0));
-      }
+      filtered.sort((a, b) => b.matchScore - a.matchScore);
     }
 
-    // Pagination
     const total = filtered.length;
-    const startIndex = (currentPage - 1) * currentLimit;
-    const paginatedJobs = filtered.slice(startIndex, startIndex + currentLimit);
+    let paginatedJobs = filtered;
+    if (page || limit) {
+      const startIndex = (currentPage - 1) * currentLimit;
+      paginatedJobs = filtered.slice(startIndex, startIndex + currentLimit);
+    }
 
-    // Metadata for filters
     const categories = [...new Set(jobs.map(j => j.category || "Software Engineering"))].filter(Boolean).sort();
     
     const locationsSet = new Set();
@@ -2172,9 +2252,118 @@ app.get("/api/jobs/:id", async (req, res) => {
     const jobs = await dbService.getJobs();
     const job = jobs.find(j => j.id === req.params.id || j.id == req.params.id);
     if (!job) return res.status(404).json({ error: "Job not found." });
-    res.json(job);
+    
+    const v = getVerificationStatus(job.last_seen_at || job.updated_at || job.posted_date || job.created_at, job.status || 'active');
+    const enrichedJob = {
+      ...job,
+      verification_score: v.score,
+      verification_text: v.text
+    };
+    res.json(enrichedJob);
   } catch (err) {
     res.status(500).json({ error: "Failed to read job." });
+  }
+});
+
+// --- Apply Redirect and Event Logging ---
+app.get("/apply/:jobId", async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { email, userId } = req.query;
+
+    const job = await dbService.findJobById(jobId);
+    if (!job) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Job Not Found - JobSarthi</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f3f4f6; text-align: center; padding: 50px; }
+            .container { max-width: 500px; margin: 0 auto; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 30px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+            h1 { color: #f43f5e; }
+            a { color: #6366f1; text-decoration: none; font-weight: 600; }
+            a:hover { text-decoration: underline; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Listing Not Found</h1>
+            <p>The job opportunity you are looking for does not exist or has been removed.</p>
+            <p><a href="/seeker/jobs.html">Return to Job Board</a></p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    if (job.status === "closed") {
+      return res.status(410).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Job Closed - JobSarthi</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f3f4f6; text-align: center; padding: 50px; }
+            .container { max-width: 500px; margin: 0 auto; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 30px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+            h1 { color: #ef4444; }
+            a { color: #6366f1; text-decoration: none; font-weight: 600; }
+            a:hover { text-decoration: underline; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Opportunity Closed</h1>
+            <p>This job listing for <strong>${job.title}</strong> at <strong>${job.company}</strong> has been marked as closed and is no longer accepting applications.</p>
+            <p><a href="/seeker/jobs.html">Browse other active jobs</a></p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    const clickEvent = {
+      id: "click_" + Date.now(),
+      job_id: jobId,
+      company: job.company,
+      title: job.title,
+      user_id: userId || email || "guest",
+      timestamp: new Date().toISOString()
+    };
+    await dbService.recordApplyClick(clickEvent);
+
+    const dest = job.apply_url || job.applyUrl || "/seeker/jobs.html";
+    res.redirect(dest);
+  } catch (err) {
+    console.error("Apply redirect error:", err);
+    res.status(500).send("An error occurred during redirection.");
+  }
+});
+
+// --- Admin Sync Trigger and Log Endpoints ---
+app.post("/api/admin/jobs/sync-greenhouse", async (req, res) => {
+  try {
+    console.log("[Admin API] Triggered Greenhouse Sync Engine...");
+    const stats = await runGreenhouseSync();
+    res.json({ success: true, message: "Greenhouse sync engine run completed successfully.", stats });
+  } catch (err) {
+    console.error("Admin Greenhouse Sync failed:", err);
+    res.status(500).json({ error: "Greenhouse sync engine run failed.", details: err.message });
+  }
+});
+
+app.get("/api/admin/sync-logs", async (req, res) => {
+  try {
+    if (mongoDb) {
+      const logs = await mongoDb.collection("sync_logs").find({}).sort({ timestamp: -1 }).limit(50).toArray();
+      return res.json(logs);
+    } else {
+      const local = await readLocalDB();
+      return res.json((local.sync_logs || []).slice(0, 50));
+    }
+  } catch (err) {
+    console.error("Failed to fetch sync logs:", err);
+    res.status(500).json({ error: "Failed to fetch sync logs." });
   }
 });
 
@@ -3436,6 +3625,11 @@ initDB().then(async () => {
     syncNextCompany()
       .then(stats => console.log("[Background JobCollector] Initial boot round-robin sync completed:", stats))
       .catch(err => console.error("[Background JobCollector] Initial boot round-robin sync failed:", err));
+
+    // Trigger a background run of full Greenhouse sync on boot
+    runGreenhouseSync()
+      .then(stats => console.log("[Background JobCollector] Initial boot Greenhouse sync completed:", stats))
+      .catch(err => console.error("[Background JobCollector] Initial boot Greenhouse sync failed:", err));
   }).catch(err => {
     console.error("Error in background seeding/loading:", err);
   });
@@ -3447,4 +3641,12 @@ initDB().then(async () => {
       .then(stats => console.log("[Background JobCollector] Scheduled 10m sync completed:", stats))
       .catch(err => console.error("[Background JobCollector] Scheduled 10m sync failed:", err));
   }, 10 * 60 * 1000);
+
+  // Run full Greenhouse sync every 12 hours (12 * 60 * 60 * 1000 ms)
+  setInterval(() => {
+    console.log("[Background JobCollector] Scheduled 12h full Greenhouse sync started...");
+    runGreenhouseSync()
+      .then(stats => console.log("[Background JobCollector] Scheduled 12h full Greenhouse sync completed:", stats))
+      .catch(err => console.error("[Background JobCollector] Scheduled 12h full Greenhouse sync failed:", err));
+  }, 12 * 60 * 60 * 1000);
 });
