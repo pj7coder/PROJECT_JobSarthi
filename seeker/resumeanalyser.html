@@ -93,30 +93,42 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
   animation: fadeIn 0.4s ease-in-out;
 }
 .scan-title {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-muted);
-  letter-spacing: 0.2px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  animation: pulseText 1.5s infinite ease-in-out;
+}
+@keyframes pulseText {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 .scan-card-wrapper {
   position: relative;
   width: 110px;
   height: 145px;
   background: var(--bg-surface);
-  border: 2px solid var(--border-subtle);
+  border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
   display: flex;
   flex-direction: column;
   padding: 12px;
   gap: 8px;
   overflow: hidden;
+  animation: pulseCard 2s infinite ease-in-out;
+}
+@keyframes pulseCard {
+  0%, 100% { border-color: rgba(16, 185, 129, 0.2); box-shadow: 0 0 15px rgba(16, 185, 129, 0.1); }
+  50% { border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 0 25px rgba(16, 185, 129, 0.25); }
 }
 .scan-dummy-line {
   height: 6px;
   background: var(--border-subtle);
   border-radius: 3px;
   width: 100%;
+  transition: background 0.3s;
 }
 .scan-dummy-line.short {
   width: 60%;
@@ -129,14 +141,43 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
   height: 20px;
   border-radius: 50%;
   background: var(--border-subtle);
+  transition: background 0.3s;
 }
+
+/* Synchronized Glowing Animations */
+.scan-dummy-avatar, .scan-card-wrapper > div:nth-child(2) .scan-dummy-line {
+  animation: glowTop 2s infinite ease-in-out;
+}
+.scan-card-wrapper > .scan-dummy-line:nth-child(3), .scan-card-wrapper > .scan-dummy-line:nth-child(4) {
+  animation: glowMid 2s infinite ease-in-out;
+}
+.scan-card-wrapper > .scan-dummy-line:nth-child(5), .scan-card-wrapper > .scan-dummy-line:nth-child(6), .scan-card-wrapper > .scan-dummy-line:nth-child(7) {
+  animation: glowBot 2s infinite ease-in-out;
+}
+
+@keyframes glowTop {
+  0%, 10% { background: var(--border-subtle); filter: drop-shadow(0 0 0 transparent); }
+  15%, 25% { background: #10b981; filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.6)); }
+  35%, 100% { background: var(--border-subtle); filter: drop-shadow(0 0 0 transparent); }
+}
+@keyframes glowMid {
+  0%, 20% { background: var(--border-subtle); filter: drop-shadow(0 0 0 transparent); }
+  25%, 40% { background: #10b981; filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.6)); }
+  45%, 100% { background: var(--border-subtle); filter: drop-shadow(0 0 0 transparent); }
+}
+@keyframes glowBot {
+  0%, 35% { background: var(--border-subtle); filter: drop-shadow(0 0 0 transparent); }
+  40%, 65% { background: #10b981; filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.6)); }
+  70%, 100% { background: var(--border-subtle); filter: drop-shadow(0 0 0 transparent); }
+}
+
 .scan-line {
   position: absolute;
   left: 0;
   width: 100%;
-  height: 4px;
-  background: linear-gradient(to right, transparent, #10b981, transparent);
-  box-shadow: 0 0 12px #10b981, 0 0 4px #10b981;
+  height: 6px;
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0) 0%, #10b981 50%, rgba(16, 185, 129, 0) 100%);
+  box-shadow: 0 0 15px #10b981, 0 0 5px #10b981;
   z-index: 5;
   animation: scanMove 2s infinite ease-in-out;
 }
@@ -401,8 +442,8 @@ function base64ToBlobUrl(base64, mimeType) {
 
 function renderViewer(idx) {
   const v = document.getElementById('viewer');
-  // Revoke previous blob URL to avoid memory leaks
-  if (v._blobUrl) { URL.revokeObjectURL(v._blobUrl); v._blobUrl = null; }
+  // Revoke previous temp blob URL to avoid memory leaks
+  if (v._tempBlobUrl) { URL.revokeObjectURL(v._tempBlobUrl); v._tempBlobUrl = null; }
 
   const r = resumes[idx];
   if (!r) {
@@ -420,24 +461,47 @@ function renderViewer(idx) {
     (r.url && (r.url.includes('.pdf') || r.url.includes('application%2Fpdf') || r.url.includes('/raw/')));
 
   if (!isPdf) {
-    // Images render fine directly
     const src = r.url || r.base64;
     v.innerHTML = `<img src="${src}" alt="Resume" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:10px">`;
     return;
   }
 
-  if (r.url && !r.base64) {
-    // Cloudinary URL — use embed (avoids X-Frame-Options issues from external domains)
-    v.innerHTML = `<embed src="${r.url}" type="application/pdf" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:10px">`;
-  } else if (r.base64) {
-    // Local base64 — convert to Blob URL to bypass CSP data: URI iframe restriction
-    const blobUrl = base64ToBlobUrl(r.base64, r.mime);
-    if (blobUrl) {
-      v._blobUrl = blobUrl;
-      v.innerHTML = `<iframe src="${blobUrl}" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:10px" title="Resume Preview"></iframe>`;
+  // It is a PDF
+  if (r.base64) {
+    // If we have base64, convert to local blob URL (bypasses CSP data: URI restriction)
+    if (!r.localBlobUrl) {
+      r.localBlobUrl = base64ToBlobUrl(r.base64, r.mime);
+    }
+    if (r.localBlobUrl) {
+      v.innerHTML = `<iframe src="${r.localBlobUrl}" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:10px" title="Resume Preview"></iframe>`;
     } else {
-      // Last-resort fallback: open in new tab button
       v.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:16px"><span style="font-size:2.5rem">📄</span><span style="font-size:.82rem;font-weight:600;color:var(--text-main)">${r.name}</span><a href="${r.base64}" download="${r.name}" style="font-size:.76rem;color:#10b981;text-decoration:none;border:1px solid rgba(16,185,129,.3);padding:5px 12px;border-radius:6px">Download PDF ↓</a></div>`;
+    }
+  } else if (r.url) {
+    // If we only have Cloudinary URL, fetch and convert to local blob URL on-the-fly
+    // (Bypasses Cloudinary Content-Disposition: attachment header and CSP frame-ancestors block)
+    if (r.localBlobUrl) {
+      v.innerHTML = `<iframe src="${r.localBlobUrl}" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:10px" title="Resume Preview"></iframe>`;
+    } else {
+      v.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text-muted);height:100%"><span class="spin"></span><span>Loading resume preview...</span></div>`;
+      fetch(r.url)
+        .then(resp => {
+          if (!resp.ok) throw new Error('Fetch failed');
+          return resp.blob();
+        })
+        .then(blob => {
+          r.localBlobUrl = URL.createObjectURL(blob);
+          if (activeTab === idx) {
+            v.innerHTML = `<iframe src="${r.localBlobUrl}" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:10px" title="Resume Preview"></iframe>`;
+          }
+        })
+        .catch(err => {
+          console.warn('Failed to load external PDF via blob on-the-fly:', err);
+          // Fallback: Show premium open link inside the panel
+          if (activeTab === idx) {
+            v.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px;height:100%"><span style="font-size:2.5rem">📄</span><span style="font-size:.82rem;font-weight:600;color:var(--text-main);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</span><a href="${r.url}" target="_blank" style="font-size:.76rem;background:#10b981;color:#fff;text-decoration:none;padding:8px 16px;border-radius:6px;font-weight:500;box-shadow:0 4px 12px rgba(16,185,129,0.2)">View Resume in New Tab ↗</a></div>`;
+          }
+        });
     }
   }
 }

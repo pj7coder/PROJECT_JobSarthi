@@ -3629,9 +3629,8 @@ app.post("/api/seeker/save-analysis-resume", uploadRateLimiter, largeBodyParser,
     console.log(`[AnalysisResume] Uploading slot ${idx} to Cloudinary (${resourceType})...`);
     const secureUrl = await uploadToCloudinary(base64Data, resourceType);
 
-    // Persist in profile
-    const db = await readLocalDB();
-    const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    // Fetch the user using dbService (handles MongoDB vs db.json transparently)
+    const user = await dbService.findUserByEmail(email);
     if (!user) return res.status(404).json({ error: "User not found." });
 
     if (!user.profile) user.profile = {};
@@ -3645,8 +3644,27 @@ app.post("/api/seeker/save-analysis-resume", uploadRateLimiter, largeBodyParser,
       await deleteFromCloudinary(oldSlot.url);
     }
 
-    user.profile.analysisResumes[idx] = { url: secureUrl, fileName: fileName || `Resume ${idx + 1}`, uploadedAt: new Date().toISOString() };
-    await writeLocalDB(db);
+    const savedResume = { url: secureUrl, fileName: fileName || `Resume ${idx + 1}`, uploadedAt: new Date().toISOString() };
+    user.profile.analysisResumes[idx] = savedResume;
+
+    // Update in Database (handles MongoDB vs db.json)
+    if (mongoDb) {
+      await mongoDb.collection("users").updateOne(
+        { email: email.toLowerCase() },
+        { $set: { "profile.analysisResumes": user.profile.analysisResumes } }
+      );
+    } else {
+      const db = await readLocalDB();
+      const dbUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (dbUser) {
+        if (!dbUser.profile) dbUser.profile = {};
+        if (!Array.isArray(dbUser.profile.analysisResumes)) {
+          dbUser.profile.analysisResumes = [null, null, null];
+        }
+        dbUser.profile.analysisResumes[idx] = savedResume;
+        await writeLocalDB(db);
+      }
+    }
 
     res.json({ success: true, url: secureUrl, fileName: fileName || `Resume ${idx + 1}` });
   } catch (err) {
@@ -3667,17 +3685,32 @@ app.post("/api/seeker/remove-analysis-resume", async (req, res) => {
       return res.status(400).json({ error: "slotIndex must be 0, 1, or 2." });
     }
 
-    const db = await readLocalDB();
-    const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const user = await dbService.findUserByEmail(email);
     if (!user) return res.status(404).json({ error: "User not found." });
 
-    if (Array.isArray(user.profile?.analysisResumes)) {
+    if (user.profile && Array.isArray(user.profile.analysisResumes)) {
       const slot = user.profile.analysisResumes[idx];
       if (slot?.url && slot.url.startsWith("http")) {
         await deleteFromCloudinary(slot.url);
       }
       user.profile.analysisResumes[idx] = null;
-      await writeLocalDB(db);
+
+      // Update in Database (handles MongoDB vs db.json)
+      if (mongoDb) {
+        await mongoDb.collection("users").updateOne(
+          { email: email.toLowerCase() },
+          { $set: { "profile.analysisResumes": user.profile.analysisResumes } }
+        );
+      } else {
+        const db = await readLocalDB();
+        const dbUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+        if (dbUser) {
+          if (dbUser.profile && Array.isArray(dbUser.profile.analysisResumes)) {
+            dbUser.profile.analysisResumes[idx] = null;
+            await writeLocalDB(db);
+          }
+        }
+      }
     }
 
     res.json({ success: true });
