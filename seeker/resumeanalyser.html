@@ -100,16 +100,16 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
 }
 .scan-card-wrapper {
   position: relative;
-  width: 160px;
-  height: 210px;
+  width: 110px;
+  height: 145px;
   background: var(--bg-surface);
   border: 2px solid var(--border-subtle);
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  gap: 12px;
+  padding: 12px;
+  gap: 8px;
   overflow: hidden;
 }
 .scan-dummy-line {
@@ -125,8 +125,8 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
   width: 80%;
 }
 .scan-dummy-avatar {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--border-subtle);
 }
@@ -173,6 +173,7 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
     <div class="tabs-bar">
       <div class="resume-tab active" id="tab-0" onclick="switchTab(0)">
         <span id="tab-label-0">Resume 1</span>
+        <span class="tab-close" id="close-0" onclick="event.stopPropagation();clearTab(0)" style="display:none">✕</span>
       </div>
       <div class="resume-tab" id="tab-1" onclick="switchTab(1)" style="display:none">
         <span id="tab-label-1">Resume 2</span>
@@ -276,17 +277,39 @@ function addResume() {
   }
 }
 
-function removeTab(idx) {
+// clearTab: clears resume data. For idx 0 keeps tab visible, for idx 1-2 also hides tab.
+function clearTab(idx) {
   resumes[idx] = null;
   analysisResults[idx] = null;
-  document.getElementById('tab-'+idx).style.display = 'none';
-  document.getElementById('addTabBtn').style.display = '';
-  switchTab(0);
+  updateTabLabel(idx, '');
+  // hide close button on tab 0
+  const closeBtn = document.getElementById('close-'+idx);
+  if (closeBtn) closeBtn.style.display = 'none';
+  if (idx === 0) {
+    // Keep tab-0 visible but reset it
+    activeTab = 0;
+    renderViewer(0);
+    document.getElementById('analyseBtn').disabled = true;
+    showPlaceholder();
+  } else {
+    document.getElementById('tab-'+idx).style.display = 'none';
+    document.getElementById('addTabBtn').style.display = '';
+    switchTab(0);
+  }
+}
+
+function removeTab(idx) {
+  clearTab(idx);
 }
 
 function updateTabLabel(idx, name) {
-  const short = name.length > 12 ? name.slice(0,11)+'…' : name;
+  const short = name && name.length > 12 ? name.slice(0,11)+'…' : name;
   document.getElementById('tab-label-'+idx).textContent = short || 'Resume '+(idx+1);
+  // Show ✕ on tab-0 when a resume is loaded
+  if (idx === 0) {
+    const closeBtn = document.getElementById('close-0');
+    if (closeBtn) closeBtn.style.display = name ? 'inline' : 'none';
+  }
 }
 
 // ── File Upload ──
@@ -318,17 +341,20 @@ function renderViewer(idx) {
   if (!r) {
     v.innerHTML = `<span style="font-size:2rem;opacity:.4">📄</span><span>Click to upload resume</span><span style="font-size:.72rem;opacity:.6">PDF or image (max 10MB)</span>`;
     v.classList.add('empty-slot');
+    v.style.cursor = 'pointer';
     v.onclick = () => triggerUpload(idx);
     return;
   }
   v.classList.remove('empty-slot');
+  v.style.cursor = 'default';
   v.onclick = null;
   const src = r.url || r.base64;
-  const isPdf = r.mime === 'application/pdf' || (r.url && r.url.includes('.pdf'));
+  const isPdf = r.mime === 'application/pdf' || (r.url && (r.url.includes('.pdf') || r.url.includes('application%2Fpdf')));
   if (isPdf) {
-    v.innerHTML = `<embed src="${src}" type="application/pdf" width="100%" height="100%" style="border-radius:10px">`;
+    // iframe is more reliable than embed for base64 PDFs across browsers
+    v.innerHTML = `<iframe src="${src}" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:10px" title="Resume Preview"></iframe>`;
   } else {
-    v.innerHTML = `<img src="${src}" alt="Resume" style="max-height:420px;object-fit:contain">`;
+    v.innerHTML = `<img src="${src}" alt="Resume" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:10px">`;
   }
 }
 

@@ -3449,43 +3449,66 @@ app.post("/api/seeker/analyse-resume", uploadRateLimiter, largeBodyParser, async
         const groqMessages = [
           {
             role: "system",
-            content: `You are an expert ATS (Applicant Tracking System) resume coach and career advisor. Analyze resumes with precision and provide highly actionable, specific feedback. Always return valid JSON only — no markdown, no explanation outside the JSON.`
+            content: `You are a senior talent acquisition specialist and ATS expert with 15+ years reviewing resumes at top companies (Google, Amazon, McKinsey, Goldman Sachs). You have evaluated over 50,000 resumes and know precisely what separates a 40% ATS match from a 90% match.
+
+Your analysis must be:
+- BRUTALLY HONEST: Do not inflate scores. A resume without a summary gets 0 for summary. No LinkedIn = penalized.
+- HYPER-SPECIFIC: Every recommendation must reference actual content FROM the resume (company names, specific skills listed, actual degree, real project names). NEVER give generic advice.
+- DATA-DRIVEN: If experience lacks metrics, state exactly which role needs them and give a concrete example.
+- INDUSTRY-AWARE: Missing skills must be specific to the candidate's target domain (not random skills).
+
+ATS SCORING RUBRIC (be strict):
+- 90-100: Perfect structure, keyword-rich, quantified achievements, all sections present, LinkedIn+GitHub visible
+- 75-89: Good keywords, minor gaps (missing summary or metrics in 1-2 roles)
+- 60-74: Decent skills but missing key sections or lacking quantified achievements
+- 40-59: Significant gaps — missing summary, no metrics, poor keyword coverage
+- 0-39: Major structural issues, missing critical sections, very low keyword density
+
+Always return ONLY valid JSON. No markdown fences, no explanation text outside JSON.`
           },
           {
             role: "user",
-            content: `Analyze the following resume data and return a comprehensive ATS evaluation report as a raw JSON object. Be precise, data-driven, and genuinely helpful.
+            content: `Perform a comprehensive ATS evaluation on this resume. Reference SPECIFIC details from the resume in every field.
 
 Resume Content:
 ${resumeContext}
 
-Return ONLY this JSON schema (no extra text):
+Return ONLY this exact JSON structure (integers for scores, no extra text):
 {
-  "atsScore": <integer 0-100 — honest score based on structure, keywords, and content richness>,
-  "grammarRating": "<Excellent | Good | Needs Improvement>",
-  "structureRating": "<Excellent | Good | Needs Improvement>",
-  "readabilityRating": "<Excellent | Good | Needs Improvement>",
-  "keywordDensity": "<High | Medium | Low>",
-  "overview": "<2-3 sentences summarizing the resume's overall quality, focus area, and primary strengths>",
-  "matchedSkills": ["<skills/keywords present that are ATS-friendly and marketable>"],
-  "missingSkills": ["<important industry-standard skills missing from this resume that would improve ATS score>"],
-  "suggestedRoles": ["<job roles this candidate is well-suited for based on their skills and experience>"],
+  "atsScore": <honest integer 0-100 using the rubric above>,
+  "grammarRating": "<Excellent|Good|Needs Improvement> — Excellent=active voice, consistent tense, no errors; Good=minor issues; Needs Improvement=passive voice, tense shifts, errors>",
+  "structureRating": "<Excellent|Good|Needs Improvement> — Excellent=all sections in ideal order with clear headers; Good=minor ordering issues; Needs Improvement=missing sections or poor hierarchy>",
+  "readabilityRating": "<Excellent|Good|Needs Improvement>",
+  "keywordDensity": "<High|Medium|Low> — High=15+ industry-standard keywords; Medium=8-14; Low=<8>",
+  "overview": "<2-3 sentences that reference THIS candidate's actual name/degree/company/skills. Example: 'Arjun's resume shows a strong Computer Science foundation from VIT with hands-on React and Node.js experience from his TCS internship. However, the absence of a professional summary and quantified impact metrics will likely cause ATS rejection at 60%+ of FAANG-pipeline companies.'>",
+  "matchedSkills": [<list ONLY skills/technologies explicitly found in the resume that are ATS-trackable>],
+  "missingSkills": [<list 6-10 skills commonly required for the candidate's target roles that are NOT in the resume — be specific to their domain>],
+  "suggestedRoles": [<4-6 specific job titles this candidate qualifies for RIGHT NOW based on their actual skills and experience level>],
   "sectionScores": {
-    "contactInfo": <0-100>,
-    "summary": <0-100>,
-    "experience": <0-100>,
-    "education": <0-100>,
-    "skills": <0-100>,
-    "projects": <0-100>
+    "contactInfo": <0-100: 100=name+email+phone+LinkedIn+GitHub+location all present; deduct 15 per missing item>,
+    "summary": <0-100: 0 if no professional summary/objective exists at all; 100=compelling 3-line pitch>,
+    "experience": <0-100: 100=every role has 3+ bullet points with quantified metrics (%, numbers, scale); deduct heavily for vague descriptions>,
+    "education": <0-100: 100=degree+institution+CGPA+graduation year+relevant coursework listed>,
+    "skills": <0-100: 100=organized by category (Languages/Frameworks/Tools/Databases), 15+ skills listed>,
+    "projects": <0-100: 0 if no projects section; 100=3+ projects with tech stack + impact + live link/GitHub>
   },
   "recommendations": [
-    "<specific, actionable tip 1 — reference exact content from the resume>",
-    "<specific, actionable tip 2>",
-    "<specific, actionable tip 3>",
-    "<specific, actionable tip 4>",
-    "<specific, actionable tip 5>"
+    "<SPECIFIC recommendation 1: Quote or reference actual resume content. Example: 'Your TCS internship description says improved UI performance — add the actual metric: reduced Largest Contentful Paint from 4.2s to 1.8s or increased user session duration by 23%. Recruiters at product companies skip vague bullets.'>",
+    "<SPECIFIC recommendation 2: Reference an actual section or skill gap>",
+    "<SPECIFIC recommendation 3: Reference an actual section or skill gap>",
+    "<SPECIFIC recommendation 4: Reference an actual section or skill gap>",
+    "<SPECIFIC recommendation 5: Reference an actual section or skill gap>"
   ],
-  "strengths": ["<genuine strength 1>", "<genuine strength 2>", "<genuine strength 3>"],
-  "quickWins": ["<small change that would immediately improve ATS score>", "<another quick win>"]
+  "strengths": [
+    "<genuine strength 1 referencing actual resume content — e.g. 'Strong MERN stack foundations demonstrated through 3 varied projects'>",
+    "<genuine strength 2>",
+    "<genuine strength 3>"
+  ],
+  "quickWins": [
+    "<small change implementable in under 5 minutes that would improve ATS score — e.g. 'Add your LinkedIn URL to the header — this alone improves recruiter click-through by ~40%'>",
+    "<quick win 2>",
+    "<quick win 3>"
+  ]
 }`
           }
         ];
