@@ -261,6 +261,23 @@ let activeTab = 0;
 let resumes = [null, null, null]; // {base64, mime, name, url, result}
 let analysisResults = [null, null, null];
 
+function updateAnalyseButtonState() {
+  const r = resumes[activeTab];
+  const btn = document.getElementById('analyseBtn');
+  if (!btn) return;
+  if (!r) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>＋</span> Analyse Resume`;
+  } else {
+    btn.disabled = false;
+    if (analysisResults[activeTab]) {
+      btn.innerHTML = `<span>＋</span> Re-analyse`;
+    } else {
+      btn.innerHTML = `<span>＋</span> Analyse Resume`;
+    }
+  }
+}
+
 // ── Init ──
 window.addEventListener('DOMContentLoaded', async () => {
   const email = localStorage.getItem('seeker_email');
@@ -289,7 +306,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     if (loadedAny) {
       renderViewer(0);
-      document.getElementById('analyseBtn').disabled = false;
+      updateAnalyseButtonState();
       if (analysisResults[0]) {
         renderDashboard(analysisResults[0]);
       } else {
@@ -314,7 +331,7 @@ function acceptExisting() {
   resumes[0] = { base64: null, mime: null, name: e.name, url: e.url };
   updateTabLabel(0, e.name);
   renderViewer(0);
-  document.getElementById('analyseBtn').disabled = false;
+  updateAnalyseButtonState();
   // Save this as slot-0 so it persists
   const email = localStorage.getItem('seeker_email');
   if (email) {
@@ -338,7 +355,7 @@ function switchTab(idx) {
     if(t) t.classList.toggle('active', i===idx);
   });
   renderViewer(idx);
-  document.getElementById('analyseBtn').disabled = (resumes[idx] === null);
+  updateAnalyseButtonState();
   if (analysisResults[idx]) renderDashboard(analysisResults[idx]);
   else showPlaceholder();
 }
@@ -378,7 +395,7 @@ function clearTab(idx) {
   if (idx === 0) {
     activeTab = 0;
     renderViewer(0);
-    document.getElementById('analyseBtn').disabled = true;
+    updateAnalyseButtonState();
     showPlaceholder();
   } else {
     document.getElementById('tab-'+idx).style.display = 'none';
@@ -413,7 +430,7 @@ function handleFile(event) {
     resumes[slot] = { base64: reader.result, mime: file.type, name: file.name, url: null };
     updateTabLabel(slot, file.name);
     renderViewer(slot);
-    document.getElementById('analyseBtn').disabled = false;
+    updateAnalyseButtonState();
     analysisResults[slot] = null;
     showPlaceholder();
 
