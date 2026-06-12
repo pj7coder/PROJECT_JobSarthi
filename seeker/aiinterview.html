@@ -1688,6 +1688,7 @@
         const warningBox = document.getElementById("fileProtocolWarning");
         if (warningBox) warningBox.style.display = "block";
       }
+      initMediaPipeFaceDetector();
       setupPermissions();
       setupEventListeners();
       triggerBlink();
@@ -1925,76 +1926,6 @@
       }
     }
 
-    // --- MOCK CAMERA AND MIC GENERATOR FOR LOCAL DEVELOPMENT ---
-    function createMockMediaStream() {
-      const canvas = document.createElement("canvas");
-      canvas.width = 640;
-      canvas.height = 480;
-      const ctx = canvas.getContext("2d");
-      
-      let angle = 0;
-      const intervalId = setInterval(() => {
-        ctx.fillStyle = "#1e293b";
-        ctx.fillRect(0, 0, 640, 480);
-        
-        ctx.strokeStyle = "rgba(16, 185, 129, 0.4)";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(40, 40, 560, 400);
-        
-        // Face representation
-        ctx.fillStyle = "#fdba74";
-        ctx.beginPath();
-        ctx.arc(320, 240 + Math.sin(angle) * 10, 85, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Eyes representation
-        ctx.fillStyle = "#1e1b4b";
-        ctx.beginPath();
-        ctx.arc(285, 215 + Math.sin(angle) * 10, 8, 0, Math.PI * 2);
-        ctx.arc(355, 215 + Math.sin(angle) * 10, 8, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Mouth representation
-        ctx.strokeStyle = "#1e1b4b";
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(320, 255 + Math.sin(angle) * 10, 20, 0, Math.PI);
-        ctx.stroke();
-        
-        ctx.fillStyle = "#10b981";
-        ctx.font = "bold 16px sans-serif";
-        ctx.fillText("MOCK WEBCAM STREAM (LOCAL DEV)", 60, 80);
-        ctx.fillText("EYE GAZE: LOCKED", 60, 110);
-        
-        angle += 0.05;
-      }, 33);
-      
-      const videoTrack = canvas.captureStream(30).getVideoTracks()[0];
-      
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      const mockAudioCtx = new AudioContextClass();
-      const dest = mockAudioCtx.createMediaStreamDestination();
-      const osc = mockAudioCtx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(440, mockAudioCtx.currentTime);
-      const gainNode = mockAudioCtx.createGain();
-      gainNode.gain.setValueAtTime(0.001, mockAudioCtx.currentTime);
-      osc.connect(gainNode);
-      gainNode.connect(dest);
-      osc.start();
-      
-      const audioTrack = dest.stream.getAudioTracks()[0];
-      
-      const stream = new MediaStream([videoTrack, audioTrack]);
-      stream._mockCleanup = () => {
-        clearInterval(intervalId);
-        try { osc.stop(); } catch(e){}
-        try { mockAudioCtx.close(); } catch(e){}
-      };
-      
-      return stream;
-    }
-
     // --- HARDWARE PERMISSIONS AND CAM PREVIEW ---
     function setupPermissions() {
       const requestBtn = document.getElementById("requestPermsBtn");
@@ -2029,7 +1960,25 @@
 
         } catch (err) {
           console.error("Permission error:", err);
-          let message = "We require camera and microphone access to perform standard eyeball tracking, face detection, and voice evaluation.\n\n" +
+          document.getElementById("camPermBadge").textContent = "Blocked";
+          document.getElementById("camPermBadge").className = "permission-badge pending";
+          document.getElementById("camPermBadge").style.background = "rgba(239, 68, 68, 0.15)";
+          document.getElementById("camPermBadge").style.color = "var(--danger)";
+          document.getElementById("camPermBadge").style.borderColor = "rgba(239, 68, 68, 0.3)";
+
+          document.getElementById("micPermBadge").textContent = "Blocked";
+          document.getElementById("micPermBadge").className = "permission-badge pending";
+          document.getElementById("micPermBadge").style.background = "rgba(239, 68, 68, 0.15)";
+          document.getElementById("micPermBadge").style.color = "var(--danger)";
+          document.getElementById("micPermBadge").style.borderColor = "rgba(239, 68, 68, 0.3)";
+
+          const hint = document.getElementById("startInterviewHint");
+          if (hint) {
+            hint.textContent = "❌ Real camera & microphone are required to start.";
+            hint.style.color = "var(--danger)";
+          }
+
+          let message = "We require real camera and microphone access to perform standard eyeball tracking, face detection, and voice evaluation.\n\n" +
             "If the browser permission prompt did not appear, it is because camera and mic access is blocked by your browser settings.\n\n" +
             "HOW TO FIX:\n" +
             "1. Click the site settings icon (the padlock or control sliders) on the left side of the Chrome address bar (URL bar).\n" +
@@ -2041,27 +1990,6 @@
           }
           
           alert(message);
-          
-          if (confirm("Would you like to start the interview using a Simulated/Mock Webcam and Mic for local testing purposes instead?")) {
-            localStream = createMockMediaStream();
-            const previewVideo = document.getElementById("setupVideoPreview");
-            previewVideo.srcObject = localStream;
-            document.getElementById("previewFallbackText").style.display = "none";
-
-            document.getElementById("camPermBadge").textContent = "Mocked";
-            document.getElementById("camPermBadge").className = "permission-badge granted";
-            document.getElementById("micPermBadge").textContent = "Mocked";
-            document.getElementById("micPermBadge").className = "permission-badge granted";
-
-            document.getElementById("startInterviewBtn").disabled = false;
-            requestBtn.style.display = "none";
-
-            const hint = document.getElementById("startInterviewHint");
-            if (hint) {
-              hint.textContent = "✓ Using simulated camera & mic — ready to test!";
-              hint.style.color = "var(--success)";
-            }
-          }
         }
       });
     }
@@ -3008,22 +2936,38 @@
       return Math.sqrt(varianceSum / count);
     }
 
-    // --- REAL-TIME COMPUTER VISION PROCTORING (Skin, Position, Multiple Faces) ---
+    let faceDetector = null;
+
+    async function initMediaPipeFaceDetector() {
+      try {
+        console.log("Loading MediaPipe tasks-vision resolver...");
+        const vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs");
+        const FilesetResolver = vision.FilesetResolver;
+        const FaceDetector = vision.FaceDetector;
+
+        const filesetResolver = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+        );
+
+        console.log("Initializing MediaPipe Face Detector model...");
+        faceDetector = await FaceDetector.createFromOptions(filesetResolver, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
+          },
+          runningMode: "VIDEO"
+        });
+        console.log("MediaPipe FaceDetector loaded successfully!");
+      } catch (err) {
+        console.error("Failed to load MediaPipe FaceDetector:", err);
+      }
+    }
+
+    // --- REAL-TIME COMPUTER VISION PROCTORING (MediaPipe Face & Eye Gaze) ---
     function initGazeMonitoring() {
       const webcam = document.getElementById("webcamVideo");
       const eyeballReticle = document.getElementById("hudEyeball");
       const gazeHud = document.getElementById("gazeHud");
       const faceHud = document.getElementById("hudFaceText");
-      
-      let gazeViolationCounter = 0;
-      
-      // We create a small offscreen canvas to analyze video frames
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const width = 80;
-      const height = 60;
-      canvas.width = width;
-      canvas.height = height;
 
       // Mouse movements still map to simulated eye pupil shifts on the 3D HUD & 2D Avatar
       document.addEventListener("mousemove", (e) => {
@@ -3050,79 +2994,30 @@
         }
       });
 
-      // Analyze camera frames at regular intervals (every 250ms)
+      // Analyze camera frames using MediaPipe FaceDetector at 4 frames per second
       let consecutiveFaceMissingTicks = 0;
       let consecutiveMultipleFacesTicks = 0;
       let consecutiveLookAwayTicks = 0;
-      let consecutiveDarkLightingTicks = 0;
 
-      function analyzeWebcamFrame() {
+      function performMediaPipeDetection() {
         if (isInterviewFinished) return;
         if (isInterviewPaused) {
-          setTimeout(analyzeWebcamFrame, 500);
+          setTimeout(performMediaPipeDetection, 250);
           return;
         }
-        if (!localStream) {
-          setTimeout(analyzeWebcamFrame, 500);
+        if (!localStream || !faceDetector) {
+          setTimeout(performMediaPipeDetection, 250);
           return;
         }
 
         try {
-          // Draw the current video frame into the small offscreen canvas
-          ctx.drawImage(webcam, 0, 0, width, height);
-          const imgData = ctx.getImageData(0, 0, width, height);
-          const pixels = imgData.data;
+          // Detect faces in the current webcam video frame
+          const results = faceDetector.detectForVideo(webcam, performance.now());
+          const detections = results ? results.detections : [];
+          const numFaces = detections.length;
 
-          let skinPixelCount = 0;
-          let sumX = 0;
-          let sumY = 0;
-          let totalLuminance = 0;
-
-          // For multiple-face cluster detection: we record coordinates of skin pixels
-          let skinPoints = [];
-
-          for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-              const idx = (y * width + x) * 4;
-              const r = pixels[idx];
-              const g = pixels[idx + 1];
-              const b = pixels[idx + 2];
-
-              // Convert to YCbCr
-              const yVal = 0.299 * r + 0.587 * g + 0.114 * b;
-              const cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
-              const cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
-
-              totalLuminance += yVal;
-
-              // Skin color thresholds (adapted for various lighting and skin tones)
-              if (cb >= 75 && cb <= 130 && cr >= 130 && cr <= 175 && yVal > 15) {
-                skinPixelCount++;
-                sumX += x;
-                sumY += y;
-                skinPoints.push({ x, y });
-              }
-            }
-          }
-
-          const totalPixels = width * height;
-          const skinRatio = skinPixelCount / totalPixels;
-          const avgLuminance = totalLuminance / totalPixels;
-
-          // 1. Lighting Level Detection
-          if (avgLuminance < 18) {
-            consecutiveDarkLightingTicks++;
-            if (consecutiveDarkLightingTicks === 12) { // sustained poor light
-              logProctorEvent("Poor environment lighting / camera lens blocked.", 2);
-            }
-          } else {
-            consecutiveDarkLightingTicks = 0;
-          }
-
-          // 2. Face Presence Detection (Skin-tone based)
-          const isFacePresent = skinRatio >= 0.025;
-
-          if (!isFacePresent) {
+          // 1. Face Presence Detection
+          if (numFaces === 0) {
             consecutiveFaceMissingTicks++;
             consecutiveMultipleFacesTicks = 0;
             consecutiveLookAwayTicks = 0;
@@ -3132,88 +3027,86 @@
               faceHud.style.color = "var(--danger)";
             }
 
-            // Flag only if missing for > 3.5 seconds (14 ticks of 250ms)
-            if (consecutiveFaceMissingTicks === 14) {
+            // Flag if missing for > 3 seconds (12 ticks of 250ms)
+            if (consecutiveFaceMissingTicks === 12) {
               logProctorEvent("Candidate's face is not visible in camera frame.", 4);
             }
           } else {
             consecutiveFaceMissingTicks = 0;
-            if (faceHud) {
-              faceHud.textContent = "FACE DETECTED: 1";
-              faceHud.style.color = "var(--success)";
-            }
-
-            // 3. Centroid Analysis (Gaze / Position Shift / Looking Away)
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const centroidX = sumX / skinPixelCount;
-            const centroidY = sumY / skinPixelCount;
-
-            const devX = (centroidX - centerX) / width; 
-            const devY = (centroidY - centerY) / height; 
-
-            // If head position is shifted significantly, they are leaning or looking at another screen
-            const isLookingAway = Math.abs(devX) > 0.28 || Math.abs(devY) > 0.28;
-
-            if (isLookingAway) {
-              consecutiveLookAwayTicks++;
-              if (gazeHud) {
-                gazeHud.classList.add("warning");
-                document.getElementById("hudGazeText").textContent = "EYE GAZE: DEVIATED";
-                document.getElementById("hudGazeText").style.color = "var(--danger)";
-              }
-
-              // Alert only if sustained for > 4 seconds (16 ticks of 250ms)
-              if (consecutiveLookAwayTicks === 16) {
-                logProctorEvent("Candidate is looking away from the camera/screen.", 2);
-              }
-            } else {
-              consecutiveLookAwayTicks = 0;
-              if (gazeHud) {
-                gazeHud.classList.remove("warning");
-                document.getElementById("hudGazeText").textContent = "EYE GAZE: LOCKED";
-                document.getElementById("hudGazeText").style.color = "var(--success)";
-              }
-            }
-
-            // 4. Multiple Faces Detection (Cluster verification)
-            let varianceX = 0;
-            let varianceY = 0;
-            for (let i = 0; i < skinPoints.length; i++) {
-              varianceX += Math.pow(skinPoints[i].x - centroidX, 2);
-              varianceY += Math.pow(skinPoints[i].y - centroidY, 2);
-            }
-            const stdDevX = Math.sqrt(varianceX / skinPixelCount);
-            const stdDevY = Math.sqrt(varianceY / skinPixelCount);
-
-            // Multiple faces spread out across the screen will have high variance in coordinate distributions.
-            const isMultipleFaces = (stdDevX > 20 && skinRatio > 0.08);
-
-            if (isMultipleFaces) {
+            
+            // 2. Multiple Faces Detection
+            if (numFaces > 1) {
               consecutiveMultipleFacesTicks++;
+              consecutiveLookAwayTicks = 0;
+
               if (faceHud) {
-                faceHud.textContent = "MULTIPLE FACES DETECTED";
+                faceHud.textContent = `FACES DETECTED: ${numFaces}`;
                 faceHud.style.color = "var(--danger)";
               }
 
-              // Alert if sustained for > 3 seconds (12 ticks of 250ms)
-              if (consecutiveMultipleFacesTicks === 12) {
-                logProctorEvent("Multiple faces / persons detected in background.", 5);
+              // Alert if sustained for > 2.5 seconds (10 ticks of 250ms)
+              if (consecutiveMultipleFacesTicks === 10) {
+                logProctorEvent("Multiple faces / persons detected in camera view.", 5);
               }
             } else {
               consecutiveMultipleFacesTicks = 0;
+              if (faceHud) {
+                faceHud.textContent = "FACE DETECTED: 1";
+                faceHud.style.color = "var(--success)";
+              }
+
+              // 3. Eyeball Gaze & Head Turn Tracking (MediaPipe Keypoints)
+              const face = detections[0];
+              const keypoints = face.keypoints || [];
+              
+              if (keypoints.length >= 4) {
+                const leftEye = keypoints[0];  // Left eye keypoint
+                const rightEye = keypoints[1]; // Right eye keypoint
+                const nose = keypoints[2];     // Nose tip keypoint
+
+                if (leftEye && rightEye && nose) {
+                  // Calculate horizontal gaze/head-turn ratio using eye-nose distances
+                  const eyeDist = Math.abs(rightEye.x - leftEye.x);
+                  const eyeCenter = (leftEye.x + rightEye.x) / 2;
+                  const turnRatio = (nose.x - eyeCenter) / (eyeDist || 1);
+
+                  // If head is turned significantly to the left or right
+                  // Standard threshold: |turnRatio| > 0.22
+                  const isTurnedAway = Math.abs(turnRatio) > 0.22;
+
+                  if (isTurnedAway) {
+                    consecutiveLookAwayTicks++;
+                    if (gazeHud) {
+                      gazeHud.classList.add("warning");
+                      document.getElementById("hudGazeText").textContent = "EYE GAZE: DEVIATED";
+                      document.getElementById("hudGazeText").style.color = "var(--danger)";
+                    }
+
+                    // Alert if sustained for > 3.5 seconds (14 ticks of 250ms)
+                    if (consecutiveLookAwayTicks === 14) {
+                      logProctorEvent("Candidate is looking away from the camera/screen.", 2);
+                    }
+                  } else {
+                    consecutiveLookAwayTicks = 0;
+                    if (gazeHud) {
+                      gazeHud.classList.remove("warning");
+                      document.getElementById("hudGazeText").textContent = "EYE GAZE: LOCKED";
+                      document.getElementById("hudGazeText").style.color = "var(--success)";
+                    }
+                  }
+                }
+              }
             }
           }
-
         } catch (e) {
-          console.error("Proctor video analysis error:", e);
+          console.error("MediaPipe detection error:", e);
         }
 
-        setTimeout(analyzeWebcamFrame, 250);
+        setTimeout(performMediaPipeDetection, 250);
       }
 
-      // Start the real-time analyzer frame loop
-      setTimeout(analyzeWebcamFrame, 2000);
+      // Start the detection loop
+      setTimeout(performMediaPipeDetection, 2000);
     }
 
     // --- HARDWARE TOGGLES ---
