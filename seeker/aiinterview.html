@@ -1711,8 +1711,6 @@
                 </svg>
                 <span id="timerVal" style="font-size: 0.85rem;">10s</span>
               </div>
-
-              <button id="startAnsweringBtn" class="btn btn-glow" style="display: none; padding: 10px 20px; background: var(--accent-secondary); color: white; border: none; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">Start Answering</button>
               <button id="skipQuestionBtn" class="btn" style="padding: 10px 22px; border-radius: var(--radius-full); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); color: var(--text-muted); cursor: pointer; font-size: 0.85rem; font-family: var(--font-sans); transition: all 0.2s ease;">
                 Skip
               </button>
@@ -2113,21 +2111,20 @@
         if (dd && !dd.contains(e.target) && e.target.id !== 'dotsMenuBtn') dd.classList.remove("open");
       });
 
-      // Start Answering Button (Skip speaking or Prep Time)
-      document.getElementById("startAnsweringBtn").addEventListener("click", () => {
+      // Skip Question Button
+      document.getElementById("skipQuestionBtn").addEventListener("click", skipQuestion);
+
+      // Submit answer manually (Start Answering / Submit Answer)
+      document.getElementById("submitAnswerBtn").addEventListener("click", () => {
         if (isAiSpeaking) {
           if (window.speechSynthesis) window.speechSynthesis.cancel();
           onSpeechFinished();
         } else if (isThinkTimeActive) {
           skipThinkTime();
+        } else {
+          submitAnswer(false);
         }
       });
-
-      // Skip Question Button
-      document.getElementById("skipQuestionBtn").addEventListener("click", skipQuestion);
-
-      // Submit answer manually
-      document.getElementById("submitAnswerBtn").addEventListener("click", () => submitAnswer(false));
 
       // Keypress / Type Answer listener
       const textInput = document.getElementById("answerTextarea");
@@ -2786,11 +2783,12 @@
       const qBox = document.getElementById("questionBox");
       if (qBox) qBox.classList.add("speaking-border-ai");
 
-      // Show Start Answering button and hide Submit Answer button while AI is speaking
-      const startAnsBtn = document.getElementById("startAnsweringBtn");
+      // Set submitAnswerBtn to Start Answering while AI is speaking
       const submitAnsBtn = document.getElementById("submitAnswerBtn");
-      if (startAnsBtn) startAnsBtn.style.display = "block";
-      if (submitAnsBtn) submitAnsBtn.style.display = "none";
+      if (submitAnsBtn) {
+        submitAnsBtn.style.display = "block";
+        submitAnsBtn.textContent = "Start Answering";
+      }
 
       const textarea = document.getElementById("answerTextarea");
       if (textarea) {
@@ -2856,8 +2854,11 @@
       if (responseTimer) clearInterval(responseTimer);
       
       isThinkTimeActive = true;
-      document.getElementById("startAnsweringBtn").style.display = "block";
-      document.getElementById("submitAnswerBtn").style.display = "none";
+      const submitAnsBtn = document.getElementById("submitAnswerBtn");
+      if (submitAnsBtn) {
+        submitAnsBtn.style.display = "block";
+        submitAnsBtn.textContent = "Start Answering";
+      }
       
       const textarea = document.getElementById("answerTextarea");
       textarea.disabled = true;
@@ -2902,8 +2903,11 @@
       
       // Hide timer HUD and update button displays
       document.getElementById("timerContainer").style.display = "none";
-      document.getElementById("startAnsweringBtn").style.display = "none";
-      document.getElementById("submitAnswerBtn").style.display = "block";
+      const submitAnsBtn = document.getElementById("submitAnswerBtn");
+      if (submitAnsBtn) {
+        submitAnsBtn.style.display = "block";
+        submitAnsBtn.textContent = "Submit Answer";
+      }
       
       const textarea = document.getElementById("answerTextarea");
       textarea.disabled = false;
