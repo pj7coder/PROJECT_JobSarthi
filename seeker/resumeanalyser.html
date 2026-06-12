@@ -12,9 +12,9 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-.ra-layout{display:flex;height:calc(100vh - 60px);overflow:hidden;font-family:var(--font-sans)}
-.ra-left{width:30%;min-width:260px;border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;background:var(--bg-secondary);overflow:hidden}
-.ra-right{flex:1;overflow-y:auto;background:var(--bg-primary)}
+.ra-layout{display:grid;grid-template-columns:360px 1fr;gap:24px;height:calc(100vh - 150px);font-family:var(--font-sans);align-items:stretch}
+.ra-left{height:100%;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.05)}
+.ra-right{height:100%;overflow-y:auto;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:12px;box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.05)}
 .tabs-bar{display:flex;gap:4px;padding:10px 12px;border-bottom:1px solid var(--border-subtle);flex-shrink:0}
 .resume-tab{flex:1;padding:6px 4px;border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-surface);font-size:0.72rem;font-weight:600;color:var(--text-muted);cursor:pointer;text-align:center;transition:all .2s;position:relative}
 .resume-tab.active{border-color:var(--text-main);color:var(--text-main)}
@@ -32,7 +32,7 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
 .hidden-input{display:none}
 /* Right panel */
 .ra-right-inner{padding:24px;max-width:900px}
-.ra-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(100vh - 120px);gap:12px;color:var(--text-muted);text-align:center}
+.ra-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text-muted);text-align:center}
 .ra-placeholder .icon{font-size:3rem;opacity:.4}
 /* Score ring */
 .score-ring-svg{transform:rotate(-90deg)}
@@ -78,7 +78,7 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
 /* Comparison header tab */
 .compare-toggle{padding:6px 14px;border:1px solid var(--border-subtle);border-radius:8px;background:transparent;color:var(--text-muted);font-size:0.78rem;font-weight:600;cursor:pointer;transition:all .2s}
 .compare-toggle.active{background:var(--text-main);color:var(--bg-primary);border-color:transparent}
-@media(max-width:700px){.ra-left{width:40%}.ra-layout{height:auto;flex-direction:column}.ra-left{width:100%;height:340px;border-right:none;border-bottom:1px solid var(--border-subtle)}.ra-right{height:auto}}
+@media(max-width: 900px){.ra-layout{grid-template-columns:1fr;height:auto;gap:20px;margin-bottom:60px}.ra-left{height:480px}.ra-right{height:auto;overflow-y:visible}}
 
 /* Scanning loader animation */
 .scan-container {
@@ -86,7 +86,7 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: calc(100vh - 120px);
+  height: 100%;
   gap: 20px;
   text-align: center;
   color: var(--text-main);
@@ -208,51 +208,53 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
   </div>
 </div>
 
-<div class="ra-layout">
-  <!-- LEFT PANEL -->
-  <div class="ra-left">
-    <div class="tabs-bar">
-      <div class="resume-tab active" id="tab-0" onclick="switchTab(0)">
-        <span id="tab-label-0">Resume 1</span>
-        <span class="tab-close" id="close-0" onclick="event.stopPropagation();clearTab(0)" style="display:none">✕</span>
+<main class="container" style="margin-top: 30px;">
+  <div class="ra-layout">
+    <!-- LEFT PANEL -->
+    <div class="ra-left">
+      <div class="tabs-bar">
+        <div class="resume-tab active" id="tab-0" onclick="switchTab(0)">
+          <span id="tab-label-0">Resume 1</span>
+          <span class="tab-close" id="close-0" onclick="event.stopPropagation();clearTab(0)" style="display:none">✕</span>
+        </div>
+        <div class="resume-tab" id="tab-1" onclick="switchTab(1)" style="display:none">
+          <span id="tab-label-1">Resume 2</span>
+          <span class="tab-close" onclick="event.stopPropagation();removeTab(1)">✕</span>
+        </div>
+        <div class="resume-tab" id="tab-2" onclick="switchTab(2)" style="display:none">
+          <span id="tab-label-2">Resume 3</span>
+          <span class="tab-close" onclick="event.stopPropagation();removeTab(2)">✕</span>
+        </div>
+        <button class="add-tab" id="addTabBtn" onclick="addResume()" title="Add another resume">+</button>
       </div>
-      <div class="resume-tab" id="tab-1" onclick="switchTab(1)" style="display:none">
-        <span id="tab-label-1">Resume 2</span>
-        <span class="tab-close" onclick="event.stopPropagation();removeTab(1)">✕</span>
+
+      <div class="viewer-area">
+        <div class="resume-embed empty-slot" id="viewer" onclick="triggerUpload(activeTab)">
+          <span style="font-size:2rem;opacity:.4">📄</span>
+          <span>Click to upload resume</span>
+          <span style="font-size:0.72rem;opacity:.6">PDF or image (max 10MB)</span>
+        </div>
+        <input type="file" id="fileInput" class="hidden-input" accept=".pdf,image/*" onchange="handleFile(event)">
+
+        <button class="analyse-btn" id="analyseBtn" onclick="runAnalysis()" disabled>
+          <span>＋</span> Analyse Resume
+        </button>
       </div>
-      <div class="resume-tab" id="tab-2" onclick="switchTab(2)" style="display:none">
-        <span id="tab-label-2">Resume 3</span>
-        <span class="tab-close" onclick="event.stopPropagation();removeTab(2)">✕</span>
-      </div>
-      <button class="add-tab" id="addTabBtn" onclick="addResume()" title="Add another resume">+</button>
     </div>
 
-    <div class="viewer-area">
-      <div class="resume-embed empty-slot" id="viewer" onclick="triggerUpload(activeTab)">
-        <span style="font-size:2rem;opacity:.4">📄</span>
-        <span>Click to upload resume</span>
-        <span style="font-size:0.72rem;opacity:.6">PDF or image (max 10MB)</span>
+    <!-- RIGHT PANEL -->
+    <div class="ra-right">
+      <div class="ra-right-inner" id="rightPanel">
+        <div class="ra-placeholder" id="placeholder">
+          <div class="icon">🔍</div>
+          <h3 style="font-size:1rem;font-weight:700;color:var(--text-main)">No Analysis Yet</h3>
+          <p style="font-size:0.84rem;max-width:340px">Upload a resume on the left and click <strong>Analyse Resume</strong> to get your ATS score, keyword gaps, and actionable tips.</p>
+        </div>
+        <div id="dashboard" style="display:none"></div>
       </div>
-      <input type="file" id="fileInput" class="hidden-input" accept=".pdf,image/*" onchange="handleFile(event)">
-
-      <button class="analyse-btn" id="analyseBtn" onclick="runAnalysis()" disabled>
-        <span>＋</span> Analyse Resume
-      </button>
     </div>
   </div>
-
-  <!-- RIGHT PANEL -->
-  <div class="ra-right">
-    <div class="ra-right-inner" id="rightPanel">
-      <div class="ra-placeholder" id="placeholder">
-        <div class="icon">🔍</div>
-        <h3 style="font-size:1rem;font-weight:700;color:var(--text-main)">No Analysis Yet</h3>
-        <p style="font-size:0.84rem;max-width:340px">Upload a resume on the left and click <strong>Analyse Resume</strong> to get your ATS score, keyword gaps, and actionable tips.</p>
-      </div>
-      <div id="dashboard" style="display:none"></div>
-    </div>
-  </div>
-</div>
+</main>
 
 <script src="../js/header.js"></script>
 <script>
