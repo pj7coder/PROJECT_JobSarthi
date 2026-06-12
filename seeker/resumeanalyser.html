@@ -227,8 +227,31 @@ window.addEventListener('DOMContentLoaded', async () => {
   try {
     const r = await fetch((window.API_BASE_URL||'')+`/api/seeker/profile?email=${encodeURIComponent(email)}`);
     const p = await r.json();
+
+    // Load persisted analysis resumes (slots 0-2)
+    const saved = p.analysisResumes || [];
+    let loadedAny = false;
+    for (let i = 0; i < 3; i++) {
+      if (saved[i] && saved[i].url) {
+        resumes[i] = { base64: null, mime: null, name: saved[i].fileName || `Resume ${i+1}`, url: saved[i].url };
+        updateTabLabel(i, resumes[i].name);
+        if (i > 0) {
+          const tab = document.getElementById('tab-'+i);
+          if (tab) tab.style.display = '';
+          if (i === 2) document.getElementById('addTabBtn').style.display = 'none';
+        }
+        loadedAny = true;
+      }
+    }
+    if (loadedAny) {
+      renderViewer(0);
+      document.getElementById('analyseBtn').disabled = false;
+      return; // skip existing-resume modal if we already loaded saved resumes
+    }
+
+    // Fallback: offer to load profile resume if no saved analysis resumes
     if (p.resumeUrl) {
-      document.getElementById('existingModalText').textContent = `You have "${p.resumeFileName || 'your resume'}" uploaded in Profile. Load it here for analysis?`;
+      document.getElementById('existingModalText').textContent = `You have "${p.resumeFileName || 'your resume'}" uploaded in your Profile. Load it here for analysis?`;
       document.getElementById('existingModal').style.display = 'flex';
       window._existingResume = { url: p.resumeUrl, name: p.resumeFileName || 'Profile Resume' };
     }
@@ -243,6 +266,14 @@ function acceptExisting() {
   updateTabLabel(0, e.name);
   renderViewer(0);
   document.getElementById('analyseBtn').disabled = false;
+  // Save this as slot-0 so it persists
+  const email = localStorage.getItem('seeker_email');
+  if (email) {
+    fetch((window.API_BASE_URL||'')+'/api/seeker/save-analysis-resume', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, base64Data: e.url, mimeType: 'application/pdf', fileName: e.name, slotIndex: 0 })
+    }).catch(err => console.warn('Could not persist profile resume to slot 0:', err));
+  }
 }
 
 function declineExisting() {
@@ -277,16 +308,24 @@ function addResume() {
   }
 }
 
-// clearTab: clears resume data. For idx 0 keeps tab visible, for idx 1-2 also hides tab.
+// clearTab: clears resume data, calls API to remove from Cloudinary
 function clearTab(idx) {
   resumes[idx] = null;
   analysisResults[idx] = null;
   updateTabLabel(idx, '');
-  // hide close button on tab 0
   const closeBtn = document.getElementById('close-'+idx);
   if (closeBtn) closeBtn.style.display = 'none';
+
+  // Remove from Cloudinary in background
+  const email = localStorage.getItem('seeker_email');
+  if (email) {
+    fetch((window.API_BASE_URL||'')+'/api/seeker/remove-analysis-resume', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, slotIndex: idx })
+    }).catch(err => console.warn('[AnalysisResume] Remove failed:', err));
+  }
+
   if (idx === 0) {
-    // Keep tab-0 visible but reset it
     activeTab = 0;
     renderViewer(0);
     document.getElementById('analyseBtn').disabled = true;
@@ -298,18 +337,14 @@ function clearTab(idx) {
   }
 }
 
-function removeTab(idx) {
-  clearTab(idx);
-}
+function removeTab(idx) { clearTab(idx); }
 
 function updateTabLabel(idx, name) {
   const short = name && name.length > 12 ? name.slice(0,11)+'…' : name;
   document.getElementById('tab-label-'+idx).textContent = short || 'Resume '+(idx+1);
-  // Show ✕ on tab-0 when a resume is loaded
-  if (idx === 0) {
-    const closeBtn = document.getElementById('close-0');
-    if (closeBtn) closeBtn.style.display = name ? 'inline' : 'none';
-  }
+  // Show ✕ on all tabs when loaded
+  const closeBtn = document.getElementById('close-'+idx);
+  if (closeBtn) closeBtn.style.display = name ? 'inline' : 'none';
 }
 
 // ── File Upload ──
@@ -323,20 +358,52 @@ function handleFile(event) {
   if (!file) return;
   if (file.size > 10*1024*1024) { alert('File too large. Max 10MB.'); return; }
   const reader = new FileReader();
-  reader.onload = () => {
-    resumes[activeTab] = { base64: reader.result, mime: file.type, name: file.name, url: null };
-    updateTabLabel(activeTab, file.name);
-    renderViewer(activeTab);
+  reader.onload = async () => {
+    const slot = activeTab;
+    resumes[slot] = { base64: reader.result, mime: file.type, name: file.name, url: null };
+    updateTabLabel(slot, file.name);
+    renderViewer(slot);
     document.getElementById('analyseBtn').disabled = false;
-    analysisResults[activeTab] = null;
+    analysisResults[slot] = null;
     showPlaceholder();
+
+    // Persist to Cloudinary in background
+    const email = localStorage.getItem('seeker_email');
+    if (email) {
+      try {
+        const resp = await fetch((window.API_BASE_URL||'')+'/api/seeker/save-analysis-resume', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ email, base64Data: reader.result, mimeType: file.type, fileName: file.name, slotIndex: slot })
+        });
+        const data = await resp.json();
+        if (data.url) {
+          resumes[slot].url = data.url; // update local reference with persisted URL
+          console.log(`[AnalysisResume] Slot ${slot} saved to Cloudinary.`);
+        }
+      } catch(err) { console.warn('[AnalysisResume] Cloudinary save failed:', err); }
+    }
   };
   reader.readAsDataURL(file);
   event.target.value = '';
 }
 
+// Convert base64 to a Blob URL (avoids CSP data: URI restriction in iframes)
+function base64ToBlobUrl(base64, mimeType) {
+  try {
+    const b64 = base64.includes(',') ? base64.split(',')[1] : base64;
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: mimeType || 'application/pdf' });
+    return URL.createObjectURL(blob);
+  } catch { return null; }
+}
+
 function renderViewer(idx) {
   const v = document.getElementById('viewer');
+  // Revoke previous blob URL to avoid memory leaks
+  if (v._blobUrl) { URL.revokeObjectURL(v._blobUrl); v._blobUrl = null; }
+
   const r = resumes[idx];
   if (!r) {
     v.innerHTML = `<span style="font-size:2rem;opacity:.4">📄</span><span>Click to upload resume</span><span style="font-size:.72rem;opacity:.6">PDF or image (max 10MB)</span>`;
@@ -348,13 +415,30 @@ function renderViewer(idx) {
   v.classList.remove('empty-slot');
   v.style.cursor = 'default';
   v.onclick = null;
-  const src = r.url || r.base64;
-  const isPdf = r.mime === 'application/pdf' || (r.url && (r.url.includes('.pdf') || r.url.includes('application%2Fpdf')));
-  if (isPdf) {
-    // iframe is more reliable than embed for base64 PDFs across browsers
-    v.innerHTML = `<iframe src="${src}" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:10px" title="Resume Preview"></iframe>`;
-  } else {
+
+  const isPdf = r.mime === 'application/pdf' ||
+    (r.url && (r.url.includes('.pdf') || r.url.includes('application%2Fpdf') || r.url.includes('/raw/')));
+
+  if (!isPdf) {
+    // Images render fine directly
+    const src = r.url || r.base64;
     v.innerHTML = `<img src="${src}" alt="Resume" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:10px">`;
+    return;
+  }
+
+  if (r.url && !r.base64) {
+    // Cloudinary URL — use embed (avoids X-Frame-Options issues from external domains)
+    v.innerHTML = `<embed src="${r.url}" type="application/pdf" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:10px">`;
+  } else if (r.base64) {
+    // Local base64 — convert to Blob URL to bypass CSP data: URI iframe restriction
+    const blobUrl = base64ToBlobUrl(r.base64, r.mime);
+    if (blobUrl) {
+      v._blobUrl = blobUrl;
+      v.innerHTML = `<iframe src="${blobUrl}" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:10px" title="Resume Preview"></iframe>`;
+    } else {
+      // Last-resort fallback: open in new tab button
+      v.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:16px"><span style="font-size:2.5rem">📄</span><span style="font-size:.82rem;font-weight:600;color:var(--text-main)">${r.name}</span><a href="${r.base64}" download="${r.name}" style="font-size:.76rem;color:#10b981;text-decoration:none;border:1px solid rgba(16,185,129,.3);padding:5px 12px;border-radius:6px">Download PDF ↓</a></div>`;
+    }
   }
 }
 

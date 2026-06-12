@@ -288,6 +288,8 @@ app.use((req, res, next) => {
     "media-src 'self' blob: https://res.cloudinary.com; " +
     "connect-src 'self' https://project-jobsarthi.onrender.com https://jobsarthi.vercel.app; " +
     "font-src 'self' https://fonts.gstatic.com; " +
+    "frame-src blob: data: https://res.cloudinary.com 'self'; " +
+    "object-src blob: data: https://res.cloudinary.com; " +
     "frame-ancestors 'none';"
   );
   res.removeHeader("X-Powered-By");                                // Hide Express fingerprint
@@ -3607,6 +3609,81 @@ Resume: ${JSON.stringify(extractedText)}`;
   } catch (err) {
     console.error("Resume analysis error:", err);
     res.status(500).json({ error: "Failed to analyze resume." });
+  }
+});
+
+// ── Save a resume slot to Cloudinary and persist URL in profile ──
+app.post("/api/seeker/save-analysis-resume", uploadRateLimiter, largeBodyParser, async (req, res) => {
+  try {
+    const { email, base64Data, mimeType, fileName, slotIndex } = req.body;
+    if (!email || !base64Data || slotIndex === undefined) {
+      return res.status(400).json({ error: "email, base64Data and slotIndex are required." });
+    }
+    const idx = parseInt(slotIndex, 10);
+    if (isNaN(idx) || idx < 0 || idx > 2) {
+      return res.status(400).json({ error: "slotIndex must be 0, 1, or 2." });
+    }
+
+    // Upload to Cloudinary (raw for PDFs)
+    const resourceType = (mimeType === "application/pdf") ? "raw" : "image";
+    console.log(`[AnalysisResume] Uploading slot ${idx} to Cloudinary (${resourceType})...`);
+    const secureUrl = await uploadToCloudinary(base64Data, resourceType);
+
+    // Persist in profile
+    const db = await readLocalDB();
+    const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    if (!user.profile) user.profile = {};
+    if (!Array.isArray(user.profile.analysisResumes)) {
+      user.profile.analysisResumes = [null, null, null];
+    }
+
+    // Delete old Cloudinary file if replacing
+    const oldSlot = user.profile.analysisResumes[idx];
+    if (oldSlot?.url && oldSlot.url.startsWith("http")) {
+      await deleteFromCloudinary(oldSlot.url);
+    }
+
+    user.profile.analysisResumes[idx] = { url: secureUrl, fileName: fileName || `Resume ${idx + 1}`, uploadedAt: new Date().toISOString() };
+    await writeLocalDB(db);
+
+    res.json({ success: true, url: secureUrl, fileName: fileName || `Resume ${idx + 1}` });
+  } catch (err) {
+    console.error("[AnalysisResume] Save error:", err);
+    res.status(500).json({ error: "Failed to save resume." });
+  }
+});
+
+// ── Remove a resume slot (delete from Cloudinary + clear in profile) ──
+app.post("/api/seeker/remove-analysis-resume", async (req, res) => {
+  try {
+    const { email, slotIndex } = req.body;
+    if (!email || slotIndex === undefined) {
+      return res.status(400).json({ error: "email and slotIndex are required." });
+    }
+    const idx = parseInt(slotIndex, 10);
+    if (isNaN(idx) || idx < 0 || idx > 2) {
+      return res.status(400).json({ error: "slotIndex must be 0, 1, or 2." });
+    }
+
+    const db = await readLocalDB();
+    const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    if (Array.isArray(user.profile?.analysisResumes)) {
+      const slot = user.profile.analysisResumes[idx];
+      if (slot?.url && slot.url.startsWith("http")) {
+        await deleteFromCloudinary(slot.url);
+      }
+      user.profile.analysisResumes[idx] = null;
+      await writeLocalDB(db);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[AnalysisResume] Remove error:", err);
+    res.status(500).json({ error: "Failed to remove resume." });
   }
 });
 
