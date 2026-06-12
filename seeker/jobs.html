@@ -890,145 +890,14 @@
       return 0;
     }
 
+    /**
+     * getJobMatchScore – returns job.matchScore computed by the backend.
+     * This is the single source of truth so the card pill and the drawer badge always agree.
+     */
     function getJobMatchScore(job) {
-      if (!seekerProfile) {
-        return 0;
-      }
-
-      let userSkills = [];
-      if (Array.isArray(seekerProfile.skills)) {
-        userSkills = seekerProfile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
-      } else if (typeof seekerProfile.skills === 'string') {
-        userSkills = seekerProfile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-      }
-
-      let preferredLocs = [];
-      if (Array.isArray(seekerProfile.preferredLocations)) {
-        preferredLocs = seekerProfile.preferredLocations.map(s => s.trim().toLowerCase()).filter(Boolean);
-      } else if (typeof seekerProfile.preferredLocations === 'string') {
-        preferredLocs = seekerProfile.preferredLocations.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-      }
-      
-      const userExp = extractYearsOfExperience(seekerProfile.experience);
-      const jobExp = getJobRequiredExperience(job);
-      const userDegreeLower = (seekerProfile.degree || "").toLowerCase();
-      const expSummaryLower = (seekerProfile.experience || "").toLowerCase();
-
-      // STEP 1: HARD FILTERS
-      if (jobExp > userExp + 4) return 0; // Exceeds experience filter
-
-      const jobSkills = (typeof job.skills === 'string' ? job.skills : (Array.isArray(job.skills) ? job.skills.join(',') : '')).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-      if (jobSkills.length > 0 && userSkills.length > 0) {
-        const hasAnySkill = jobSkills.some(js => userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us)));
-        if (!hasAnySkill) return 0; 
-      }
-
-      const isJobRemote = (job.location || '').toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
-      const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => (job.location || '').toLowerCase().includes(loc) || loc.includes((job.location || '').toLowerCase()));
-      if (!isJobRemote && !isLocationMatch && preferredLocs.length > 0) {
-        return 0; 
-      }
-
-      // === NORMALIZED SCORING (max 100) ===
-      let location_score = 0;   // max 20
-      let skill_score = 0;      // max 40
-      let role_score = 0;       // max 20
-      let experience_score = 0; // max 10
-      let work_mode_score = 0;  // max 5
-      let salary_score = 0;     // max 5
-
-      // STEP 2: LOCATION SCORING (max 20)
-      const jobLocLower = (job.location || '').toLowerCase();
-      const hasCity = preferredLocs.some(loc => indianCities.some(c => c.toLowerCase() === loc) && jobLocLower.includes(loc));
-      const hasState = preferredLocs.some(loc => indianStates.some(s => s.toLowerCase() === loc) && jobLocLower.includes(loc));
-      const inIndia = jobLocLower.includes("india") || indianStates.some(s => jobLocLower.includes(s.toLowerCase())) || indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
-
-      if (isJobRemote) {
-        location_score = 18;
-      } else if (hasCity) {
-        location_score = 20;
-      } else if (hasState) {
-        location_score = 15;
-      } else if (inIndia) {
-        location_score = 10;
-      } else if (preferredLocs.length === 0) {
-        location_score = 12;
-      } else {
-        location_score = 3;
-      }
-
-      // STEP 3: SKILL MATCH SCORING (max 40)
-      if (jobSkills.length > 0 && userSkills.length > 0) {
-        let matchCount = 0;
-        jobSkills.forEach(js => {
-          if (userSkills.includes(js) || userSkills.some(us => us.includes(js) || js.includes(us))) {
-            matchCount++;
-          }
-        });
-        const skillMatchRatio = matchCount / jobSkills.length;
-        if (skillMatchRatio >= 0.9) skill_score = 40;
-        else if (skillMatchRatio >= 0.7) skill_score = 32;
-        else if (skillMatchRatio >= 0.5) skill_score = 22;
-        else if (skillMatchRatio >= 0.3) skill_score = 12;
-        else skill_score = 5;
-      } else if (userSkills.length === 0) {
-        skill_score = 15; // Profile incomplete — neutral
-      } else {
-        skill_score = 15; // Job has no listed skills
-      }
-
-      // STEP 4: ROLE MATCH (max 20)
-      const jobTitleLower = (job.title || '').toLowerCase();
-      const roleKeywords = [
-        "software engineer", "developer", "machine learning", "frontend", "backend", "fullstack",
-        "full stack", "designer", "data scientist", "analyst", "product manager", "devops",
-        "mobile", "android", "ios", "cloud", "architect", "sre", "qa", "tester"
-      ];
-      
-      let exactRole = false, relatedRole = false, sameDomain = false;
-      
-      roleKeywords.forEach(r => {
-        if (jobTitleLower.includes(r)) {
-          if (userDegreeLower.includes(r) || expSummaryLower.includes(r)) {
-            exactRole = true;
-          } else if (userSkills.some(us => r.includes(us) || us.includes(r.split(' ')[0]))) {
-            relatedRole = true;
-          } else {
-            sameDomain = true;
-          }
-        }
-      });
-      
-      if (exactRole) role_score = 20;
-      else if (relatedRole) role_score = 15;
-      else if (sameDomain) role_score = 8;
-      else role_score = 5;
-
-      // STEP 5: EXPERIENCE MATCH (max 10)
-      const diff = userExp - jobExp;
-      if (diff === 0) experience_score = 10;
-      else if (Math.abs(diff) <= 1) experience_score = 8;
-      else if (Math.abs(diff) <= 2) experience_score = 6;
-      else if (Math.abs(diff) <= 3) experience_score = 3;
-      else experience_score = 1;
-
-      // STEP 6: WORK MODE MATCH (max 5)
-      const isUserRemotePreferred = preferredLocs.includes("remote");
-      if (isUserRemotePreferred && isJobRemote) work_mode_score = 5;
-      else if (!isUserRemotePreferred && !isJobRemote) work_mode_score = 5;
-      else work_mode_score = 2;
-
-      // STEP 7: SALARY MATCH (max 5)
-      const userSalary = parseSalaryLPA(seekerProfile.expectedCtc);
-      const jobSalary = parseSalaryLPA(job.salary);
-      if (userSalary === 0 || jobSalary === 0) salary_score = 3;
-      else if (jobSalary >= userSalary) salary_score = 5;
-      else if (jobSalary >= userSalary * 0.8) salary_score = 3;
-      else salary_score = 1;
-
-      // Total max = 20+40+20+10+5+5 = 100
-      const finalScore = location_score + skill_score + role_score + experience_score + work_mode_score + salary_score;
-      return Math.max(0, Math.min(100, finalScore));
+      if (!job) return 0;
+      // Use the authoritative backend score already attached to the job object.
+      return job.matchScore !== undefined ? job.matchScore : 0;
     }
 
     // Match breakdown helper
@@ -1451,7 +1320,8 @@
         card.className = 'glass-card job-card';
 
         const isLoggedIn = localStorage.getItem('seeker_logged_in') === 'true';
-        const matchVal = isLoggedIn ? (job.matchScore !== undefined ? job.matchScore : getJobMatchScore(job)) : null;
+        // Always use backend-computed matchScore as single source of truth
+        const matchVal = isLoggedIn && job.matchScore !== undefined ? job.matchScore : null;
         let matchPill = '';
         if (matchVal !== null && matchVal > 0) {
           let matchStyle = '';
@@ -1506,24 +1376,7 @@
           </svg>
         `;
 
-        let verificationBadge = '';
-        if (job.verification_text) {
-          const score = job.verification_score !== undefined ? job.verification_score : 40;
-          let badgeStyle = 'background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981;';
-          if (score === 0) {
-            badgeStyle = 'background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444;';
-          } else if (score <= 40) {
-            badgeStyle = 'background: rgba(100, 116, 139, 0.08); border: 1px solid rgba(100, 116, 139, 0.2); color: #64748b;';
-          } else if (score <= 60) {
-            badgeStyle = 'background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); color: #f59e0b;';
-          }
-          verificationBadge = `
-            <div class="job-card-meta-item" style="font-size: 0.78rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; ${badgeStyle}">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block; vertical-align:middle;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              ${job.verification_text}
-            </div>
-          `;
-        }
+        // Verification badge removed – not shown on cards
 
         card.innerHTML = `
           <div class="job-card-logo">${getJobLogoHtml(job.logo)}</div>
@@ -1546,7 +1399,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 ${job.type || 'Full-time'}
               </div>
-              ${verificationBadge}
+
             </div>
             ${skillsSnippet}
           </div>

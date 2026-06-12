@@ -173,9 +173,11 @@
       });
       insightEl.innerHTML = '<strong>Unlock personalized matching!</strong> Log in to your JobSarthi account to see which skills you match.';
     } else {
+      // Pass the authoritative matchScore directly so insight text matches card badge
       const getScore = _options.getMatchScore || (() => 0);
       const getMatch = _options.getSkillsMatchInfo || (() => ({ matched: [], missing: [] }));
-      const score = getScore(job);
+      // Prefer job.matchScore (backend) for consistency; fall back to injected getMatchScore
+      const score = job.matchScore !== undefined ? job.matchScore : getScore(job);
       const info = getMatch(job);
 
       const matchedSet = new Set(info.matched.map(s => s.toLowerCase()));
@@ -287,8 +289,8 @@
 
       // Badges
       const isLoggedIn = localStorage.getItem('seeker_logged_in') === 'true';
-      const getScore = _options.getMatchScore || (() => null);
-      const matchVal = isLoggedIn ? getScore(job) : null;
+      // Always use the authoritative backend matchScore – same source as the card pill
+      const matchVal = isLoggedIn && job.matchScore !== undefined ? job.matchScore : null;
       let matchBadge = '';
       if (matchVal !== null && matchVal > 0) {
         let matchStyle = '';
@@ -301,28 +303,9 @@
         }
         matchBadge = `<span style="padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:600;display:inline-flex;align-items:center;${matchStyle}">${matchVal}% Match</span>`;
       }
-      let verificationBadgeHtml = '';
-      if (job.verification_text) {
-        const score = job.verification_score !== undefined ? job.verification_score : 40;
-        let badgeStyle = 'background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); color: #10b981;';
-        if (score === 0) {
-          badgeStyle = 'background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); color: #ef4444;';
-        } else if (score <= 40) {
-          badgeStyle = 'background: rgba(100, 116, 139, 0.08); border: 1px solid rgba(100, 116, 139, 0.25); color: #64748b;';
-        } else if (score <= 60) {
-          badgeStyle = 'background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); color: #f59e0b;';
-        }
-        verificationBadgeHtml = `
-          <span style="padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:600;display:inline-flex;align-items:center;gap:4px;${badgeStyle}">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block; vertical-align:middle;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            ${job.verification_text}
-          </span>
-        `;
-      }
 
       _getEl('jd_badges').innerHTML = `
         <span style="padding:4px 10px;border-radius:6px;font-size:.75rem;background:rgba(99,102,241,.15);color:var(--accent-primary);border:1px solid rgba(99,102,241,.25);">${job.type || 'Full-time'}</span>
-        ${verificationBadgeHtml}
         ${matchBadge}
       `;
 
