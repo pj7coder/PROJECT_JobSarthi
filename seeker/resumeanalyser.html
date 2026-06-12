@@ -1,630 +1,448 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resume Analyser - JobSarthi Seeker</title>
-  <meta name="description" content="Analyse your resume for ATS score, missing keywords, and layout improvements with Sarthi AI.">
-  <link rel="stylesheet" href="../css/main.css">
-  <script>
-    if (localStorage.getItem('seeker_logged_in') !== 'true') {
-      window.location.replace('login_signup.html');
-    }
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme && savedTheme !== 'dark') {
-      document.documentElement.classList.add(savedTheme + '-theme');
-      document.addEventListener('DOMContentLoaded', () => {
-        document.body.classList.add(savedTheme + '-theme');
-      });
-    }
-  </script>
-  <style>
-    /* Sleek Zinc/Vercel Theme Styles matching user images */
-    .analyser-container {
-      max-width: 1000px;
-      margin: 40px auto;
-      padding: 0 20px;
-      font-family: var(--font-sans);
-    }
-
-    .hero-section {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .hero-title {
-      font-size: 2rem;
-      font-weight: 800;
-      color: var(--text-main);
-      margin-bottom: 8px;
-      letter-spacing: -0.5px;
-    }
-
-    .hero-subtitle {
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    .zinc-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 28px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-      transition: border-color var(--transition-normal);
-    }
-
-    body.light-theme .zinc-card {
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-    }
-
-    .zinc-input-group {
-      margin-bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .zinc-label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    /* Capsule buttons */
-    .btn-zinc-primary {
-      background: var(--text-main);
-      color: var(--bg-primary);
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.875rem;
-      border: none;
-      padding: 10px 20px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: opacity var(--transition-fast);
-    }
-
-    .btn-zinc-primary:hover {
-      opacity: 0.9;
-    }
-
-    .btn-zinc-secondary {
-      background: transparent;
-      color: var(--text-muted);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      font-weight: 500;
-      font-size: 0.875rem;
-      padding: 10px 20px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all var(--transition-fast);
-    }
-
-    .btn-zinc-secondary:hover {
-      color: var(--text-main);
-      border-color: var(--border-focus);
-    }
-
-    /* Drag and Drop Zone */
-    .zinc-dropzone {
-      border: 2px dashed var(--border-subtle);
-      border-radius: 12px;
-      padding: 40px 20px;
-      text-align: center;
-      background: rgba(255, 255, 255, 0.01);
-      cursor: pointer;
-      transition: all var(--transition-normal);
-      position: relative;
-    }
-
-    .zinc-dropzone:hover,
-    .zinc-dropzone.dragover {
-      border-color: var(--text-muted);
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    body.light-theme .zinc-dropzone {
-      background: rgba(0, 0, 0, 0.01);
-    }
-
-    body.light-theme .zinc-dropzone:hover {
-      background: rgba(0, 0, 0, 0.02);
-    }
-
-    .file-input {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
-
-    /* Dashboard Layout */
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.3fr;
-      gap: 24px;
-      margin-top: 30px;
-    }
-
-    @media (max-width: 850px) {
-      .dashboard-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .score-circle-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px 0;
-    }
-
-    .score-circle {
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      background: radial-gradient(closest-side, var(--bg-surface) 79%, transparent 80% 100%),
-                  conic-gradient(var(--success) 0%, var(--border-subtle) 0%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      margin-bottom: 15px;
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
-    }
-
-    .score-number {
-      font-size: 2.2rem;
-      font-weight: 800;
-      color: var(--text-main);
-    }
-
-    .rating-pill-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-      margin-top: 10px;
-    }
-
-    .rating-pill {
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      border: 1px solid var(--border-subtle);
-      background: rgba(255, 255, 255, 0.02);
-      color: var(--text-muted);
-    }
-
-    .rating-pill.success {
-      color: var(--success);
-      border-color: rgba(16, 185, 129, 0.25);
-      background: rgba(16, 185, 129, 0.05);
-    }
-
-    .rating-pill.warning {
-      color: var(--warning);
-      border-color: rgba(245, 158, 11, 0.25);
-      background: rgba(245, 158, 11, 0.05);
-    }
-
-    .rating-pill.danger {
-      color: var(--danger);
-      border-color: rgba(239, 68, 68, 0.25);
-      background: rgba(239, 68, 68, 0.05);
-    }
-
-    /* Skills Flexbox tags */
-    .skills-flex {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .skill-tag {
-      font-size: 0.78rem;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 6px;
-    }
-
-    .skill-tag.matched {
-      background: rgba(16, 185, 129, 0.1);
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-
-    .skill-tag.missing {
-      background: rgba(239, 68, 68, 0.1);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-
-    /* Recommendations list */
-    .rec-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 10px;
-    }
-
-    .rec-item {
-      display: flex;
-      gap: 10px;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      line-height: 1.45;
-    }
-
-    .rec-icon {
-      color: var(--warning);
-      font-size: 1rem;
-      flex-shrink: 0;
-    }
-
-    /* Overlay spinner */
-    .loading-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(9, 9, 11, 0.85);
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      z-index: 10;
-      backdrop-filter: blur(4px);
-    }
-
-    body.light-theme .loading-overlay {
-      background: rgba(255, 255, 255, 0.85);
-    }
-
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid rgba(255, 255, 255, 0.1);
-      border-radius: 50%;
-      border-top-color: var(--text-main);
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resume Analyser - JobSarthi</title>
+<link rel="stylesheet" href="../css/main.css">
+<script>
+if (localStorage.getItem('seeker_logged_in') !== 'true') window.location.replace('login_signup.html');
+const t = localStorage.getItem('theme');
+if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); document.addEventListener('DOMContentLoaded',()=>document.body.classList.add(t+'-theme')); }
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.ra-layout{display:flex;height:calc(100vh - 60px);overflow:hidden;font-family:var(--font-sans)}
+.ra-left{width:30%;min-width:260px;border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;background:var(--bg-secondary)}
+.ra-right{flex:1;overflow-y:auto;background:var(--bg-primary)}
+.tabs-bar{display:flex;gap:4px;padding:10px 12px;border-bottom:1px solid var(--border-subtle);flex-shrink:0}
+.resume-tab{flex:1;padding:6px 4px;border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-surface);font-size:0.72rem;font-weight:600;color:var(--text-muted);cursor:pointer;text-align:center;transition:all .2s;position:relative}
+.resume-tab.active{border-color:var(--text-main);color:var(--text-main)}
+.resume-tab .tab-close{position:absolute;top:2px;right:4px;font-size:0.65rem;color:var(--text-dark);cursor:pointer}
+.add-tab{width:32px;height:32px;border:1px dashed var(--border-subtle);border-radius:8px;background:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.add-tab:hover{border-color:var(--text-main);color:var(--text-main)}
+.viewer-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:12px;overflow-y:auto;gap:12px}
+.resume-embed{width:100%;height:420px;border:1px solid var(--border-subtle);border-radius:10px;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.resume-embed embed,.resume-embed img{width:100%;height:100%;object-fit:contain;border-radius:10px}
+.empty-slot{flex-direction:column;gap:8px;color:var(--text-muted);font-size:0.82rem;cursor:pointer;border:2px dashed var(--border-subtle);transition:all .2s}
+.empty-slot:hover{border-color:var(--text-muted)}
+.analyse-btn{width:100%;padding:9px;border:none;border-radius:8px;background:var(--text-main);color:var(--bg-primary);font-size:0.82rem;font-weight:700;cursor:pointer;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.analyse-btn:hover{opacity:.88}
+.analyse-btn:disabled{opacity:.4;cursor:not-allowed}
+.hidden-input{display:none}
+/* Right panel */
+.ra-right-inner{padding:24px;max-width:900px}
+.ra-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:80%;gap:12px;color:var(--text-muted);text-align:center}
+.ra-placeholder .icon{font-size:3rem;opacity:.4}
+/* Score ring */
+.score-ring-svg{transform:rotate(-90deg)}
+.score-ring-bg{fill:none;stroke:var(--border-subtle);stroke-width:8}
+.score-ring-fg{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1s ease}
+.score-num{font-size:2rem;font-weight:800;color:var(--text-main);fill:var(--text-main)}
+/* Cards */
+.acard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:12px;padding:18px;margin-bottom:16px}
+.acard-title{font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:9999px;font-size:0.75rem;font-weight:600;border:1px solid}
+.pill-green{color:#10b981;border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.08)}
+.pill-red{color:#f87171;border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08)}
+.pill-amber{color:#fbbf24;border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.08)}
+.pill-zinc{color:var(--text-muted);border-color:var(--border-subtle);background:transparent}
+.skills-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.tag-matched{background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.2);padding:3px 9px;border-radius:6px;font-size:0.76rem;font-weight:600}
+.tag-missing{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2);padding:3px 9px;border-radius:6px;font-size:0.76rem;font-weight:600}
+.rec-item{display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border-subtle);font-size:0.84rem;color:var(--text-muted);line-height:1.45}
+.rec-item:last-child{border-bottom:none}
+.rec-icon{color:var(--warning);flex-shrink:0;margin-top:1px}
+/* Section bar */
+.sbar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:0.8rem}
+.sbar-label{width:90px;color:var(--text-muted);flex-shrink:0}
+.sbar-track{flex:1;height:6px;background:var(--border-subtle);border-radius:3px;overflow:hidden}
+.sbar-fill{height:100%;border-radius:3px;transition:width 1s ease}
+.sbar-val{width:30px;text-align:right;color:var(--text-main);font-weight:600}
+/* Comparison */
+.compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.compare-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:10px;padding:14px;text-align:center}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal-box{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:16px;padding:28px;max-width:420px;width:90%;text-align:center}
+.modal-box h3{font-size:1.1rem;font-weight:700;color:var(--text-main);margin-bottom:8px}
+.modal-box p{font-size:0.84rem;color:var(--text-muted);line-height:1.5;margin-bottom:20px}
+.modal-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.mbtn{padding:9px 18px;border-radius:8px;font-size:0.84rem;font-weight:600;cursor:pointer;border:1px solid var(--border-subtle);color:var(--text-muted);background:transparent;transition:all .2s}
+.mbtn.primary{background:var(--text-main);color:var(--bg-primary);border-color:transparent}
+.mbtn:hover{border-color:var(--text-muted);color:var(--text-main)}
+.mbtn.primary:hover{opacity:.88}
+/* Loader */
+.spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.2);border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Comparison header tab */
+.compare-toggle{padding:6px 14px;border:1px solid var(--border-subtle);border-radius:8px;background:transparent;color:var(--text-muted);font-size:0.78rem;font-weight:600;cursor:pointer;transition:all .2s}
+.compare-toggle.active{background:var(--text-main);color:var(--bg-primary);border-color:transparent}
+@media(max-width:700px){.ra-left{width:40%}.ra-layout{height:auto;flex-direction:column}.ra-left{width:100%;height:340px;border-right:none;border-bottom:1px solid var(--border-subtle)}.ra-right{height:auto}}
+</style>
 </head>
-
 <body>
-  <!-- Liquid Glass Background Blobs -->
-  <div class="liquid-blob-container">
-    <div class="liquid-blob blob-1"></div>
-    <div class="liquid-blob blob-2"></div>
+<div class="header-wrapper"></div>
+
+<!-- Existing Resume Modal -->
+<div id="existingModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div style="font-size:2rem;margin-bottom:10px">📄</div>
+    <h3>Resume Found</h3>
+    <p id="existingModalText">You already have a resume uploaded in your Profile. Would you like to load it here for analysis?</p>
+    <div class="modal-actions">
+      <button class="mbtn" onclick="declineExisting()">Upload New Instead</button>
+      <button class="mbtn primary" onclick="acceptExisting()">Load My Resume</button>
+    </div>
+  </div>
+</div>
+
+<div class="ra-layout">
+  <!-- LEFT PANEL -->
+  <div class="ra-left">
+    <div class="tabs-bar">
+      <div class="resume-tab active" id="tab-0" onclick="switchTab(0)">
+        <span id="tab-label-0">Resume 1</span>
+      </div>
+      <div class="resume-tab" id="tab-1" onclick="switchTab(1)" style="display:none">
+        <span id="tab-label-1">Resume 2</span>
+        <span class="tab-close" onclick="event.stopPropagation();removeTab(1)">✕</span>
+      </div>
+      <div class="resume-tab" id="tab-2" onclick="switchTab(2)" style="display:none">
+        <span id="tab-label-2">Resume 3</span>
+        <span class="tab-close" onclick="event.stopPropagation();removeTab(2)">✕</span>
+      </div>
+      <button class="add-tab" id="addTabBtn" onclick="addResume()" title="Add another resume">+</button>
+    </div>
+
+    <div class="viewer-area">
+      <div class="resume-embed empty-slot" id="viewer" onclick="triggerUpload(activeTab)">
+        <span style="font-size:2rem;opacity:.4">📄</span>
+        <span>Click to upload resume</span>
+        <span style="font-size:0.72rem;opacity:.6">PDF or image (max 10MB)</span>
+      </div>
+      <input type="file" id="fileInput" class="hidden-input" accept=".pdf,image/*" onchange="handleFile(event)">
+
+      <button class="analyse-btn" id="analyseBtn" onclick="runAnalysis()" disabled>
+        <span>＋</span> Analyse Resume
+      </button>
+    </div>
   </div>
 
-  <!-- Header Dynamic Injected Wrapper -->
-  <div class="header-wrapper"></div>
-
-  <main class="analyser-container">
-    <!-- Hero Header -->
-    <div class="hero-section">
-      <h1 class="hero-title">Resume Analyser</h1>
-      <p class="hero-subtitle">Optimize your resume for applicant tracking systems (ATS). Upload your portfolio document to verify keywords, ratings, and get direct optimization suggestions from Sarthi AI.</p>
+  <!-- RIGHT PANEL -->
+  <div class="ra-right">
+    <div class="ra-right-inner" id="rightPanel">
+      <div class="ra-placeholder" id="placeholder">
+        <div class="icon">🔍</div>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--text-main)">No Analysis Yet</h3>
+        <p style="font-size:0.84rem;max-width:340px">Upload a resume on the left and click <strong>Analyse Resume</strong> to get your ATS score, keyword gaps, and actionable tips.</p>
+      </div>
+      <div id="dashboard" style="display:none"></div>
     </div>
+  </div>
+</div>
 
-    <!-- Dropzone Panel Card -->
-    <div class="zinc-card" style="position: relative;">
-      <!-- Loading overlay -->
-      <div id="loader" class="loading-overlay" style="display: none;">
-        <div class="spinner"></div>
-        <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-main);">Sarthi AI is analysing resume...</span>
-      </div>
+<script src="../js/header.js"></script>
+<script>
+const MAX_RESUMES = 3;
+let activeTab = 0;
+let resumes = [null, null, null]; // {base64, mime, name, url, result}
+let analysisResults = [null, null, null];
 
-      <!-- Upload View -->
-      <div id="uploadView">
-        <div class="zinc-dropzone" id="dropzone">
-          <input type="file" id="resumeFile" class="file-input" accept=".pdf,image/jpeg,image/png,image/jpg" onchange="handleFileChange(event)">
-          <div style="font-size: 2.2rem; margin-bottom: 12px;">📄</div>
-          <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px;" id="filenameLabel">Upload Resume</h3>
-          <p style="font-size: 0.8rem; color: var(--text-muted);">Drag and drop your PDF or image here, or click to browse</p>
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-          <button class="btn-zinc-secondary" id="clearBtn" onclick="resetFile()" style="display: none;">Cancel</button>
-          <button class="btn-zinc-primary" id="analyseBtn" onclick="triggerAnalysis()" style="display: none;">Analyse Resume</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Results Panel Dashboard (Initially Hidden) -->
-    <div id="resultsView" style="display: none;">
-      <div class="dashboard-grid">
-        <!-- Left Column: Score & Details -->
-        <div style="display: flex; flex-direction: column; gap: 24px;">
-          <!-- Score card -->
-          <div class="zinc-card" style="text-align: center;">
-            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 20px;">ATS Score</h3>
-            <div class="score-circle-wrapper">
-              <div class="score-circle" id="scoreCircle">
-                <span class="score-number" id="scoreValue">0%</span>
-              </div>
-              <p style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; margin-top: 4px;">Overall compatibility rating</p>
-            </div>
-
-            <div class="rating-pill-container" style="border-top: 1px solid var(--border-subtle); padding-top: 16px; margin-top: 16px;">
-              <div class="rating-pill" id="grammarPill">Grammar: Good</div>
-              <div class="rating-pill" id="structurePill">Structure: Excellent</div>
-              <div class="rating-pill" id="readabilityPill">Readability: Good</div>
-            </div>
-          </div>
-
-          <!-- Overview Card -->
-          <div class="zinc-card">
-            <h3 style="font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">AI Executive Review</h3>
-            <p id="overviewText" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;"></p>
-          </div>
-        </div>
-
-        <!-- Right Column: Skills & Tips -->
-        <div style="display: flex; flex-direction: column; gap: 24px;">
-          <!-- Skills Match Card -->
-          <div class="zinc-card">
-            <h3 style="font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Keywords & Skills Match</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">Identify matched professional terms and missing critical keywords required for your domains.</p>
-            
-            <div style="margin-bottom: 16px;">
-              <h4 style="font-size: 0.8rem; font-weight: 600; color: var(--success); margin-bottom: 6px;">Matched Keywords</h4>
-              <div class="skills-flex" id="matchedSkills"></div>
-            </div>
-
-            <div>
-              <h4 style="font-size: 0.8rem; font-weight: 600; color: var(--danger); margin-bottom: 6px;">Missing Recommended Keywords</h4>
-              <div class="skills-flex" id="missingSkills"></div>
-            </div>
-          </div>
-
-          <!-- Recommendations Card -->
-          <div class="zinc-card">
-            <h3 style="font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">ATS Optimization Tips</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">Actionable improvements to elevate your interview call rate.</p>
-            <ul class="rec-list" id="recommendationsList"></ul>
-          </div>
-
-          <!-- Suggested Roles Card -->
-          <div class="zinc-card">
-            <h3 style="font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Suggested Job Roles</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">Based on your qualifications and professional skill profile.</p>
-            <div class="skills-flex" id="suggestedRoles" style="gap: 6px;"></div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display: flex; justify-content: center; margin-top: 30px; gap: 14px;">
-        <button class="btn-zinc-secondary" onclick="resetFile()">Analyse Another Resume</button>
-        <button class="btn-zinc-primary" onclick="window.location.href='index.html'">Go to Dashboard</button>
-      </div>
-    </div>
-  </main>
-
-  <script src="../js/header.js"></script>
-
-  <script>
-    let selectedFileBase64 = "";
-    let selectedFileMime = "";
-
-    // Drag-over styling
-    const dropzone = document.getElementById("dropzone");
-    if (dropzone) {
-      dropzone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        dropzone.classList.add("dragover");
-      });
-      dropzone.addEventListener("dragleave", () => {
-        dropzone.classList.remove("dragover");
-      });
-      dropzone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        dropzone.classList.remove("dragover");
-        if (e.dataTransfer.files.length > 0) {
-          handleFile(e.dataTransfer.files[0]);
-        }
-      });
+// ── Init ──
+window.addEventListener('DOMContentLoaded', async () => {
+  const email = localStorage.getItem('seeker_email');
+  if (!email) return;
+  try {
+    const r = await fetch((window.API_BASE_URL||'')+`/api/seeker/profile?email=${encodeURIComponent(email)}`);
+    const p = await r.json();
+    if (p.resumeUrl) {
+      document.getElementById('existingModalText').textContent = `You have "${p.resumeFileName || 'your resume'}" uploaded in Profile. Load it here for analysis?`;
+      document.getElementById('existingModal').style.display = 'flex';
+      window._existingResume = { url: p.resumeUrl, name: p.resumeFileName || 'Profile Resume' };
     }
+  } catch(e) { console.warn('Could not fetch profile:', e); }
+});
 
-    function handleFileChange(event) {
-      const file = event.target.files[0];
-      if (file) handleFile(file);
+function acceptExisting() {
+  const e = window._existingResume;
+  document.getElementById('existingModal').style.display = 'none';
+  if (!e) return;
+  resumes[0] = { base64: null, mime: null, name: e.name, url: e.url };
+  updateTabLabel(0, e.name);
+  renderViewer(0);
+  document.getElementById('analyseBtn').disabled = false;
+}
+
+function declineExisting() {
+  document.getElementById('existingModal').style.display = 'none';
+  triggerUpload(0);
+}
+
+// ── Tabs ──
+function switchTab(idx) {
+  activeTab = idx;
+  [0,1,2].forEach(i => {
+    const t = document.getElementById('tab-'+i);
+    if(t) t.classList.toggle('active', i===idx);
+  });
+  renderViewer(idx);
+  if (analysisResults[idx]) renderDashboard(analysisResults[idx]);
+  else showPlaceholder();
+}
+
+function addResume() {
+  const next = resumes.findIndex(r => r === null && document.getElementById('tab-'+resumes.indexOf(r)));
+  // find first hidden tab
+  for(let i=1;i<MAX_RESUMES;i++){
+    const tab = document.getElementById('tab-'+i);
+    if(tab && tab.style.display === 'none'){
+      tab.style.display = '';
+      switchTab(i);
+      if(i===MAX_RESUMES-1) document.getElementById('addTabBtn').style.display='none';
+      triggerUpload(i);
+      return;
     }
+  }
+}
 
-    function handleFile(file) {
-      if (file.name.endsWith('.doc') || file.name.endsWith('.docx') || file.type.includes('word')) {
-        alert("Word documents (.doc, .docx) are not supported by the AI parser. Please convert your resume to PDF or upload an image version.");
-        return;
-      }
+function removeTab(idx) {
+  resumes[idx] = null;
+  analysisResults[idx] = null;
+  document.getElementById('tab-'+idx).style.display = 'none';
+  document.getElementById('addTabBtn').style.display = '';
+  switchTab(0);
+}
 
-      selectedFileMime = file.type;
-      document.getElementById("filenameLabel").textContent = file.name;
-      
-      const reader = new FileReader();
-      reader.onload = function () {
-        selectedFileBase64 = reader.result;
-        // Show control buttons
-        document.getElementById("clearBtn").style.display = "inline-flex";
-        document.getElementById("analyseBtn").style.display = "inline-flex";
-      };
-      reader.readAsDataURL(file);
-    }
+function updateTabLabel(idx, name) {
+  const short = name.length > 12 ? name.slice(0,11)+'…' : name;
+  document.getElementById('tab-label-'+idx).textContent = short || 'Resume '+(idx+1);
+}
 
-    function resetFile() {
-      selectedFileBase64 = "";
-      selectedFileMime = "";
-      document.getElementById("filenameLabel").textContent = "Upload Resume";
-      document.getElementById("resumeFile").value = "";
-      document.getElementById("clearBtn").style.display = "none";
-      document.getElementById("analyseBtn").style.display = "none";
-      document.getElementById("resultsView").style.display = "none";
-      document.getElementById("uploadView").style.display = "block";
-    }
+// ── File Upload ──
+function triggerUpload(idx) {
+  activeTab = idx;
+  document.getElementById('fileInput').click();
+}
 
-    async function triggerAnalysis() {
-      if (!selectedFileBase64) return;
+function handleFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 10*1024*1024) { alert('File too large. Max 10MB.'); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    resumes[activeTab] = { base64: reader.result, mime: file.type, name: file.name, url: null };
+    updateTabLabel(activeTab, file.name);
+    renderViewer(activeTab);
+    document.getElementById('analyseBtn').disabled = false;
+    analysisResults[activeTab] = null;
+    showPlaceholder();
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
 
-      document.getElementById("loader").style.display = "flex";
+function renderViewer(idx) {
+  const v = document.getElementById('viewer');
+  const r = resumes[idx];
+  if (!r) {
+    v.innerHTML = `<span style="font-size:2rem;opacity:.4">📄</span><span>Click to upload resume</span><span style="font-size:.72rem;opacity:.6">PDF or image (max 10MB)</span>`;
+    v.classList.add('empty-slot');
+    v.onclick = () => triggerUpload(idx);
+    return;
+  }
+  v.classList.remove('empty-slot');
+  v.onclick = null;
+  const src = r.url || r.base64;
+  const isPdf = r.mime === 'application/pdf' || (r.url && r.url.includes('.pdf'));
+  if (isPdf) {
+    v.innerHTML = `<embed src="${src}" type="application/pdf" width="100%" height="100%" style="border-radius:10px">`;
+  } else {
+    v.innerHTML = `<img src="${src}" alt="Resume" style="max-height:420px;object-fit:contain">`;
+  }
+}
 
+// ── Analysis ──
+async function runAnalysis() {
+  const r = resumes[activeTab];
+  if (!r) return;
+
+  const btn = document.getElementById('analyseBtn');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spin"></span> Analysing…`;
+
+  try {
+    let body;
+    if (r.url && !r.base64) {
+      // Fetch the URL and convert to base64
       try {
-        const response = await fetch((window.API_BASE_URL || '') + '/api/seeker/analyse-resume', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            base64Data: selectedFileBase64,
-            mimeType: selectedFileMime
-          })
-        });
-
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "Analysis failed");
-        }
-
-        renderAnalysisResults(data);
-      } catch (err) {
-        console.error(err);
-        alert("Sarthi AI Analysis failed to connect. Falling back to default parser report.");
-        // Fallback to sample data so page never breaks
-        renderAnalysisResults({
-          atsScore: 75,
-          grammarRating: "Good",
-          structureRating: "Good",
-          readabilityRating: "Excellent",
-          overview: "This is a fallback resume report. Your resume has a strong core structure, but would benefit from adding modern metrics and domain-specific keywords.",
-          matchedSkills: ["HTML", "CSS", "JavaScript", "SQL"],
-          missingSkills: ["React.js", "Node.js", "Docker", "Git"],
-          suggestedRoles: ["Junior Web Developer", "Software Support Intern"],
-          recommendations: [
-            "Integrate project metrics showing your individual contributions.",
-            "List specific technical frameworks instead of general concepts.",
-            "Verify all email addresses and social links are valid."
-          ]
-        });
-      } finally {
-        document.getElementById("loader").style.display = "none";
+        const resp = await fetch(r.url);
+        const blob = await resp.blob();
+        const b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = ()=>res(fr.result); fr.readAsDataURL(blob); });
+        body = { base64Data: b64, mimeType: blob.type || 'application/pdf' };
+      } catch {
+        body = { base64Data: r.url, mimeType: 'application/pdf' };
       }
+    } else {
+      body = { base64Data: r.base64, mimeType: r.mime };
     }
 
-    function renderAnalysisResults(data) {
-      // Hide upload, show results
-      document.getElementById("uploadView").style.display = "none";
-      document.getElementById("resultsView").style.display = "block";
+    const resp = await fetch((window.API_BASE_URL||'')+'/api/seeker/analyse-resume', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Analysis failed');
+    analysisResults[activeTab] = data;
+    renderDashboard(data);
+  } catch(err) {
+    alert('Analysis failed: ' + err.message);
+    showPlaceholder();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<span>＋</span> Re-analyse`;
+  }
+}
 
-      // Render ATS Score circular indicator
-      const score = data.atsScore || 0;
-      document.getElementById("scoreValue").textContent = `${score}%`;
-      
-      let scoreColor = "var(--success)";
-      if (score < 50) scoreColor = "var(--danger)";
-      else if (score < 75) scoreColor = "var(--warning)";
+function showPlaceholder() {
+  document.getElementById('placeholder').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+}
 
-      const scoreCircle = document.getElementById("scoreCircle");
-      scoreCircle.style.background = `radial-gradient(closest-side, var(--bg-surface) 79%, transparent 80% 100%), conic-gradient(${scoreColor} ${score}%, var(--border-subtle) ${score}% 100%)`;
+function renderDashboard(d) {
+  document.getElementById('placeholder').style.display = 'none';
+  const dash = document.getElementById('dashboard');
+  dash.style.display = 'block';
 
-      // Render pills
-      setRatingPill("grammarPill", "Grammar", data.grammarRating);
-      setRatingPill("structurePill", "Structure", data.structureRating);
-      setRatingPill("readabilityPill", "Readability", data.readabilityRating);
+  const score = d.atsScore || 0;
+  const scoreColor = score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+  const circumference = 2 * Math.PI * 54;
+  const offset = circumference - (score / 100) * circumference;
 
-      // Render overview text
-      document.getElementById("overviewText").textContent = data.overview || "No review summary available.";
+  const ratingPill = (label, val) => {
+    const cls = val === 'Excellent' ? 'pill-green' : val === 'Good' ? 'pill-amber' : 'pill-red';
+    return `<span class="pill ${cls}">${label}: ${val || 'N/A'}</span>`;
+  };
 
-      // Render Matched Skills
-      const matchedContainer = document.getElementById("matchedSkills");
-      matchedContainer.innerHTML = "";
-      if (data.matchedSkills && data.matchedSkills.length > 0) {
-        data.matchedSkills.forEach(skill => {
-          const tag = document.createElement("span");
-          tag.className = "skill-tag matched";
-          tag.textContent = skill;
-          matchedContainer.appendChild(tag);
-        });
-      } else {
-        matchedContainer.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">None detected</span>`;
-      }
+  const barColor = v => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
+  const sectionScores = d.sectionScores || {};
+  const sections = [
+    ['Contact Info', sectionScores.contactInfo],
+    ['Summary', sectionScores.summary],
+    ['Experience', sectionScores.experience],
+    ['Education', sectionScores.education],
+    ['Skills', sectionScores.skills],
+    ['Projects', sectionScores.projects]
+  ].filter(([,v]) => v !== undefined);
 
-      // Render Missing Skills
-      const missingContainer = document.getElementById("missingSkills");
-      missingContainer.innerHTML = "";
-      if (data.missingSkills && data.missingSkills.length > 0) {
-        data.missingSkills.forEach(skill => {
-          const tag = document.createElement("span");
-          tag.className = "skill-tag missing";
-          tag.textContent = skill;
-          missingContainer.appendChild(tag);
-        });
-      } else {
-        missingContainer.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">None detected</span>`;
-      }
+  // Compare button if multiple results
+  const hasMultiple = analysisResults.filter(Boolean).length > 1;
+  const compareBtn = hasMultiple ? `<button class="compare-toggle" onclick="renderComparison()" style="margin-bottom:16px">⚡ Compare All Resumes</button>` : '';
 
-      // Render Recommendations List
-      const recList = document.getElementById("recommendationsList");
-      recList.innerHTML = "";
-      if (data.recommendations && data.recommendations.length > 0) {
-        data.recommendations.forEach(tip => {
-          const li = document.createElement("li");
-          li.className = "rec-item";
-          li.innerHTML = `
-            <span class="rec-icon">⚡</span>
-            <span>${tip}</span>
-          `;
-          recList.appendChild(li);
-        });
-      } else {
-        recList.innerHTML = `<li style="font-size: 0.8rem; color: var(--text-muted);">No recommendations found.</li>`;
-      }
+  dash.innerHTML = `
+  ${compareBtn}
+  <!-- Score + Ratings -->
+  <div class="acard" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+    <div style="text-align:center;flex-shrink:0">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle class="score-ring-bg" cx="60" cy="60" r="54"/>
+        <circle class="score-ring-fg" cx="60" cy="60" r="54"
+          stroke="${scoreColor}"
+          stroke-dasharray="${circumference}"
+          stroke-dashoffset="${offset}"
+          transform="rotate(-90 60 60)"/>
+        <text x="60" y="66" text-anchor="middle" font-size="26" font-weight="800" fill="${scoreColor}">${score}</text>
+        <text x="60" y="82" text-anchor="middle" font-size="11" fill="var(--text-muted)">ATS Score</text>
+      </svg>
+    </div>
+    <div style="flex:1;min-width:200px">
+      <h3 style="font-size:1rem;font-weight:700;color:var(--text-main);margin-bottom:8px">${resumes[activeTab]?.name || 'Resume'}</h3>
+      <p style="font-size:.83rem;color:var(--text-muted);line-height:1.5;margin-bottom:12px">${d.overview || ''}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${ratingPill('Grammar', d.grammarRating)}
+        ${ratingPill('Structure', d.structureRating)}
+        ${ratingPill('Readability', d.readabilityRating)}
+        ${d.keywordDensity ? `<span class="pill pill-zinc">Keywords: ${d.keywordDensity}</span>` : ''}
+      </div>
+    </div>
+  </div>
 
-      // Render Suggested Roles
-      const rolesContainer = document.getElementById("suggestedRoles");
-      rolesContainer.innerHTML = "";
-      if (data.suggestedRoles && data.suggestedRoles.length > 0) {
-        data.suggestedRoles.forEach(role => {
-          const tag = document.createElement("span");
-          tag.className = "rating-pill";
-          tag.style.color = "var(--text-main)";
-          tag.textContent = role;
-          rolesContainer.appendChild(tag);
-        });
-      } else {
-        rolesContainer.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">None suggested</span>`;
-      }
-    }
+  ${sections.length ? `
+  <!-- Section Scores -->
+  <div class="acard">
+    <div class="acard-title">Section Breakdown</div>
+    ${sections.map(([label, val]) => `
+    <div class="sbar-row">
+      <span class="sbar-label">${label}</span>
+      <div class="sbar-track"><div class="sbar-fill" style="width:${val}%;background:${barColor(val)}"></div></div>
+      <span class="sbar-val">${val}</span>
+    </div>`).join('')}
+  </div>` : ''}
 
-    function setRatingPill(elementId, label, rating) {
-      const el = document.getElementById(elementId);
-      if (!el) return;
+  <!-- Skills -->
+  <div class="acard">
+    <div class="acard-title">Keyword Analysis</div>
+    ${(d.matchedSkills||[]).length ? `<div style="margin-bottom:10px"><div style="font-size:.78rem;font-weight:600;color:var(--success);margin-bottom:6px">✓ Matched (${(d.matchedSkills||[]).length})</div><div class="skills-wrap">${(d.matchedSkills||[]).map(s=>`<span class="tag-matched">${s}</span>`).join('')}</div></div>` : ''}
+    ${(d.missingSkills||[]).length ? `<div><div style="font-size:.78rem;font-weight:600;color:var(--danger);margin-bottom:6px">✗ Missing (${(d.missingSkills||[]).length})</div><div class="skills-wrap">${(d.missingSkills||[]).map(s=>`<span class="tag-missing">${s}</span>`).join('')}</div></div>` : ''}
+  </div>
 
-      el.className = "rating-pill";
-      el.textContent = `${label}: ${rating || "N/A"}`;
+  ${(d.strengths||[]).length ? `
+  <div class="acard">
+    <div class="acard-title">Strengths</div>
+    <div class="skills-wrap">${(d.strengths||[]).map(s=>`<span class="pill pill-green">✓ ${s}</span>`).join('')}</div>
+  </div>` : ''}
 
-      if (rating === "Excellent") el.classList.add("success");
-      else if (rating === "Good") el.classList.add("success");
-      else if (rating === "Needs Improvement") el.classList.add("danger");
-      else el.classList.add("warning");
-    }
-  </script>
+  ${(d.quickWins||[]).length ? `
+  <div class="acard">
+    <div class="acard-title">Quick Wins</div>
+    <div class="skills-wrap">${(d.quickWins||[]).map(s=>`<span class="pill pill-amber">⚡ ${s}</span>`).join('')}</div>
+  </div>` : ''}
+
+  <!-- Recommendations -->
+  ${(d.recommendations||[]).length ? `
+  <div class="acard">
+    <div class="acard-title">ATS Optimization Tips</div>
+    ${(d.recommendations||[]).map(r=>`<div class="rec-item"><span class="rec-icon">→</span><span>${r}</span></div>`).join('')}
+  </div>` : ''}
+
+  <!-- Suggested Roles -->
+  ${(d.suggestedRoles||[]).length ? `
+  <div class="acard">
+    <div class="acard-title">Suggested Roles</div>
+    <div class="skills-wrap">${(d.suggestedRoles||[]).map(r=>`<span class="pill pill-zinc">${r}</span>`).join('')}</div>
+  </div>` : ''}
+  `;
+}
+
+function renderComparison() {
+  const dash = document.getElementById('dashboard');
+  const validResults = analysisResults.map((r,i) => r ? {r, i} : null).filter(Boolean);
+  if (validResults.length < 2) return;
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h3 style="font-size:1rem;font-weight:700;color:var(--text-main)">Resume Comparison</h3>
+    <button class="compare-toggle active" onclick="renderDashboard(analysisResults[activeTab])">← Back</button>
+  </div>
+  <div class="compare-grid">`;
+
+  validResults.forEach(({r,i}) => {
+    const sc = r.atsScore||0;
+    const col = sc>=75?'#10b981':sc>=50?'#f59e0b':'#ef4444';
+    html += `<div class="compare-card">
+      <div style="font-size:.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px">${resumes[i]?.name||'Resume '+(i+1)}</div>
+      <div style="font-size:2.2rem;font-weight:800;color:${col};margin-bottom:6px">${sc}<span style="font-size:1rem">%</span></div>
+      <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:10px">ATS Score</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${Object.entries(r.sectionScores||{}).map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--text-muted);text-transform:capitalize">${k.replace(/([A-Z])/g,' $1')}</span><span style="font-weight:600;color:${v>=70?'#10b981':v>=50?'#f59e0b':'#ef4444'}">${v}</span></div>`).join('')}
+      </div>
+      <button class="analyse-btn" style="margin-top:12px;font-size:.75rem;padding:7px" onclick="activeTab=${i};renderDashboard(analysisResults[${i}])">View Details</button>
+    </div>`;
+  });
+
+  html += '</div>';
+  dash.innerHTML = html;
+  document.getElementById('placeholder').style.display = 'none';
+  dash.style.display = 'block';
+}
+</script>
 </body>
-
 </html>

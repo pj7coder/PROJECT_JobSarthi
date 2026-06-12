@@ -3414,48 +3414,171 @@ app.post("/api/seeker/analyse-resume", uploadRateLimiter, largeBodyParser, async
     }
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+    // ── Step 1: Use Gemini to PARSE the document and extract raw resume text/structure ──
+    let extractedText = null;
     if (GEMINI_API_KEY) {
       try {
-        console.log("Analyzing resume via Gemini 2.5 Flash...");
-        const prompt = `Analyze this resume and provide an ATS/compatibility feedback report. Inspect the candidate's skills, structure, grammar, and layout. Return ONLY a raw JSON object matching this schema:
+        console.log("[ResumeAnalyser] Step 1 — Extracting resume content via Gemini...");
+        const extractPrompt = `Extract ALL text content from this resume document. Return a raw JSON object:
 {
-  "atsScore": 78,
-  "grammarRating": "Excellent",
-  "structureRating": "Good",
-  "readabilityRating": "Excellent",
-  "overview": "A brief 2-3 sentence overview of the resume's strengths and core focus.",
-  "matchedSkills": ["Skill1", "Skill2"],
-  "missingSkills": ["SkillA", "SkillB"],
-  "suggestedRoles": ["Role1", "Role2"],
-  "recommendations": [
-    "Tip 1 (e.g. Add metrics or numerical outcomes to your project bullet points)",
-    "Tip 2 (e.g. Ensure contact details are clearly visible at the top)",
-    "Tip 3 (e.g. Expand on React.js or backend technologies if seeking web developer roles)"
-  ]
+  "fullName": "Candidate name",
+  "contact": "Email / Phone / LinkedIn if present",
+  "education": "All education entries as a string",
+  "experience": "All work experience entries as a string",
+  "skills": ["skill1", "skill2"],
+  "projects": "Project descriptions as a string",
+  "certifications": "Any certifications listed",
+  "rawText": "The complete raw text content of the resume"
 }`;
-        const parsed = await parseDocumentWithGemini(base64Data, mimeType, prompt);
-        return res.json(parsed);
+        extractedText = await parseDocumentWithGemini(base64Data, mimeType, extractPrompt);
+        console.log("[ResumeAnalyser] Gemini extraction complete.");
       } catch (geminiErr) {
-        console.warn("Gemini resume analysis failed, falling back to mock:", geminiErr);
+        console.warn("[ResumeAnalyser] Gemini extraction failed:", geminiErr.message);
       }
     }
 
-    // --- Mock Fallback Analysis ---
-    console.log("Emulating Resume Analysis...");
+    // ── Step 2: Use Groq to ANALYSE and generate deep ATS feedback from extracted content ──
+    if (extractedText && GROQ_API_KEY) {
+      try {
+        console.log("[ResumeAnalyser] Step 2 — Generating ATS analysis via Groq...");
+        const resumeContext = typeof extractedText === "object"
+          ? JSON.stringify(extractedText)
+          : String(extractedText);
+
+        const groqMessages = [
+          {
+            role: "system",
+            content: `You are an expert ATS (Applicant Tracking System) resume coach and career advisor. Analyze resumes with precision and provide highly actionable, specific feedback. Always return valid JSON only — no markdown, no explanation outside the JSON.`
+          },
+          {
+            role: "user",
+            content: `Analyze the following resume data and return a comprehensive ATS evaluation report as a raw JSON object. Be precise, data-driven, and genuinely helpful.
+
+Resume Content:
+${resumeContext}
+
+Return ONLY this JSON schema (no extra text):
+{
+  "atsScore": <integer 0-100 — honest score based on structure, keywords, and content richness>,
+  "grammarRating": "<Excellent | Good | Needs Improvement>",
+  "structureRating": "<Excellent | Good | Needs Improvement>",
+  "readabilityRating": "<Excellent | Good | Needs Improvement>",
+  "keywordDensity": "<High | Medium | Low>",
+  "overview": "<2-3 sentences summarizing the resume's overall quality, focus area, and primary strengths>",
+  "matchedSkills": ["<skills/keywords present that are ATS-friendly and marketable>"],
+  "missingSkills": ["<important industry-standard skills missing from this resume that would improve ATS score>"],
+  "suggestedRoles": ["<job roles this candidate is well-suited for based on their skills and experience>"],
+  "sectionScores": {
+    "contactInfo": <0-100>,
+    "summary": <0-100>,
+    "experience": <0-100>,
+    "education": <0-100>,
+    "skills": <0-100>,
+    "projects": <0-100>
+  },
+  "recommendations": [
+    "<specific, actionable tip 1 — reference exact content from the resume>",
+    "<specific, actionable tip 2>",
+    "<specific, actionable tip 3>",
+    "<specific, actionable tip 4>",
+    "<specific, actionable tip 5>"
+  ],
+  "strengths": ["<genuine strength 1>", "<genuine strength 2>", "<genuine strength 3>"],
+  "quickWins": ["<small change that would immediately improve ATS score>", "<another quick win>"]
+}`
+          }
+        ];
+
+        const groqResponse = await callGroq(groqMessages, true, 0.1);
+        let analysisResult;
+        try {
+          analysisResult = typeof groqResponse === "string" ? JSON.parse(groqResponse) : groqResponse;
+        } catch {
+          analysisResult = groqResponse;
+        }
+        console.log("[ResumeAnalyser] Groq analysis complete. ATS Score:", analysisResult?.atsScore);
+        return res.json(analysisResult);
+
+      } catch (groqErr) {
+        console.warn("[ResumeAnalyser] Groq analysis failed:", groqErr.message);
+        // If we have extracted text but Groq failed, try Gemini for the full analysis
+        if (GEMINI_API_KEY && extractedText) {
+          try {
+            console.log("[ResumeAnalyser] Falling back to full Gemini analysis...");
+            const fullPrompt = `Based on this resume content, provide a comprehensive ATS evaluation. Return ONLY raw JSON:
+{
+  "atsScore": <0-100>,
+  "grammarRating": "Excellent|Good|Needs Improvement",
+  "structureRating": "Excellent|Good|Needs Improvement",
+  "readabilityRating": "Excellent|Good|Needs Improvement",
+  "keywordDensity": "High|Medium|Low",
+  "overview": "2-3 sentence summary",
+  "matchedSkills": [],
+  "missingSkills": [],
+  "suggestedRoles": [],
+  "sectionScores": {"contactInfo":0,"summary":0,"experience":0,"education":0,"skills":0,"projects":0},
+  "recommendations": [],
+  "strengths": [],
+  "quickWins": []
+}
+
+Resume: ${JSON.stringify(extractedText)}`;
+            const geminiAnalysis = await parseDocumentWithGemini(base64Data, mimeType, fullPrompt);
+            return res.json(geminiAnalysis);
+          } catch (fallbackErr) {
+            console.warn("[ResumeAnalyser] Fallback Gemini analysis also failed:", fallbackErr.message);
+          }
+        }
+      }
+    } else if (!extractedText && GEMINI_API_KEY) {
+      // Gemini failed at extraction, try direct full analysis with Gemini
+      try {
+        const directPrompt = `Analyze this resume document and return a comprehensive ATS evaluation. Return ONLY raw JSON:
+{
+  "atsScore": <0-100>,
+  "grammarRating": "Excellent|Good|Needs Improvement",
+  "structureRating": "Excellent|Good|Needs Improvement",
+  "readabilityRating": "Excellent|Good|Needs Improvement",
+  "keywordDensity": "High|Medium|Low",
+  "overview": "2-3 sentence summary",
+  "matchedSkills": [],
+  "missingSkills": [],
+  "suggestedRoles": [],
+  "sectionScores": {"contactInfo":0,"summary":0,"experience":0,"education":0,"skills":0,"projects":0},
+  "recommendations": [],
+  "strengths": [],
+  "quickWins": []
+}`;
+        const directAnalysis = await parseDocumentWithGemini(base64Data, mimeType, directPrompt);
+        return res.json(directAnalysis);
+      } catch (directErr) {
+        console.warn("[ResumeAnalyser] Direct Gemini analysis failed:", directErr.message);
+      }
+    }
+
+    // ── Final Fallback: Realistic mock data ──
+    console.log("[ResumeAnalyser] Using mock fallback data.");
     res.json({
-      atsScore: 82,
-      grammarRating: "Excellent",
+      atsScore: 74,
+      grammarRating: "Good",
       structureRating: "Good",
       readabilityRating: "Excellent",
-      overview: "Strong technical resume with clear educational credentials from BITS Pilani and web development internship experience. Excellent presentation of core web languages, but project impact metrics could be more pronounced.",
-      matchedSkills: ["HTML", "CSS", "JavaScript", "React.js", "Node.js", "MongoDB", "SQL"],
-      missingSkills: ["TypeScript", "Docker", "RESTful APIs", "Jest (Testing)"],
-      suggestedRoles: ["Frontend Developer", "MERN Stack Engineer", "Junior Software Engineer"],
+      keywordDensity: "Medium",
+      overview: "This resume demonstrates solid technical foundations with a clear educational background and entry-level project experience. The structure is easy to follow, though keyword density and impact metrics could be significantly improved to pass modern ATS filters.",
+      matchedSkills: ["HTML", "CSS", "JavaScript", "React.js", "Node.js", "MongoDB", "SQL", "Git"],
+      missingSkills: ["TypeScript", "Docker", "CI/CD", "REST APIs", "AWS/Cloud", "Jest", "Agile/Scrum"],
+      suggestedRoles: ["Frontend Developer", "Full Stack Engineer", "Junior Software Developer", "Web Developer Intern"],
+      sectionScores: { contactInfo: 80, summary: 55, experience: 70, education: 85, skills: 75, projects: 60 },
       recommendations: [
-        "Include quantifiable metrics (e.g. 'Improved loading speed by 25%' or 'Managed 500+ active sessions') in your internship descriptions.",
-        "Add TypeScript and modern cloud hosting experience (like Vercel or AWS) to show familiarity with full-stack deployments.",
-        "Structure projects section before educational credentials if you have completed more than two tech stack internships."
-      ]
+        "Add quantifiable outcomes to every experience bullet (e.g. 'Reduced page load time by 40%' instead of 'Improved performance').",
+        "Include a 2-3 line professional summary at the top — many ATS systems rank resumes without summaries lower.",
+        "List TypeScript, Docker, and CI/CD tools — these are the most filtered keywords for software roles in 2025.",
+        "Rewrite project descriptions to include tech stack used, problem solved, and measurable result achieved.",
+        "Ensure your LinkedIn URL and GitHub profile are visible in the contact section — recruiters click these."
+      ],
+      strengths: ["Clear educational credentials", "Diverse tech stack coverage", "Consistent formatting"],
+      quickWins: ["Add a LinkedIn profile link", "Include GitHub URL", "Add a professional summary section"]
     });
 
   } catch (err) {
