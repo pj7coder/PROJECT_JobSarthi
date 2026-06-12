@@ -3615,19 +3615,25 @@ Resume: ${JSON.stringify(extractedText)}`;
 // ── Save a resume slot to Cloudinary and persist URL in profile ──
 app.post("/api/seeker/save-analysis-resume", uploadRateLimiter, largeBodyParser, async (req, res) => {
   try {
-    const { email, base64Data, mimeType, fileName, slotIndex } = req.body;
-    if (!email || !base64Data || slotIndex === undefined) {
-      return res.status(400).json({ error: "email, base64Data and slotIndex are required." });
+    const { email, base64Data, mimeType, fileName, slotIndex, analysisResult } = req.body;
+    if (!email || slotIndex === undefined) {
+      return res.status(400).json({ error: "email and slotIndex are required." });
     }
     const idx = parseInt(slotIndex, 10);
     if (isNaN(idx) || idx < 0 || idx > 2) {
       return res.status(400).json({ error: "slotIndex must be 0, 1, or 2." });
     }
 
-    // Upload to Cloudinary (raw for PDFs)
-    const resourceType = (mimeType === "application/pdf") ? "raw" : "image";
-    console.log(`[AnalysisResume] Uploading slot ${idx} to Cloudinary (${resourceType})...`);
-    const secureUrl = await uploadToCloudinary(base64Data, resourceType);
+    let secureUrl = null;
+    if (base64Data) {
+      if (base64Data.startsWith("http")) {
+        secureUrl = base64Data;
+      } else {
+        const resourceType = (mimeType === "application/pdf") ? "raw" : "image";
+        console.log(`[AnalysisResume] Uploading slot ${idx} to Cloudinary (${resourceType})...`);
+        secureUrl = await uploadToCloudinary(base64Data, resourceType);
+      }
+    }
 
     // Fetch the user using dbService (handles MongoDB vs db.json transparently)
     const user = await dbService.findUserByEmail(email);
@@ -3638,14 +3644,26 @@ app.post("/api/seeker/save-analysis-resume", uploadRateLimiter, largeBodyParser,
       user.profile.analysisResumes = [null, null, null];
     }
 
-    // Delete old Cloudinary file if replacing
-    const oldSlot = user.profile.analysisResumes[idx];
-    if (oldSlot?.url && oldSlot.url.startsWith("http")) {
-      await deleteFromCloudinary(oldSlot.url);
+    if (!user.profile.analysisResumes[idx]) {
+      user.profile.analysisResumes[idx] = { url: "", fileName: fileName || `Resume ${idx + 1}`, uploadedAt: new Date().toISOString() };
     }
 
-    const savedResume = { url: secureUrl, fileName: fileName || `Resume ${idx + 1}`, uploadedAt: new Date().toISOString() };
-    user.profile.analysisResumes[idx] = savedResume;
+    const targetSlot = user.profile.analysisResumes[idx];
+
+    if (secureUrl) {
+      // Delete old Cloudinary file if replacing
+      if (targetSlot.url && targetSlot.url.startsWith("http") && targetSlot.url !== secureUrl) {
+        await deleteFromCloudinary(targetSlot.url);
+      }
+      targetSlot.url = secureUrl;
+      targetSlot.uploadedAt = new Date().toISOString();
+    }
+    if (fileName) {
+      targetSlot.fileName = fileName;
+    }
+    if (analysisResult !== undefined) {
+      targetSlot.analysisResult = analysisResult;
+    }
 
     // Update in Database (handles MongoDB vs db.json)
     if (mongoDb) {
@@ -3658,15 +3676,12 @@ app.post("/api/seeker/save-analysis-resume", uploadRateLimiter, largeBodyParser,
       const dbUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
       if (dbUser) {
         if (!dbUser.profile) dbUser.profile = {};
-        if (!Array.isArray(dbUser.profile.analysisResumes)) {
-          dbUser.profile.analysisResumes = [null, null, null];
-        }
-        dbUser.profile.analysisResumes[idx] = savedResume;
+        dbUser.profile.analysisResumes = user.profile.analysisResumes;
         await writeLocalDB(db);
       }
     }
 
-    res.json({ success: true, url: secureUrl, fileName: fileName || `Resume ${idx + 1}` });
+    res.json({ success: true, url: targetSlot.url, fileName: targetSlot.fileName, analysisResult: targetSlot.analysisResult });
   } catch (err) {
     console.error("[AnalysisResume] Save error:", err);
     res.status(500).json({ error: "Failed to save resume." });

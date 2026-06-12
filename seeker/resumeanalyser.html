@@ -275,6 +275,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     for (let i = 0; i < 3; i++) {
       if (saved[i] && saved[i].url) {
         resumes[i] = { base64: null, mime: null, name: saved[i].fileName || `Resume ${i+1}`, url: saved[i].url };
+        if (saved[i].analysisResult) {
+          analysisResults[i] = saved[i].analysisResult;
+        }
         updateTabLabel(i, resumes[i].name);
         if (i > 0) {
           const tab = document.getElementById('tab-'+i);
@@ -287,6 +290,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (loadedAny) {
       renderViewer(0);
       document.getElementById('analyseBtn').disabled = false;
+      if (analysisResults[0]) {
+        renderDashboard(analysisResults[0]);
+      } else {
+        showPlaceholder();
+      }
       return; // skip existing-resume modal if we already loaded saved resumes
     }
 
@@ -330,6 +338,7 @@ function switchTab(idx) {
     if(t) t.classList.toggle('active', i===idx);
   });
   renderViewer(idx);
+  document.getElementById('analyseBtn').disabled = (resumes[idx] === null);
   if (analysisResults[idx]) renderDashboard(analysisResults[idx]);
   else showPlaceholder();
 }
@@ -569,6 +578,15 @@ async function runAnalysis() {
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Analysis failed');
     analysisResults[activeTab] = data;
+
+    // Persist analysis result to DB in background
+    const email = localStorage.getItem('seeker_email');
+    if (email) {
+      fetch((window.API_BASE_URL||'')+'/api/seeker/save-analysis-resume', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email, slotIndex: activeTab, analysisResult: data })
+      }).catch(err => console.warn('Could not save analysis result to DB:', err));
+    }
     
     // Remove loader and render dashboard
     const loader = document.getElementById('scanLoader');
