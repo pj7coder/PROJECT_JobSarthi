@@ -1755,6 +1755,7 @@
         if(confirm("Are you sure you want to quit the interview? Your progress won't be saved.")) {
           if (localStream) {
             localStream.getTracks().forEach(track => track.stop());
+            if (localStream._mockCleanup) localStream._mockCleanup();
           }
           window.location.href = "index.html";
         }
@@ -1903,12 +1904,85 @@
       }
     }
 
+    // --- MOCK CAMERA AND MIC GENERATOR FOR LOCAL DEVELOPMENT ---
+    function createMockMediaStream() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 640;
+      canvas.height = 480;
+      const ctx = canvas.getContext("2d");
+      
+      let angle = 0;
+      const intervalId = setInterval(() => {
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(0, 0, 640, 480);
+        
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.4)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(40, 40, 560, 400);
+        
+        // Face representation
+        ctx.fillStyle = "#fdba74";
+        ctx.beginPath();
+        ctx.arc(320, 240 + Math.sin(angle) * 10, 85, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Eyes representation
+        ctx.fillStyle = "#1e1b4b";
+        ctx.beginPath();
+        ctx.arc(285, 215 + Math.sin(angle) * 10, 8, 0, Math.PI * 2);
+        ctx.arc(355, 215 + Math.sin(angle) * 10, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Mouth representation
+        ctx.strokeStyle = "#1e1b4b";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(320, 255 + Math.sin(angle) * 10, 20, 0, Math.PI);
+        ctx.stroke();
+        
+        ctx.fillStyle = "#10b981";
+        ctx.font = "bold 16px sans-serif";
+        ctx.fillText("MOCK WEBCAM STREAM (LOCAL DEV)", 60, 80);
+        ctx.fillText("EYE GAZE: LOCKED", 60, 110);
+        
+        angle += 0.05;
+      }, 33);
+      
+      const videoTrack = canvas.captureStream(30).getVideoTracks()[0];
+      
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const mockAudioCtx = new AudioContextClass();
+      const dest = mockAudioCtx.createMediaStreamDestination();
+      const osc = mockAudioCtx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(440, mockAudioCtx.currentTime);
+      const gainNode = mockAudioCtx.createGain();
+      gainNode.gain.setValueAtTime(0.001, mockAudioCtx.currentTime);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      osc.start();
+      
+      const audioTrack = dest.stream.getAudioTracks()[0];
+      
+      const stream = new MediaStream([videoTrack, audioTrack]);
+      stream._mockCleanup = () => {
+        clearInterval(intervalId);
+        try { osc.stop(); } catch(e){}
+        try { mockAudioCtx.close(); } catch(e){}
+      };
+      
+      return stream;
+    }
+
     // --- HARDWARE PERMISSIONS AND CAM PREVIEW ---
     function setupPermissions() {
       const requestBtn = document.getElementById("requestPermsBtn");
       
       requestBtn.addEventListener("click", async () => {
         try {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("WebRTC mediaDevices API is not supported in this browser context (requires HTTPS or localhost).");
+          }
           localStream = await navigator.mediaDevices.getUserMedia({ 
             video: { width: 640, height: 480 }, 
             audio: true 
@@ -1934,7 +2008,31 @@
 
         } catch (err) {
           console.error("Permission error:", err);
-          alert("We require camera and mic access for eyeball proctoring and voice-to-text. Please click standard permission popup to allow.");
+          let message = "We require camera and mic access for eyeball proctoring and voice-to-text. Please click standard permission popup to allow.";
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            message = "WebRTC mediaDevices API is disabled because this page is not served over a secure connection (HTTPS or localhost).";
+          }
+          
+          if (confirm(message + "\n\nWould you like to start the interview using a Simulated/Mock Webcam and Mic for local testing purposes?")) {
+            localStream = createMockMediaStream();
+            const previewVideo = document.getElementById("setupVideoPreview");
+            previewVideo.srcObject = localStream;
+            document.getElementById("previewFallbackText").style.display = "none";
+
+            document.getElementById("camPermBadge").textContent = "Mocked";
+            document.getElementById("camPermBadge").className = "permission-badge granted";
+            document.getElementById("micPermBadge").textContent = "Mocked";
+            document.getElementById("micPermBadge").className = "permission-badge granted";
+
+            document.getElementById("startInterviewBtn").disabled = false;
+            requestBtn.style.display = "none";
+
+            const hint = document.getElementById("startInterviewHint");
+            if (hint) {
+              hint.textContent = "✓ Using simulated camera & mic — ready to test!";
+              hint.style.color = "var(--success)";
+            }
+          }
         }
       });
     }
@@ -3064,6 +3162,7 @@
       // Stop hardware tracks
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
+        if (localStream._mockCleanup) localStream._mockCleanup();
       }
       if (speechRecognition) speechRecognition.stop();
       if (window.speechSynthesis) window.speechSynthesis.cancel();
