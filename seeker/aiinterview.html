@@ -1066,6 +1066,23 @@
 
         <!-- LEFT: Camera Preview & Permissions -->
         <div>
+          <!-- Local File / Security Protocol Warning Banner -->
+          <div id="fileProtocolWarning" style="display: none; padding: 15px; margin-bottom: 16px; border: 1.5px solid var(--danger); background: rgba(239, 68, 68, 0.1); border-radius: 12px; line-height: 1.5;">
+            <div style="font-weight: 800; color: var(--danger); display: flex; align-items: center; gap: 8px; font-size: 0.95rem; margin-bottom: 6px;">
+              <span>⚠️</span> Local File Protocol Detected (file://)
+            </div>
+            <p style="margin: 0; font-size: 0.82rem; color: var(--text-muted);">
+              Chrome security policies block camera and microphone access when opening HTML files directly from a local folder.
+            </p>
+            <div style="margin-top: 10px; font-size: 0.8rem; color: var(--text-main); font-weight: 600;">
+              How to run with your real camera:
+            </div>
+            <ul style="margin: 4px 0 0; padding-left: 18px; font-size: 0.8rem; color: var(--text-muted);">
+              <li>Use the <strong>Live Server</strong> extension in VS Code.</li>
+              <li>Or run a local server command: <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px; color: var(--accent-secondary);">npx serve</code> or <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px; color: var(--accent-secondary);">python -m http.server</code> in this folder.</li>
+            </ul>
+          </div>
+
           <!-- Permissions Status -->
           <div class="setup-permissions-panel" style="margin-bottom: 16px;">
             <h4 style="font-size: 0.88rem; margin: 0 0 10px; display: flex; align-items: center; gap: 6px; font-weight: 700;">
@@ -1667,6 +1684,10 @@
 
     // --- INITIALIZATION ---
     document.addEventListener("DOMContentLoaded", () => {
+      if (window.location.protocol === 'file:') {
+        const warningBox = document.getElementById("fileProtocolWarning");
+        if (warningBox) warningBox.style.display = "block";
+      }
       setupPermissions();
       setupEventListeners();
       triggerBlink();
