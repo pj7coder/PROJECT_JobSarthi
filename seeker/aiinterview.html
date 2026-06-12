@@ -96,28 +96,28 @@
       .interview-grid {
         flex: 1;
         display: grid;
-        grid-template-columns: 300px 1fr;
-        gap: 25px;
-        margin-top: 10px;
+        grid-template-columns: 320px 1fr;
+        gap: 20px;
+        margin-top: 8px;
         min-height: 0;
       }
       .proctor-sidebar {
         height: 100%;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 10px;
         min-height: 0;
       }
       .interviewer-avatar-panel,
       .camera-container {
-        width: auto !important;
+        width: 100% !important;
         max-width: 100% !important;
-        aspect-ratio: 16 / 10 !important;
+        aspect-ratio: 4 / 3 !important;
         flex: none !important;
         height: auto !important;
         min-height: 0 !important;
-        max-height: calc((100vh - 220px) / 2) !important;
-        margin: 0 auto !important;
+        max-height: calc((100vh - 200px) / 2.1) !important;
+        margin: 0 !important;
       }
       .controls-row {
         width: 100% !important;
@@ -213,23 +213,23 @@
 
     .interview-grid {
       display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 30px;
-      margin-top: 30px;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      margin-top: 20px;
     }
 
     /* Left Column Elements */
     .proctor-sidebar {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 10px;
     }
 
     .interviewer-avatar-panel,
     .camera-container {
       position: relative;
       width: 100%;
-      aspect-ratio: 16 / 10;
+      aspect-ratio: 4 / 3;
       border-radius: var(--radius-lg);
       overflow: hidden;
     }
@@ -985,10 +985,236 @@
         transform: translateY(0);
       }
     }
+
+    /* === INSTRUCTION MODAL === */
+    .instruction-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.25s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    .instruction-modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 36px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+      animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes slideUp { from { transform: translateY(40px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+    .instruction-feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .instruction-feature-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+    }
+    @media (max-width: 600px) { .instruction-feature-grid { grid-template-columns: 1fr; } }
+
+    /* === TOAST NOTIFICATION === */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      animation: toastIn 0.3s ease;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      backdrop-filter: blur(12px);
+      white-space: nowrap;
+    }
+    .toast.warning { background: rgba(245,158,11,0.95); border: 1px solid rgba(245,158,11,0.5); }
+    .toast.danger  { background: rgba(239,68,68,0.95);  border: 1px solid rgba(239,68,68,0.5); }
+    .toast.info    { background: rgba(6,182,212,0.95);  border: 1px solid rgba(6,182,212,0.5); }
+    .toast.success { background: rgba(16,185,129,0.95); border: 1px solid rgba(16,185,129,0.5); }
+    @keyframes toastIn  { from { opacity:0; transform: translateY(-12px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(-8px); } }
+
+    /* === 3-DOTS MENU === */
+    .dots-menu-wrapper {
+      position: relative;
+    }
+    .dots-menu-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: none;
+      background: #3c4043;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.2rem;
+      letter-spacing: 2px;
+      transition: background 0.2s;
+    }
+    .dots-menu-btn:hover { background: #4e5256; }
+    .dots-dropdown {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1f22;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 8px;
+      min-width: 220px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+      z-index: 1000;
+      animation: toastIn 0.2s ease;
+    }
+    .dots-dropdown.open { display: block; }
+    .dots-menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      cursor: pointer;
+      transition: background 0.15s;
+      gap: 10px;
+    }
+    .dots-menu-item:hover { background: rgba(255,255,255,0.07); }
+    .dots-menu-item .item-left { display: flex; align-items: center; gap: 10px; }
+    .dots-menu-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 0; }
+    /* Toggle Switch */
+    .toggle-switch {
+      width: 36px;
+      height: 20px;
+      background: #3c4043;
+      border-radius: 10px;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+    }
+    .toggle-switch.on { background: var(--accent-secondary); }
+    .toggle-switch.on::after { transform: translateX(16px); }
+
+    /* === IMPROVED PROCTOR PANEL === */
+    .proctor-status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .proctor-status-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 8px;
+      border-radius: 7px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: var(--text-muted);
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      flex-shrink: 0;
+    }
+    .status-dot.warn { background: var(--warning); }
+    .status-dot.bad  { background: var(--danger); }
   </style>
 </head>
 
 <body>
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- INSTRUCTION MODAL OVERLAY -->
+  <div id="instructionModal" class="instruction-modal-overlay">
+    <div class="instruction-modal">
+      <div style="text-align:center; margin-bottom: 24px;">
+        <div style="font-size:2.5rem; margin-bottom:12px;">🤖</div>
+        <h2 style="font-size:1.6rem; font-weight:800; margin:0 0 8px; letter-spacing:-0.5px;">AI Mock Interview</h2>
+        <p style="color:var(--text-muted); font-size:0.92rem; margin:0; line-height:1.5;">Simulates a real interview with live AI proctoring. Read the guidelines before you begin.</p>
+      </div>
+      <div class="instruction-feature-grid">
+        <div class="instruction-feature-item">
+          <span style="font-size:1.4rem; flex-shrink:0;">🎙️</span>
+          <div><strong style="color:#fff; font-size:0.88rem;">Speak or Type</strong><p style="color:var(--text-muted); font-size:0.78rem; margin:4px 0 0; line-height:1.4;">AI asks questions aloud. Respond by speaking or typing your answer directly.</p></div>
+        </div>
+        <div class="instruction-feature-item">
+          <span style="font-size:1.4rem; flex-shrink:0;">🛡️</span>
+          <div><strong style="color:#fff; font-size:0.88rem;">Proctor Shield</strong><p style="color:var(--text-muted); font-size:0.78rem; margin:4px 0 0; line-height:1.4;">Monitors tab switches, eye gaze, multiple faces, copy/paste, and audio anomalies.</p></div>
+        </div>
+        <div class="instruction-feature-item">
+          <span style="font-size:1.4rem; flex-shrink:0;">🖥️</span>
+          <div><strong style="color:#fff; font-size:0.88rem;">Stay Fullscreen</strong><p style="color:var(--text-muted); font-size:0.78rem; margin:4px 0 0; line-height:1.4;">Exiting fullscreen during the interview will increase your suspicion score.</p></div>
+        </div>
+        <div class="instruction-feature-item">
+          <span style="font-size:1.4rem; flex-shrink:0;">📵</span>
+          <div><strong style="color:#fff; font-size:0.88rem;">No Cheating</strong><p style="color:var(--text-muted); font-size:0.78rem; margin:4px 0 0; line-height:1.4;">Switching tabs, reading notes, or using AI tools will raise your suspicion score.</p></div>
+        </div>
+        <div class="instruction-feature-item">
+          <span style="font-size:1.4rem; flex-shrink:0;">💡</span>
+          <div><strong style="color:#fff; font-size:0.88rem;">AI Guidance Mode</strong><p style="color:var(--text-muted); font-size:0.78rem; margin:4px 0 0; line-height:1.4;">Enable from the ⋮ menu to get answer hints (marks session as Assisted Mode).</p></div>
+        </div>
+        <div class="instruction-feature-item">
+          <span style="font-size:1.4rem; flex-shrink:0;">🌐</span>
+          <div><strong style="color:#fff; font-size:0.88rem;">Good Environment</strong><p style="color:var(--text-muted); font-size:0.78rem; margin:4px 0 0; line-height:1.4;">Quiet, well-lit room. Face clearly visible and centered in the camera frame.</p></div>
+        </div>
+      </div>
+      <button id="acceptInstructionsBtn" class="btn btn-primary" style="width:100%; padding:14px; font-weight:700; font-size:1rem; border-radius:14px; margin-top:4px;">
+        Continue to Setup →
+      </button>
+    </div>
+  </div>
+
   <!-- Liquid Glass Backdrop Blobs -->
   <div class="bg-glow-1"></div>
   <div class="bg-glow-2"></div>
@@ -997,42 +1223,6 @@
   <div class="header-wrapper"></div>
 
   <main class="container">
-    
-    <!-- 0. GENERAL INSTRUCTIONS SCREEN -->
-    <div id="instructionsContainer" class="glass-panel setup-card" style="max-width: 750px; margin: 0 auto; padding: 25px;">
-      <h2 style="font-size: 1.8rem; margin-bottom: 12px; color: var(--text-main);">AI Mock Interview Instructions</h2>
-      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; line-height: 1.6;">
-        Welcome to the Sarthi AI Mock Interview. This session simulates a real recruitment trial using advanced audio-visual analysis. Please read the instructions below carefully before starting.
-      </p>
-      
-      <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
-        <div style="display: flex; gap: 15px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 15px;">
-          <span style="font-size: 1.5rem;">🎙️</span>
-          <div>
-            <h4 style="color: #fff; margin-bottom: 4px;">Audio & Speech Recognition</h4>
-            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.4;">The Sarthi AI will speak questions aloud. Once finished, a preparation timer will trigger. Speak clearly into your mic to record responses, or type them directly.</p>
-          </div>
-        </div>
-        <div style="display: flex; gap: 15px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 15px;">
-          <span style="font-size: 1.5rem;">🛡️</span>
-          <div>
-            <h4 style="color: #fff; margin-bottom: 4px;">Anti-Cheating Proctor Shield</h4>
-            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.4;">The system monitors tab switches, window blur events, multiple face presence, background whispering, synthetic voice inputs, and eyeball gaze directions (looking left, right, up, or down).</p>
-          </div>
-        </div>
-        <div style="display: flex; gap: 15px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 15px;">
-          <span style="font-size: 1.5rem;">💻</span>
-          <div>
-            <h4 style="color: #fff; margin-bottom: 4px;">Environment Compatibility</h4>
-            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.4;">Ensure you are in a quiet, well-lit room. While fully optimized for desktop browsers, the interface automatically scales dynamically for tablet and mobile devices.</p>
-          </div>
-        </div>
-      </div>
-
-      <button id="acceptInstructionsBtn" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 700; font-size: 1rem;">
-        Proceed to Configuration & Permissions
-      </button>
-    </div>
 
     <!-- 1. PRE-INTERVIEW SETUP / CUSTOMIZATION SCREEN -->
     <div id="setupContainer" class="glass-panel" style="display: none; padding: 32px; max-width: 1000px; margin: 0 auto; width: 100%;">
@@ -1377,15 +1567,22 @@
         </div>
 
         <!-- Proctor Panel -->
-        <div class="proctor-panel" style="padding: 12px 15px; background: rgba(10, 11, 15, 0.45); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 8px;">
+        <div class="proctor-panel" style="padding: 10px 14px; background: rgba(10,11,15,0.5); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Suspicion Score: <span id="suspValDisplay">0%</span></div>
-            <div id="proctorRiskBadge" style="font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.15); color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">Normal</div>
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🛡️ Integrity Score: <span id="suspValDisplay">0%</span></div>
+            <div id="proctorRiskBadge" style="font-size: 0.62rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; background: rgba(16,185,129,0.15); color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">Normal</div>
           </div>
-          <div class="proctor-bar-bg" style="margin: 0; height: 8px;">
+          <div class="proctor-bar-bg" style="margin: 0; height: 6px;">
             <div id="proctorBarFill" class="proctor-bar-fill"></div>
           </div>
-          <!-- Hidden tracking elements to preserve JS telemetry updates without visual clutter -->
+          <!-- Status chips grid -->
+          <div class="proctor-status-grid">
+            <div class="proctor-status-chip"><div class="status-dot" id="dotFace"></div><span id="chipFace">Face OK</span></div>
+            <div class="proctor-status-chip"><div class="status-dot" id="dotGaze"></div><span id="chipGaze">Gaze OK</span></div>
+            <div class="proctor-status-chip"><div class="status-dot" id="dotTab"></div><span id="chipTab">Tab OK</span></div>
+            <div class="proctor-status-chip"><div class="status-dot" id="dotAudio"></div><span id="chipAudio">Mic OK</span></div>
+          </div>
+          <!-- Hidden tracking elements -->
           <div id="proctorLogs" style="display: none;"></div>
           <span id="suspicionVal" style="display: none;">0</span>
         </div>
@@ -1408,7 +1605,7 @@
           </div>
         </div>
 
-        <!-- Google Meet style Controls Row -->
+        <!-- Controls Row with 3-dots menu -->
         <div class="controls-row">
           <button id="toggleMicBtn" class="control-btn" title="Mute Microphone">
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
@@ -1422,6 +1619,31 @@
           <button id="toggleFullScreenBtn" class="control-btn" title="Full Screen">
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
           </button>
+          <!-- 3-dots menu -->
+          <div class="dots-menu-wrapper">
+            <button class="dots-menu-btn" id="dotsMenuBtn" title="More Options">⋮</button>
+            <div class="dots-dropdown" id="dotsDropdown">
+              <div class="dots-menu-item" onclick="toggleProctor()">
+                <div class="item-left"><span>🛡️</span><span>Proctor Shield</span></div>
+                <div class="toggle-switch on" id="proctorToggle"></div>
+              </div>
+              <div class="dots-menu-item" onclick="toggleAiGuidance()">
+                <div class="item-left"><span>💡</span><span>AI Guidance</span></div>
+                <div class="toggle-switch" id="aiGuidanceToggle"></div>
+              </div>
+              <div class="dots-menu-divider"></div>
+              <div class="dots-menu-item" onclick="requestAiHint()">
+                <div class="item-left"><span>🤔</span><span>Get Answer Hint</span></div>
+              </div>
+              <div class="dots-menu-item" onclick="skipQuestion()">
+                <div class="item-left"><span>⏭️</span><span>Skip Question</span></div>
+              </div>
+              <div class="dots-menu-divider"></div>
+              <div class="dots-menu-item" style="color: #ef4444;" onclick="exitInterview()">
+                <div class="item-left"><span>🚪</span><span>Exit Interview</span></div>
+              </div>
+            </div>
+          </div>
           <button id="exitBtn" class="exit-pill-btn" title="Exit Interview">Exit</button>
         </div>
       </div>
@@ -1667,10 +1889,6 @@
 
     // --- INITIALIZATION ---
     document.addEventListener("DOMContentLoaded", () => {
-      if (window.location.protocol === 'file:') {
-        const warningBox = document.getElementById("fileProtocolWarning");
-        if (warningBox) warningBox.style.display = "block";
-      }
       initMediaPipeFaceDetector();
       setupPermissions();
       setupEventListeners();
@@ -1739,18 +1957,108 @@
         .catch(err => console.error("Error pre-fetching candidate profile:", err));
     });
 
+    // --- TOAST NOTIFICATION SYSTEM ---
+    function showToast(message, type = 'warning', duration = 4000) {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      const icons = { warning: '⚠️', danger: '🚨', info: 'ℹ️', success: '✅' };
+      toast.innerHTML = `<span>${icons[type] || '⚠️'}</span><span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // --- PROCTOR STATUS CHIP UPDATER ---
+    let proctorEnabled = true;
+    let aiGuidanceEnabled = false;
+
+    function updateStatusChip(chipId, dotId, status, label) {
+      const chip = document.getElementById(chipId);
+      const dot = document.getElementById(dotId);
+      if (!chip || !dot) return;
+      chip.textContent = label;
+      dot.className = 'status-dot' + (status === 'ok' ? '' : status === 'warn' ? ' warn' : ' bad');
+    }
+
+    // --- PROCTOR TOGGLE ---
+    function toggleProctor() {
+      proctorEnabled = !proctorEnabled;
+      const toggle = document.getElementById('proctorToggle');
+      if (toggle) toggle.className = 'toggle-switch' + (proctorEnabled ? ' on' : '');
+      showToast(proctorEnabled ? 'Proctor Shield enabled' : 'Proctor Shield disabled', proctorEnabled ? 'success' : 'warning');
+      document.getElementById('dotsDropdown').classList.remove('open');
+    }
+
+    // --- AI GUIDANCE TOGGLE ---
+    function toggleAiGuidance() {
+      aiGuidanceEnabled = !aiGuidanceEnabled;
+      const toggle = document.getElementById('aiGuidanceToggle');
+      if (toggle) toggle.className = 'toggle-switch' + (aiGuidanceEnabled ? ' on' : '');
+      showToast(aiGuidanceEnabled ? '💡 AI Guidance ON — this session is marked as Assisted Mode' : 'AI Guidance disabled', aiGuidanceEnabled ? 'info' : 'warning', 5000);
+      document.getElementById('dotsDropdown').classList.remove('open');
+    }
+
+    // --- AI HINT ON DEMAND ---
+    function requestAiHint() {
+      document.getElementById('dotsDropdown').classList.remove('open');
+      if (!aiGuidanceEnabled) {
+        showToast('Enable AI Guidance from the ⋮ menu first', 'warning');
+        return;
+      }
+      const question = document.getElementById('questionDisplay')?.textContent || '';
+      if (!question || question.includes('Initializing')) { showToast('No active question to get a hint for', 'warning'); return; }
+      showToast('Generating AI hint...', 'info', 2000);
+      const role = document.getElementById('jobRoleSelect')?.value || 'Software Engineer';
+      fetch((window.API_BASE_URL || '') + '/api/ai-interview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [
+          { role: 'system', content: `You are an interview coach. Give a brief, structured answer hint (2-3 bullet points) for this interview question for a ${role} role. Keep it concise.` },
+          { role: 'user', content: question }
+        ]})
+      }).then(r => r.json()).then(data => {
+        const hint = data?.choices?.[0]?.message?.content || data?.reply || '';
+        if (hint) {
+          const ta = document.getElementById('answerTextarea');
+          if (ta && ta.value.trim() === '') ta.value = hint;
+          showToast('AI hint placed in answer box', 'success', 5000);
+        }
+      }).catch(() => showToast('Could not fetch AI hint', 'danger'));
+    }
+
+    // --- SKIP QUESTION ---
+    function skipQuestion() {
+      document.getElementById('dotsDropdown').classList.remove('open');
+      logProctorEvent('Candidate skipped a question.', 3);
+      submitAnswer(true);
+    }
+
+    // --- EXIT INTERVIEW (from menu) ---
+    function exitInterview() {
+      document.getElementById('dotsDropdown').classList.remove('open');
+      if(confirm("Are you sure you want to quit the interview? Your progress won't be saved.")) {
+        if (localStream) { localStream.getTracks().forEach(track => track.stop()); }
+        window.location.href = "index.html";
+      }
+    }
+
     // --- SETUP CONTROLS AND EVENT LISTENERS ---
     function setupEventListeners() {
-      // Instructions screen proceed button
+      // Modal instructions proceed button
       document.getElementById("acceptInstructionsBtn").addEventListener("click", () => {
-        document.getElementById("instructionsContainer").style.display = "none";
+        const modal = document.getElementById("instructionModal");
+        if (modal) { modal.style.opacity = '0'; modal.style.transition = 'opacity 0.25s'; setTimeout(() => modal.style.display = 'none', 250); }
         document.getElementById("setupContainer").style.display = "block";
       });
 
       // Start button
       document.getElementById("startInterviewBtn").addEventListener("click", startInterview);
       
-      // Google Meet style Controls Row buttons
+      // Controls Row buttons
       document.getElementById("toggleMicBtn").addEventListener("click", toggleMic);
       document.getElementById("toggleCamBtn").addEventListener("click", toggleCam);
       document.getElementById("playPauseBtn").addEventListener("click", togglePlayPause);
@@ -1758,12 +2066,19 @@
       
       document.getElementById("exitBtn").addEventListener("click", () => {
         if(confirm("Are you sure you want to quit the interview? Your progress won't be saved.")) {
-          if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
-            if (localStream._mockCleanup) localStream._mockCleanup();
-          }
+          if (localStream) { localStream.getTracks().forEach(track => track.stop()); }
           window.location.href = "index.html";
         }
+      });
+
+      // 3-dots menu toggle
+      document.getElementById("dotsMenuBtn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        document.getElementById("dotsDropdown").classList.toggle("open");
+      });
+      document.addEventListener("click", (e) => {
+        const dd = document.getElementById("dotsDropdown");
+        if (dd && !dd.contains(e.target) && e.target.id !== 'dotsMenuBtn') dd.classList.remove("open");
       });
 
       // Start Answering Button (Think Time skip)
@@ -1785,6 +2100,58 @@
         resetAutoSubmitTimer();
         if (textInput.value.trim().length > 30 && !isAiSpeaking && !isInterviewPaused && !isThinkTimeActive) {
           updateAvatarExpression('interested');
+        }
+      });
+
+      // --- BROWSER INTEGRITY: Tab Switch Detection ---
+      document.addEventListener("visibilitychange", () => {
+        if (!isInterviewFinished && !isInterviewPaused && document.hidden) {
+          if (proctorEnabled) {
+            logProctorEvent("Candidate switched to another tab or minimized the window.", 6);
+            showToast("⚠️ Tab switch detected — added to proctor log", "danger");
+            updateStatusChip('chipTab', 'dotTab', 'bad', 'Tab Switch!');
+            setTimeout(() => updateStatusChip('chipTab', 'dotTab', 'ok', 'Tab OK'), 8000);
+          }
+        }
+      });
+
+      // --- BROWSER INTEGRITY: Window Focus Loss ---
+      window.addEventListener("blur", () => {
+        if (!isInterviewFinished && !isInterviewPaused && proctorEnabled) {
+          logProctorEvent("Interview window lost focus (another app activated).", 4);
+          showToast("⚠️ Window focus lost — proctor logged", "warning");
+          updateStatusChip('chipTab', 'dotTab', 'warn', 'Focus Lost');
+          setTimeout(() => updateStatusChip('chipTab', 'dotTab', 'ok', 'Tab OK'), 6000);
+        }
+      });
+
+      // --- BROWSER INTEGRITY: Copy/Paste Detection ---
+      document.addEventListener("copy", () => {
+        if (!isInterviewFinished && !isInterviewPaused && proctorEnabled) {
+          logProctorEvent("Candidate copied text from the interview screen.", 3);
+          showToast("📋 Copy action detected", "warning", 3000);
+        }
+      });
+      document.addEventListener("paste", (e) => {
+        const target = e.target;
+        const isTextarea = target && target.id === 'answerTextarea';
+        if (!isInterviewFinished && !isInterviewPaused && proctorEnabled && !isTextarea) {
+          logProctorEvent("Paste action detected (possible external content paste).", 4);
+          showToast("⚠️ Paste action detected", "warning", 3000);
+        }
+      });
+
+      // --- FULLSCREEN EXIT DETECTION ---
+      document.addEventListener("fullscreenchange", () => {
+        if (!isInterviewFinished && !isInterviewPaused) {
+          if (!document.fullscreenElement) {
+            if (proctorEnabled) {
+              logProctorEvent("Candidate exited fullscreen mode during interview.", 5);
+              showToast("🖥️ Exited fullscreen — suspicion score increased", "danger", 5000);
+            } else {
+              showToast("🖥️ Fullscreen disabled — re-enter for best experience", "info", 4000);
+            }
+          }
         }
       });
     }
@@ -2862,12 +3229,15 @@
             if (averageVolume > 40) {
               audioHudVal.textContent = "MIC LEVEL: SPEAKING";
               audioHudVal.style.color = "var(--success)";
+              updateStatusChip('chipAudio', 'dotAudio', 'ok', 'Speaking');
             } else if (averageVolume > 10) {
               audioHudVal.textContent = "MIC LEVEL: AMBIENT / LOW";
               audioHudVal.style.color = "var(--warning)";
+              updateStatusChip('chipAudio', 'dotAudio', 'warn', 'Low Audio');
             } else {
               audioHudVal.textContent = "MIC LEVEL: SILENT";
               audioHudVal.style.color = "var(--text-muted)";
+              updateStatusChip('chipAudio', 'dotAudio', 'ok', 'Mic OK');
             }
           }
 
@@ -2971,77 +3341,60 @@
 
       function performMediaPipeDetection() {
         if (isInterviewFinished) return;
-        if (isInterviewPaused) {
-          setTimeout(performMediaPipeDetection, 250);
-          return;
-        }
-        if (!localStream || !faceDetector) {
-          setTimeout(performMediaPipeDetection, 250);
-          return;
-        }
+        if (isInterviewPaused) { setTimeout(performMediaPipeDetection, 250); return; }
+        if (!localStream || !faceDetector) { setTimeout(performMediaPipeDetection, 250); return; }
 
         try {
-          // Detect faces in the current webcam video frame
           const results = faceDetector.detectForVideo(webcam, performance.now());
           const detections = results ? results.detections : [];
           const numFaces = detections.length;
 
-          // 1. Face Presence Detection
+          // 1. Face Presence
           if (numFaces === 0) {
             consecutiveFaceMissingTicks++;
             consecutiveMultipleFacesTicks = 0;
             consecutiveLookAwayTicks = 0;
 
-            if (faceHud) {
-              faceHud.textContent = "FACE DETECTED: 0";
-              faceHud.style.color = "var(--danger)";
-            }
+            if (faceHud) { faceHud.textContent = "FACE DETECTED: 0"; faceHud.style.color = "var(--danger)"; }
+            updateStatusChip('chipFace', 'dotFace', 'bad', 'No Face');
 
-            // Flag if missing for > 3 seconds (12 ticks of 250ms)
-            if (consecutiveFaceMissingTicks === 12) {
+            if (consecutiveFaceMissingTicks === 12 && proctorEnabled) {
               logProctorEvent("Candidate's face is not visible in camera frame.", 4);
+              showToast("📷 Face not visible — proctor logged", "danger");
             }
           } else {
             consecutiveFaceMissingTicks = 0;
-            
-            // 2. Multiple Faces Detection
+
+            // 2. Multiple Faces
             if (numFaces > 1) {
               consecutiveMultipleFacesTicks++;
               consecutiveLookAwayTicks = 0;
 
-              if (faceHud) {
-                faceHud.textContent = `FACES DETECTED: ${numFaces}`;
-                faceHud.style.color = "var(--danger)";
-              }
+              if (faceHud) { faceHud.textContent = `FACES DETECTED: ${numFaces}`; faceHud.style.color = "var(--danger)"; }
+              updateStatusChip('chipFace', 'dotFace', 'bad', `${numFaces} Faces!`);
 
-              // Alert if sustained for > 2.5 seconds (10 ticks of 250ms)
-              if (consecutiveMultipleFacesTicks === 10) {
+              if (consecutiveMultipleFacesTicks === 10 && proctorEnabled) {
                 logProctorEvent("Multiple faces / persons detected in camera view.", 5);
+                showToast("👥 Multiple faces detected — proctor logged", "danger");
               }
             } else {
               consecutiveMultipleFacesTicks = 0;
-              if (faceHud) {
-                faceHud.textContent = "FACE DETECTED: 1";
-                faceHud.style.color = "var(--success)";
-              }
+              if (faceHud) { faceHud.textContent = "FACE DETECTED: 1"; faceHud.style.color = "var(--success)"; }
+              updateStatusChip('chipFace', 'dotFace', 'ok', 'Face OK');
 
-              // 3. Eyeball Gaze & Head Turn Tracking (MediaPipe Keypoints)
+              // 3. Gaze / Head Turn (MediaPipe keypoints)
               const face = detections[0];
               const keypoints = face.keypoints || [];
-              
+
               if (keypoints.length >= 4) {
-                const leftEye = keypoints[0];  // Left eye keypoint
-                const rightEye = keypoints[1]; // Right eye keypoint
-                const nose = keypoints[2];     // Nose tip keypoint
+                const leftEye  = keypoints[0];
+                const rightEye = keypoints[1];
+                const nose     = keypoints[2];
 
                 if (leftEye && rightEye && nose) {
-                  // Calculate horizontal gaze/head-turn ratio using eye-nose distances
-                  const eyeDist = Math.abs(rightEye.x - leftEye.x);
+                  const eyeDist   = Math.abs(rightEye.x - leftEye.x);
                   const eyeCenter = (leftEye.x + rightEye.x) / 2;
                   const turnRatio = (nose.x - eyeCenter) / (eyeDist || 1);
-
-                  // If head is turned significantly to the left or right
-                  // Standard threshold: |turnRatio| > 0.22
                   const isTurnedAway = Math.abs(turnRatio) > 0.22;
 
                   if (isTurnedAway) {
@@ -3051,9 +3404,9 @@
                       document.getElementById("hudGazeText").textContent = "EYE GAZE: DEVIATED";
                       document.getElementById("hudGazeText").style.color = "var(--danger)";
                     }
+                    updateStatusChip('chipGaze', 'dotGaze', 'warn', 'Gaze Away');
 
-                    // Alert if sustained for > 3.5 seconds (14 ticks of 250ms)
-                    if (consecutiveLookAwayTicks === 14) {
+                    if (consecutiveLookAwayTicks === 14 && proctorEnabled) {
                       logProctorEvent("Candidate is looking away from the camera/screen.", 2);
                     }
                   } else {
@@ -3063,6 +3416,7 @@
                       document.getElementById("hudGazeText").textContent = "EYE GAZE: LOCKED";
                       document.getElementById("hudGazeText").style.color = "var(--success)";
                     }
+                    updateStatusChip('chipGaze', 'dotGaze', 'ok', 'Gaze OK');
                   }
                 }
               }
