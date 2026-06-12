@@ -2054,7 +2054,18 @@
     function skipQuestion() {
       document.getElementById('dotsDropdown').classList.remove('open');
       logProctorEvent('Candidate skipped a question.', 3);
-      submitAnswer(true);
+
+      if (isAiSpeaking) {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        isAiSpeaking = false;
+        const qBox = document.getElementById("questionBox");
+        if (qBox) qBox.classList.remove("speaking-border-ai");
+      }
+
+      const textarea = document.getElementById("answerTextarea");
+      if (textarea) textarea.value = "[Candidate skipped this question]";
+
+      submitAnswer(false);
     }
 
     // --- EXIT INTERVIEW (from menu) ---
@@ -2092,13 +2103,6 @@
       document.getElementById("playPauseBtn").addEventListener("click", togglePlayPause);
       document.getElementById("toggleFullScreenBtn").addEventListener("click", toggleFullScreen);
       
-      document.getElementById("exitBtn").addEventListener("click", () => {
-        if(confirm("Are you sure you want to quit the interview? Your progress won't be saved.")) {
-          if (localStream) { localStream.getTracks().forEach(track => track.stop()); }
-          window.location.href = "index.html";
-        }
-      });
-
       // 3-dots menu toggle
       document.getElementById("dotsMenuBtn").addEventListener("click", (e) => {
         e.stopPropagation();
@@ -2109,8 +2113,15 @@
         if (dd && !dd.contains(e.target) && e.target.id !== 'dotsMenuBtn') dd.classList.remove("open");
       });
 
-      // Start Answering Button (Think Time skip)
-      document.getElementById("startAnsweringBtn").addEventListener("click", skipThinkTime);
+      // Start Answering Button (Skip speaking or Prep Time)
+      document.getElementById("startAnsweringBtn").addEventListener("click", () => {
+        if (isAiSpeaking) {
+          if (window.speechSynthesis) window.speechSynthesis.cancel();
+          onSpeechFinished();
+        } else if (isThinkTimeActive) {
+          skipThinkTime();
+        }
+      });
 
       // Skip Question Button
       document.getElementById("skipQuestionBtn").addEventListener("click", skipQuestion);
@@ -2770,6 +2781,23 @@
     // --- TEXT TO SPEECH (FAST RESPONSE) ---
     function speakQuestion(text) {
       if (isInterviewFinished) return;
+      isAiSpeaking = true;
+
+      const qBox = document.getElementById("questionBox");
+      if (qBox) qBox.classList.add("speaking-border-ai");
+
+      // Show Start Answering button and hide Submit Answer button while AI is speaking
+      const startAnsBtn = document.getElementById("startAnsweringBtn");
+      const submitAnsBtn = document.getElementById("submitAnswerBtn");
+      if (startAnsBtn) startAnsBtn.style.display = "block";
+      if (submitAnsBtn) submitAnsBtn.style.display = "none";
+
+      const textarea = document.getElementById("answerTextarea");
+      if (textarea) {
+        textarea.disabled = true;
+        textarea.placeholder = "Interviewer is speaking... Click 'Start Answering' to skip.";
+      }
+
       if (!window.speechSynthesis) {
         onSpeechFinished();
         return;
