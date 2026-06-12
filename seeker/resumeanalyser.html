@@ -32,7 +32,7 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
 .hidden-input{display:none}
 /* Right panel */
 .ra-right-inner{padding:24px;max-width:900px}
-.ra-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:80%;gap:12px;color:var(--text-muted);text-align:center}
+.ra-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(100vh - 120px);gap:12px;color:var(--text-muted);text-align:center}
 .ra-placeholder .icon{font-size:3rem;opacity:.4}
 /* Score ring */
 .score-ring-svg{transform:rotate(-90deg)}
@@ -86,7 +86,7 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
+  height: calc(100vh - 120px);
   gap: 20px;
   text-align: center;
   color: var(--text-main);
@@ -100,8 +100,8 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
 }
 .scan-card-wrapper {
   position: relative;
-  width: 140px;
-  height: 180px;
+  width: 160px;
+  height: 210px;
   background: var(--bg-surface);
   border: 2px solid var(--border-subtle);
   border-radius: 12px;
