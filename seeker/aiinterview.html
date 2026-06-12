@@ -1066,23 +1066,6 @@
 
         <!-- LEFT: Camera Preview & Permissions -->
         <div>
-          <!-- Local File / Security Protocol Warning Banner -->
-          <div id="fileProtocolWarning" style="display: none; padding: 15px; margin-bottom: 16px; border: 1.5px solid var(--danger); background: rgba(239, 68, 68, 0.1); border-radius: 12px; line-height: 1.5;">
-            <div style="font-weight: 800; color: var(--danger); display: flex; align-items: center; gap: 8px; font-size: 0.95rem; margin-bottom: 6px;">
-              <span>⚠️</span> Local File Protocol Detected (file://)
-            </div>
-            <p style="margin: 0; font-size: 0.82rem; color: var(--text-muted);">
-              Chrome security policies block camera and microphone access when opening HTML files directly from a local folder.
-            </p>
-            <div style="margin-top: 10px; font-size: 0.8rem; color: var(--text-main); font-weight: 600;">
-              How to run with your real camera:
-            </div>
-            <ul style="margin: 4px 0 0; padding-left: 18px; font-size: 0.8rem; color: var(--text-muted);">
-              <li>Use the <strong>Live Server</strong> extension in VS Code.</li>
-              <li>Or run a local server command: <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px; color: var(--accent-secondary);">npx serve</code> or <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px; color: var(--accent-secondary);">python -m http.server</code> in this folder.</li>
-            </ul>
-          </div>
-
           <!-- Permissions Status -->
           <div class="setup-permissions-panel" style="margin-bottom: 16px;">
             <h4 style="font-size: 0.88rem; margin: 0 0 10px; display: flex; align-items: center; gap: 6px; font-weight: 700;">
@@ -1977,19 +1960,6 @@
             hint.textContent = "❌ Real camera & microphone are required to start.";
             hint.style.color = "var(--danger)";
           }
-
-          let message = "We require real camera and microphone access to perform standard eyeball tracking, face detection, and voice evaluation.\n\n" +
-            "If the browser permission prompt did not appear, it is because camera and mic access is blocked by your browser settings.\n\n" +
-            "HOW TO FIX:\n" +
-            "1. Click the site settings icon (the padlock or control sliders) on the left side of the Chrome address bar (URL bar).\n" +
-            "2. Switch the toggles for 'Camera' and 'Microphone' to 'Allow'.\n" +
-            "3. Refresh the page and try again.";
-          
-          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            message = "WebRTC mediaDevices API is disabled because this page is not served over a secure connection (HTTPS or localhost).";
-          }
-          
-          alert(message);
         }
       });
     }
