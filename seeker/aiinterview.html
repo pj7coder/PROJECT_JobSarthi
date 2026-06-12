@@ -7,6 +7,8 @@
   <title>AI Interview Simulator - JobSarthi Seeker</title>
   <meta name="description" content="Take an interactive, real-time AI mock interview with advanced proctoring and custom configurations.">
   <link rel="stylesheet" href="../css/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
   <script>
     if (localStorage.getItem('seeker_logged_in') !== 'true') {
       window.location.replace('login_signup.html');
@@ -107,6 +109,19 @@
         flex-direction: column;
         gap: 10px;
         min-height: 0;
+        overflow-y: auto;
+        padding-right: 6px;
+        box-sizing: border-box;
+      }
+      .proctor-sidebar::-webkit-scrollbar {
+        width: 4px;
+      }
+      .proctor-sidebar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .proctor-sidebar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
       }
       .interviewer-avatar-panel,
       .camera-container {
@@ -223,6 +238,20 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 100px);
+      padding-right: 6px;
+      box-sizing: border-box;
+    }
+    .proctor-sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .proctor-sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .proctor-sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
     }
 
     .interviewer-avatar-panel,
@@ -1569,18 +1598,11 @@
         <!-- Proctor Panel -->
         <div class="proctor-panel" style="padding: 10px 14px; background: rgba(10,11,15,0.5); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🛡️ Integrity Score: <span id="suspValDisplay">0%</span></div>
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🛡️ Suspicion Score: <span id="suspValDisplay">0%</span></div>
             <div id="proctorRiskBadge" style="font-size: 0.62rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; background: rgba(16,185,129,0.15); color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">Normal</div>
           </div>
           <div class="proctor-bar-bg" style="margin: 0; height: 6px;">
             <div id="proctorBarFill" class="proctor-bar-fill"></div>
-          </div>
-          <!-- Status chips grid -->
-          <div class="proctor-status-grid">
-            <div class="proctor-status-chip"><div class="status-dot" id="dotFace"></div><span id="chipFace">Face OK</span></div>
-            <div class="proctor-status-chip"><div class="status-dot" id="dotGaze"></div><span id="chipGaze">Gaze OK</span></div>
-            <div class="proctor-status-chip"><div class="status-dot" id="dotTab"></div><span id="chipTab">Tab OK</span></div>
-            <div class="proctor-status-chip"><div class="status-dot" id="dotAudio"></div><span id="chipAudio">Mic OK</span></div>
           </div>
           <!-- Hidden tracking elements -->
           <div id="proctorLogs" style="display: none;"></div>
@@ -1632,11 +1654,8 @@
                 <div class="toggle-switch" id="aiGuidanceToggle"></div>
               </div>
               <div class="dots-menu-divider"></div>
-              <div class="dots-menu-item" onclick="requestAiHint()">
-                <div class="item-left"><span>🤔</span><span>Get Answer Hint</span></div>
-              </div>
-              <div class="dots-menu-item" onclick="skipQuestion()">
-                <div class="item-left"><span>⏭️</span><span>Skip Question</span></div>
+              <div class="dots-menu-item" style="color: #10b981;" onclick="confirmFinishInterview()">
+                <div class="item-left"><span>🏁</span><span>Finish Interview</span></div>
               </div>
               <div class="dots-menu-divider"></div>
               <div class="dots-menu-item" style="color: #ef4444;" onclick="exitInterview()">
@@ -1644,7 +1663,6 @@
               </div>
             </div>
           </div>
-          <button id="exitBtn" class="exit-pill-btn" title="Exit Interview">Exit</button>
         </div>
       </div>
 
@@ -1685,8 +1703,6 @@
               💡 Tip: Speak clearly. The system auto-submits on 3s silence.
             </span>
             <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
-                           <button id="finishInterviewBtn" class="btn" style="display: none; background: #ef4444; border: none; padding: 10px 20px; font-weight: 700; border-radius: var(--radius-full); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); color: #fff; cursor: pointer; font-size: 0.85rem; font-family: var(--font-sans); transition: all 0.2s ease;">Finish Interview</button>
-              
               <!-- Countdown timer badge -->
               <div id="timerContainer" class="timer-badge-container" style="display: none; position: static; box-shadow: none; margin: 0; padding: 6px 14px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); backdrop-filter: none;">
                 <svg class="timer-circle-svg" style="width: 16px; height: 16px;">
@@ -1697,6 +1713,9 @@
               </div>
 
               <button id="startAnsweringBtn" class="btn btn-glow" style="display: none; padding: 10px 20px; background: var(--accent-secondary); color: white; border: none; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">Start Answering</button>
+              <button id="skipQuestionBtn" class="btn" style="padding: 10px 22px; border-radius: var(--radius-full); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); color: var(--text-muted); cursor: pointer; font-size: 0.85rem; font-family: var(--font-sans); transition: all 0.2s ease;">
+                Skip
+              </button>
               <button id="submitAnswerBtn" class="btn btn-primary" style="padding: 10px 22px; border-radius: var(--radius-full); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);">
                 Submit Answer
               </button>
@@ -1890,6 +1909,7 @@
     // --- INITIALIZATION ---
     document.addEventListener("DOMContentLoaded", () => {
       initMediaPipeFaceDetector();
+      initCocoSsdModel();
       setupPermissions();
       setupEventListeners();
       triggerBlink();
@@ -2046,6 +2066,14 @@
       }
     }
 
+    // --- CONFIRM FINISH INTERVIEW ---
+    function confirmFinishInterview() {
+      document.getElementById('dotsDropdown').classList.remove('open');
+      if (confirm("Are you sure you want to finish the interview and view your evaluation report now?")) {
+        endInterview();
+      }
+    }
+
     // --- SETUP CONTROLS AND EVENT LISTENERS ---
     function setupEventListeners() {
       // Modal instructions proceed button
@@ -2084,12 +2112,8 @@
       // Start Answering Button (Think Time skip)
       document.getElementById("startAnsweringBtn").addEventListener("click", skipThinkTime);
 
-      // Finish Interview Button
-      document.getElementById("finishInterviewBtn").addEventListener("click", () => {
-        if (confirm("Are you sure you want to finish the interview and view your evaluation report now?")) {
-          endInterview();
-        }
-      });
+      // Skip Question Button
+      document.getElementById("skipQuestionBtn").addEventListener("click", skipQuestion);
 
       // Submit answer manually
       document.getElementById("submitAnswerBtn").addEventListener("click", () => submitAnswer(false));
@@ -2145,11 +2169,9 @@
       document.addEventListener("fullscreenchange", () => {
         if (!isInterviewFinished && !isInterviewPaused) {
           if (!document.fullscreenElement) {
+            showToast("⚠️ Disabling full screen will increase suspicion score!", "danger", 5000);
             if (proctorEnabled) {
               logProctorEvent("Candidate exited fullscreen mode during interview.", 5);
-              showToast("🖥️ Exited fullscreen — suspicion score increased", "danger", 5000);
-            } else {
-              showToast("🖥️ Fullscreen disabled — re-enter for best experience", "info", 4000);
             }
           }
         }
@@ -2429,7 +2451,7 @@
 
       updateControlIcons();
 
-      document.getElementById("finishInterviewBtn").style.display = "block";
+      // finishInterviewBtn is now located inside the 3-dots menu
 
       // Removed random fake multi-face detection — proctor is informational only
 
@@ -3277,6 +3299,22 @@
     }
 
     let faceDetector = null;
+    let cocoModel = null;
+
+    async function initCocoSsdModel() {
+      try {
+        console.log("Loading Coco-SSD model for mobile/object detection...");
+        if (typeof tf !== 'undefined' && typeof cocoSsd !== 'undefined') {
+          await tf.ready();
+          cocoModel = await cocoSsd.load();
+          console.log("Coco-SSD model loaded successfully!");
+        } else {
+          console.warn("TensorFlow.js or Coco-SSD script is not loaded yet.");
+        }
+      } catch (err) {
+        console.error("Failed to load Coco-SSD model:", err);
+      }
+    }
 
     async function initMediaPipeFaceDetector() {
       try {
@@ -3338,6 +3376,7 @@
       let consecutiveFaceMissingTicks = 0;
       let consecutiveMultipleFacesTicks = 0;
       let consecutiveLookAwayTicks = 0;
+      let objectDetectionTick = 0;
 
       function performMediaPipeDetection() {
         if (isInterviewFinished) return;
@@ -3396,8 +3435,9 @@
                   const eyeCenter = (leftEye.x + rightEye.x) / 2;
                   const turnRatio = (nose.x - eyeCenter) / (eyeDist || 1);
                   const isTurnedAway = Math.abs(turnRatio) > 0.22;
+                  const isLookingDownAtBorders = nose.y > (leftEye.y + 0.12) || Math.abs(turnRatio) > 0.25;
 
-                  if (isTurnedAway) {
+                  if (isTurnedAway || isLookingDownAtBorders) {
                     consecutiveLookAwayTicks++;
                     if (gazeHud) {
                       gazeHud.classList.add("warning");
@@ -3407,7 +3447,8 @@
                     updateStatusChip('chipGaze', 'dotGaze', 'warn', 'Gaze Away');
 
                     if (consecutiveLookAwayTicks === 14 && proctorEnabled) {
-                      logProctorEvent("Candidate is looking away from the camera/screen.", 2);
+                      logProctorEvent("Candidate looking down/aside repeatedly (potential mobile phone usage).", 6);
+                      showToast("⚠️ Head deviation or looking down at border detected", "warning");
                     }
                   } else {
                     consecutiveLookAwayTicks = 0;
@@ -3422,6 +3463,21 @@
               }
             }
           }
+
+          // 4. Object Detection (Cell Phone / Mobile Device)
+          objectDetectionTick++;
+          if (cocoModel && objectDetectionTick % 4 === 0 && proctorEnabled) { // Every 1 second
+            cocoModel.detect(webcam, 5, 0.18).then(predictions => {
+              predictions.forEach(p => {
+                const c = p.class.toLowerCase();
+                if (c === 'cell phone' || c === 'phone' || c === 'mobile' || c === 'remote' || c === 'calculator') {
+                  logProctorEvent("Suspicious mobile device / phone detected in frame.", 15);
+                  showToast("🚨 Phone-like object detected in camera view!", "danger");
+                }
+              });
+            }).catch(e => console.error("Coco-SSD detect error:", e));
+          }
+
         } catch (e) {
           console.error("MediaPipe detection error:", e);
         }
