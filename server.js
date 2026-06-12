@@ -286,11 +286,11 @@ app.use((req, res, next) => {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
     "img-src 'self' data: blob: https://res.cloudinary.com https://logo.clearbit.com https://upload.wikimedia.org; " +
     "media-src 'self' blob: https://res.cloudinary.com; " +
-    "connect-src 'self' https://project-jobsarthi.onrender.com https://jobsarthi.vercel.app; " +
+    "connect-src 'self' https://project-jobsarthi.onrender.com https://jobsarthi.vercel.app https://res.cloudinary.com; " +
     "font-src 'self' https://fonts.gstatic.com; " +
-    "frame-src blob: data: https://res.cloudinary.com 'self'; " +
-    "object-src blob: data: https://res.cloudinary.com; " +
-    "frame-ancestors 'none';"
+    "frame-src blob: data: https://res.cloudinary.com 'self' chrome-extension:; " +
+    "object-src blob: data: https://res.cloudinary.com chrome-extension:; " +
+    "frame-ancestors 'self';"
   );
   res.removeHeader("X-Powered-By");                                // Hide Express fingerprint
   next();
