@@ -2975,12 +2975,77 @@ async function callElevenLabs(text, interviewer) {
   }
 }
 
+// Rate limiting store for AI interviews and resume analysis (resets after 1 hour)
+const sarthiRateLimits = {
+  interviews: {}, // email/ip -> array of timestamps
+  resumeAnalysis: {} // email/ip -> array of timestamps
+};
+
+function checkAndTrackLimit(key, emailOrIp, maxLimit) {
+  const now = Date.now();
+  const oneHourAgo = now - 60 * 60 * 1000;
+  
+  if (!sarthiRateLimits[key][emailOrIp]) {
+    sarthiRateLimits[key][emailOrIp] = [];
+  }
+  
+  // Filter out timestamps older than 1 hour
+  sarthiRateLimits[key][emailOrIp] = sarthiRateLimits[key][emailOrIp].filter(ts => ts > oneHourAgo);
+  
+  const count = sarthiRateLimits[key][emailOrIp].length;
+  if (count >= maxLimit) {
+    return { allowed: false, remaining: 0, resetTime: Math.min(...sarthiRateLimits[key][emailOrIp]) + 60 * 60 * 1000 };
+  }
+  
+  // Track this request
+  sarthiRateLimits[key][emailOrIp].push(now);
+  return { allowed: true, remaining: maxLimit - (count + 1) };
+}
+
+function getLimitStatus(key, emailOrIp, maxLimit) {
+  const now = Date.now();
+  const oneHourAgo = now - 60 * 60 * 1000;
+  
+  if (!sarthiRateLimits[key][emailOrIp]) {
+    sarthiRateLimits[key][emailOrIp] = [];
+  }
+  
+  sarthiRateLimits[key][emailOrIp] = sarthiRateLimits[key][emailOrIp].filter(ts => ts > oneHourAgo);
+  const count = sarthiRateLimits[key][emailOrIp].length;
+  return { remaining: Math.max(0, maxLimit - count), count, max: maxLimit };
+}
+
+app.get("/api/seeker/sarthi-limits", async (req, res) => {
+  try {
+    const emailOrIp = req.query.email || req.ip || 'anonymous';
+    const interviewsLeft = getLimitStatus('interviews', emailOrIp, 5).remaining;
+    const resumeAnalysisLeft = getLimitStatus('resumeAnalysis', emailOrIp, 10).remaining;
+    res.json({ interviewsLeft, resumeAnalysisLeft });
+  } catch (err) {
+    console.error("Failed to get Sarthi limits:", err);
+    res.status(500).json({ error: "Failed to fetch Sarthi limits." });
+  }
+});
+
 app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
   try {
-    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language, jobSkills, jobId, interviewState } = req.body;
+    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language, jobSkills, jobId, interviewState, email } = req.body;
+    const isFirstQuestion = !currentQuestion || !history || history.length === 0;
+
+    if (isFirstQuestion) {
+      const emailOrIp = email || req.ip || 'anonymous';
+      const check = checkAndTrackLimit('interviews', emailOrIp, 5);
+      if (!check.allowed) {
+        return res.status(429).json({
+          error: "Rate limit exceeded. You can only start 5 interviews per hour.",
+          limitExceeded: true,
+          type: "interview"
+        });
+      }
+    }
+
     const currentRole = role || "Full Stack Developer";
     const currentDiff = difficulty || "Intermediate";
-    const isFirstQuestion = !currentQuestion || !history || history.length === 0;
 
     let resolvedRole = currentRole;
     if (currentRole === "From your resume") {
@@ -3609,7 +3674,17 @@ app.post("/api/seeker/parse-resume", uploadRateLimiter, largeBodyParser, async (
 
 app.post("/api/seeker/analyse-resume", uploadRateLimiter, largeBodyParser, async (req, res) => {
   try {
-    const { base64Data, mimeType } = req.body;
+    const { base64Data, mimeType, email } = req.body;
+    const clientKey = email || req.ip || 'anonymous';
+    const check = checkAndTrackLimit('resumeAnalysis', clientKey, 10);
+    if (!check.allowed) {
+      return res.status(429).json({
+        error: "Rate limit exceeded. You can only analyze 10 resumes per hour.",
+        limitExceeded: true,
+        type: "resume"
+      });
+    }
+
     if (!base64Data) {
       return res.status(400).json({ error: "Base64 data is required." });
     }

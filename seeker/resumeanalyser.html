@@ -239,6 +239,9 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
         <button class="analyse-btn" id="analyseBtn" onclick="runAnalysis()" disabled>
           <span>＋</span> Analyse Resume
         </button>
+        <p id="sarthiLimitResumePage" style="text-align: center; color: var(--accent-tertiary); font-size: 0.72rem; margin-top: 8px; font-weight: 600;">
+          Loading remaining resume limit...
+        </p>
       </div>
     </div>
 
@@ -280,8 +283,35 @@ function updateAnalyseButtonState() {
   }
 }
 
+async function loadResumeLimit() {
+  const email = localStorage.getItem('seeker_email') || '';
+  try {
+    const res = await fetch((window.API_BASE_URL || '') + `/api/seeker/sarthi-limits?email=${encodeURIComponent(email)}`);
+    if (res.ok) {
+      const data = await res.json();
+      const limitHint = document.getElementById('sarthiLimitResumePage');
+      if (limitHint) {
+        limitHint.textContent = `${data.resumeAnalysisLeft} out of 10 analyses left this hour`;
+        if (data.resumeAnalysisLeft === 0) {
+          limitHint.style.color = 'var(--danger)';
+          limitHint.textContent = `Hourly limit reached (0 out of 10 analyses left). Try again in an hour.`;
+          // Disable analyse button
+          const analyseBtn = document.getElementById('analyseBtn');
+          if (analyseBtn) {
+            analyseBtn.disabled = true;
+            analyseBtn.title = "Hourly rate limit reached.";
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to load resume limit status:", err);
+  }
+}
+
 // ── Init ──
 window.addEventListener('DOMContentLoaded', async () => {
+  loadResumeLimit();
   const email = localStorage.getItem('seeker_email');
   if (!email) return;
   try {
@@ -577,6 +607,7 @@ async function runAnalysis() {
   document.getElementById('rightPanel').appendChild(scanLoader);
 
   try {
+    const email = localStorage.getItem('seeker_email');
     let body;
     if (r.url && !r.base64) {
       // Fetch the URL and convert to base64
@@ -584,12 +615,12 @@ async function runAnalysis() {
         const resp = await fetch(r.url);
         const blob = await resp.blob();
         const b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = ()=>res(fr.result); fr.readAsDataURL(blob); });
-        body = { base64Data: b64, mimeType: blob.type || 'application/pdf' };
+        body = { base64Data: b64, mimeType: blob.type || 'application/pdf', email };
       } catch {
-        body = { base64Data: r.url, mimeType: 'application/pdf' };
+        body = { base64Data: r.url, mimeType: 'application/pdf', email };
       }
     } else {
-      body = { base64Data: r.base64, mimeType: r.mime };
+      body = { base64Data: r.base64, mimeType: r.mime, email };
     }
 
     const resp = await fetch((window.API_BASE_URL||'')+'/api/seeker/analyse-resume', {
@@ -600,7 +631,6 @@ async function runAnalysis() {
     analysisResults[activeTab] = data;
 
     // Persist analysis result to DB in background
-    const email = localStorage.getItem('seeker_email');
     if (email) {
       fetch((window.API_BASE_URL||'')+'/api/seeker/save-analysis-resume', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -620,6 +650,7 @@ async function runAnalysis() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = `<span>＋</span> Re-analyse`;
+    loadResumeLimit();
   }
 }
 

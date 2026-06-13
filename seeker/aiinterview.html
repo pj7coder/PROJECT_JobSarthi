@@ -1411,6 +1411,9 @@
           <p id="startInterviewHint" style="text-align: center; color: var(--text-muted); font-size: 0.78rem; margin: -8px 0 0;">
             Grant camera &amp; mic access to enable the start button
           </p>
+          <p id="sarthiLimitInterviewsPage" style="text-align: center; color: var(--accent-secondary); font-size: 0.78rem; margin: 6px 0 0; font-weight: 600;">
+            Loading remaining interview limit...
+          </p>
         </div>
 
       </div>
@@ -2021,8 +2024,35 @@
       }
     }
 
+    async function loadInterviewLimit() {
+      const email = localStorage.getItem('seeker_email') || '';
+      try {
+        const res = await fetch((window.API_BASE_URL || '') + `/api/seeker/sarthi-limits?email=${encodeURIComponent(email)}`);
+        if (res.ok) {
+          const data = await res.json();
+          const limitHint = document.getElementById('sarthiLimitInterviewsPage');
+          if (limitHint) {
+            limitHint.textContent = `${data.interviewsLeft} out of 5 interviews left this hour`;
+            if (data.interviewsLeft === 0) {
+              limitHint.style.color = 'var(--danger)';
+              limitHint.textContent = `Hourly limit reached (0 out of 5 interviews left). Try again in an hour.`;
+              // Disable start button
+              const startBtn = document.getElementById('startInterviewBtn');
+              if (startBtn) {
+                startBtn.disabled = true;
+                startBtn.title = "Hourly rate limit reached.";
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load interview limit status:", err);
+      }
+    }
+
     // --- INITIALIZATION ---
     document.addEventListener("DOMContentLoaded", () => {
+      loadInterviewLimit();
       initMediaPipeFaceDetector();
       initCocoSsdModel();
       setupPermissions();
@@ -2659,9 +2689,20 @@
             language: selectedLanguage,
             jobSkills: window._interviewJobSkills || '',
             jobId: window._interviewJobId || '',
-            interviewState: window.interviewState || null
+            interviewState: window.interviewState || null,
+            email: seekerEmail
           })
         });
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            const errData = await response.json();
+            alert(errData.error || "Rate limit exceeded. You can only start 5 interviews per hour.");
+            window.location.replace("index.html");
+            return;
+          }
+          throw new Error("HTTP error " + response.status);
+        }
 
         if (isInterviewFinished) return;
         const data = await response.json();
