@@ -2392,6 +2392,74 @@ body.about-active .mobile-bottom-nav {
    Comprehensive Mobile Web App Layout and Spacing Polish (All Pages)
    ========================================================================== */
 @media (max-width: 768px) {
+  /* Disable all transitions, animations, and transform scaling on mobile */
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+  }
+
+  /* Hide heavy decorative background elements, glows, WebGL canvas, and spotlight grids */
+  .liquid-blob-container,
+  .liquid-blob,
+  .bg-glow-1,
+  .bg-glow-2,
+  .sarthi-shine-overlay,
+  .glow-overlay,
+  .card-glow,
+  .blob,
+  .network-canvas,
+  #networkCanvas,
+  .proctor-sidebar,
+  .glass-panel::before,
+  .glass-card::before,
+  .gemini-pill-border::before,
+  .spotlight-grid,
+  .sparkle,
+  .gradient-glow,
+  #fluid,
+  canvas#fluid {
+    display: none !important;
+    background: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Flatten glassmorphism panels to solid, fast, mobile-friendly opaque backgrounds */
+  .glass-panel,
+  .glass-card,
+  #floatingSarthiBtn,
+  #clickExpandedContent,
+  .header,
+  .seeker-tool-card,
+  .sarthi-tool-card,
+  .dashboard-main,
+  .profile-sidebar {
+    background: #18181b !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: 1px solid #27272a !important;
+  }
+
+  body.light-theme .glass-panel,
+  body.light-theme .glass-card,
+  body.light-theme #floatingSarthiBtn,
+  body.light-theme #clickExpandedContent,
+  body.light-theme .header {
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: 1px solid #e4e4e7 !important;
+  }
 
   /* Prevent inputs and selects from auto-zooming on focus in mobile browsers */
   input,

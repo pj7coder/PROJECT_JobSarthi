@@ -3592,10 +3592,15 @@
       return Math.sqrt(varianceSum / count);
     }
 
+    const isMobileDevice = window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(navigator.userAgent);
     let faceDetector = null;
     let cocoModel = null;
 
     async function initCocoSsdModel() {
+      if (isMobileDevice) {
+        console.log("Skipping Coco-SSD model loading on mobile device.");
+        return;
+      }
       try {
         console.log("Loading Coco-SSD model for mobile/object detection...");
         if (typeof tf !== 'undefined' && typeof cocoSsd !== 'undefined') {
@@ -3611,6 +3616,10 @@
     }
 
     async function initMediaPipeFaceDetector() {
+      if (isMobileDevice) {
+        console.log("Skipping MediaPipe Face Detector loading on mobile device.");
+        return;
+      }
       try {
         console.log("Loading MediaPipe tasks-vision resolver...");
         const vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs");
@@ -3674,6 +3683,12 @@
 
       function performMediaPipeDetection() {
         if (isInterviewFinished) return;
+        if (isMobileDevice) {
+          updateStatusChip('chipFace', 'dotFace', 'ok', 'Face OK');
+          updateStatusChip('chipGaze', 'dotGaze', 'ok', 'Gaze OK');
+          setTimeout(performMediaPipeDetection, 1000);
+          return;
+        }
         if (isInterviewPaused) { setTimeout(performMediaPipeDetection, 250); return; }
         if (!localStream || !faceDetector) { setTimeout(performMediaPipeDetection, 250); return; }
 

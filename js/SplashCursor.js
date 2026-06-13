@@ -1003,6 +1003,11 @@
   }
 
   window.initSplashCursor = function () {
+    const isMobileDevice = window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(navigator.userAgent);
+    if (isMobileDevice) {
+      window.SplashCursorConfig.ENABLED = false;
+      return;
+    }
     if (canvas || !window.SplashCursorConfig.ENABLED) return;
 
     isActive = true;
