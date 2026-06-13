@@ -2064,6 +2064,12 @@
       logProctorEvent('Candidate skipped a question.', 3);
 
       if (isAiSpeaking) {
+        if (window.currentElevenLabsAudio) {
+          try {
+            window.currentElevenLabsAudio.pause();
+          } catch(e){}
+          window.currentElevenLabsAudio = null;
+        }
         if (window.speechSynthesis) window.speechSynthesis.cancel();
         isAiSpeaking = false;
         const qBox = document.getElementById("questionBox");
@@ -2080,6 +2086,12 @@
     function exitInterview() {
       document.getElementById('dotsDropdown').classList.remove('open');
       if(confirm("Are you sure you want to quit the interview? Your progress won't be saved.")) {
+        if (window.currentElevenLabsAudio) {
+          try {
+            window.currentElevenLabsAudio.pause();
+          } catch(e){}
+          window.currentElevenLabsAudio = null;
+        }
         if (localStream) { localStream.getTracks().forEach(track => track.stop()); }
         window.location.href = "index.html";
       }
@@ -2607,7 +2619,7 @@
 
         // Set serious expression prior to speaking questions
         updateAvatarExpression('serious');
-        speakQuestion(data.spokenQuestion || currentQuestionText);
+        speakQuestion(data.spokenQuestion || currentQuestionText, data.audioBase64);
 
       } catch (err) {
         console.error("API error:", err);
@@ -2785,7 +2797,7 @@
     }
 
     // --- TEXT TO SPEECH (FAST RESPONSE) ---
-    function speakQuestion(text) {
+    function speakQuestion(text, audioBase64 = null) {
       if (isInterviewFinished) return;
       isAiSpeaking = true;
 
@@ -2805,13 +2817,51 @@
         textarea.placeholder = "Interviewer is speaking... Click 'Start Answering' to skip.";
       }
 
+      updateAvatarExpression('speaking');
+
+      // Stop any existing speech synthesis or ElevenLabs audio
+      if (window.currentElevenLabsAudio) {
+        try {
+          window.currentElevenLabsAudio.pause();
+        } catch(e){}
+        window.currentElevenLabsAudio = null;
+      }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+
+      if (audioBase64) {
+        console.log("Playing ElevenLabs vocalization...");
+        const audioSrc = "data:audio/mp3;base64," + audioBase64;
+        const audioObj = new Audio(audioSrc);
+        window.currentElevenLabsAudio = audioObj;
+
+        audioObj.onended = () => {
+          window.currentElevenLabsAudio = null;
+          onSpeechFinished();
+        };
+
+        audioObj.onerror = (e) => {
+          console.warn("ElevenLabs audio error, falling back to local speech synthesis:", e);
+          window.currentElevenLabsAudio = null;
+          speakQuestionFallback(text);
+        };
+
+        audioObj.play().catch(playErr => {
+          console.warn("Play blocked or failed, falling back to local speech synthesis:", playErr);
+          window.currentElevenLabsAudio = null;
+          speakQuestionFallback(text);
+        });
+      } else {
+        speakQuestionFallback(text);
+      }
+    }
+
+    function speakQuestionFallback(text) {
       if (!window.speechSynthesis) {
         onSpeechFinished();
         return;
       }
-
-      updateAvatarExpression('speaking');
-      window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
 
@@ -2843,6 +2893,13 @@
 
     function onSpeechFinished() {
       isAiSpeaking = false;
+      
+      if (window.currentElevenLabsAudio) {
+        try {
+          window.currentElevenLabsAudio.pause();
+        } catch(e){}
+        window.currentElevenLabsAudio = null;
+      }
       
       const qBox = document.getElementById("questionBox");
       if (qBox) qBox.classList.remove("speaking-border-ai");
@@ -2947,6 +3004,9 @@
         btn.classList.add("muted");
         logProctorEvent("Interview paused.", 0);
         
+        if (window.currentElevenLabsAudio) {
+          window.currentElevenLabsAudio.pause();
+        }
         if (window.speechSynthesis) {
           window.speechSynthesis.pause();
         }
@@ -2968,6 +3028,11 @@
         btn.classList.remove("muted");
         logProctorEvent("Interview resumed.", 0);
         
+        if (window.currentElevenLabsAudio) {
+          window.currentElevenLabsAudio.play().catch(err => {
+            console.warn("ElevenLabs audio play failed on resume:", err);
+          });
+        }
         if (window.speechSynthesis) {
           window.speechSynthesis.resume();
         }
@@ -3068,7 +3133,9 @@
                 candidateProfile: activeProfile,
                 candidateName: candidateName,
                 interviewerAbility: selectedInterviewer,
-                language: selectedLanguage
+                language: selectedLanguage,
+                jobSkills: window._interviewJobSkills || '',
+                jobId: window._interviewJobId || ''
               })
             });
             const data = await response.json();

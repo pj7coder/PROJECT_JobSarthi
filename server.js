@@ -2928,9 +2928,56 @@ const FALLBACK_QUESTIONS = {
   }
 };
 
+// --- ElevenLabs Text-to-Speech Helper ---
+async function callElevenLabs(text, interviewer) {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    console.log("[ElevenLabs] No API key configured. Skipping TTS generation.");
+    return null;
+  }
+  
+  let voiceId = "ErXwobaYiN019thkyCjV"; // Antoni (Sarthi default)
+  if (interviewer === "vikram") {
+    voiceId = "pNInz6obpgqjVWtJ45xs"; // Adam
+  } else if (interviewer === "ananya") {
+    voiceId = "21m00Tcm4TlvDq8ikWAM"; // Rachel
+  }
+
+  try {
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: "POST",
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: "eleven_multilingual_v2", // Supports English, Hindi, Hinglish
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.warn(`ElevenLabs API error: ${response.status} - ${errText}`);
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return buffer.toString("base64");
+  } catch (err) {
+    console.error("ElevenLabs speech synthesis failed:", err);
+    return null;
+  }
+}
+
 app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
   try {
-    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language } = req.body;
+    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language, jobSkills, jobId } = req.body;
     const currentRole = role || "Full Stack Developer";
     const currentDiff = difficulty || "Intermediate";
     const isFirstQuestion = !currentQuestion || !history || history.length === 0;
@@ -2967,46 +3014,17 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
       }
     }
 
-    // Build the system prompt
-    let systemPrompt = `You are Sarthi, an advanced, highly adaptive, and realistic AI interviewer on the JobSarthi platform.
-Your target role is: ${resolvedRole}. The current difficulty level is: ${currentDiff}.
-
-INSTRUCTIONS FOR HIGH-QUALITY INTERVIEW FLOW:
-1. PERSONALIZATION: Tailor all questions directly to the candidate's name, degree, experience, and listed skills. Do NOT assume generic engineering backgrounds if they have a background in Finance, Design, or Economics.
-2. DYNAMIC FOLLOW-UPS: Carefully listen to the candidate's last answer. Your next question MUST build directly on their response. Probe their specific claims. For example, if they mention using a cache, ask how they handle cache invalidation, cache stampede, or memory limits in a high-throughput environment. If they discuss financial models, ask about specific assumptions, risks, or variable sensitivity.
-3. PROBLEM-SOLVING & CASE STUDIES: Avoid textbook definitions or surface-level theoretical questions. Ask real-world, situational, and case-study oriented questions (e.g., "Imagine we are launching a new feature and X goes wrong. How do you approach solving this?").
-4. ENGAGING & NATURAL TONE: Maintain a professional, intellectual, yet highly conversational and supportive tone. Do not repeat topics, vocabulary, or question templates from previous turns. Keep the candidate engaged by acknowledging their previous point with a brief transition before asking the next question.`;
-
-    if (interviewerAbility === "vikram") {
-      systemPrompt += `\nAbility Active: You are Prof. Vikram, an aged expert who asks questions at a VERY deep technical level. Focus intensely on low-level mechanics, internal architecture patterns, memory limits, and complex algorithms rather than simple high-level concepts.`;
-    } else if (interviewerAbility === "ananya") {
-      systemPrompt += `\nAbility Active: You are Dr. Ananya. You conduct evaluations with extreme scrutiny and rigor. Grade responses strictly, and offer granular critical critiques rather than general praise.`;
+    // Fetch target job details from DB if jobId is provided
+    let jobDetails = null;
+    if (jobId) {
+      try {
+        jobDetails = await dbService.findJobById(jobId);
+      } catch (e) {
+        console.warn("Failed to fetch job details for interview context:", e);
+      }
     }
 
-    if (language === "hi") {
-      systemPrompt += `\nLanguage instruction: You MUST ask questions and provide feedback in HINDI language (Devanagari script). Keep the tone professional. Do not use English language script for the question or feedback text fields.`;
-    } else if (language === "hinglish") {
-      systemPrompt += `\nLanguage instruction: You MUST ask questions and provide feedback in HINGLISH language (a blend of Hindi and English written in the English/Latin alphabet, e.g., "Aap mujhe apne projects ke baare me batayein" or "Aap is scalability problem ko kaise handle karenge?"). Both the "nextQuestion" and "feedback" fields MUST be written in this Latin-script Hinglish. Do not use Devanagari script.`;
-    } else {
-      systemPrompt += `\nLanguage instruction: You MUST ask questions and provide feedback in ENGLISH language.`;
-    }
-
-    systemPrompt += `\nYou must return your output ONLY as a valid JSON object matching the following schemas.
-
-If it is the FIRST question:
-{
-  "nextQuestion": "The first interview question to ask the candidate, personalized to their background if profile details are provided."
-}
-
-If it is a SUBSEQUENT question:
-{
-  "feedback": "1-2 sentence constructive feedback on their previous answer.",
-  "score": 8, // integer score from 0 to 10 evaluating their last answer
-  "difficultyChange": "increase" | "decrease" | "maintain",
-  "nextQuestion": "The next follow-up question to ask the candidate, directly engaging with what they just said."
-}`;
-
-    // Build conversation context
+    // Parse candidate profile details
     let profileContext = `Candidate Name: ${candidateName || "Candidate"}\n`;
     if (candidateProfile) {
       if (candidateProfile.skills) {
@@ -3023,30 +3041,64 @@ If it is a SUBSEQUENT question:
       }
     }
 
-    // Introduce random variance to prevent repetitive questions
-    const randSeed = Math.random().toString(36).substring(7);
-    systemPrompt += `\nDynamic seed/instruction: Ensure the next question is highly distinct, fresh, and creative. Do not repeat topics, wordings, or questions from previous turns. [Variance Key: ${randSeed}].`;
+    // Build the system prompt
+    let systemPrompt = `You are a Multi-Agent AI Interview Orchestrator on the JobSarthi platform. You act as the following five agents simultaneously:
+1. [INTEGRITY MONITOR AGENT]: Track candidate's browser and webcam events (e.g. tab switches, silence intervals, phone detection, or copy-paste actions). Adjust suspicion logs and confidence score accordingly.
+2. [MEMORY MANAGER AGENT]: Maintain conversational memory by extracting key facts, mentioned projects, stated technologies, weaknesses, and strengths from the history, and building continuity.
+3. [EVALUATOR AGENT]: Grade answers strictly but professionally. Detect high-level bluffing or vague answers by looking for lack of specific details/metrics, and raise probing technical follow-ups.
+4. [QUESTION ENGINE AGENT]: Formulate the next question using these weights: 40% Resume, 35% Job Description, 15% Company Patterns, 10% Industry Standards. Adjust difficulty dynamically (increase for strong answers, decrease/maintain for weaker ones).
+5. [INTERVIEWER AGENT]: Synthesize the final conversational response, maintaining the selected persona, language, and tone.
 
+INSTRUCTIONS:
+- Candidate Name: ${candidateName || "Candidate"}
+- Target Difficulty Level: ${currentDiff}
+- Persona: ${interviewerAbility === "vikram" ? "Prof. Vikram (Aged expert, asks extremely deep, low-level technical under-the-hood questions)" : interviewerAbility === "ananya" ? "Dr. Ananya (Strict, rigorous evaluator, offers granular critical critiques)" : "Sarthi (Friendly, encouraging, highly professional companion)"}
+- Language: ${language === "hi" ? "HINDI (Devanagari script only)" : language === "hinglish" ? "HINGLISH (Hindi/English blend written in English alphabet, e.g., 'Aap scalability ko kaise target karenge?')" : "ENGLISH"}
+- Target Job: ${jobDetails ? `${jobDetails.title} at ${jobDetails.company}` : resolvedRole}
+- Job Description: ${jobDetails ? jobDetails.description : "Not provided"}
+- Job Requirements: ${jobDetails ? JSON.stringify(jobDetails.reqs) : "Not provided"}
+- Resume Context: ${profileContext || "Not provided"}
+
+BLUFF & VAGUENESS DETECTION RULES:
+If the candidate says something high-level or vague (e.g., "I optimized database queries" or "I built authentication"), do NOT accept it. You must generate a follow-up question that drills down into implementation details, tradeoffs, metrics, or edge cases. Do NOT accuse them; verify knowledge naturally.
+
+MEMORY RECALL RULE:
+Reference concepts, tools, or projects mentioned by the candidate in earlier responses when formulating later questions (e.g., "You mentioned Redis earlier. How does its eviction strategy differ from Memcached?").
+
+OUTPUT SCHEMA:
+You MUST return your output as a valid JSON object matching the following structure. Do NOT include markdown code blocks (e.g. \`\`\`json) or any leading/trailing text outside the JSON.
+
+{
+  "feedback": "1-2 sentence constructive feedback on their previous answer (in the requested language). Set to null for the first question.",
+  "score": 8, // Integer from 0 to 10 evaluating their last answer. Set to 5 for the first question.
+  "difficultyChange": "increase" | "decrease" | "maintain",
+  "memory": {
+    "statedSkills": ["list of skills candidate has mentioned"],
+    "projects": ["list of projects candidate has mentioned"],
+    "weaknesses": ["candidate weaknesses or areas they struggled with"],
+    "strengths": ["candidate strengths or areas they excelled at"]
+  },
+  "nextQuestion": "The next interview question (in the requested language). Ensure it follows the weights and follow-up rules.",
+  "spokenQuestion": "The spoken version of the next question. Keep it natural and highly conversational (in the requested language)."
+}`;
+
+    // Reconstruct message history
     const messages = [
       { role: "system", content: systemPrompt },
-      { role: "user", content: `Hello, I'm ready to start the interview for the ${currentRole} position at ${currentDiff} difficulty. Here is my profile background:\n${profileContext}` }
+      { role: "user", content: `Hello, I'm ready to start the interview for the ${resolvedRole} position at ${currentDiff} difficulty. Here is my background:\n${profileContext}` }
     ];
 
     if (!isFirstQuestion && history && history.length > 0) {
-      // Reconstruct conversation history
       for (let i = 0; i < history.length; i++) {
         const item = history[i];
-        // AI asks question
         messages.push({
           role: "assistant",
           content: JSON.stringify({ nextQuestion: item.question })
         });
-        // User responds
         messages.push({
           role: "user",
           content: item.answer || "[No Answer / Skipped]"
         });
-        // AI feedback and next question
         const nextQVal = (i < history.length - 1) ? history[i+1].question : currentQuestion;
         messages.push({
           role: "assistant",
@@ -3061,7 +3113,6 @@ If it is a SUBSEQUENT question:
     }
 
     if (!isFirstQuestion) {
-      // Add current active question and current userAnswer
       messages.push({
         role: "assistant",
         content: JSON.stringify({ nextQuestion: currentQuestion })
@@ -3073,6 +3124,7 @@ If it is a SUBSEQUENT question:
     }
 
     // Call LLM
+    let responseJSON = null;
     if (GROQ_API_KEY) {
       console.log(`[Sarthi AI] Generating question using Groq... isFirstQuestion: ${isFirstQuestion}`);
       const responseText = await callGroq(messages, true, 0.85);
@@ -3083,18 +3135,15 @@ If it is a SUBSEQUENT question:
         if (lines[lines.length - 1].startsWith("```")) lines.pop();
         cleanText = lines.join("\n").trim();
       }
-      const responseJSON = JSON.parse(cleanText);
-      return res.json(responseJSON);
-
+      responseJSON = JSON.parse(cleanText);
     } else if (process.env.GEMINI_API_KEY) {
       console.log(`[Sarthi AI] Generating question using Gemini... isFirstQuestion: ${isFirstQuestion}`);
       const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
       
-      // Map OpenAI messages format to Gemini contents format
       const geminiContents = messages.map(msg => {
         let roleName = "user";
-        if (msg.role === "system") roleName = "user"; // system instructions go in systemInstruction parameter or user prompt
+        if (msg.role === "system") roleName = "user";
         else if (msg.role === "assistant") roleName = "model";
         return {
           role: roleName,
@@ -3131,117 +3180,139 @@ If it is a SUBSEQUENT question:
         if (lines[lines.length - 1].startsWith("```")) lines.pop();
         responseText = lines.join("\n").trim();
       }
-      const responseJSON = JSON.parse(responseText);
-      return res.json(responseJSON);
+      responseJSON = JSON.parse(responseText);
     }
 
-    // --- High-Quality Local Fallback Mode ---
-    console.log("[Sarthi AI] Fallback mode triggered.");
-    let fallbackRole = resolvedRole;
-    if (!FALLBACK_QUESTIONS[fallbackRole]) {
-      const lowerRole = fallbackRole.toLowerCase();
-      if (lowerRole.includes("economics") || lowerRole.includes("finance") || lowerRole.includes("business")) {
-        fallbackRole = "Economics / Financial Analyst";
+    if (!responseJSON) {
+      // High-Quality Local Fallback Mode
+      console.log("[Sarthi AI] Fallback mode triggered.");
+      let fallbackRole = resolvedRole;
+      if (!FALLBACK_QUESTIONS[fallbackRole]) {
+        const lowerRole = fallbackRole.toLowerCase();
+        if (lowerRole.includes("economics") || lowerRole.includes("finance") || lowerRole.includes("business")) {
+          fallbackRole = "Economics / Financial Analyst";
+        } else {
+          fallbackRole = "Full Stack Developer";
+        }
+      }
+      const roleQuestions = FALLBACK_QUESTIONS[fallbackRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
+      const diffQuestions = roleQuestions[currentDiff] || roleQuestions["Intermediate"];
+
+      if (isFirstQuestion) {
+        let firstQ = diffQuestions[0];
+        if (interviewerAbility === "vikram") {
+          const expertQuestions = roleQuestions["Expert"] || diffQuestions;
+          firstQ = expertQuestions[0] + " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
+        }
+        responseJSON = {
+          nextQuestion: firstQ,
+          spokenQuestion: firstQ,
+          feedback: null,
+          score: 5,
+          difficultyChange: "maintain",
+          memory: {}
+        };
       } else {
-        fallbackRole = "Full Stack Developer";
-      }
-    }
-    const roleQuestions = FALLBACK_QUESTIONS[fallbackRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
-    const diffQuestions = roleQuestions[currentDiff] || roleQuestions["Intermediate"];
+        let score = 5;
+        let feedback = "";
+        let difficultyChange = "maintain";
 
-    if (isFirstQuestion) {
-      let firstQ = diffQuestions[0];
-      if (interviewerAbility === "vikram") {
-        const expertQuestions = roleQuestions["Expert"] || diffQuestions;
-        firstQ = expertQuestions[0] + " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
-      }
-      return res.json({
-        nextQuestion: firstQ
-      });
-    }
+        if (timerExpired || !userAnswer || userAnswer.trim().length < 5) {
+          score = 0;
+          feedback = "You skipped this question or the timer expired. Let's try another one.";
+          difficultyChange = "decrease";
+        } else {
+          const answerLower = userAnswer.toLowerCase();
+          let keywordsMatched = 0;
+          const keyTerms = [
+            "rendering", "server", "client", "state", "components", "index", "query", "database", "middleware", "token", "auth", "flexbox", "grid", "hooks", "dom", "scaling", "api", "load"
+          ];
+          keyTerms.forEach(term => {
+            if (answerLower.includes(term)) keywordsMatched++;
+          });
 
-    // Evaluate response locally
-    let score = 5;
-    let feedback = "";
-    let difficultyChange = "maintain";
+          if (keywordsMatched >= 3) {
+            score = 8;
+            feedback = "Excellent answer! You covered the core technical concepts well.";
+            difficultyChange = "increase";
+          } else if (keywordsMatched >= 1) {
+            score = 6;
+            feedback = "Good response. Try to elaborate on how the architecture handles edge cases.";
+            difficultyChange = "maintain";
+          } else {
+            score = 4;
+            feedback = "A basic overview. Make sure to review the core execution details of this technology.";
+            difficultyChange = "decrease";
+          }
+        }
 
-    if (timerExpired || !userAnswer || userAnswer.trim().length < 5) {
-      score = 0;
-      feedback = "You skipped this question or the timer expired. Let's try another one.";
-      difficultyChange = "decrease";
-    } else {
-      const answerLower = userAnswer.toLowerCase();
-      // Simple keyword matching for score calculation
-      let keywordsMatched = 0;
-      const keyTerms = [
-        "rendering", "server", "client", "state", "components", "index", "query", "database", "middleware", "token", "auth", "flexbox", "grid", "hooks", "dom", "scaling", "api", "load",
-        "supervised", "unsupervised", "regression", "model", "ci/cd", "docker", "kubernetes", "rice", "prd", "mvp", "native", "cross-platform", "figma", "accessibility", "quantization", "rag"
-      ];
+        if (interviewerAbility === "ananya") {
+          score = Math.max(1, Math.round(score * 0.7));
+          feedback = `Dr. Ananya's strict assessment: ${feedback} Make sure to explain optimization specifics.`;
+        }
 
-      keyTerms.forEach(term => {
-        if (answerLower.includes(term)) keywordsMatched++;
-      });
+        let nextIndex = history.length % diffQuestions.length;
+        let newDiff = currentDiff;
+        if (interviewerAbility === "vikram") {
+          newDiff = "Expert";
+        } else {
+          if (difficultyChange === "increase") {
+            newDiff = currentDiff === "Beginner" ? "Intermediate" : "Expert";
+          } else if (difficultyChange === "decrease") {
+            newDiff = currentDiff === "Expert" ? "Intermediate" : "Beginner";
+          }
+        }
 
-      if (keywordsMatched >= 3) {
-        score = 8;
-        feedback = "Excellent answer! You covered the core technical concepts well.";
-        difficultyChange = "increase";
-      } else if (keywordsMatched >= 1) {
-        score = 6;
-        feedback = "Good response. Try to elaborate on how the architecture handles edge cases.";
-        difficultyChange = "maintain";
-      } else {
-        score = 4;
-        feedback = "A basic overview. Make sure to review the core execution details of this technology.";
-        difficultyChange = "decrease";
-      }
-    }
+        const nextRoleQuestions = FALLBACK_QUESTIONS[currentRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
+        const nextDiffQuestions = nextRoleQuestions[newDiff] || nextRoleQuestions["Intermediate"];
+        let nextQ = nextDiffQuestions[nextIndex % nextDiffQuestions.length];
+        
+        if (interviewerAbility === "vikram") {
+          nextQ += " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
+        }
 
-    // Apply strict grading/scrutiny from Dr. Ananya
-    if (interviewerAbility === "ananya") {
-      score = Math.max(1, Math.round(score * 0.7));
-      feedback = `Dr. Ananya's strict assessment: ${feedback} Make sure to explain optimization specifics.`;
-    }
-
-    // Determine next question index
-    let nextIndex = history.length % diffQuestions.length;
-    let newDiff = currentDiff;
-    if (interviewerAbility === "vikram") {
-      newDiff = "Expert"; // Prof. Vikram always asks expert level questions
-    } else {
-      if (difficultyChange === "increase") {
-        newDiff = currentDiff === "Beginner" ? "Intermediate" : "Expert";
-      } else if (difficultyChange === "decrease") {
-        newDiff = currentDiff === "Expert" ? "Intermediate" : "Beginner";
+        responseJSON = {
+          feedback,
+          score,
+          difficultyChange,
+          nextQuestion: nextQ,
+          spokenQuestion: nextQ,
+          memory: {}
+        };
       }
     }
 
-    const nextRoleQuestions = FALLBACK_QUESTIONS[currentRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
-    const nextDiffQuestions = nextRoleQuestions[newDiff] || nextRoleQuestions["Intermediate"];
-    let nextQ = nextDiffQuestions[nextIndex % nextDiffQuestions.length];
-    
-    if (interviewerAbility === "vikram") {
-      nextQ += " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
+    // Call ElevenLabs to generate spoken audio if ELEVENLABS_API_KEY is configured
+    let audioBase64 = null;
+    if (process.env.ELEVENLABS_API_KEY) {
+      try {
+        const textToSpeak = responseJSON.spokenQuestion || responseJSON.nextQuestion;
+        if (textToSpeak) {
+          console.log(`[ElevenLabs] Generating speech audio for: "${textToSpeak.substring(0, 40)}..."`);
+          audioBase64 = await callElevenLabs(textToSpeak, interviewerAbility);
+        }
+      } catch (audioErr) {
+        console.warn("ElevenLabs audio generation failed:", audioErr);
+      }
     }
 
-    res.json({
-      feedback,
-      score,
-      difficultyChange,
-      nextQuestion: nextQ
-    });
+    responseJSON.audioBase64 = audioBase64;
+    res.json(responseJSON);
 
   } catch (err) {
     console.error("Interview API error:", err);
-    // Send a generic safe JSON
     res.json({
       feedback: "Technical error, but let's continue with the next concept.",
       score: 5,
       difficultyChange: "maintain",
-      nextQuestion: "Can you explain the main lifecycle methods or stages in web application performance optimization?"
+      nextQuestion: "Can you explain the main lifecycle methods or stages in web application performance optimization?",
+      spokenQuestion: "Can you explain the main lifecycle methods or stages in web application performance optimization?",
+      audioBase64: null
     });
   }
 });
+
+
 
 app.post("/api/sarthi/interviews", async (req, res) => {
   try {
