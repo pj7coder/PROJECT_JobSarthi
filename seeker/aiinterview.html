@@ -1711,7 +1711,6 @@
 
           <div class="answer-footer">
             <span id="statusTip" style="font-size: 0.82rem; color: var(--text-muted); flex: 1; padding-right: 15px;">
-              💡 Tip: Speak clearly. The system auto-submits on 3s silence.
             </span>
             <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
               <!-- Countdown timer badge -->
@@ -2563,10 +2562,18 @@
           logProctorEvent("Natural conversation flow maintained.", -4);
 
           // Display simple evaluating state
+          const evaluatingText = "EVALUATING YOUR ANSWER...";
+          const evalLetterSpans = evaluatingText.split("").map((char, index) => {
+            if (char === " ") return `<span class="loader-letter" style="animation-delay: ${index * 0.04}s;">&nbsp;</span>`;
+            return `<span class="loader-letter" style="animation-delay: ${index * 0.04}s;">${char}</span>`;
+          }).join("");
+
           document.getElementById("questionDisplay").innerHTML = `
-            <div style="display: flex; align-items: center; gap: 10px; color: var(--accent-secondary); font-weight: 700; letter-spacing: 0.5px; animation: pulseMic 1.5s infinite; font-size: 1.05rem;">
-              <span>⚡</span>
-              <span>EVALUATING YOUR ANSWER...</span>
+            <div class="loader-wrapper" style="margin-top: 15px; display: flex; align-items: center; justify-content: flex-start;">
+              <div class="loader"></div>
+              <div class="letter-wrapper">
+                ${evalLetterSpans}
+              </div>
             </div>
           `;
 
@@ -2716,20 +2723,11 @@
       }
     }
 
-    // Auto submission timeout when user remains silent
+    // Auto submission timeout when user remains silent (disabled)
     function resetAutoSubmitTimer() {
       if (autoSubmitTimeout) {
         clearTimeout(autoSubmitTimeout);
       }
-      autoSubmitTimeout = setTimeout(() => {
-        if (isInterviewPaused || isAiSpeaking || isThinkTimeActive) return;
-        // If they have typed/spoken something, auto submit to speed up flow
-        const answer = document.getElementById("answerTextarea").value.trim();
-        if (answer.length > 15) {
-          logProctorEvent("User speech pause. Auto-submitting response.", 0);
-          submitAnswer(false);
-        }
-      }, 3000); // 3 seconds of continuous silence submits response
     }
 
     // --- SELECT AND LOCK VOICE --- (called early to avoid async first-question miss)
