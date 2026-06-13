@@ -2392,7 +2392,7 @@ body.about-active .mobile-bottom-nav {
    Comprehensive Mobile Web App Layout and Spacing Polish (All Pages)
    ========================================================================== */
 @media (max-width: 768px) {
-  /* Disable all transitions, animations, and transform scaling on mobile */
+  /* Disable all transitions and animations on mobile */
   *, *::before, *::after {
     animation: none !important;
     transition: none !important;
@@ -2402,7 +2402,49 @@ body.about-active .mobile-bottom-nav {
     transition-delay: 0s !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Disable card hover lift transforms and shadow transitions on mobile specifically */
+  .portal-card:hover,
+  .review-card:hover,
+  .sarthi-tool-card:hover,
+  .feature-item:hover,
+  .glass-card:hover,
+  .glass-panel:hover,
+  .about-col:hover,
+  .seeker-tool-card:hover,
+  .btn:hover,
+  a:hover {
     transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Disable portal card float and hover translation animations on mobile */
+  .portal-icon-wrapper {
+    animation: none !important;
+    top: 40% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  .portal-card:hover .portal-static-title {
+    top: 65% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    font-size: 1.45rem !important;
+    text-align: center !important;
+  }
+  .portal-card:hover .portal-icon-wrapper {
+    top: 40% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  .portal-card:hover .portal-text {
+    left: -100% !important;
+    opacity: 0 !important;
+  }
+  .portal-card::after,
+  .portal-card:hover::after {
+    display: none !important;
   }
 
   /* Hide heavy decorative background elements, glows, WebGL canvas, and spotlight grids */
