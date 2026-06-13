@@ -2419,29 +2419,58 @@ body.about-active .mobile-bottom-nav {
     box-shadow: none !important;
   }
 
-  /* Disable portal card float and hover translation animations on mobile */
-  .portal-icon-wrapper {
-    animation: none !important;
-    top: 40% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-  }
-  .portal-card:hover .portal-static-title {
-    top: 65% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    font-size: 1.45rem !important;
+  /* Stack portal card layout elements statically and legibly on mobile viewports */
+  .portal-card {
+    height: auto !important;
+    min-height: auto !important;
+    padding: 24px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
     text-align: center !important;
+    box-sizing: border-box !important;
   }
-  .portal-card:hover .portal-icon-wrapper {
-    top: 40% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
+
+  .portal-icon-wrapper {
+    position: static !important;
+    transform: none !important;
+    margin-bottom: 12px !important;
+    animation: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
   }
-  .portal-card:hover .portal-text {
-    left: -100% !important;
-    opacity: 0 !important;
+
+  .portal-svg {
+    width: 54px !important;
+    height: 54px !important;
   }
+
+  .portal-static-title {
+    position: static !important;
+    transform: none !important;
+    font-size: 1.3rem !important;
+    margin-bottom: 8px !important;
+    text-align: center !important;
+    white-space: normal !important;
+    width: auto !important;
+  }
+
+  .portal-text {
+    position: static !important;
+    width: 100% !important;
+    opacity: 1 !important;
+    text-align: center !important;
+    margin: 0 !important;
+  }
+
+  .portal-text p {
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
+    color: var(--text-muted) !important;
+  }
+
   .portal-card::after,
   .portal-card:hover::after {
     display: none !important;
