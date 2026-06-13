@@ -113,6 +113,20 @@
       font-size: 0.9rem;
     }
 
+    .stat-row.clickable {
+      cursor: pointer;
+      padding: 6px 8px;
+      margin: -6px -8px;
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
+    }
+    .stat-row.clickable:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    body.light-theme .stat-row.clickable:hover {
+      background: rgba(0, 0, 0, 0.03);
+    }
+
     .stat-label {
       color: var(--text-muted);
     }
@@ -432,17 +446,13 @@
         </div>
 
         <div class="sidebar-stats" id="applications">
-          <div class="stat-row">
+          <div class="stat-row clickable" onclick="window.location.href='analytics.html'">
             <span class="stat-label">Applications Sent</span>
             <span class="stat-value" id="applicationsSentCount">0</span>
           </div>
-          <div class="stat-row">
+          <div class="stat-row clickable" onclick="window.location.href='analytics.html'">
             <span class="stat-label">Interviews Scheduled</span>
             <span class="stat-value" style="color: var(--success);" id="interviewsScheduledCount">0</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">Uploaded Certificates</span>
-            <span class="stat-value" id="certificatesCount">0</span>
           </div>
         </div>
 
@@ -703,8 +713,6 @@
       if (progressBar) progressBar.style.width = `${completenessScore}%`;
 
       // Update other stats counts
-      const certificatesCount = document.getElementById('certificatesCount');
-      if (certificatesCount) certificatesCount.textContent = profile.certificates ? profile.certificates.length : 0;
     }
 
     async function loadDashboardProfile() {
@@ -1033,19 +1041,19 @@
 
           const isApplied = (JSON.parse(localStorage.getItem('applied_jobs') || '[]')).includes(job.id);
           const actionBtn = job.isSample ? `
-            <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center;">${isApplied ? 'Applied' : 'Apply'}</button>
+            <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; height: 38px; box-sizing: border-box;">${isApplied ? 'Applied' : 'Apply'}</button>
           ` : `
-            <a href="/apply/${job.id}?email=${encodeURIComponent(localStorage.getItem('seeker_email') || '')}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Open</a>
+            <a href="/apply/${job.id}?email=${encodeURIComponent(localStorage.getItem('seeker_email') || '')}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; height: 38px; box-sizing: border-box;">Open</a>
           `;
 
           const savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
           const isSaved = savedIds.includes(job.id);
           const heartSvg = isSaved ? `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           ` : `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           `;
@@ -1079,9 +1087,9 @@
               </div>
             </div>
             <div class="job-card-actions" onclick="event.stopPropagation()">
-              <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-details-animated">Details</button>
+              <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-details-animated" style="height: 38px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;">Details</button>
               ${actionBtn}
-              <button onclick="toggleSaveJobFromCard('${job.id}', event)" class="btn btn-like-card" id="like_btn_${job.id}" style="padding: 8px 10px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: ${isSaved ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${isSaved ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)'}; color: var(--text-muted); cursor: pointer; transition: all 0.2s;" title="Save Job">
+              <button onclick="toggleSaveJobFromCard('${job.id}', event)" class="btn btn-like-card" id="like_btn_${job.id}" style="height: 38px; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: ${isSaved ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${isSaved ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)'}; color: var(--text-muted); cursor: pointer; transition: all 0.2s;" title="Save Job">
                 ${heartSvg}
               </button>
             </div>

@@ -131,7 +131,7 @@ window.headerSeekerHTML = `
     <nav>
       <ul class="nav-links">
         <li><a href="index.html" class="nav-link">Dashboard</a></li>
-        <li><a href="resume.html" class="nav-link">Resume</a></li>
+        <li><a href="resume.html" class="nav-link">Profile</a></li>
         <li><a href="jobs.html" class="nav-link">Jobs</a></li>
         <li><a href="analytics.html" class="nav-link">Analytics</a></li>
         <li><a href="messages.html" class="nav-link">Messages</a></li>

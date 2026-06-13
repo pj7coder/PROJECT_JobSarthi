@@ -113,7 +113,7 @@
       <!-- Footer -->
       <div class="drawer-footer" style="display:flex;gap:8px;align-items:center;">
         <button id="jd_applyBtn" class="btn btn-glow" style="flex:2;height:44px;font-weight:600;" onclick="window.JobDrawer._onApply()">Apply Now</button>
-        <button id="jd_mockBtn" class="btn btn-secondary" style="flex:2;height:44px;font-weight:600;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);color:#60a5fa;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.JobDrawer._onMock()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg> Mock Interview</button>
+        <button id="jd_mockBtn" class="btn btn-glow" style="flex:2;height:44px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.JobDrawer._onMock()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg> AI Interview</button>
         <button id="jd_likeBtn" class="btn btn-secondary" style="width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;transition:all 0.2s;" onclick="window.JobDrawer._onLikeClick(event)" title="Like Job">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -469,11 +469,11 @@
       const cardBtn = document.getElementById(`like_btn_${jobId}`);
       if (cardBtn) {
         cardBtn.innerHTML = checked ? `
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         ` : `
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         `;
