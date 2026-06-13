@@ -2977,7 +2977,7 @@ async function callElevenLabs(text, interviewer) {
 
 app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
   try {
-    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language, jobSkills, jobId } = req.body;
+    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language, jobSkills, jobId, interviewState } = req.body;
     const currentRole = role || "Full Stack Developer";
     const currentDiff = difficulty || "Intermediate";
     const isFirstQuestion = !currentQuestion || !history || history.length === 0;
@@ -3041,13 +3041,55 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
       }
     }
 
+    // Initialize/clean interviewState
+    let state = interviewState;
+    if (!state) {
+      state = {
+        stage: "introduction",
+        currentTopic: "Introduction",
+        topicGraph: {
+          nodes: ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"],
+          currentIndex: 0,
+          completed: []
+        },
+        claims: [],
+        satisfaction: {
+          technicalKnowledge: 50,
+          communication: 50,
+          confidence: 50,
+          authenticity: 50,
+          problemSolving: 50,
+          learningAbility: 50,
+          ownership: 50,
+          depth: 50,
+          overall: 50
+        },
+        evidence: [],
+        earlyExitTriggered: false,
+        earlyExitReason: ""
+      };
+    }
+
     // Build the system prompt
     let systemPrompt = `You are a Multi-Agent AI Interview Orchestrator on the JobSarthi platform. You act as the following five agents simultaneously:
 1. [INTEGRITY MONITOR AGENT]: Track candidate's browser and webcam events (e.g. tab switches, silence intervals, phone detection, or copy-paste actions). Adjust suspicion logs and confidence score accordingly.
 2. [MEMORY MANAGER AGENT]: Maintain conversational memory by extracting key facts, mentioned projects, stated technologies, weaknesses, and strengths from the history, and building continuity.
-3. [EVALUATOR AGENT]: Grade answers strictly but professionally. Detect high-level bluffing or vague answers by looking for lack of specific details/metrics, and raise probing technical follow-ups.
-4. [QUESTION ENGINE AGENT]: Formulate the next question using these weights: 40% Resume, 35% Job Description, 15% Company Patterns, 10% Industry Standards. Adjust difficulty dynamically (increase for strong answers, decrease/maintain for weaker ones).
+3. [EVALUATOR & BLUFF DETECTION AGENT]: Grade answers strictly but professionally. Detect high-level bluffing or vague answers by looking for lack of specific details/metrics, and raise probing technical follow-ups.
+4. [QUESTION ENGINE & STATE CONTROLLER AGENT]: Formulate the next question and update the Interview State. Follow a connected Topic Graph. Adjust difficulty dynamically.
 5. [INTERVIEWER AGENT]: Synthesize the final conversational response, maintaining the selected persona, language, and tone.
+
+CURRENT INTERVIEW STATE (INPUT):
+${JSON.stringify(state, null, 2)}
+
+INSTRUCTIONS FOR STATE MUTATION & TOPIC GRAPH:
+- You must read the CURRENT INTERVIEW STATE and update it based on the candidate's response.
+- **Stage & Topic Graph**: Update the stage and topic. Current topics list: ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"]. If the current topic is sufficiently covered, increment 'currentIndex' and update 'currentTopic' to the next node. Mark the previous topic as completed.
+- **Claim Extraction**: Extract claims from the user's answer (e.g. "I built X", "Optimized database query latency by 50%") and add them to the 'claims' array with a status of "UNVERIFIED" if they are new.
+- **Claim Verification**: If the candidate provides specific implementation details, tradeoffs, or metrics about a previously "UNVERIFIED" claim, update its status to "VERIFIED" or "PARTIALLY_VERIFIED" and append a statement in the 'evidence' list linking it to the current question.
+- **Bluff Detection**: If the candidate provides extremely vague answers or fails to provide metrics/tradeoffs for a claim when probed, mark it as "UNVERIFIED", decrease the candidate's 'authenticity' and 'depth' satisfaction scores, and log a "bluff_detected" warning in 'evidence'.
+- **Satisfaction Metrics**: Update all satisfaction metrics (0 to 100) dynamically. The metrics are: 'technicalKnowledge', 'communication', 'confidence', 'authenticity', 'problemSolving', 'learningAbility', 'ownership', 'depth', 'overall'.
+- **Early Termination Logic**: If the candidate repeatedly avoids answering, states "I don't know" or "skip" for multiple technical questions, or if their 'overall' satisfaction score drops below 25 after at least 2 questions, set 'earlyExitTriggered' to true and specify an 'earlyExitReason'. The next question should then be a polite closing message wrapping up the interview.
+- **Memory Recall**: Reference previously mentioned projects or technologies in the follow-up questions.
 
 INSTRUCTIONS:
 - Candidate Name: ${candidateName || "Candidate"}
@@ -3058,12 +3100,6 @@ INSTRUCTIONS:
 - Job Description: ${jobDetails ? jobDetails.description : "Not provided"}
 - Job Requirements: ${jobDetails ? JSON.stringify(jobDetails.reqs) : "Not provided"}
 - Resume Context: ${profileContext || "Not provided"}
-
-BLUFF & VAGUENESS DETECTION RULES:
-If the candidate says something high-level or vague (e.g., "I optimized database queries" or "I built authentication"), do NOT accept it. You must generate a follow-up question that drills down into implementation details, tradeoffs, metrics, or edge cases. Do NOT accuse them; verify knowledge naturally.
-
-MEMORY RECALL RULE:
-Reference concepts, tools, or projects mentioned by the candidate in earlier responses when formulating later questions (e.g., "You mentioned Redis earlier. How does its eviction strategy differ from Memcached?").
 
 OUTPUT SCHEMA:
 You MUST return your output as a valid JSON object matching the following structure. Do NOT include markdown code blocks (e.g. \`\`\`json) or any leading/trailing text outside the JSON.
@@ -3079,7 +3115,35 @@ You MUST return your output as a valid JSON object matching the following struct
     "strengths": ["candidate strengths or areas they excelled at"]
   },
   "nextQuestion": "The next interview question (in the requested language). Ensure it follows the weights and follow-up rules.",
-  "spokenQuestion": "The spoken version of the next question. Keep it natural and highly conversational (in the requested language)."
+  "spokenQuestion": "The spoken version of the next question. Keep it natural and highly conversational (in the requested language).",
+  "interviewState": {
+    "stage": "current stage name",
+    "currentTopic": "current topic name",
+    "topicGraph": {
+      "nodes": ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"],
+      "currentIndex": 0,
+      "completed": ["completed topics"]
+    },
+    "claims": [
+      { "text": "Claim description", "status": "UNVERIFIED" | "VERIFIED" | "PARTIALLY_VERIFIED", "evidenceCount": 1 }
+    ],
+    "satisfaction": {
+      "technicalKnowledge": 85,
+      "communication": 90,
+      "confidence": 80,
+      "authenticity": 85,
+      "problemSolving": 75,
+      "learningAbility": 80,
+      "ownership": 85,
+      "depth": 70,
+      "overall": 80
+    },
+    "evidence": [
+      { "type": "claim_verified" | "bluff_detected" | "strong_depth" | "no_knowledge" | "communication_praise" | "general", "text": "specific evidence statement referencing the response", "questionIndex": 1 }
+    ],
+    "earlyExitTriggered": false,
+    "earlyExitReason": ""
+  }
 }`;
 
     // Reconstruct message history
@@ -3282,6 +3346,44 @@ You MUST return your output as a valid JSON object matching the following struct
       }
     }
 
+    // Attach/Update interviewState in responseJSON
+    if (responseJSON) {
+      if (!responseJSON.interviewState) {
+        const topics = ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"];
+        const step = history ? history.length : 0;
+        const topicIndex = Math.min(topics.length - 1, Math.floor(step / 1.5));
+        state.stage = topics[topicIndex].toLowerCase().replace(/\s+/g, '_');
+        state.currentTopic = topics[topicIndex];
+        state.topicGraph.currentIndex = topicIndex;
+        state.topicGraph.completed = topics.slice(0, topicIndex);
+
+        if (responseJSON.score !== undefined) {
+          const s = responseJSON.score * 10;
+          state.satisfaction.overall = Math.round(state.satisfaction.overall * 0.7 + s * 0.3);
+          state.satisfaction.technicalKnowledge = Math.round(state.satisfaction.technicalKnowledge * 0.8 + s * 0.2);
+          state.satisfaction.confidence = Math.round(state.satisfaction.confidence * 0.8 + s * 0.2);
+          state.satisfaction.depth = Math.round(state.satisfaction.depth * 0.8 + s * 0.2);
+        }
+
+        if (userAnswer) {
+          if (responseJSON.score >= 7) {
+            state.evidence.push({
+              type: "claim_verified",
+              text: `Demonstrated good understanding of concepts in ${state.currentTopic}.`,
+              questionIndex: step
+            });
+          } else if (responseJSON.score <= 4) {
+            state.evidence.push({
+              type: "no_knowledge",
+              text: `Struggled to provide deep explanations in ${state.currentTopic}.`,
+              questionIndex: step
+            });
+          }
+        }
+        responseJSON.interviewState = state;
+      }
+    }
+
     // Call ElevenLabs to generate spoken audio if ELEVENLABS_API_KEY is configured
     let audioBase64 = null;
     if (process.env.ELEVENLABS_API_KEY) {
@@ -3298,7 +3400,6 @@ You MUST return your output as a valid JSON object matching the following struct
 
     responseJSON.audioBase64 = audioBase64;
     res.json(responseJSON);
-
   } catch (err) {
     console.error("Interview API error:", err);
     res.json({
@@ -3307,7 +3408,31 @@ You MUST return your output as a valid JSON object matching the following struct
       difficultyChange: "maintain",
       nextQuestion: "Can you explain the main lifecycle methods or stages in web application performance optimization?",
       spokenQuestion: "Can you explain the main lifecycle methods or stages in web application performance optimization?",
-      audioBase64: null
+      audioBase64: null,
+      interviewState: {
+        stage: "technical_deep_dive",
+        currentTopic: "Technical Deep Dive",
+        topicGraph: {
+          nodes: ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"],
+          currentIndex: 2,
+          completed: ["Introduction", "Resume & Projects Verification"]
+        },
+        claims: [],
+        satisfaction: {
+          technicalKnowledge: 50,
+          communication: 50,
+          confidence: 50,
+          authenticity: 50,
+          problemSolving: 50,
+          learningAbility: 50,
+          ownership: 50,
+          depth: 50,
+          overall: 50
+        },
+        evidence: [],
+        earlyExitTriggered: false,
+        earlyExitReason: ""
+      }
     });
   }
 });
@@ -3316,7 +3441,7 @@ You MUST return your output as a valid JSON object matching the following struct
 
 app.post("/api/sarthi/interviews", async (req, res) => {
   try {
-    const { email, role, difficulty, score, suspicionScore, history } = req.body;
+    const { email, role, difficulty, score, suspicionScore, history, interviewState } = req.body;
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
@@ -3327,6 +3452,7 @@ app.post("/api/sarthi/interviews", async (req, res) => {
       score: score !== undefined ? score : 0,
       suspicionScore: suspicionScore !== undefined ? suspicionScore : 0,
       history: history || [],
+      interviewState: interviewState || null,
       timestamp: new Date().toISOString()
     };
     const saved = await dbService.createInterviewReport(report);

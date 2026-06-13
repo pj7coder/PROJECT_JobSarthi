@@ -1842,6 +1842,26 @@
             </div>
           </div>
         </div>
+
+        <!-- Claims & Evidence Verification Report -->
+        <div class="glass-panel" id="reportClaimsPanel" style="padding: 16px; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: rgba(255, 255, 255, 0.01); display: flex; flex-direction: column; gap: 15px;">
+          <h3 style="font-size: 1.1rem; color: var(--accent-secondary); display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 600;">
+            🔍 Claims & Evidence Verification
+          </h3>
+          <div>
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--accent-tertiary); margin-bottom: 6px; letter-spacing: 0.5px;">Extracted Candidate Claims</div>
+            <div id="reportClaimsList" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; color: var(--text-muted);">
+              <!-- Claims dynamic list -->
+            </div>
+          </div>
+          <div>
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--success); margin-bottom: 6px; letter-spacing: 0.5px;">Collected Verification Evidence</div>
+            <div id="reportEvidenceList" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; color: var(--text-muted);">
+              <!-- Evidence dynamic list -->
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Answer Log Details -->
@@ -1926,6 +1946,7 @@
     let selectedInterviewer = "sarthi";
     let selectedLanguage = "en";
     let lockedVoice = null;
+    window.interviewState = null;
 
     let candidateProfile = null;
     let candidateName = localStorage.getItem('seeker_name') || 'Candidate';
@@ -2637,7 +2658,8 @@
             interviewerAbility: selectedInterviewer,
             language: selectedLanguage,
             jobSkills: window._interviewJobSkills || '',
-            jobId: window._interviewJobId || ''
+            jobId: window._interviewJobId || '',
+            interviewState: window.interviewState || null
           })
         });
 
@@ -2647,6 +2669,32 @@
 
         if (data && data.memory) {
           window.finalInterviewMemory = data.memory;
+        }
+
+        if (data && data.interviewState) {
+          window.interviewState = data.interviewState;
+          if (window.interviewState.earlyExitTriggered) {
+            if (!firstCall) {
+              interviewHistory.push({
+                question: currentQuestionText,
+                answer: previousAnswer || "[No Answer / Skipped]",
+                score: data.score !== undefined ? data.score : 5,
+                feedback: data.feedback || "Evaluation completed."
+              });
+              accumulatedScore += data.score !== undefined ? data.score : 5;
+              totalQuestionsAnswered++;
+            }
+            currentQuestionText = data.nextQuestion;
+            document.getElementById("questionDisplay").textContent = currentQuestionText;
+            updateAvatarExpression('serious');
+            speakQuestion(data.spokenQuestion || currentQuestionText, data.audioBase64);
+            
+            isInterviewFinished = true;
+            setTimeout(() => {
+              endInterview();
+            }, 7000);
+            return;
+          }
         }
         
         if (!firstCall) {
@@ -3225,12 +3273,16 @@
                 interviewerAbility: selectedInterviewer,
                 language: selectedLanguage,
                 jobSkills: window._interviewJobSkills || '',
-                jobId: window._interviewJobId || ''
+                jobId: window._interviewJobId || '',
+                interviewState: window.interviewState || null
               })
             });
             const data = await response.json();
             if (data && data.memory) {
               window.finalInterviewMemory = data.memory;
+            }
+            if (data && data.interviewState) {
+              window.interviewState = data.interviewState;
             }
             
             interviewHistory.push({
@@ -3754,7 +3806,10 @@
       document.body.classList.remove("interview-active");
 
       // Render score
-      const finalScorePct = Math.round((accumulatedScore / (totalQuestionsAnswered * 10)) * 100);
+      let finalScorePct = Math.round((accumulatedScore / (totalQuestionsAnswered * 10)) * 100);
+      if (window.interviewState && window.interviewState.satisfaction && window.interviewState.satisfaction.overall !== undefined) {
+        finalScorePct = window.interviewState.satisfaction.overall;
+      }
       document.getElementById("reportScore").textContent = isNaN(finalScorePct) ? "N/A" : `${finalScorePct}%`;
 
       // Render proctor shield
@@ -3784,8 +3839,8 @@
       // Calculate weighted sub-scores
       const baseScore = isNaN(finalScorePct) ? 70 : finalScorePct;
       
-      const techScore = Math.min(100, Math.max(30, Math.round(baseScore + (Math.random() * 6 - 3))));
-      const probScore = Math.min(100, Math.max(35, Math.round(baseScore * 1.02 + (Math.random() * 4 - 2))));
+      let techScore = Math.min(100, Math.max(30, Math.round(baseScore + (Math.random() * 6 - 3))));
+      let probScore = Math.min(100, Math.max(35, Math.round(baseScore * 1.02 + (Math.random() * 4 - 2))));
       
       let totalLength = 0;
       interviewHistory.forEach(h => {
@@ -3802,21 +3857,31 @@
       let confScore = Math.max(40, 95 - (suspicionScore * 0.6));
       confScore = Math.round(confScore);
 
-      let designMentions = 0;
-      const designKeywords = ["scale", "architecture", "tradeoff", "latency", "redis", "database", "load balancer", "cache", "index", "design", "security", "api", "query", "system", "performance"];
-      interviewHistory.forEach(h => {
-        const ans = (h.answer || "").toLowerCase();
-        designKeywords.forEach(kw => {
-          if (ans.includes(kw)) designMentions++;
-        });
-      });
-      let designScore = 70;
-      if (designMentions > 5) designScore = 90;
-      else if (designMentions > 2) designScore = 82;
-      else designScore = 72;
-      designScore = Math.round(designScore);
+      let designScore = 72;
+      let behaviorScore = Math.min(100, Math.max(50, Math.round(baseScore * 0.98 + (Math.random() * 6 - 3))));
 
-      const behaviorScore = Math.min(100, Math.max(50, Math.round(baseScore * 0.98 + (Math.random() * 6 - 3))));
+      if (window.interviewState && window.interviewState.satisfaction) {
+        const sat = window.interviewState.satisfaction;
+        if (sat.technicalKnowledge !== undefined) techScore = sat.technicalKnowledge;
+        if (sat.problemSolving !== undefined) probScore = sat.problemSolving;
+        if (sat.communication !== undefined) commScore = sat.communication;
+        if (sat.confidence !== undefined) confScore = sat.confidence;
+        if (sat.depth !== undefined) designScore = sat.depth;
+        if (sat.ownership !== undefined) behaviorScore = sat.ownership;
+      } else {
+        let designMentions = 0;
+        const designKeywords = ["scale", "architecture", "tradeoff", "latency", "redis", "database", "load balancer", "cache", "index", "design", "security", "api", "query", "system", "performance"];
+        interviewHistory.forEach(h => {
+          const ans = (h.answer || "").toLowerCase();
+          designKeywords.forEach(kw => {
+            if (ans.includes(kw)) designMentions++;
+          });
+        });
+        if (designMentions > 5) designScore = 90;
+        else if (designMentions > 2) designScore = 82;
+        else designScore = 72;
+        designScore = Math.round(designScore);
+      }
 
       // Render Progress Bars
       document.getElementById("scoreTechVal").textContent = `${techScore}%`;
@@ -3916,6 +3981,54 @@
         span.textContent = s;
         badgesContainer.appendChild(span);
       });
+
+      // Populate Claims and Evidence Verification
+      const claimsContainer = document.getElementById("reportClaimsList");
+      const evidenceContainer = document.getElementById("reportEvidenceList");
+      if (claimsContainer && evidenceContainer) {
+        claimsContainer.innerHTML = "";
+        evidenceContainer.innerHTML = "";
+
+        const state = window.interviewState;
+        if (state && state.claims && state.claims.length > 0) {
+          state.claims.forEach(c => {
+            const div = document.createElement("div");
+            div.style.cssText = "padding: 8px 10px; background: rgba(255, 255, 255, 0.02); border-radius: var(--radius-sm); border-left: 3px solid " + (c.status === "verified" ? "var(--success)" : c.status === "partial" ? "var(--warning)" : "var(--danger)");
+            
+            const badgeColor = c.status === "verified" ? "var(--success)" : c.status === "partial" ? "var(--warning)" : "var(--danger)";
+            const badgeText = c.status === "verified" ? "Verified" : c.status === "partial" ? "Partially Verified" : "Unverified / Bluff";
+            
+            div.innerHTML = `
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <strong style="color: var(--text-main); font-size: 0.8rem;">Claim: ${c.topic}</strong>
+                <span class="badge" style="background: rgba(255,255,255,0.05); color: ${badgeColor}; font-size: 0.65rem; padding: 2px 6px;">${badgeText}</span>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${c.description}</div>
+            `;
+            claimsContainer.appendChild(div);
+          });
+        } else {
+          claimsContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem; font-style: italic;">No specific claims extracted from responses.</div>`;
+        }
+
+        if (state && state.evidence && state.evidence.length > 0) {
+          state.evidence.forEach(e => {
+            const div = document.createElement("div");
+            div.style.cssText = "padding: 6px 8px; background: rgba(255, 255, 255, 0.02); border-radius: var(--radius-sm); font-size: 0.75rem; display: flex; gap: 8px; align-items: flex-start;";
+            const icon = e.type === "claim_verified" ? "🟢" : e.type === "no_knowledge" ? "🔴" : "🟡";
+            div.innerHTML = `
+              <span>${icon}</span>
+              <div>
+                <span style="color: var(--text-main); font-weight: 500;">Q${e.questionIndex + 1} Evidence:</span>
+                <span style="color: var(--text-muted);">${e.text}</span>
+              </div>
+            `;
+            evidenceContainer.appendChild(div);
+          });
+        } else {
+          evidenceContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem; font-style: italic;">No specific evidence logs recorded.</div>`;
+        }
+      }
 
       // Render Transcript Logs
       const transcriptBox = document.getElementById("transcriptContainer");

@@ -314,6 +314,23 @@
           </div>
         </div>
 
+        <!-- Claims & Evidence Verification -->
+        <div id="modalClaimsSection" style="display: none;">
+          <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--accent-secondary); margin: 0 0 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            🔍 Claims & Evidence Verification
+          </h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--accent-tertiary); margin-bottom: 6px;">Extracted Claims</div>
+              <div id="modalClaimsList" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.75rem;"></div>
+            </div>
+            <div>
+              <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--success); margin-bottom: 6px;">Verification Evidence</div>
+              <div id="modalEvidenceList" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.75rem;"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Q&A transcript -->
         <div>
           <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin: 0 0 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
@@ -533,6 +550,58 @@
           `;
           transcriptBox.appendChild(block);
         });
+      }
+
+      // Populate Claims and Evidence Verification if available
+      const claimsSection = document.getElementById('modalClaimsSection');
+      const claimsList = document.getElementById('modalClaimsList');
+      const evidenceList = document.getElementById('modalEvidenceList');
+      
+      if (claimsSection && claimsList && evidenceList) {
+        const state = report.interviewState;
+        if (state && ((state.claims && state.claims.length > 0) || (state.evidence && state.evidence.length > 0))) {
+          claimsSection.style.display = 'block';
+          claimsList.innerHTML = '';
+          evidenceList.innerHTML = '';
+          
+          if (state.claims && state.claims.length > 0) {
+            state.claims.forEach(c => {
+              const div = document.createElement('div');
+              div.style.cssText = "padding: 6px 8px; background: rgba(255, 255, 255, 0.02); border-radius: var(--radius-sm); border-left: 2px solid " + (c.status === "verified" ? "var(--success)" : c.status === "partial" ? "var(--warning)" : "var(--danger)");
+              const badgeColor = c.status === "verified" ? "var(--success)" : c.status === "partial" ? "var(--warning)" : "var(--danger)";
+              const badgeText = c.status === "verified" ? "Verified" : c.status === "partial" ? "Partial" : "Bluff";
+              div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom:2px; font-weight:600;">
+                  <span>${c.topic}</span>
+                  <span style="color:${badgeColor}; font-size:0.65rem;">${badgeText}</span>
+                </div>
+                <div style="color:var(--text-muted); font-size:0.7rem;">${c.description}</div>
+              `;
+              claimsList.appendChild(div);
+            });
+          } else {
+            claimsList.innerHTML = '<div style="color:var(--text-muted); font-style:italic;">No claims recorded.</div>';
+          }
+          
+          if (state.evidence && state.evidence.length > 0) {
+            state.evidence.forEach(e => {
+              const div = document.createElement('div');
+              div.style.cssText = "padding: 5px 6px; background: rgba(255, 255, 255, 0.02); border-radius: var(--radius-sm); display:flex; gap:6px; align-items:flex-start;";
+              const icon = e.type === "claim_verified" ? "🟢" : e.type === "no_knowledge" ? "🔴" : "🟡";
+              div.innerHTML = `
+                <span>${icon}</span>
+                <div style="color:var(--text-muted); font-size:0.7rem;">
+                  <strong style="color:var(--text-main);">Q${e.questionIndex + 1}:</strong> ${e.text}
+                </div>
+              `;
+              evidenceList.appendChild(div);
+            });
+          } else {
+            evidenceList.innerHTML = '<div style="color:var(--text-muted); font-style:italic;">No evidence recorded.</div>';
+          }
+        } else {
+          claimsSection.style.display = 'none';
+        }
       }
       
       const modal = document.getElementById('reportModal');
