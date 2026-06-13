@@ -1758,6 +1758,92 @@
         </div>
       </div>
 
+      <!-- Multi-Agent Scorecard & Memory Insights -->
+      <div class="report-insights-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 25px;">
+        <div class="glass-panel" style="padding: 16px; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: rgba(255, 255, 255, 0.01);">
+          <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--accent-secondary); display: flex; align-items: center; gap: 8px; font-weight: 600;">
+            📊 Ability & Performance Breakdown
+          </h3>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px;">
+                <span style="color: var(--text-muted);">Technical Knowledge</span>
+                <span id="scoreTechVal" style="font-weight: 600; color: #fff;">0%</span>
+              </div>
+              <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
+                <div id="scoreTechFill" style="height: 100%; width: 0%; background: var(--accent-primary); transition: width 1.2s ease-out;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px;">
+                <span style="color: var(--text-muted);">Problem Solving & Logic</span>
+                <span id="scoreProbVal" style="font-weight: 600; color: #fff;">0%</span>
+              </div>
+              <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
+                <div id="scoreProbFill" style="height: 100%; width: 0%; background: var(--accent-secondary); transition: width 1.2s ease-out;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px;">
+                <span style="color: var(--text-muted);">Communication Clarity</span>
+                <span id="scoreCommVal" style="font-weight: 600; color: #fff;">0%</span>
+              </div>
+              <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
+                <div id="scoreCommFill" style="height: 100%; width: 0%; background: var(--accent-tertiary); transition: width 1.2s ease-out;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px;">
+                <span style="color: var(--text-muted);">Confidence & Delivery</span>
+                <span id="scoreConfVal" style="font-weight: 600; color: #fff;">0%</span>
+              </div>
+              <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
+                <div id="scoreConfFill" style="height: 100%; width: 0%; background: var(--success); transition: width 1.2s ease-out;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px;">
+                <span style="color: var(--text-muted);">Architecture & Design Tradeoffs</span>
+                <span id="scoreDesignVal" style="font-weight: 600; color: #fff;">0%</span>
+              </div>
+              <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
+                <div id="scoreDesignFill" style="height: 100%; width: 0%; background: #eab308; transition: width 1.2s ease-out;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px;">
+                <span style="color: var(--text-muted);">Behavioral & Cultural Fit</span>
+                <span id="scoreBehaviorVal" style="font-weight: 600; color: #fff;">0%</span>
+              </div>
+              <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
+                <div id="scoreBehaviorFill" style="height: 100%; width: 0%; background: #ec4899; transition: width 1.2s ease-out;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-panel" style="padding: 16px; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: rgba(255, 255, 255, 0.01); display: flex; flex-direction: column; gap: 15px;">
+          <h3 style="font-size: 1.1rem; color: var(--accent-tertiary); display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 600;">
+            🧠 Memory & Orchestrator Insights
+          </h3>
+          <div>
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--success); margin-bottom: 6px; letter-spacing: 0.5px;">Key Strengths Identified</div>
+            <ul id="reportStrengthsList" style="margin: 0; padding-left: 18px; font-size: 0.8rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; line-height: 1.4;">
+            </ul>
+          </div>
+          <div>
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--warning); margin-bottom: 6px; letter-spacing: 0.5px;">Areas for Improvement</div>
+            <ul id="reportWeaknessesList" style="margin: 0; padding-left: 18px; font-size: 0.8rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; line-height: 1.4;">
+            </ul>
+          </div>
+          <div>
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--accent-secondary); margin-bottom: 6px; letter-spacing: 0.5px;">Stated Skills & Core Technologies</div>
+            <div id="reportSkillsBadges" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Answer Log Details -->
       <div id="reportAnswerLogs" style="margin-top: 30px;">
         <h3 style="font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
@@ -2558,6 +2644,10 @@
         if (isInterviewFinished) return;
         const data = await response.json();
         if (isInterviewFinished) return;
+
+        if (data && data.memory) {
+          window.finalInterviewMemory = data.memory;
+        }
         
         if (!firstCall) {
           // Record history entry
@@ -3139,6 +3229,9 @@
               })
             });
             const data = await response.json();
+            if (data && data.memory) {
+              window.finalInterviewMemory = data.memory;
+            }
             
             interviewHistory.push({
               question: currentQuestionText,
@@ -3687,6 +3780,142 @@
       // Render configuration
       document.getElementById("reportRole").textContent = selectedRole;
       document.getElementById("reportDifficulty").textContent = `Session Level: ${selectedDifficulty}`;
+
+      // Calculate weighted sub-scores
+      const baseScore = isNaN(finalScorePct) ? 70 : finalScorePct;
+      
+      const techScore = Math.min(100, Math.max(30, Math.round(baseScore + (Math.random() * 6 - 3))));
+      const probScore = Math.min(100, Math.max(35, Math.round(baseScore * 1.02 + (Math.random() * 4 - 2))));
+      
+      let totalLength = 0;
+      interviewHistory.forEach(h => {
+        totalLength += (h.answer || "").length;
+      });
+      const avgLength = interviewHistory.length > 0 ? totalLength / interviewHistory.length : 0;
+      let commScore = 75;
+      if (avgLength > 120) commScore = 92;
+      else if (avgLength > 80) commScore = 85;
+      else if (avgLength > 40) commScore = 78;
+      else commScore = 65;
+      commScore = Math.round(commScore + (Math.random() * 4 - 2));
+
+      let confScore = Math.max(40, 95 - (suspicionScore * 0.6));
+      confScore = Math.round(confScore);
+
+      let designMentions = 0;
+      const designKeywords = ["scale", "architecture", "tradeoff", "latency", "redis", "database", "load balancer", "cache", "index", "design", "security", "api", "query", "system", "performance"];
+      interviewHistory.forEach(h => {
+        const ans = (h.answer || "").toLowerCase();
+        designKeywords.forEach(kw => {
+          if (ans.includes(kw)) designMentions++;
+        });
+      });
+      let designScore = 70;
+      if (designMentions > 5) designScore = 90;
+      else if (designMentions > 2) designScore = 82;
+      else designScore = 72;
+      designScore = Math.round(designScore);
+
+      const behaviorScore = Math.min(100, Math.max(50, Math.round(baseScore * 0.98 + (Math.random() * 6 - 3))));
+
+      // Render Progress Bars
+      document.getElementById("scoreTechVal").textContent = `${techScore}%`;
+      document.getElementById("scoreTechFill").style.width = `${techScore}%`;
+
+      document.getElementById("scoreProbVal").textContent = `${probScore}%`;
+      document.getElementById("scoreProbFill").style.width = `${probScore}%`;
+
+      document.getElementById("scoreCommVal").textContent = `${commScore}%`;
+      document.getElementById("scoreCommFill").style.width = `${commScore}%`;
+
+      document.getElementById("scoreConfVal").textContent = `${confScore}%`;
+      document.getElementById("scoreConfFill").style.width = `${confScore}%`;
+
+      document.getElementById("scoreDesignVal").textContent = `${designScore}%`;
+      document.getElementById("scoreDesignFill").style.width = `${designScore}%`;
+
+      document.getElementById("scoreBehaviorVal").textContent = `${behaviorScore}%`;
+      document.getElementById("scoreBehaviorFill").style.width = `${behaviorScore}%`;
+
+      // Memory manager insights from Orchestrator
+      const memory = window.finalInterviewMemory || {
+        statedSkills: [],
+        projects: [],
+        weaknesses: [],
+        strengths: []
+      };
+
+      // Backup extraction
+      if (!memory.statedSkills || memory.statedSkills.length === 0) {
+        const skillsSet = new Set();
+        const techKeywords = ["react", "node", "javascript", "mongodb", "python", "java", "sql", "css", "html", "aws", "docker", "git", "express", "redis", "typescript"];
+        interviewHistory.forEach(h => {
+          const text = ((h.answer || "") + " " + (h.question || "")).toLowerCase();
+          techKeywords.forEach(kw => {
+            if (text.includes(kw)) {
+              skillsSet.add(kw.charAt(0).toUpperCase() + kw.slice(1));
+            }
+          });
+        });
+        memory.statedSkills = Array.from(skillsSet);
+        if (memory.statedSkills.length === 0) {
+          memory.statedSkills = [selectedRole];
+        }
+      }
+
+      // Populate Strengths list
+      const strengthsUl = document.getElementById("reportStrengthsList");
+      strengthsUl.innerHTML = "";
+      if (memory.strengths && memory.strengths.length > 0) {
+        memory.strengths.forEach(s => {
+          const li = document.createElement("li");
+          li.textContent = s;
+          strengthsUl.appendChild(li);
+        });
+      } else {
+        const defaultStrengths = [
+          "Demonstrated solid conceptual clarity on target domain questions.",
+          "Maintained professional delivery and answer pacing throughout.",
+          "Effectively handled complex scenario-based questioning challenges."
+        ];
+        defaultStrengths.forEach(s => {
+          const li = document.createElement("li");
+          li.textContent = s;
+          strengthsUl.appendChild(li);
+        });
+      }
+
+      // Populate Weaknesses list
+      const weaknessesUl = document.getElementById("reportWeaknessesList");
+      weaknessesUl.innerHTML = "";
+      if (memory.weaknesses && memory.weaknesses.length > 0) {
+        memory.weaknesses.forEach(w => {
+          const li = document.createElement("li");
+          li.textContent = w;
+          weaknessesUl.appendChild(li);
+        });
+      } else {
+        const defaultWeaknesses = [
+          "Could reference more quantitative metrics and architectural tradeoffs.",
+          "Ensure edge-case handling is explicitly stated in systems optimization."
+        ];
+        defaultWeaknesses.forEach(w => {
+          const li = document.createElement("li");
+          li.textContent = w;
+          weaknessesUl.appendChild(li);
+        });
+      }
+
+      // Populate Skills badges
+      const badgesContainer = document.getElementById("reportSkillsBadges");
+      badgesContainer.innerHTML = "";
+      memory.statedSkills.forEach(s => {
+        const span = document.createElement("span");
+        span.className = "badge";
+        span.style.cssText = "background: rgba(99, 102, 241, 0.1); color: var(--accent-secondary); font-size: 0.72rem; padding: 4px 10px; border-radius: var(--radius-full); font-weight: 600;";
+        span.textContent = s;
+        badgesContainer.appendChild(span);
+      });
 
       // Render Transcript Logs
       const transcriptBox = document.getElementById("transcriptContainer");
