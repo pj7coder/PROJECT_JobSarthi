@@ -454,11 +454,11 @@
             <span class="stat-label">Interviews Scheduled</span>
             <span class="stat-value" style="color: var(--success);" id="interviewsScheduledCount">0</span>
           </div>
+          <div class="stat-row clickable" onclick="window.location.href='analytics.html'">
+            <span class="stat-label">AI Interview Reports</span>
+            <span class="stat-value" style="color: var(--accent-secondary);" id="aiInterviewsCount">0</span>
+          </div>
         </div>
-
-        <a href="analytics.html" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; font-size: 0.82rem; padding: 8px 12px; border-radius: var(--radius-md); text-decoration: none; box-sizing: border-box;">
-          🎙️ View AI Interview Reports
-        </a>
       </aside>
 
       <!-- Main Section -->
@@ -748,11 +748,15 @@
         
         const cachedAppsCount = localStorage.getItem('seeker_apps_count');
         const cachedInterviewsCount = localStorage.getItem('seeker_interviews_count');
+        const cachedAiInterviewsCount = localStorage.getItem('seeker_ai_interviews_count');
         if (cachedAppsCount !== null) {
           document.getElementById('applicationsSentCount').textContent = cachedAppsCount;
         }
         if (cachedInterviewsCount !== null) {
           document.getElementById('interviewsScheduledCount').textContent = cachedInterviewsCount;
+        }
+        if (cachedAiInterviewsCount !== null) {
+          document.getElementById('aiInterviewsCount').textContent = cachedAiInterviewsCount;
         }
       } catch (e) {
         console.warn("Error parsing cached profile details:", e);
@@ -787,6 +791,19 @@
         }
       } catch (appsErr) {
         console.warn("Failed to fetch applications for stats:", appsErr);
+      }
+
+      // Fetch fresh AI Interviews Count
+      try {
+        const aiRes = await fetch((window.API_BASE_URL || '') + `/api/sarthi/interviews?email=${encodeURIComponent(email)}`);
+        if (aiRes.ok) {
+          const reports = await aiRes.json();
+          const count = reports ? reports.length : 0;
+          localStorage.setItem('seeker_ai_interviews_count', count);
+          document.getElementById('aiInterviewsCount').textContent = count;
+        }
+      } catch (aiErr) {
+        console.warn("Failed to fetch AI interviews count:", aiErr);
       }
 
       // 4. Fetch Jobs and Populate Recommended Matches (Independent)
