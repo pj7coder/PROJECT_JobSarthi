@@ -2936,7 +2936,7 @@ async function callElevenLabs(text, interviewer) {
     return null;
   }
   
-  let voiceId = "ErXwobaYiN019thkyCjV"; // Antoni (Sarthi default)
+  let voiceId = "ErXwobaYiN019PkySvjV"; // Antoni (Sarthi default)
   if (interviewer === "vikram") {
     voiceId = "pNInz6obpgqjVWtJ45xs"; // Adam
   } else if (interviewer === "ananya") {
@@ -3220,32 +3220,49 @@ You MUST return your output as a valid JSON object matching the following struct
     if (!isFirstQuestion && history && history.length > 0) {
       for (let i = 0; i < history.length; i++) {
         const item = history[i];
-        messages.push({
-          role: "assistant",
-          content: JSON.stringify({ nextQuestion: item.question })
-        });
+        if (i === 0) {
+          // The first assistant turn asks the first question
+          messages.push({
+            role: "assistant",
+            content: JSON.stringify({ nextQuestion: item.question })
+          });
+        } else {
+          // Subsequent turns evaluate the previous answer and ask the next question
+          const prevItem = history[i - 1];
+          messages.push({
+            role: "assistant",
+            content: JSON.stringify({
+              feedback: prevItem.feedback,
+              score: prevItem.score,
+              nextQuestion: item.question
+            })
+          });
+        }
         messages.push({
           role: "user",
           content: item.answer || "[No Answer / Skipped]"
-        });
-        const nextQVal = (i < history.length - 1) ? history[i+1].question : currentQuestion;
-        messages.push({
-          role: "assistant",
-          content: JSON.stringify({
-            feedback: item.feedback,
-            score: item.score,
-            difficultyChange: "maintain",
-            nextQuestion: nextQVal
-          })
         });
       }
     }
 
     if (!isFirstQuestion) {
-      messages.push({
-        role: "assistant",
-        content: JSON.stringify({ nextQuestion: currentQuestion })
-      });
+      // The current question and user's answer
+      if (history && history.length > 0) {
+        const prevItem = history[history.length - 1];
+        messages.push({
+          role: "assistant",
+          content: JSON.stringify({
+            feedback: prevItem.feedback,
+            score: prevItem.score,
+            nextQuestion: currentQuestion
+          })
+        });
+      } else {
+        messages.push({
+          role: "assistant",
+          content: JSON.stringify({ nextQuestion: currentQuestion })
+        });
+      }
       messages.push({
         role: "user",
         content: userAnswer || (timerExpired ? "[Skipped due to response timer expiring]" : "[No Answer]")
@@ -3696,8 +3713,12 @@ app.post("/api/seeker/analyse-resume", uploadRateLimiter, largeBodyParser, async
     if (GEMINI_API_KEY) {
       try {
         console.log("[ResumeAnalyser] Step 1 — Extracting resume content via Gemini...");
-        const extractPrompt = `Extract ALL text content from this resume document. Return a raw JSON object:
+        const extractPrompt = `Analyze the provided document. First, check if this document is actually a professional resume, curriculum vitae (CV), academic profile, or career background document. If the document is completely unrelated (e.g. it is an arbitrary image, logo, recipe, invoice, wallpaper, programming code snippet, homework assignment, certificate, test paper, book page, or other random file/text), set "isResume" to false and provide a helpful, polite error message in "errorMessage" such as "This document doesn't seem to be a resume. Please upload a valid resume in PDF or Word format."
+If it IS a valid resume/CV, set "isResume" to true and extract the details.
+Return a valid JSON object matching this structure:
 {
+  "isResume": true,
+  "errorMessage": "",
   "fullName": "Candidate name",
   "contact": "Email / Phone / LinkedIn if present",
   "education": "All education entries as a string",
@@ -3708,7 +3729,15 @@ app.post("/api/seeker/analyse-resume", uploadRateLimiter, largeBodyParser, async
   "rawText": "The complete raw text content of the resume"
 }`;
         extractedText = await parseDocumentWithGemini(base64Data, mimeType, extractPrompt);
-        console.log("[ResumeAnalyser] Gemini extraction complete.");
+        console.log("[ResumeAnalyser] Gemini extraction complete. isResume:", extractedText?.isResume);
+        
+        if (extractedText && extractedText.isResume === false) {
+          console.log("[ResumeAnalyser] Uploaded file rejected: not a valid resume.");
+          return res.status(400).json({
+            error: extractedText.errorMessage || "This doesn't seem to be a resume. Please upload a valid resume in PDF or Word format.",
+            invalidResume: true
+          });
+        }
       } catch (geminiErr) {
         console.warn("[ResumeAnalyser] Gemini extraction failed:", geminiErr.message);
       }
@@ -3729,9 +3758,12 @@ app.post("/api/seeker/analyse-resume", uploadRateLimiter, largeBodyParser, async
 
 Your analysis must be:
 - BRUTALLY HONEST: Do not inflate scores. A resume without a summary gets 0 for summary. No LinkedIn = penalized.
-- HYPER-SPECIFIC: Every recommendation must reference actual content FROM the resume (company names, specific skills listed, actual degree, real project names). NEVER give generic advice.
+- HYPER-SPECIFIC: Every recommendation must reference actual content FROM the resume (company names, specific skills listed, actual degree, real project names). NEVER give generic advice or invent experiences.
 - DATA-DRIVEN: If experience lacks metrics, state exactly which role needs them and give a concrete example.
 - INDUSTRY-AWARE: Missing skills must be specific to the candidate's target domain (not random skills).
+
+CRITICAL ANTI-HALLUCINATION REQUIREMENT:
+You MUST ONLY evaluate the actual content found in the provided resume data. DO NOT invent skills, certifications, degrees, projects, names, or companies. If the resume has a specific name, use it. If there are no projects, report score 0 and list this as a recommendation. Do not output template content or make-up skills.
 
 ATS SCORING RUBRIC (be strict):
 - 90-100: Perfect structure, keyword-rich, quantified achievements, all sections present, LinkedIn+GitHub visible
@@ -3812,7 +3844,7 @@ Return ONLY this exact JSON structure (integers for scores, no extra text):
   "structureRating": "Excellent|Good|Needs Improvement",
   "readabilityRating": "Excellent|Good|Needs Improvement",
   "keywordDensity": "High|Medium|Low",
-  "overview": "2-3 sentence summary",
+  "overview": "2-3 sentence summary that references the actual candidate's name, degree, and skills",
   "matchedSkills": [],
   "missingSkills": [],
   "suggestedRoles": [],
@@ -3822,6 +3854,7 @@ Return ONLY this exact JSON structure (integers for scores, no extra text):
   "quickWins": []
 }
 
+CRITICAL: Evaluate ONLY the actual content present in the resume below. Do NOT invent/hallucinate any details.
 Resume: ${JSON.stringify(extractedText)}`;
             const geminiAnalysis = await parseDocumentWithGemini(base64Data, mimeType, fullPrompt);
             return res.json(geminiAnalysis);
@@ -3833,14 +3866,17 @@ Resume: ${JSON.stringify(extractedText)}`;
     } else if (!extractedText && GEMINI_API_KEY) {
       // Gemini failed at extraction, try direct full analysis with Gemini
       try {
-        const directPrompt = `Analyze this resume document and return a comprehensive ATS evaluation. Return ONLY raw JSON:
+        const directPrompt = `Analyze this document. First, check if this document is actually a professional resume, curriculum vitae (CV), or career profile. If it is NOT a resume/CV, set "isResume" to false and provide a friendly rejection in "errorMessage". Otherwise, set "isResume" to true.
+Return ONLY raw JSON matching this structure:
 {
+  "isResume": true,
+  "errorMessage": "",
   "atsScore": <0-100>,
   "grammarRating": "Excellent|Good|Needs Improvement",
   "structureRating": "Excellent|Good|Needs Improvement",
   "readabilityRating": "Excellent|Good|Needs Improvement",
   "keywordDensity": "High|Medium|Low",
-  "overview": "2-3 sentence summary",
+  "overview": "2-3 sentence summary referencing this candidate's actual details",
   "matchedSkills": [],
   "missingSkills": [],
   "suggestedRoles": [],
@@ -3848,8 +3884,19 @@ Resume: ${JSON.stringify(extractedText)}`;
   "recommendations": [],
   "strengths": [],
   "quickWins": []
-}`;
+}
+
+CRITICAL: Evaluated details MUST represent this exact candidate. Do NOT invent/hallucinate placeholder details.`;
         const directAnalysis = await parseDocumentWithGemini(base64Data, mimeType, directPrompt);
+        
+        if (directAnalysis && directAnalysis.isResume === false) {
+          console.log("[ResumeAnalyser] Direct analysis rejected: not a valid resume.");
+          return res.status(400).json({
+            error: directAnalysis.errorMessage || "This doesn't seem to be a resume. Please upload a valid resume in PDF or Word format.",
+            invalidResume: true
+          });
+        }
+        
         return res.json(directAnalysis);
       } catch (directErr) {
         console.warn("[ResumeAnalyser] Direct Gemini analysis failed:", directErr.message);

@@ -2310,7 +2310,6 @@
       window.addEventListener("blur", () => {
         if (!isInterviewFinished && !isInterviewPaused && proctorEnabled) {
           logProctorEvent("Interview window lost focus (another app activated).", 4);
-          showToast("⚠️ Window focus lost — proctor logged", "warning");
           updateStatusChip('chipTab', 'dotTab', 'warn', 'Focus Lost');
           setTimeout(() => updateStatusChip('chipTab', 'dotTab', 'ok', 'Tab OK'), 6000);
         }
@@ -2320,7 +2319,6 @@
       document.addEventListener("copy", () => {
         if (!isInterviewFinished && !isInterviewPaused && proctorEnabled) {
           logProctorEvent("Candidate copied text from the interview screen.", 3);
-          showToast("📋 Copy action detected", "warning", 3000);
         }
       });
       document.addEventListener("paste", (e) => {
@@ -2328,7 +2326,6 @@
         const isTextarea = target && target.id === 'answerTextarea';
         if (!isInterviewFinished && !isInterviewPaused && proctorEnabled && !isTextarea) {
           logProctorEvent("Paste action detected (possible external content paste).", 4);
-          showToast("⚠️ Paste action detected", "warning", 3000);
         }
       });
 
@@ -3708,7 +3705,6 @@
 
             if (consecutiveFaceMissingTicks === 12 && proctorEnabled) {
               logProctorEvent("Candidate's face is not visible in camera frame.", 4);
-              showToast("📷 Face not visible — proctor logged", "danger");
             }
           } else {
             consecutiveFaceMissingTicks = 0;
@@ -3757,7 +3753,6 @@
 
                     if (consecutiveLookAwayTicks === 14 && proctorEnabled) {
                       logProctorEvent("Candidate looking down/aside repeatedly (potential mobile phone usage).", 6);
-                      showToast("⚠️ Head deviation or looking down at border detected", "warning");
                     }
                   } else {
                     consecutiveLookAwayTicks = 0;
@@ -3781,7 +3776,6 @@
                 const c = p.class.toLowerCase();
                 if (c === 'cell phone' || c === 'phone' || c === 'mobile' || c === 'remote' || c === 'calculator') {
                   logProctorEvent("Suspicious mobile device / phone detected in frame.", 15);
-                  showToast("🚨 Phone-like object detected in camera view!", "danger");
                 }
               });
             }).catch(e => console.error("Coco-SSD detect error:", e));
