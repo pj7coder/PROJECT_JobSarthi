@@ -3010,6 +3010,8 @@
         console.log("Playing ElevenLabs vocalization...");
         const audioSrc = "data:audio/mp3;base64," + audioBase64;
         const audioObj = new Audio(audioSrc);
+        audioObj.defaultPlaybackRate = 1.15;
+        audioObj.playbackRate = 1.15;
         window.currentElevenLabsAudio = audioObj;
 
         audioObj.onended = () => {
@@ -3047,16 +3049,16 @@
 
       // Pitch, rate and volume per character and language
       if (selectedInterviewer === 'vikram') {
-        utterance.rate  = selectedLanguage === 'hi' ? 0.88 : 0.93;
+        utterance.rate  = selectedLanguage === 'hi' ? 1.05 : 1.15;
         utterance.pitch = 0.80; // Deep, authoritative
         utterance.volume = 1.0;
       } else if (selectedInterviewer === 'ananya') {
-        utterance.rate  = selectedLanguage === 'hi' ? 0.92 : 1.00;
+        utterance.rate  = selectedLanguage === 'hi' ? 1.10 : 1.20;
         utterance.pitch = selectedLanguage === 'hi' ? 1.10 : 1.05; // Clear feminine
         utterance.volume = 1.0;
       } else {
         // Sarthi
-        utterance.rate  = selectedLanguage === 'hi' ? 0.90 : 1.05;
+        utterance.rate  = selectedLanguage === 'hi' ? 1.10 : 1.20;
         utterance.pitch = selectedLanguage === 'hi' ? 1.00 : 1.0;
         utterance.volume = 1.0;
       }

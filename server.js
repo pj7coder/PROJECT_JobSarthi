@@ -3030,7 +3030,7 @@ app.get("/api/seeker/sarthi-limits", async (req, res) => {
 app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
   try {
     const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language, jobSkills, jobId, interviewState, email } = req.body;
-    const isFirstQuestion = !currentQuestion || !history || history.length === 0;
+    const isFirstQuestion = !currentQuestion;
 
     if (isFirstQuestion) {
       const emailOrIp = email || req.ip || 'anonymous';
