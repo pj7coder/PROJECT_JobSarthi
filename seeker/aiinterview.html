@@ -2032,15 +2032,15 @@
           const data = await res.json();
           const limitHint = document.getElementById('sarthiLimitInterviewsPage');
           if (limitHint) {
-            limitHint.textContent = `${data.interviewsLeft} out of 5 interviews left this hour`;
+            limitHint.textContent = `${data.interviewsLeft} out of 5 interviews left`;
             if (data.interviewsLeft === 0) {
               limitHint.style.color = 'var(--danger)';
-              limitHint.textContent = `Hourly limit reached (0 out of 5 interviews left). Try again in an hour.`;
+              limitHint.textContent = `Limit reached (0 out of 5 interviews left). Please try again later.`;
               // Disable start button
               const startBtn = document.getElementById('startInterviewBtn');
               if (startBtn) {
                 startBtn.disabled = true;
-                startBtn.title = "Hourly rate limit reached.";
+                startBtn.title = "Interview limit reached.";
               }
             }
           }

@@ -2983,18 +2983,18 @@ const sarthiRateLimits = {
 
 function checkAndTrackLimit(key, emailOrIp, maxLimit) {
   const now = Date.now();
-  const oneHourAgo = now - 60 * 60 * 1000;
+  const threeHoursAgo = now - 3 * 60 * 60 * 1000;
   
   if (!sarthiRateLimits[key][emailOrIp]) {
     sarthiRateLimits[key][emailOrIp] = [];
   }
   
-  // Filter out timestamps older than 1 hour
-  sarthiRateLimits[key][emailOrIp] = sarthiRateLimits[key][emailOrIp].filter(ts => ts > oneHourAgo);
+  // Filter out timestamps older than 3 hours
+  sarthiRateLimits[key][emailOrIp] = sarthiRateLimits[key][emailOrIp].filter(ts => ts > threeHoursAgo);
   
   const count = sarthiRateLimits[key][emailOrIp].length;
   if (count >= maxLimit) {
-    return { allowed: false, remaining: 0, resetTime: Math.min(...sarthiRateLimits[key][emailOrIp]) + 60 * 60 * 1000 };
+    return { allowed: false, remaining: 0, resetTime: Math.min(...sarthiRateLimits[key][emailOrIp]) + 3 * 60 * 60 * 1000 };
   }
   
   // Track this request
@@ -3004,13 +3004,13 @@ function checkAndTrackLimit(key, emailOrIp, maxLimit) {
 
 function getLimitStatus(key, emailOrIp, maxLimit) {
   const now = Date.now();
-  const oneHourAgo = now - 60 * 60 * 1000;
+  const threeHoursAgo = now - 3 * 60 * 60 * 1000;
   
   if (!sarthiRateLimits[key][emailOrIp]) {
     sarthiRateLimits[key][emailOrIp] = [];
   }
   
-  sarthiRateLimits[key][emailOrIp] = sarthiRateLimits[key][emailOrIp].filter(ts => ts > oneHourAgo);
+  sarthiRateLimits[key][emailOrIp] = sarthiRateLimits[key][emailOrIp].filter(ts => ts > threeHoursAgo);
   const count = sarthiRateLimits[key][emailOrIp].length;
   return { remaining: Math.max(0, maxLimit - count), count, max: maxLimit };
 }
@@ -3037,7 +3037,7 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
       const check = checkAndTrackLimit('interviews', emailOrIp, 5);
       if (!check.allowed) {
         return res.status(429).json({
-          error: "Rate limit exceeded. You can only start 5 interviews per hour.",
+          error: "Limit reached. You have 0 out of 5 interviews left. Please try again later.",
           limitExceeded: true,
           type: "interview"
         });
@@ -3679,7 +3679,7 @@ app.post("/api/seeker/analyse-resume", uploadRateLimiter, largeBodyParser, async
     const check = checkAndTrackLimit('resumeAnalysis', clientKey, 10);
     if (!check.allowed) {
       return res.status(429).json({
-        error: "Rate limit exceeded. You can only analyze 10 resumes per hour.",
+        error: "Limit reached. You have 0 out of 10 analyses left. Please try again later.",
         limitExceeded: true,
         type: "resume"
       });

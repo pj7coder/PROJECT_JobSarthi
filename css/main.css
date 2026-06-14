@@ -2490,7 +2490,6 @@ body.about-active .mobile-bottom-nav {
   .proctor-sidebar,
   .glass-panel::before,
   .glass-card::before,
-  .gemini-pill-border::before,
   .spotlight-grid,
   .sparkle,
   .gradient-glow,
@@ -2671,6 +2670,94 @@ body.about-active .mobile-bottom-nav {
     left: 16px !important;
     width: auto !important;
     text-align: center !important;
+  }
+
+  /* Hide settings icon only on landing page on mobile */
+  body:not(.recruiter-page):not(.seeker-page) .header-actions .header-dropdown-container {
+    display: none !important;
+  }
+
+  /* Hide Sarthi floating button only on landing page on mobile */
+  body:not(.recruiter-page):not(.seeker-page) #floatingSarthiBtn {
+    display: none !important;
+  }
+
+  /* Static Reviews Stack on Mobile */
+  #reviewsLoopContainer {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    padding: 0 16px !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  #reviewsLoopContainer .review-card {
+    width: 100% !important;
+    height: auto !important;
+    position: static !important;
+    opacity: 1 !important;
+    transform: none !important;
+    margin: 0 !important;
+    display: flex !important;
+  }
+
+  /* Mobile Brand Carousel Styles */
+  .dome-gallery-col {
+    min-height: auto !important;
+    height: auto !important;
+    padding: 10px 0 !important;
+    flex: 1 1 100% !important;
+  }
+  #domeGalleryContainer {
+    display: none !important;
+  }
+  .mobile-brand-carousel {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    padding: 10px 0 !important;
+    position: relative !important;
+  }
+  .carousel-row {
+    display: flex !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+  .carousel-track {
+    display: flex !important;
+    gap: 20px !important;
+    white-space: nowrap !important;
+  }
+  .carousel-track img {
+    height: 36px !important;
+    width: auto !important;
+    object-fit: contain !important;
+    opacity: 0.7 !important;
+    border-radius: 4px !important;
+  }
+  .row-ltr .carousel-track {
+    animation: marquee-ltr 22s linear infinite !important;
+  }
+  .row-rtl .carousel-track {
+    animation: marquee-rtl 22s linear infinite !important;
+  }
+  @keyframes marquee-ltr {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  @keyframes marquee-rtl {
+    0% { transform: translateX(-50%); }
+    100% { transform: translateX(0); }
+  }
+
+  /* Mobile colourful ribbon border for Sarthi Pill */
+  .gemini-pill-border::before {
+    display: block !important;
+    content: '' !important;
   }
 }
 

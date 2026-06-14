@@ -1211,8 +1211,8 @@
           const data = await res.json();
           const intL = document.getElementById('sarthiLimitInterviews');
           const resL = document.getElementById('sarthiLimitResume');
-          if (intL) intL.textContent = `${data.interviewsLeft} out of 5 interviews left this hour`;
-          if (resL) resL.textContent = `${data.resumeAnalysisLeft} out of 10 analyses left this hour`;
+          if (intL) intL.textContent = `${data.interviewsLeft} out of 5 interviews left`;
+          if (resL) resL.textContent = `${data.resumeAnalysisLeft} out of 10 analyses left`;
         }
       } catch (err) {
         console.warn("Failed to load Sarthi rate limits:", err);

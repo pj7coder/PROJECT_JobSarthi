@@ -291,15 +291,15 @@ async function loadResumeLimit() {
       const data = await res.json();
       const limitHint = document.getElementById('sarthiLimitResumePage');
       if (limitHint) {
-        limitHint.textContent = `${data.resumeAnalysisLeft} out of 10 analyses left this hour`;
+        limitHint.textContent = `${data.resumeAnalysisLeft} out of 10 analyses left`;
         if (data.resumeAnalysisLeft === 0) {
           limitHint.style.color = 'var(--danger)';
-          limitHint.textContent = `Hourly limit reached (0 out of 10 analyses left). Try again in an hour.`;
+          limitHint.textContent = `Limit reached (0 out of 10 analyses left). Please try again later.`;
           // Disable analyse button
           const analyseBtn = document.getElementById('analyseBtn');
           if (analyseBtn) {
             analyseBtn.disabled = true;
-            analyseBtn.title = "Hourly rate limit reached.";
+            analyseBtn.title = "Resume analysis limit reached.";
           }
         }
       }

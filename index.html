@@ -786,9 +786,81 @@
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 48px;">
 
           <!-- Column 1: Interactive 3D Dome Gallery -->
-          <div
-            style="flex: 1 1 500px; display: flex; align-items: center; justify-content: center; position: relative; min-height: 560px;">
+          <div class="dome-gallery-col"
+            style="flex: 1 1 500px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; min-height: 560px;">
             <div id="domeGalleryContainer" style="width: 100%; height: 560px;"></div>
+            
+            <!-- Mobile Brand Carousel (Shown only on mobile) -->
+            <div id="mobileBrandCarousel" class="mobile-brand-carousel" style="display: none;">
+              <!-- Row 1: Left to Right -->
+              <div class="carousel-row row-ltr">
+                <div class="carousel-track">
+                  <img src="assets/company/cmp1.png" alt="Brand 1">
+                  <img src="assets/company/cmp2.png" alt="Brand 2">
+                  <img src="assets/company/cmp3.jpg" alt="Brand 3">
+                  <img src="assets/company/cmp4.png" alt="Brand 4">
+                  <img src="assets/company/cmp5.png" alt="Brand 5">
+                  <img src="assets/company/cmp6.png" alt="Brand 6">
+                  <img src="assets/company/cmp7.png" alt="Brand 7">
+                  <img src="assets/company/cmp8.png" alt="Brand 8">
+                  <!-- Duplicated for seamless loop -->
+                  <img src="assets/company/cmp1.png" alt="Brand 1">
+                  <img src="assets/company/cmp2.png" alt="Brand 2">
+                  <img src="assets/company/cmp3.jpg" alt="Brand 3">
+                  <img src="assets/company/cmp4.png" alt="Brand 4">
+                  <img src="assets/company/cmp5.png" alt="Brand 5">
+                  <img src="assets/company/cmp6.png" alt="Brand 6">
+                  <img src="assets/company/cmp7.png" alt="Brand 7">
+                  <img src="assets/company/cmp8.png" alt="Brand 8">
+                </div>
+              </div>
+              <!-- Row 2: Right to Left -->
+              <div class="carousel-row row-rtl">
+                <div class="carousel-track">
+                  <img src="assets/company/cmp9.png" alt="Brand 9">
+                  <img src="assets/company/cmp10.png" alt="Brand 10">
+                  <img src="assets/company/cmp11.png" alt="Brand 11">
+                  <img src="assets/company/cmp12.png" alt="Brand 12">
+                  <img src="assets/company/cmp13.png" alt="Brand 13">
+                  <img src="assets/company/cmp14.png" alt="Brand 14">
+                  <img src="assets/company/cmp15.png" alt="Brand 15">
+                  <img src="assets/company/cmp16.png" alt="Brand 16">
+                  <!-- Duplicated for seamless loop -->
+                  <img src="assets/company/cmp9.png" alt="Brand 9">
+                  <img src="assets/company/cmp10.png" alt="Brand 10">
+                  <img src="assets/company/cmp11.png" alt="Brand 11">
+                  <img src="assets/company/cmp12.png" alt="Brand 12">
+                  <img src="assets/company/cmp13.png" alt="Brand 13">
+                  <img src="assets/company/cmp14.png" alt="Brand 14">
+                  <img src="assets/company/cmp15.png" alt="Brand 15">
+                  <img src="assets/company/cmp16.png" alt="Brand 16">
+                </div>
+              </div>
+              <!-- Row 3: Left to Right -->
+              <div class="carousel-row row-ltr">
+                <div class="carousel-track">
+                  <img src="assets/company/cmp17.jpg" alt="Brand 17">
+                  <img src="assets/company/cmp18.png" alt="Brand 18">
+                  <img src="assets/company/cmp19.png" alt="Brand 19">
+                  <img src="assets/company/cmp20.png" alt="Brand 20">
+                  <img src="assets/company/cmp21.png" alt="Brand 21">
+                  <img src="assets/company/cmp22.png" alt="Brand 22">
+                  <img src="assets/company/cmp23.png" alt="Brand 23">
+                  <img src="assets/company/cmp24.jpg" alt="Brand 24">
+                  <img src="assets/company/cmp25.jpg" alt="Brand 25">
+                  <!-- Duplicated for seamless loop -->
+                  <img src="assets/company/cmp17.jpg" alt="Brand 17">
+                  <img src="assets/company/cmp18.png" alt="Brand 18">
+                  <img src="assets/company/cmp19.png" alt="Brand 19">
+                  <img src="assets/company/cmp20.png" alt="Brand 20">
+                  <img src="assets/company/cmp21.png" alt="Brand 21">
+                  <img src="assets/company/cmp22.png" alt="Brand 22">
+                  <img src="assets/company/cmp23.png" alt="Brand 23">
+                  <img src="assets/company/cmp24.jpg" alt="Brand 24">
+                  <img src="assets/company/cmp25.jpg" alt="Brand 25">
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Column 2: Compelling Copy & Stats -->
@@ -1998,7 +2070,7 @@
 
       // Initialize LogoLoop for Success Reviews ticker
       const reviewsContainer = document.getElementById('reviewsLoopContainer');
-      if (reviewsContainer) {
+      if (reviewsContainer && window.innerWidth > 768) {
         new LogoLoop(reviewsContainer, {
           speed: 45,
           gap: 24,
@@ -2011,7 +2083,7 @@
 
       // Initialize Interactive 3D DomeGallery
       const domeContainer = document.getElementById('domeGalleryContainer');
-      if (domeContainer) {
+      if (domeContainer && window.innerWidth > 768) {
         const companyImages = [
           'assets/company/cmp1.png',
           'assets/company/cmp2.png',

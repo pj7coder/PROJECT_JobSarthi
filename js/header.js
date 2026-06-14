@@ -280,6 +280,10 @@ document.addEventListener("DOMContentLoaded", () => {
           e.stopPropagation();
           
           if (!document.getElementById('globalSettingsModal')) {
+            const isLanding = !window.location.pathname.includes('/recruiter/') && !window.location.pathname.includes('/seeker/');
+            const accountDisabled = isLanding ? 'disabled style="opacity: 0.4; pointer-events: none; cursor: not-allowed;" title="Login to access Account settings"' : '';
+            const notificationsDisabled = isLanding ? 'disabled style="opacity: 0.4; pointer-events: none; cursor: not-allowed;" title="Login to access Notification settings"' : '';
+            const securityDisabled = isLanding ? 'disabled style="opacity: 0.4; pointer-events: none; cursor: not-allowed;" title="Login to access Security settings"' : '';
             const modalHTML = `
               <div class="settings-modal-overlay" id="globalSettingsModal">
                 <div class="settings-modal-card">
@@ -304,20 +308,20 @@ document.addEventListener("DOMContentLoaded", () => {
                         Languages
                       </label>
                       
-                      <input type="radio" id="tabRadio-account" name="settingsTab" style="display:none;">
-                      <label for="tabRadio-account" class="settings-tab-label" data-tab="account" data-index="3">
+                      <input type="radio" id="tabRadio-account" name="settingsTab" style="display:none;" ${isLanding ? 'disabled' : ''}>
+                      <label for="tabRadio-account" class="settings-tab-label" data-tab="account" data-index="3" ${accountDisabled}>
                         <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                         Account
                       </label>
                       
-                      <input type="radio" id="tabRadio-notifications" name="settingsTab" style="display:none;">
-                      <label for="tabRadio-notifications" class="settings-tab-label" data-tab="notifications" data-index="4">
+                      <input type="radio" id="tabRadio-notifications" name="settingsTab" style="display:none;" ${isLanding ? 'disabled' : ''}>
+                      <label for="tabRadio-notifications" class="settings-tab-label" data-tab="notifications" data-index="4" ${notificationsDisabled}>
                         <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                         Notifications
                       </label>
                       
-                      <input type="radio" id="tabRadio-security" name="settingsTab" style="display:none;">
-                      <label for="tabRadio-security" class="settings-tab-label" data-tab="security" data-index="5">
+                      <input type="radio" id="tabRadio-security" name="settingsTab" style="display:none;" ${isLanding ? 'disabled' : ''}>
+                      <label for="tabRadio-security" class="settings-tab-label" data-tab="security" data-index="5" ${securityDisabled}>
                         <svg class="settings-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                         Security
                       </label>
