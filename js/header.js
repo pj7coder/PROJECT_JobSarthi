@@ -462,8 +462,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                         <select class="setting-select" id="modalLanguageSelect">
                           <option value="en">English</option>
-                          <option value="fr">Français (French)</option>
-                          <option value="ar">العربية (Arabic)</option>
+                          <option value="hi">हिन्दी (Hindi)</option>
                         </select>
                       </div>
                     </div>
@@ -788,6 +787,16 @@ document.addEventListener("DOMContentLoaded", () => {
                  }
                });
              }
+
+             const modalLanguageSelect = modalEl.querySelector('#modalLanguageSelect');
+             if (modalLanguageSelect) {
+               modalLanguageSelect.addEventListener('change', (e) => {
+                 const val = e.target.value;
+                 if (window.i18n && window.i18n.setLang) {
+                   window.i18n.setLang(val);
+                 }
+               });
+             }
  
            }
            
@@ -856,6 +865,11 @@ document.addEventListener("DOMContentLoaded", () => {
              const modalNavigationStyleSelect = activeModal.querySelector('#modalNavigationStyleSelect');
              if (modalNavigationStyleSelect) {
                setCustomSelectValue(modalNavigationStyleSelect, localStorage.getItem('header_navigation_style') || 'text');
+             }
+
+             const modalLanguageSelect = activeModal.querySelector('#modalLanguageSelect');
+             if (modalLanguageSelect && window.i18n) {
+               modalLanguageSelect.value = window.i18n.getCurrentLang();
              }
  
              // Sync visual disabled state of container

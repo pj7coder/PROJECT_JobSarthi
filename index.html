@@ -213,8 +213,7 @@
     }
 
     .portal-card:hover {
-      transform: none;
-      box-shadow: none;
+      transform: translateY(-8px);
     }
 
     .portal-card-glow {
@@ -508,16 +507,14 @@
     }
 
     /* Portal row and carousel layouts */
-    .portal-row {
-      transition: border-color 0.3s ease;
-    }
-
-    .portal-row.finder-row:hover {
+    .seeker-portal-card:hover {
       border-color: #3b82f6 !important;
+      box-shadow: 0 12px 30px rgba(59, 130, 246, 0.25) !important;
     }
 
-    .portal-row.recruiter-row:hover {
+    .recruiter-portal-card:hover {
       border-color: #d946ef !important;
+      box-shadow: 0 12px 30px rgba(217, 70, 239, 0.25) !important;
     }
 
     @media (max-width: 900px) {
@@ -640,6 +637,12 @@
       transform: translateY(-4px);
       border-color: var(--border-focus);
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Disable double hover animation inside the ticker */
+    .logoloop__item .review-card:hover {
+      transform: none !important;
+      box-shadow: none !important;
     }
   </style>
 </head>

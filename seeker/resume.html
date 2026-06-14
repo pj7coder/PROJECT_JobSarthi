@@ -186,16 +186,19 @@
           </div>
         </div>
 
-        <!-- LinkedIn zone -->
+        <!-- Social Profiles zone -->
         <div class="glass-panel"
           style="padding: 20px; display: flex; flex-direction: column; justify-content: center; gap: 12px; background: rgba(255,255,255,0.01);">
-          <div style="font-size: 1.8rem;">🔗</div>
-          <h3 style="font-size: 1.05rem; margin-bottom: -4px;">Import from LinkedIn</h3>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="linkedinId" class="form-control" placeholder="E.g., linkedin.com/in/username"
-              style="flex: 1; padding: 8px 12px; font-size: 0.85rem;">
-            <button class="btn btn-secondary" onclick="extractLinkedIn()"
-              style="padding: 8px 16px; font-size: 0.85rem;">Extract</button>
+          <div style="font-size: 1.8rem; display: flex; gap: 8px;">🔗 <span style="font-size: 1.05rem; font-weight: 700; align-self: center;">Social Profiles</span></div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <input type="text" id="githubId" class="form-control" placeholder="GitHub URL (e.g., github.com/username)"
+                style="padding: 8px 12px; font-size: 0.85rem;">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <input type="text" id="linkedinId" class="form-control" placeholder="LinkedIn URL (e.g., linkedin.com/in/username)"
+                style="padding: 8px 12px; font-size: 0.85rem;">
+            </div>
           </div>
         </div>
       </div>
@@ -372,6 +375,8 @@
         document.getElementById('preferredLocations').value = Array.isArray(profile.preferredLocations) ? profile.preferredLocations.join(', ') : (profile.preferredLocations || '');
         document.getElementById('expectedCtc').value = profile.expectedCtc || '';
         document.getElementById('languages').value = Array.isArray(profile.languages) ? profile.languages.join(', ') : (profile.languages || '');
+        document.getElementById('linkedinId').value = profile.linkedinId || '';
+        document.getElementById('githubId').value = profile.githubId || '';
 
         mySkillsList = profile.skills || [];
         renderSkillTags();
@@ -524,6 +529,7 @@
         document.getElementById('expectedCtc').value = "";
         document.getElementById('languages').value = "";
         document.getElementById('linkedinId').value = "";
+        document.getElementById('githubId').value = "";
         
         mySkillsList = [];
         renderSkillTags();
@@ -573,6 +579,7 @@
         resumeFileName: uploadedResumeName,
         resumeBase64: uploadedResumeBase64,
         linkedinId: document.getElementById('linkedinId').value.trim(),
+        githubId: document.getElementById('githubId').value.trim(),
         avatarUrl: document.getElementById('avatarPreview').style.display === 'block' ? document.getElementById('avatarPreview').src : "",
         avatarBase64: uploadedAvatarBase64
       };
