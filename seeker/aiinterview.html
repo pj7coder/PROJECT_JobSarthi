@@ -2888,28 +2888,29 @@
 
         if (data && data.interviewState) {
           window.interviewState = data.interviewState;
-          if (window.interviewState.earlyExitTriggered) {
-            if (!firstCall) {
-              interviewHistory.push({
-                question: currentQuestionText,
-                answer: previousAnswer || "[No Answer / Skipped]",
-                score: data.score !== undefined ? data.score : 5,
-                feedback: data.feedback || "Evaluation completed."
-              });
-              accumulatedScore += data.score !== undefined ? data.score : 5;
-              totalQuestionsAnswered++;
-            }
-            currentQuestionText = data.nextQuestion;
-            document.getElementById("questionDisplay").textContent = currentQuestionText;
-            updateAvatarExpression('serious');
-            speakQuestion(data.spokenQuestion || currentQuestionText, data.audioBase64);
-            
-            isInterviewFinished = true;
-            setTimeout(() => {
-              endInterview();
-            }, 7000);
-            return;
+        }
+
+        if (data && (data.isInterviewCompleted || (data.interviewState && data.interviewState.earlyExitTriggered))) {
+          if (!firstCall) {
+            interviewHistory.push({
+              question: currentQuestionText,
+              answer: previousAnswer || "[No Answer / Skipped]",
+              score: data.score !== undefined ? data.score : 5,
+              feedback: data.feedback || "Evaluation completed."
+            });
+            accumulatedScore += data.score !== undefined ? data.score : 5;
+            totalQuestionsAnswered++;
           }
+          currentQuestionText = data.nextQuestion;
+          document.getElementById("questionDisplay").textContent = currentQuestionText;
+          updateAvatarExpression(data.isInterviewCompleted ? 'happy' : 'serious');
+          speakQuestion(data.spokenQuestion || currentQuestionText, data.audioBase64);
+          
+          isInterviewFinished = true;
+          setTimeout(() => {
+            endInterview();
+          }, 8000);
+          return;
         }
         
         if (!firstCall) {
@@ -2977,6 +2978,19 @@
       } catch (err) {
         console.error("API error:", err);
         if (isInterviewFinished) return;
+        
+        // In fallback mode, complete the interview gracefully after 5 questions
+        if (totalQuestionsAnswered >= 4) {
+          currentQuestionText = "Thank you so much for your time today. That concludes our interview session. I will now compile and generate your evaluation report. Have a great day!";
+          document.getElementById("questionDisplay").textContent = currentQuestionText;
+          updateAvatarExpression('happy');
+          speakQuestion(currentQuestionText);
+          isInterviewFinished = true;
+          setTimeout(() => {
+            endInterview();
+          }, 8000);
+          return;
+        }
         
         const questionsList = CLIENT_FALLBACK_QUESTIONS[selectedRole] || CLIENT_FALLBACK_QUESTIONS["Full Stack Developer"];
         const diffList = questionsList[selectedDifficulty] || questionsList["Intermediate"];
@@ -3483,8 +3497,8 @@
         logProctorEvent("Explaining own personal experience details.", -6);
       }
 
-      // Check for limit: max 5 questions per session for test demo
-      if (totalQuestionsAnswered >= 4) {
+      // Dynamic human interviewer decision. Safeguard at 14 questions to protect API costs.
+      if (totalQuestionsAnswered >= 14) {
         isAiSpeaking = true;
         
         // Show evaluating state
@@ -3561,7 +3575,7 @@
           endInterview();
         }, 500);
       } else {
-        // Move to next question
+        // Move to next question dynamically
         fetchNextQuestion(false, answerVal, wasTimerExpired);
       }
     }

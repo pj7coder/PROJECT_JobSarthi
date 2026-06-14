@@ -3155,6 +3155,8 @@ INSTRUCTIONS FOR STATE MUTATION & TOPIC GRAPH:
 - **Satisfaction Metrics**: Update all satisfaction metrics (0 to 100) dynamically. The metrics are: 'technicalKnowledge', 'communication', 'confidence', 'authenticity', 'problemSolving', 'learningAbility', 'ownership', 'depth', 'overall'.
 - **Early Termination Logic**: If the candidate repeatedly avoids answering, states "I don't know" or "skip" for multiple technical questions, or if their 'overall' satisfaction score drops below 25 after at least 2 questions, set 'earlyExitTriggered' to true and specify an 'earlyExitReason'. The next question should then be a polite closing message wrapping up the interview.
 - **Memory Recall**: Reference previously mentioned projects or technologies in the follow-up questions.
+- **First Question Instruction**: If it is the first question of the interview, the interviewer MUST directly reference the candidate's name, key skills, college, and projects from their resume context in the greeting/question. Do NOT ask a generic "tell me about yourself" without referencing their resume. E.g., "Hello Arjun, I see from your resume that you worked on React projects at BITS Pilani. To start off, could you walk me through..."
+- **Realistic Human Interview Length**: The interview length is dynamic. You will decide when the interview is complete. Guide the candidate step-by-step through the topic graph. Once you have completed all sections and asked the final wrap-up statement/closing question, set 'isInterviewCompleted' to true in the JSON response.
 
 INSTRUCTIONS:
 - Candidate Name: ${candidateName || "Candidate"}
@@ -3173,6 +3175,7 @@ You MUST return your output as a valid JSON object matching the following struct
   "feedback": "1-2 sentence constructive feedback on their previous answer (in the requested language). Set to null for the first question.",
   "score": 8, // Integer from 0 to 10 evaluating their last answer. Set to 5 for the first question.
   "difficultyChange": "increase" | "decrease" | "maintain",
+  "isInterviewCompleted": false, // Set to true ONLY when you have fully evaluated the candidate and asked the final parting question to wrap up the interview.
   "memory": {
     "statedSkills": ["list of skills candidate has mentioned"],
     "projects": ["list of projects candidate has mentioned"],
@@ -3411,16 +3414,23 @@ You MUST return your output as a valid JSON object matching the following struct
 
         const nextRoleQuestions = FALLBACK_QUESTIONS[currentRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
         const nextDiffQuestions = nextRoleQuestions[newDiff] || nextRoleQuestions["Intermediate"];
-        let nextQ = nextDiffQuestions[nextIndex % nextDiffQuestions.length];
+        const isCompleted = (history && history.length >= 4);
+        let nextQ = "";
         
-        if (interviewerAbility === "vikram") {
-          nextQ += " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
+        if (isCompleted) {
+          nextQ = "Thank you so much for your time today. That concludes our interview session. I will now compile and generate your evaluation report. Have a great day!";
+        } else {
+          nextQ = nextDiffQuestions[nextIndex % nextDiffQuestions.length];
+          if (interviewerAbility === "vikram") {
+            nextQ += " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
+          }
         }
 
         responseJSON = {
           feedback,
           score,
           difficultyChange,
+          isInterviewCompleted: isCompleted,
           nextQuestion: nextQ,
           spokenQuestion: nextQ,
           memory: {}
