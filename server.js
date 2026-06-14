@@ -3397,7 +3397,7 @@ You MUST return your output as a valid JSON object matching the following struct
           feedback = `Dr. Ananya's strict assessment: ${feedback} Make sure to explain optimization specifics.`;
         }
 
-        let nextIndex = history.length % diffQuestions.length;
+        let nextIndex = (history.length + 1) % diffQuestions.length;
         let newDiff = currentDiff;
         if (interviewerAbility === "vikram") {
           newDiff = "Expert";

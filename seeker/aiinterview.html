@@ -1908,6 +1908,183 @@
     const FULLSCREEN_ENTER_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>`;
     const FULLSCREEN_EXIT_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: auto;"><path d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4"></path></svg>`;
 
+    // --- CLIENT-SIDE FALLBACK QUESTIONS ---
+    const CLIENT_FALLBACK_QUESTIONS = {
+      "Full Stack Developer": {
+        "Beginner": [
+          "What is the difference between client-side rendering (CSR) and server-side rendering (SSR)?",
+          "Can you explain what a REST API is and what HTTP methods are commonly used?",
+          "What is the Document Object Model (DOM) and how does JavaScript interact with it?",
+          "How do relational databases (like MySQL) differ from non-relational databases (like MongoDB)?"
+        ],
+        "Intermediate": [
+          "Explain the concept of middleware in an Express application and how you've used it.",
+          "How do you handle state management across deeply nested components in a React application?",
+          "What are indexes in SQL databases, and how do they optimize query performance?",
+          "Describe the difference between JSON Web Tokens (JWT) and Session-based authentication."
+        ],
+        "Expert": [
+          "How would you design a scalable microservices architecture for a real-time messaging application?",
+          "Explain React Server Components and how they differ from client-side hydration.",
+          "How do you profile, identify bottlenecks, and optimize SQL queries that take several seconds to run?",
+          "What is event loop lag in Node.js, and how would you debug and mitigate it under high load?"
+        ]
+      },
+      "Frontend Developer": {
+        "Beginner": [
+          "What is CSS Flexbox and how does it differ from CSS Grid?",
+          "What is the difference between 'let', 'const', and 'var' in JavaScript?",
+          "How do you make a webpage responsive to different screen sizes using CSS?"
+        ],
+        "Intermediate": [
+          "Explain React hooks. How does useEffect's dependency array work?",
+          "What is the Critical Rendering Path and how can you optimize it for faster page loads?",
+          "Explain the difference between the Virtual DOM and the real DOM."
+        ],
+        "Expert": [
+          "How would you optimize a large React application experiencing performance issues and excessive re-renders?",
+          "Explain how micro-frontend architectures work and how they share state securely.",
+          "How would you design an offline-first web application using service workers and IndexedDB?"
+        ]
+      },
+      "Backend Developer": {
+        "Beginner": [
+          "What is the purpose of an API gateway in a backend system?",
+          "How does HTTP differ from HTTPS, and how does SSL/TLS work at a high level?",
+          "What is the difference between GET and POST requests in RESTful design?"
+        ],
+        "Intermediate": [
+          "What is database normalization, and when would you deliberately de-normalize a schema?",
+          "Explain the differences between horizontal scaling and vertical scaling for a web application.",
+          "How do you secure backend endpoints against common vulnerabilities like SQL Injection and XSS?"
+        ],
+        "Expert": [
+          "Explain the CAP theorem and how it guides your choice of databases in distributed systems.",
+          "How do you design a high-throughput distributed task queue system using Redis or RabbitMQ?",
+          "How would you handle distributed database transactions across multiple microservices?"
+        ]
+      },
+      "Data Scientist": {
+        "Beginner": [
+          "What is the difference between supervised and unsupervised learning?",
+          "What is overfitting and how can it be prevented?",
+          "What is the difference between a list and a tuple in Python?"
+        ],
+        "Intermediate": [
+          "Explain the difference between L1 and L2 regularization.",
+          "How does a Random Forest classifier work and what are its advantages?",
+          "How do you handle imbalanced datasets when training a model?"
+        ],
+        "Expert": [
+          "How would you design a distributed machine learning pipeline to process terabytes of data daily?",
+          "Can you explain the mathematical derivation or intuition behind Gradient Boosting?",
+          "Explain how transformer self-attention mechanisms work and why they scale better than LSTMs."
+        ]
+      },
+      "DevOps Engineer": {
+        "Beginner": [
+          "What is Continuous Integration and Continuous Deployment (CI/CD)?",
+          "What is Docker and how does it differ from a Virtual Machine?",
+          "What is the purpose of version control systems like Git?"
+        ],
+        "Intermediate": [
+          "Explain the difference between a rolling update and a blue-green deployment strategy.",
+          "What is Infrastructure as Code (IaC) and how does Terraform manage state?",
+          "How would you secure a Kubernetes cluster in a production environment?"
+        ],
+        "Expert": [
+          "How would you design a multi-region, highly available, active-active cloud infrastructure on AWS/Azure?",
+          "Explain how you would debug high latency or packet loss in a Kubernetes service mesh like Istio.",
+          "Describe a custom GitOps pipeline you built to manage stateful sets in microservices."
+        ]
+      },
+      "Product Manager": {
+        "Beginner": [
+          "What is a Product Requirement Document (PRD) and what are its key components?",
+          "How do you prioritize features using the RICE framework?",
+          "What is the difference between an MVP and a prototype?"
+        ],
+        "Intermediate": [
+          "How do you handle conflicting feedback from engineering, design, and business stakeholders?",
+          "Describe how you would measure the success of a newly launched notifications feature.",
+          "What key product metrics would you track for a subscription-based SaaS app?"
+        ],
+        "Expert": [
+          "How would you design a product strategy to launch JobSarthi in a highly competitive market like India?",
+          "Explain a time you made a high-stakes pivot based on telemetry data.",
+          "How do you balance tech debt reduction with new feature development?"
+        ]
+      },
+      "Mobile Developer": {
+        "Beginner": [
+          "What is the difference between native and cross-platform mobile development?",
+          "What is the lifecycle of an Activity in Android or a View Controller in iOS?",
+          "What is the purpose of state management in mobile applications?"
+        ],
+        "Intermediate": [
+          "How do you optimize mobile app startup time and minimize battery consumption?",
+          "Describe how you've handled offline synchronization and local caching in mobile apps.",
+          "How do you secure API tokens and sensitive credentials stored on mobile devices?"
+        ],
+        "Expert": [
+          "How would you design a modular, scalable architecture for a mobile super-app containing multiple sub-services?",
+          "Explain how react-native's new architecture (Fabric and TurboModules) improves performance over the bridge.",
+          "How do you debug memory leaks and profile frame rates (FPS) in mobile production builds?"
+        ]
+      },
+      "UI/UX Designer": {
+        "Beginner": [
+          "What is the difference between UI and UX design?",
+          "What are the core principles of visual hierarchy and contrast?",
+          "How do you use Figma components and auto-layout to build reusable designs?"
+        ],
+        "Intermediate": [
+          "Explain how you conduct a usability test and translate insights into design revisions.",
+          "How do you design for accessibility (WCAG AA/AAA standards) in a complex web dashboard?",
+          "Describe your process for handing off assets and design systems to developers."
+        ],
+        "Expert": [
+          "How would you design a design system that scales across multiple web, mobile, and desktop portals?",
+          "Describe a time you used A/B testing data to completely redesign a core checkout or onboarding flow.",
+          "How do you maintain design consistency when designing for dark mode and light mode across diverse screens?"
+        ]
+      },
+      "AI / ML Engineer": {
+        "Beginner": [
+          "What is a neural network and what is the role of an activation function?",
+          "What is the difference between training, validation, and test datasets?",
+          "What are common evaluation metrics for regression and classification tasks?"
+        ],
+        "Intermediate": [
+          "How do you fine-tune a pre-trained LLM like Llama or GPT on a custom domain-specific dataset?",
+          "Explain how optimization algorithms like Adam and SGD adjust model weights during backpropagation.",
+          "How do you handle prompt injection vulnerabilities in a production LLM application?"
+        ],
+        "Expert": [
+          "How would you design a low-latency RAG (Retrieval-Augmented Generation) pipeline handling millions of document chunks?",
+          "Explain how you would optimize LLM inference speed using quantization, speculative decoding, and vLLM.",
+          "How would you design a real-time anomaly detection system for fraud detection with strict latency limits (<10ms)?"
+        ]
+      },
+      "Economics / Financial Analyst": {
+        "Beginner": [
+          "Can you explain the difference between microeconomics and macroeconomics?",
+          "What is supply and demand, and how does market equilibrium work?",
+          "How do inflation and interest rates relate to each other?"
+        ],
+        "Intermediate": [
+          "Explain the concept of Opportunity Cost and how it applies to business decision-making.",
+          "How do you perform a cost-benefit analysis for a new project or investment?",
+          "Describe the difference between fiscal policy and monetary policy and their impacts on business."
+        ],
+        "Expert": [
+          "How would you model the economic impact of a sudden commodity price shock on a retail supply chain?",
+          "Can you explain game theory and how Nash equilibrium can be applied to competitive market pricing?",
+          "How do you evaluate currency exchange risk and hedge against it in international trade?"
+        ]
+      }
+    };
+
     // --- STATE MANAGEMENT ---
     let localStream = null;
     let audioContext = null;
@@ -2800,10 +2977,22 @@
       } catch (err) {
         console.error("API error:", err);
         if (isInterviewFinished) return;
-        currentQuestionText = "Could you elaborate on how you design scalable systems to handle high spikes in user traffic?";
+        
+        const questionsList = CLIENT_FALLBACK_QUESTIONS[selectedRole] || CLIENT_FALLBACK_QUESTIONS["Full Stack Developer"];
+        const diffList = questionsList[selectedDifficulty] || questionsList["Intermediate"];
+        const fallbackIndex = totalQuestionsAnswered % diffList.length;
+        
+        currentQuestionText = diffList[fallbackIndex];
+        if (selectedInterviewer === 'vikram') {
+          currentQuestionText += " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
+        }
+        
         document.getElementById("questionDisplay").textContent = currentQuestionText;
+        document.getElementById("questionNum").textContent = totalQuestionsAnswered + 1;
         updateAvatarExpression('serious');
         speakQuestion(currentQuestionText);
+        
+        totalQuestionsAnswered++;
       }
     }
 
@@ -2931,10 +3120,32 @@
                name.includes('hazel') || name.includes('victoria') || name.includes('veena') ||
                name.includes('heera') || name.includes('susan') || name.includes('karen') ||
                name.includes('haruka') || name.includes('moira') || name.includes('tessa') ||
-               name.includes('google us english');
+               name.includes('google us english') || name.includes('google हिन्दी') ||
+               name.includes('aria') || name.includes('natasha') || name.includes('sara') ||
+               name.includes('amara') || name.includes('lisa') || name.includes('elena') ||
+               name.includes('sabina') || name.includes('zsofia') || name.includes('jessa') ||
+               name.includes('elsa') || name.includes('katrina') || name.includes('linlin') ||
+               name.includes('sinji') || name.includes('kalpana') || name.includes('henrietta') ||
+               name.includes('swara') || name.includes('neerja') || name.includes('heeral') ||
+               name.includes('anna') || name.includes('melina') || name.includes('moira') ||
+               name.includes('rachel') || name.includes('yating') || name.includes('sin-ji') ||
+               name.includes('mei-jia') || name.includes('kalliope') || name.includes('noemi') ||
+               name.includes('laura') || name.includes('susan') || name.includes('hazel');
       };
 
-      const genderVoices = voices.filter(v => isFemale ? isVoiceFemale(v) : !isVoiceFemale(v));
+      let genderVoices = voices.filter(v => isFemale ? isVoiceFemale(v) : !isVoiceFemale(v));
+
+      if (!isFemale) {
+        const maleKeywords = ['male', 'david', 'ravi', 'harsh', 'george', 'mark', 'richard', 'anthony', 'sean', 'peter', 'collins', 'guy', 'danny', 'james', 'charles', 'paul', 'steve', 'stephen', 'daniel', 'robert', 'william', 'joseph', 'anthony', 'matthew', 'donald', 'andrew', 'kevin', 'brian', 'timothy', 'ronald', 'jason', 'jeff', 'jeffrey', 'ryan', 'gary', 'jacob', 'nicholas', 'eric', 'jonathan', 'frank', 'justin', 'raymond', 'gregory'];
+        const explicitMaleVoices = genderVoices.filter(v => {
+          const name = v.name.toLowerCase();
+          return maleKeywords.some(kw => name.includes(kw));
+        });
+        if (explicitMaleVoices.length > 0) {
+          genderVoices = explicitMaleVoices;
+        }
+      }
+
       let chosen = null;
 
       // Prefer Indian accent voice for Hindi/Hinglish
