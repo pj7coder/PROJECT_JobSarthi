@@ -1065,6 +1065,28 @@ const dbService = {
   }
 };
 
+// Bulletproof JSON parsing helper for LLM responses
+function safeParseJSON(str) {
+  if (!str) return null;
+  if (typeof str === "object") return str;
+  const cleaned = str.trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    try {
+      const startIdx = cleaned.indexOf('{');
+      const endIdx = cleaned.lastIndexOf('}');
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        const jsonCandidate = cleaned.substring(startIdx, endIdx + 1);
+        return JSON.parse(jsonCandidate);
+      }
+    } catch (e2) {
+      console.warn("[safeParseJSON] Regexp JSON extraction failed:", e2.message);
+    }
+  }
+  return null;
+}
+
 // Groq AI Config
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
@@ -1218,15 +1240,7 @@ async function parseDocumentWithGemini(base64Data, mimeType, prompt) {
       if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
         throw new Error("Gemini returned an empty completion response.");
       }
-      const textResponse = result.candidates[0].content.parts[0].text;
-      let cleanText = textResponse.trim();
-      if (cleanText.startsWith("```")) {
-        const lines = cleanText.split("\n");
-        if (lines[0].startsWith("```")) lines.shift();
-        if (lines[lines.length - 1].startsWith("```")) lines.pop();
-        cleanText = lines.join("\n").trim();
-      }
-      return JSON.parse(cleanText);
+      return safeParseJSON(textResponse);
     } catch (err) {
       if (attempt === retries) {
         throw err;
@@ -3977,12 +3991,7 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         ];
 
         const groqResponse = await callGroq(groqMessages, true, 0.1);
-        let analysisResult;
-        try {
-          analysisResult = typeof groqResponse === "string" ? JSON.parse(groqResponse) : groqResponse;
-        } catch {
-          analysisResult = groqResponse;
-        }
+        const analysisResult = safeParseJSON(groqResponse);
         console.log("[ResumeAnalyser] Groq analysis complete. Score:", analysisResult?.atsScore);
         if (analysisResult && typeof analysisResult === "object" && analysisResult.extractedInfo) {
           return res.json(analysisResult);
@@ -3998,8 +4007,9 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         console.log("[ResumeAnalyser] Step 2 Fallback — Generating analysis via Gemini...");
         const fullPrompt = `${systemAnalysisPrompt}\n\nCandidate Resume Context:\n${userAnalysisPrompt}`;
         const geminiAnalysis = await parseDocumentWithGemini(base64Data, mimeType, fullPrompt);
-        if (geminiAnalysis && typeof geminiAnalysis === "object" && geminiAnalysis.extractedInfo) {
-          return res.json(geminiAnalysis);
+        const parsedGemini = safeParseJSON(geminiAnalysis);
+        if (parsedGemini && typeof parsedGemini === "object" && parsedGemini.extractedInfo) {
+          return res.json(parsedGemini);
         }
       } catch (geminiErr2) {
         console.warn("[ResumeAnalyser] Gemini analysis fallback failed:", geminiErr2.message);
