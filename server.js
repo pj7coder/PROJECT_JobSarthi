@@ -3887,14 +3887,25 @@ Return a valid JSON object matching this structure:
       }
     }
 
-    const systemAnalysisPrompt = `You are a world-class talent acquisition analyst and technical recruiter. Your task is to analyze the candidate's resume text and perform a thorough evaluation based on the target job role and description.
+    const systemAnalysisPrompt = `You are a strict, world-class talent acquisition analyst and technical recruiter. Your task is to analyze the candidate's resume text and perform a rigorous, honest, and highly accurate evaluation based on the target job role and description.
 You MUST output a single valid JSON object following this EXACT schema (do not wrap in markdown or include extra text):
 {
   "isResume": true,
   "errorMessage": "",
   "fullName": "Candidate Name",
   "contact": "Candidate Contact Info",
-  "atsScore": 75,
+  "atsScore": 55,
+  "overview": "A detailed, constructive, and accurate summary of the candidate's background, identifying specific strengths and prominent gaps based on the target role/description.",
+  "grammarRating": "Needs Improvement",
+  "structureRating": "Good",
+  "readabilityRating": "Good",
+  "keywordDensity": "12%",
+  "matchedSkills": ["skill1", "skill2"],
+  "missingSkills": ["skill3", "skill4"],
+  "strengths": ["strength1", "strength2"],
+  "quickWins": ["win1", "win2"],
+  "recommendations": ["tip1", "tip2"],
+  "suggestedRoles": ["role1", "role2"],
   "extractedInfo": {
     "education": "summarized education",
     "experience": "summarized experience",
@@ -3911,7 +3922,7 @@ You MUST output a single valid JSON object following this EXACT schema (do not w
   },
   "importantClaims": ["claim1", "claim2"],
   "topicMap": {
-    "projectName": "Primary project name (e.g. JobSarthi)",
+    "projectName": "Primary project name",
     "topics": {
       "Frontend": ["technologies/areas used in frontend"],
       "Backend": ["technologies/areas used in backend"],
@@ -3923,7 +3934,7 @@ You MUST output a single valid JSON object following this EXACT schema (do not w
   },
   "jdComparison": {
     "requiredSkills": ["list of skills required for the target role"],
-    "skillMatchScore": 75,
+    "skillMatchScore": 55,
     "missingSkills": ["skills required by JD but missing in resume"],
     "strongSkills": ["skills in resume that match JD requirements"]
   },
@@ -3940,18 +3951,29 @@ You MUST output a single valid JSON object following this EXACT schema (do not w
     }
   ],
   "sectionScores": {
-    "contactInfo": 85,
-    "summary": 80,
-    "experience": 75,
-    "education": 80,
-    "skills": 80,
-    "projects": 75
+    "contactInfo": 60,
+    "summary": 50,
+    "experience": 45,
+    "education": 70,
+    "skills": 55,
+    "projects": 50
   }
 }
 
-Guidelines:
-- If targetRole or jdText are not provided, evaluate for a general software/technical role suitable for the candidate's level.
-- Be honest and detailed. Avoid mock data or placeholders. Reference specific details from the resume context.`;
+Strict Grading Guidelines:
+1. ATS Score & Section Scores must be strict and realistic. Do NOT inflate scores. An average resume should score between 40 and 60.
+2. Deduct points heavily for:
+   - Lack of quantifiable metrics/impact (e.g., specific percentages, dollar amounts, number of users, scale) in work experience or projects: Deduct 15-20 points.
+   - Missing professional portfolio, GitHub link, or LinkedIn URL: Deduct 10 points.
+   - Missing professional summary or objective: Deduct 10 points.
+   - Sparse description of projects/work (e.g., less than 3 sentences or vague responsibilities): Deduct 15 points.
+   - Lack of alignment with the target role: Deduct up to 30 points.
+3. Ratings (grammarRating, structureRating, readabilityRating) must be chosen strictly.
+   - "Needs Improvement": if there are any typos, poor formatting, blocks of unreadable text, or lack of standard sections.
+   - "Good": standard structure, readable, minor room for improvements.
+   - "Excellent": flawless layout, highly professional vocabulary, bulleted achievements with clear metrics.
+4. Quick Wins: List 2-4 concrete, easily implementable actions they can take right now to improve their resume (e.g., "Add a quantitative metric to your project description", "Include your LinkedIn profile link").
+5. Recommendations: List 3-5 high-quality, professional ATS optimization tips customized to their resume content.`;
 
     const userAnalysisPrompt = `Perform the resume analysis for this candidate.
 Target Role: ${targetRole || "Software Developer"}
@@ -4009,7 +4031,18 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       errorMessage: "",
       fullName: cleanName,
       contact: email || "",
-      atsScore: 75,
+      atsScore: 58,
+      overview: "Standard resume analysis report based on fallback metrics. The candidate demonstrates base knowledge of web technology but lacks advanced target alignment details.",
+      grammarRating: "Good",
+      structureRating: "Good",
+      readabilityRating: "Good",
+      keywordDensity: "8%",
+      matchedSkills: ["HTML", "CSS", "JavaScript", "React"],
+      missingSkills: ["TypeScript", "Redux", "Jest", "CI/CD"],
+      strengths: ["Clear baseline web skills", "Clean section headers"],
+      quickWins: ["Add quantifiable achievements to project bullets", "Include LinkedIn link in contact section"],
+      recommendations: ["Incorporate industry keywords matching target descriptions", "Use active verbs like Developed, Optimized, Integrated"],
+      suggestedRoles: ["Frontend Developer", "Associate Software Engineer"],
       extractedInfo: {
         education: "Completed degree",
         experience: "Technical work experience",
@@ -4037,9 +4070,9 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         }
       },
       jdComparison: {
-        requiredSkills: ["JavaScript", "React"],
-        skillMatchScore: 75,
-        missingSkills: [],
+        requiredSkills: ["JavaScript", "React", "TypeScript", "Redux"],
+        skillMatchScore: 58,
+        missingSkills: ["TypeScript", "Redux"],
         strongSkills: ["JavaScript", "React"]
       },
       interviewPlan: {
@@ -4055,12 +4088,12 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         }
       ],
       sectionScores: {
-        contactInfo: 80,
-        summary: 70,
-        experience: 75,
+        contactInfo: 75,
+        summary: 60,
+        experience: 55,
         education: 80,
-        skills: 80,
-        projects: 70
+        skills: 60,
+        projects: 55
       }
     });
 
