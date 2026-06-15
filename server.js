@@ -3143,7 +3143,7 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
         stage: "introduction",
         currentTopic: "Introduction",
         topicGraph: {
-          nodes: ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"],
+          nodes: ["Introduction", "Project & Experience Discussion", "Claim Verification", "Technical Assessment", "Behavioral Assessment", "Candidate Questions", "Wrap-up"],
           currentIndex: 0,
           completed: []
         },
@@ -3160,14 +3160,36 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
           overall: 50
         },
         evidence: [],
+        dontKnowCount: 0,
         earlyExitTriggered: false,
         earlyExitReason: ""
       };
     }
 
+    // Analyze response for exit requests or repeated "I don't know" statements
+    if (userAnswer) {
+      const answerLower = userAnswer.toLowerCase().trim();
+      const dontKnowPhrases = ["don't know", "dont know", "not sure", "no idea", "don't remember", "dont remember", "can't remember", "cant remember", "no clue", "i do not know", "i am not sure", "mujhe nahi pata", "pata nahi"];
+      const matchedDontKnow = dontKnowPhrases.some(phrase => answerLower.includes(phrase)) || answerLower.length < 5;
+      if (matchedDontKnow) {
+        state.dontKnowCount = (state.dontKnowCount || 0) + 1;
+      }
+
+      const exitPhrases = ["stop the interview", "exit the interview", "i refuse", "i want to stop", "end this", "quit", "refuse participation", "stop now"];
+      if (exitPhrases.some(phrase => answerLower.includes(phrase))) {
+        state.earlyExitTriggered = true;
+        state.earlyExitReason = "Candidate refused participation or requested an exit.";
+      }
+
+      if (state.dontKnowCount >= 3) {
+        state.earlyExitTriggered = true;
+        state.earlyExitReason = "Candidate repeatedly answered that they don't know (3 or more times).";
+      }
+    }
+
     // Build the system prompt
     const questionCount = history ? history.length : 0;
-    const isNearEnd = questionCount >= 10;
+    const isNearEnd = questionCount >= 11 || state.earlyExitTriggered;
 
     let systemPrompt = `You are an experienced, highly skilled human interviewer named ${interviewerAbility === "vikram" ? "Prof. Vikram" : interviewerAbility === "ananya" ? "Dr. Ananya" : "Sarthi"} conducting a live technical interview on the JobSarthi platform.
 
@@ -3176,155 +3198,91 @@ ${interviewerAbility === "vikram" ? "You are Prof. Vikram — a seasoned senior 
 
 LANGUAGE: ${language === "hi" ? "Respond ONLY in Hindi (Devanagari script). All questions, feedback, and spoken text must be in Hindi." : language === "hinglish" ? "Respond in Hinglish (Hindi/English blend written in English alphabet, e.g., 'Aap scalability ko kaise handle karenge?'). Mix naturally like how Indian engineers actually speak in interviews." : "Respond in clear, professional English."}
 
-===== CANDIDATE DOSSIER (ANALYZE THIS DEEPLY) =====
+===== CANDIDATE DOSSIER =====
 Name: ${candidateName || "Candidate"}
 Target Role: ${jobDetails ? `${jobDetails.title} at ${jobDetails.company}` : resolvedRole}
 Difficulty Level: ${currentDiff}
 ${jobDetails ? `Job Description: ${jobDetails.description}\nJob Requirements: ${JSON.stringify(jobDetails.reqs)}` : ""}
-Resume/Profile:\n${profileContext || "No resume provided"}
+Resume/Profile:
+${profileContext || "No resume provided"}
 ${jobSkills ? `Key Job Skills to Evaluate: ${jobSkills}` : ""}
 
-===== CURRENT INTERVIEW STATE =====
+===== INTERVIEW STATE =====
 ${JSON.stringify(state, null, 2)}
 Questions completed: ${questionCount}
-${isNearEnd ? "⚠️ WRAP-UP MODE: The interview is nearing completion. You must start concluding within 1-2 more questions. After this response, transition to a warm closing statement thanking the candidate by name, summarizing 1-2 key strengths you noticed, and set isInterviewCompleted to true." : ""}
+${isNearEnd ? "⚠️ WRAP-UP MODE: Conclude the interview. Do not ask any new questions. Move immediately to Candidate Questions or Wrap-up, summarize 1-2 strengths, and set isInterviewCompleted to true." : ""}
 
-===================================================================
-    DECISION ENGINE — FOLLOW THIS EXACT PROCESS FOR EVERY TURN
-===================================================================
+===== INTERVIEW PIPELINE FLOW =====
+You must strictly follow this progression:
+1. **Introduction** (1-2 Questions): Welcome the candidate. Break the ice. Ask them to briefly introduce themselves or discuss their primary focus.
+2. **Project / Experience Discussion**: Discuss a project or experience listed on their resume. Ask about their role, structural decisions, and tech choices.
+3. **Claim Verification**: 
+   - Analyze every candidate answer for specific claims (e.g. "I built X", "I optimized Y by Z%").
+   - If a claim is made, or you are verifying an existing claim, probe it with:
+     - **How?** (How did they build it? Detail the logic/architecture)
+     - **Why?** (Why that tool/approach over others?)
+     - **Challenges?** (What roadblocks did they face?)
+     - **Results?** (What were the metrics, outcomes, or feedback?)
+   - If the candidate answers vaguely or shows signs of a bluff, update the claim status to "partial" or "bluff_detected" and record it in evidence.
+4. **Technical Assessment**: Ask specific technical questions based on the candidate's skills, projects, and target job description requirements. Focus on edge cases and system internals.
+5. **Behavioral Assessment**: Ask scenario-based questions to evaluate: **Teamwork**, **Ownership**, **Problem Solving**, and **Learning Ability**.
+6. **Candidate Questions**: Ask: "Now, before we conclude, do you have any questions for me or about the role/company?"
+7. **Wrap-up**: Make a warm closing statement. Thank them by name, summarize 1-2 strengths, and set "isInterviewCompleted": true.
 
-On EVERY turn, you must internally execute these steps IN ORDER before generating your response:
-
-STEP 1: EXTRACT INFORMATION FROM THE CANDIDATE'S ANSWER
-────────────────────────────────────────────────────────
-Analyze the candidate's latest answer and extract:
-• Claims: Any specific statements ("I built X", "I optimized Y by Z%", "I led a team of N")
-• Technologies: Tools, frameworks, languages mentioned
-• Projects: Specific projects or work experience referenced
-• Decisions: Architecture/design choices they described making
-• Achievements: Measurable outcomes or accomplishments
-• Confidence Level: How confidently did they answer? (hesitant / moderate / confident / overconfident)
-
-STEP 2: EVALUATE ANSWER QUALITY
-────────────────────────────────
-Score the answer 0-10 using this strict rubric:
-• 9-10: Exceptional — specific metrics, deep implementation details, real-world tradeoff analysis, demonstrates genuine hands-on experience
-• 7-8: Strong — covers core concepts correctly, shows good understanding, minor gaps in depth
-• 5-6: Average — basic conceptual understanding but lacks specifics, no metrics, somewhat vague
-• 3-4: Weak — significant gaps, incorrect statements, very surface-level, possibly memorized
-• 0-2: Very poor — unable to answer, completely wrong, or skipped/silent
-
-STEP 3: PROCESS CLAIMS & EVIDENCE
-──────────────────────────────────
-For EACH claim extracted in Step 1:
-• If it's a NEW claim → Add to claims array with status "unverified"
-• If candidate provided implementation details for a PREVIOUSLY UNVERIFIED claim → Update to "verified" and log evidence
-• If candidate was vague or evasive about a claim when probed → Update to "partial" or keep "unverified" and log "bluff_detected" evidence
-
-STEP 4: UPDATE HIDDEN SATISFACTION SCORES
-──────────────────────────────────────────
-Update ALL scores (0-100) based on the answer quality:
-• technicalKnowledge: Did they demonstrate real technical understanding?
-• problemSolving: Did they show logical, structured thinking?
-• communication: Was their answer clear, organized, and articulate?
-• confidence: Did they sound sure of themselves? (not arrogant, not timid)
-• authenticity: Does this feel like genuine experience or rehearsed/fabricated?
-• learningAbility: Did they show curiosity, willingness to learn, growth mindset?
-• ownership: Did they take responsibility for outcomes, both good and bad?
-• depth: How deep did they go? Surface-level buzzwords or real implementation details?
-• overall: Holistic interviewer gut feeling about this candidate so far
-
-STEP 5: CONTROLLER DECISION — DECIDE YOUR NEXT ACTION
-──────────────────────────────────────────────────────
-Based on Steps 1-4, choose ONE of these actions:
-
-A) **EXPLORE DEEPER** (answer was good, but you want more depth on the same topic)
-   → Ask a follow-up that digs one level deeper into what they just discussed
-   → Examples: "You mentioned Redis — what eviction policy did you use and why?", "Walk me through the exact request lifecycle in that architecture"
-
-B) **VERIFY A CLAIM** (candidate made a specific claim that needs proof)
-   → Challenge the claim with a targeted verification question
-   → Examples: "You said you reduced latency by 60% — what was the baseline and what specific changes achieved that?", "You mentioned leading a team — describe a specific conflict you resolved"
-
-C) **CLARIFY** (answer was weak, vague, or unclear)
-   → Ask a simpler, more specific version of the same question
-   → Offer a hint or rephrase to help them
-   → Examples: "Let me put it differently — if you had to explain X to a junior developer, how would you?", "Can you give me a concrete example from your experience?"
-
-D) **CHANGE TOPIC** (current topic is sufficiently explored OR candidate clearly doesn't know this area)
-   → Transition naturally to the next topic in the graph
-   → ALWAYS bridge: "Alright, I have a good picture of your [current topic]. Let's talk about..."
-   → Follow the topic graph: Introduction → Resume & Projects → Technical Deep Dive → System Design → Behavioral & Wrap-up
-
-E) **END INTERVIEW** (all topics covered, OR early exit triggered)
-   → Deliver a warm, personalized closing statement
-   → Thank them by name, mention 1-2 specific strengths
-   → Set isInterviewCompleted to true
-
-STEP 6: GENERATE THE NEXT QUESTION
-───────────────────────────────────
-Based on your decision in Step 5, generate your question following these rules:
-
-• ALWAYS start with a conversational bridge — a 1-sentence reaction to their answer
-  Good: "That's a really solid approach, especially how you handled the caching layer."
-  Good: "Hmm, I see what you're getting at, but I want to push on one thing..."  
-  Good: "Interesting — you clearly have hands-on experience with this."
-  Bad: Jumping straight to a new question with no acknowledgment.
-
-• For the FIRST question of the interview:
-  Greet warmly by name. Reference their resume (college, skills, projects, experience).
-  Ask an opening question that directly connects to their background.
-  Example: "Hi ${candidateName || "there"}, I've been looking at your profile and I see you've worked with [tech from resume] at [company/college]. To kick things off, could you walk me through your most impactful project and what made it technically challenging?"
-
-• Make the question SPECIFIC, not generic. Instead of "Tell me about databases", ask "In your [project name] project, how did you decide between SQL and NoSQL, and what were the tradeoffs?"
-
-• The spoken version should sound natural and human — use contractions ("I'd", "you've"), filler transitions ("so", "right", "now"), and a conversational tone.
-
-===== TOPIC GRAPH PROGRESSION RULES =====
-• Introduction (1-2 questions): Warm greeting, background overview, ice-breaker about their experience
-• Resume & Projects Verification (2-3 questions): Deep-dive into projects from resume, verify claims, ask for specifics
-• Technical Deep Dive (3-4 questions): Core technical concepts for the target role, coding/architecture questions
-• System Design & Tradeoffs (2-3 questions): Scalability, architecture decisions, production concerns
-• Behavioral & Wrap-up (1-2 questions): Leadership, teamwork, conflict resolution, then closing
-• Spend AT LEAST 2 questions per topic before moving on.
-• Total interview: 8-14 questions. Quality over quantity.
+===== DECISION ENGINE & CONTROL RULES =====
+- On every turn, look at the candidate's response and extract: Claims, Skills, Technologies, and Experience.
+- Check if verification is needed:
+  - If a claim is newly introduced or unverified -> Ask a Targeted Follow-up to verify it (explore How? Why? Challenges? Results?).
+  - If no verification is needed or claim verification is complete -> Move to the Next Topic in the graph progression.
+- **Dynamic Exit Criteria** (You may end the interview early if any of the following are met):
+  - *Enough evidence collected*: You have asked at least 5-6 questions and have high confidence in the candidate's skills/scores.
+  - *Candidate repeatedly says "I don't know"*: If the candidate has dontKnowCount >= 3, trigger an early exit.
+  - *Refusal of participation*: Candidate refuses to answer or requests to end.
+  - If early exit is triggered: set interviewState.earlyExitTriggered = true, transition to Wrap-up, and conclude.
 
 ===== OUTPUT FORMAT =====
 Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outside the JSON.
-
 {
-  "feedback": "1-2 sentence evaluation of their previous answer referencing specific things they said. null for first question.",
-  "score": 7,
+  "feedback": "1-2 sentence constructive critique of the previous response, acknowledging specific points they made. (null for first question)",
+  "score": 7, // Strict score (0 to 10) for the last response
   "difficultyChange": "increase" | "decrease" | "maintain",
   "controllerAction": "explore_deeper" | "verify_claim" | "clarify" | "change_topic" | "end_interview",
-  "controllerReason": "Brief explanation of why you chose this action",
-  "isInterviewCompleted": false,
+  "controllerReason": "Brief explanation of your controller choice",
+  "isInterviewCompleted": false, // Set to true ONLY when wrapping up the final turn
   "memory": {
-    "statedSkills": ["cumulative list of all skills mentioned across the interview"],
+    "statedSkills": ["cumulative list of all skills mentioned so far"],
     "projects": ["cumulative list of all projects mentioned"],
-    "weaknesses": ["areas candidate struggled with — be specific"],
-    "strengths": ["areas candidate excelled at — be specific"]
+    "weaknesses": ["specific technical or soft skills they struggled with"],
+    "strengths": ["specific technical or soft skills they excelled in"]
   },
-  "nextQuestion": "Full question text with conversational bridge. In requested language.",
-  "spokenQuestion": "Natural spoken version. Sound human — use contractions and conversational tone. Same language.",
+  "nextQuestion": "Next question text (with conversational bridge)",
+  "spokenQuestion": "Natural spoken version of the question, using conversational tone",
   "interviewState": {
-    "stage": "current stage name",
-    "currentTopic": "current topic from the graph",
+    "stage": "current stage (introduction / project_experience / claim_verification / technical_assessment / behavioral_assessment / candidate_questions / wrap_up)",
+    "currentTopic": "Topic Name",
     "topicGraph": {
-      "nodes": ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"],
-      "currentIndex": 0,
-      "completed": []
+      "nodes": ["Introduction", "Project & Experience Discussion", "Claim Verification", "Technical Assessment", "Behavioral Assessment", "Candidate Questions", "Wrap-up"],
+      "currentIndex": 0, // Current index based on pipeline flow
+      "completed": ["list of completed stages"]
     },
     "claims": [
-      { "topic": "Short claim label", "description": "What exactly was claimed", "status": "unverified" | "verified" | "partial" }
+      { "topic": "Short label", "description": "Details of the claim", "status": "unverified" | "verified" | "partial" | "bluff_detected" }
     ],
     "satisfaction": {
-      "technicalKnowledge": 50, "communication": 50, "confidence": 50, "authenticity": 50,
-      "problemSolving": 50, "learningAbility": 50, "ownership": 50, "depth": 50, "overall": 50
+      "technicalKnowledge": 50, // 0-100 score based on cumulative answers
+      "communication": 50,
+      "confidence": 50,
+      "authenticity": 50,
+      "problemSolving": 50,
+      "learningAbility": 50,
+      "ownership": 50,
+      "depth": 50,
+      "overall": 50
     },
     "evidence": [
-      { "type": "claim_verified" | "bluff_detected" | "strong_depth" | "no_knowledge" | "communication_praise" | "vague_answer" | "general", "text": "specific evidence statement", "questionIndex": 0 }
+      { "type": "claim_verified" | "bluff_detected" | "strong_depth" | "no_knowledge" | "communication_praise" | "vague_answer" | "general", "text": "Specific observation text", "questionIndex": 0 }
     ],
+    "dontKnowCount": 0,
     "earlyExitTriggered": false,
     "earlyExitReason": ""
   }
@@ -3339,7 +3297,6 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
     if (!isFirstQuestion && history && history.length > 0) {
       for (let i = 0; i < history.length; i++) {
         const item = history[i];
-        // Reconstruct the interviewer's turn as natural conversational text
         let interviewerTurn = "";
         if (i > 0 && history[i - 1].feedback) {
           interviewerTurn += history[i - 1].feedback + " ";
@@ -3351,7 +3308,6 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
     }
 
     if (!isFirstQuestion) {
-      // Add the current question and the candidate's latest answer
       let currentTurn = "";
       if (history && history.length > 0) {
         const lastItem = history[history.length - 1];
@@ -3383,7 +3339,6 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
       } else if (process.env.GEMINI_API_KEY) {
         console.log(`[Sarthi AI] Generating question using Gemini... isFirstQuestion: ${isFirstQuestion}`);
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
         
         const geminiContents = messages.map(msg => {
           let roleName = "user";
@@ -3395,36 +3350,56 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
           };
         });
 
-        const payload = {
-          contents: geminiContents,
-          systemInstruction: {
-            parts: [{ text: systemPrompt }]
-          },
-          generationConfig: { 
-            responseMimeType: "application/json",
-            temperature: 0.65
+        const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+        let lastError = null;
+
+        for (const model of models) {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+          const payload = {
+            contents: geminiContents,
+            systemInstruction: {
+              parts: [{ text: systemPrompt }]
+            },
+            generationConfig: { 
+              responseMimeType: "application/json",
+              temperature: 0.65
+            }
+          };
+
+          try {
+            const response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Gemini API error for model ${model}: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            let responseText = result.candidates[0].content.parts[0].text.trim();
+            if (responseText.startsWith("```")) {
+              const lines = responseText.split("\n");
+              if (lines[0].startsWith("```")) lines.shift();
+              if (lines[lines.length - 1].startsWith("```")) lines.pop();
+              responseText = lines.join("\n").trim();
+            }
+            responseJSON = JSON.parse(responseText);
+            break; // Break on success!
+          } catch (err) {
+            console.warn(`[Sarthi AI] Model ${model} failed: ${err.message}`);
+            lastError = err;
+            if (err.message.includes("429") || err.message.toLowerCase().includes("quota")) {
+              continue; // Try next model immediately
+            }
           }
-        };
-
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-          throw new Error(`Gemini API error: ${response.status}`);
         }
 
-        const result = await response.json();
-        let responseText = result.candidates[0].content.parts[0].text.trim();
-        if (responseText.startsWith("```")) {
-          const lines = responseText.split("\n");
-          if (lines[0].startsWith("```")) lines.shift();
-          if (lines[lines.length - 1].startsWith("```")) lines.pop();
-          responseText = lines.join("\n").trim();
+        if (!responseJSON && lastError) {
+          throw lastError;
         }
-        responseJSON = JSON.parse(responseText);
       }
     } catch (llmErr) {
       console.warn("[Sarthi AI] LLM call or JSON parsing failed. Falling back to local questions.", llmErr);
@@ -3434,6 +3409,7 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
     if (!responseJSON) {
       // High-Quality Local Fallback Mode
       console.log("[Sarthi AI] Fallback mode triggered.");
+      
       let fallbackRole = resolvedRole;
       if (!FALLBACK_QUESTIONS[fallbackRole]) {
         const lowerRole = fallbackRole.toLowerCase();
@@ -3443,103 +3419,128 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
           fallbackRole = "Full Stack Developer";
         }
       }
+      
       const roleQuestions = FALLBACK_QUESTIONS[fallbackRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
       const diffQuestions = roleQuestions[currentDiff] || roleQuestions["Intermediate"];
 
-      if (isFirstQuestion) {
-        let firstQ = diffQuestions[0];
-        if (interviewerAbility === "vikram") {
-          const expertQuestions = roleQuestions["Expert"] || diffQuestions;
-          firstQ = expertQuestions[0] + " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
-        }
-        responseJSON = {
-          nextQuestion: firstQ,
-          spokenQuestion: firstQ,
-          feedback: null,
-          score: 5,
-          difficultyChange: "maintain",
-          memory: {}
-        };
-      } else {
-        let score = 5;
-        let feedback = "";
-        let difficultyChange = "maintain";
+      // Setup stage and currentTopic based on history index
+      const steps = history ? history.length : 0;
+      let targetStage = "introduction";
+      let targetTopic = "Introduction";
+      let isCompleted = false;
+      let nextQ = "";
 
+      if (state.earlyExitTriggered || state.dontKnowCount >= 3) {
+        isCompleted = true;
+        nextQ = `Thank you, ${candidateName || "Candidate"}. I've noticed you requested to stop or had difficulty with the topics. We will conclude the session here and compile your final evaluation report. Have a good day!`;
+        targetStage = "wrap_up";
+        targetTopic = "Wrap-up";
+      } else if (steps === 0) {
+        targetStage = "introduction";
+        targetTopic = "Introduction";
+        nextQ = `Hi ${candidateName || "Candidate"}, welcome to your mock interview session for the ${resolvedRole} position. To start, could you please introduce yourself and walk me through the most significant project you have worked on recently?`;
+      } else if (steps === 1) {
+        targetStage = "project_experience";
+        targetTopic = "Project & Experience Discussion";
+        nextQ = `That sounds interesting. In that project, what were your specific responsibilities, and how did you decide on the technologies or frameworks you used?`;
+      } else if (steps === 2) {
+        targetStage = "claim_verification";
+        targetTopic = "Claim Verification";
+        nextQ = `You mentioned implementing key features in that project. Can you explain HOW you built the core logic, WHY you chose that approach, what CHALLENGES you faced, and the actual RESULTS or performance metrics?`;
+      } else if (steps === 3) {
+        targetStage = "technical_assessment";
+        targetTopic = "Technical Assessment";
+        nextQ = diffQuestions[0] || "Can you explain how state and lifecycle methods or component rendering works in this tech stack?";
+      } else if (steps === 4) {
+        targetStage = "technical_assessment";
+        targetTopic = "Technical Assessment";
+        nextQ = diffQuestions[1] || "How do you typically optimize database query performance and cache resources under heavy load?";
+      } else if (steps === 5) {
+        targetStage = "behavioral_assessment";
+        targetTopic = "Behavioral Assessment";
+        nextQ = "Tell me about a time you had a technical disagreement with a team member. How did you handle it and what was the outcome?";
+      } else if (steps === 6) {
+        targetStage = "behavioral_assessment";
+        targetTopic = "Behavioral Assessment";
+        nextQ = "Describe a situation where you had to quickly learn a new technology to solve a problem. How did you go about it?";
+      } else if (steps === 7) {
+        targetStage = "candidate_questions";
+        targetTopic = "Candidate Questions";
+        nextQ = `Alright, I have gathered enough data for the assessment. Before we finish, do you have any questions for me about the role, the team, or the company?`;
+      } else {
+        isCompleted = true;
+        nextQ = `Thank you so much for your time today, ${candidateName || "Candidate"}. That concludes our interview session. I am compiling your performance metrics and generating your final report now. Good luck!`;
+        targetStage = "wrap_up";
+        targetTopic = "Wrap-up";
+      }
+
+      let score = 5;
+      let feedback = "Noted.";
+      let difficultyChange = "maintain";
+
+      if (!isFirstQuestion) {
         if (timerExpired || !userAnswer || userAnswer.trim().length < 5) {
           score = 0;
-          feedback = "You skipped this question or the timer expired. Let's try another one.";
+          feedback = "No response provided or timer expired. Let's move to the next topic.";
           difficultyChange = "decrease";
         } else {
           const answerLower = userAnswer.toLowerCase();
-          let keywordsMatched = 0;
-          const keyTerms = [
-            "rendering", "server", "client", "state", "components", "index", "query", "database", "middleware", "token", "auth", "flexbox", "grid", "hooks", "dom", "scaling", "api", "load"
-          ];
-          keyTerms.forEach(term => {
-            if (answerLower.includes(term)) keywordsMatched++;
-          });
-
-          if (keywordsMatched >= 3) {
+          let keywordCount = 0;
+          const keyTerms = ["rendering", "server", "client", "state", "components", "index", "query", "database", "middleware", "token", "auth", "flexbox", "grid", "hooks", "dom", "scaling", "api", "load", "team", "conflict", "metrics", "challenge", "cache"];
+          keyTerms.forEach(t => { if (answerLower.includes(t)) keywordCount++; });
+          
+          if (keywordCount >= 3) {
             score = 8;
-            feedback = "Excellent answer! You covered the core technical concepts well.";
+            feedback = "Excellent response! You showed good practical understanding.";
             difficultyChange = "increase";
-          } else if (keywordsMatched >= 1) {
+          } else if (keywordCount >= 1) {
             score = 6;
-            feedback = "Good response. Try to elaborate on how the architecture handles edge cases.";
+            feedback = "A reasonable answer. Try to provide more technical detail or metrics.";
             difficultyChange = "maintain";
           } else {
             score = 4;
-            feedback = "A basic overview. Make sure to review the core execution details of this technology.";
+            feedback = "A basic overview. Make sure to review the core architecture of these features.";
             difficultyChange = "decrease";
           }
         }
-
-        if (interviewerAbility === "ananya") {
-          score = Math.max(1, Math.round(score * 0.7));
-          feedback = `Dr. Ananya's strict assessment: ${feedback} Make sure to explain optimization specifics.`;
-        }
-
-        let nextIndex = (history.length + 1) % diffQuestions.length;
-        let newDiff = currentDiff;
-        if (interviewerAbility === "vikram") {
-          newDiff = "Expert";
-        } else {
-          if (difficultyChange === "increase") {
-            newDiff = currentDiff === "Beginner" ? "Intermediate" : "Expert";
-          } else if (difficultyChange === "decrease") {
-            newDiff = currentDiff === "Expert" ? "Intermediate" : "Beginner";
-          }
-        }
-
-        const nextRoleQuestions = FALLBACK_QUESTIONS[currentRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
-        const nextDiffQuestions = nextRoleQuestions[newDiff] || nextRoleQuestions["Intermediate"];
-        const isCompleted = (history && history.length >= 4);
-        let nextQ = "";
-        
-        if (isCompleted) {
-          nextQ = "Thank you so much for your time today. That concludes our interview session. I will now compile and generate your evaluation report. Have a great day!";
-        } else {
-          nextQ = nextDiffQuestions[nextIndex % nextDiffQuestions.length];
-          if (interviewerAbility === "vikram") {
-            nextQ += " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
-          }
-        }
-
-        responseJSON = {
-          feedback,
-          score,
-          difficultyChange,
-          isInterviewCompleted: isCompleted,
-          nextQuestion: nextQ,
-          spokenQuestion: nextQ,
-          memory: {}
-        };
       }
+
+      state.stage = targetStage;
+      state.currentTopic = targetTopic;
+      const tNodes = state.topicGraph.nodes;
+      const nodeIdx = tNodes.indexOf(targetTopic);
+      if (nodeIdx !== -1) {
+        state.topicGraph.currentIndex = nodeIdx;
+        state.topicGraph.completed = tNodes.slice(0, nodeIdx);
+      }
+
+      if (userAnswer && !isFirstQuestion) {
+        if (score >= 8) {
+          state.evidence.push({ type: "strong_depth", text: `Demonstrated strong depth in ${targetTopic}.`, questionIndex: steps - 1 });
+        } else if (score <= 3) {
+          state.evidence.push({ type: "no_knowledge", text: `Had difficulty answering questions about ${targetTopic}.`, questionIndex: steps - 1 });
+        }
+      }
+
+      responseJSON = {
+        feedback: isFirstQuestion ? null : feedback,
+        score,
+        difficultyChange,
+        isInterviewCompleted: isCompleted,
+        nextQuestion: nextQ,
+        spokenQuestion: nextQ,
+        memory: {
+          statedSkills: Array.isArray(candidateProfile?.skills) ? candidateProfile.skills : [],
+          projects: [],
+          weaknesses: score <= 4 ? [targetTopic] : [],
+          strengths: score >= 8 ? [targetTopic] : []
+        },
+        interviewState: state
+      };
     }
 
     // Attach/Update interviewState in responseJSON
     if (responseJSON) {
-      // Normalize key formats returned by the LLM
       if (responseJSON.next_question && !responseJSON.nextQuestion) {
         responseJSON.nextQuestion = responseJSON.next_question;
       }
@@ -3559,7 +3560,6 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
         responseJSON.controllerReason = responseJSON.controller_reason;
       }
 
-      // Ensure fallbacks for required fields
       if (!responseJSON.nextQuestion) {
         responseJSON.nextQuestion = responseJSON.spokenQuestion || "Can you explain the next challenge or project you solved?";
       }
@@ -3582,11 +3582,9 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
       }
 
       if (!responseJSON.interviewState) {
-        // Fallback state generation when LLM doesn't return interviewState
-        const topics = ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"];
+        const topics = ["Introduction", "Project & Experience Discussion", "Claim Verification", "Technical Assessment", "Behavioral Assessment", "Candidate Questions", "Wrap-up"];
         const step = history ? history.length : 0;
-        // Spend ~2-3 questions per topic for natural pacing
-        const topicIndex = Math.min(topics.length - 1, Math.floor(step / 2.5));
+        const topicIndex = Math.min(topics.length - 1, Math.floor(step / 1.5));
         state.stage = topics[topicIndex].toLowerCase().replace(/\s+/g, '_');
         state.currentTopic = topics[topicIndex];
         state.topicGraph.currentIndex = topicIndex;
@@ -3626,7 +3624,6 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
         }
         responseJSON.interviewState = state;
       } else {
-        // Normalize claims schema from LLM response to match frontend expectations
         const st = responseJSON.interviewState;
         if (st.claims && Array.isArray(st.claims)) {
           st.claims = st.claims.map(c => ({
@@ -4008,8 +4005,9 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         const groqResponse = await callGroq(groqMessages, true, 0.1);
         const analysisResult = safeParseJSON(groqResponse);
         console.log("[ResumeAnalyser] Groq analysis complete. Score:", analysisResult?.atsScore);
-        if (analysisResult && typeof analysisResult === "object" && analysisResult.extractedInfo) {
-          return res.json(analysisResult);
+        if (analysisResult && typeof analysisResult === "object") {
+          const normalized = normalizeAnalysisResult(analysisResult, extractedText);
+          if (normalized) return res.json(normalized);
         }
       } catch (groqErr) {
         console.error("[ResumeAnalyser] Groq analysis failed (Step 2):", groqErr);
@@ -4023,85 +4021,152 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         const fullPrompt = `${systemAnalysisPrompt}\n\nCandidate Resume Context:\n${userAnalysisPrompt}`;
         const geminiAnalysis = await parseDocumentWithGemini(base64Data, mimeType, fullPrompt);
         const parsedGemini = safeParseJSON(geminiAnalysis);
-        if (parsedGemini && typeof parsedGemini === "object" && parsedGemini.extractedInfo) {
-          return res.json(parsedGemini);
+        if (parsedGemini && typeof parsedGemini === "object") {
+          const normalized = normalizeAnalysisResult(parsedGemini, extractedText);
+          if (normalized) return res.json(normalized);
         }
       } catch (geminiErr2) {
         console.error("[ResumeAnalyser] Gemini analysis fallback failed (Step 2 Fallback):", geminiErr2);
       }
     }
 
-    // ── Final Fallback: Generate dynamic clean data based on email/known info, NO static VIT/TCS mock data ──
-    console.log("[ResumeAnalyser] Using clean dynamic fallback.");
+    // ── Final Fallback: Generate dynamic clean data based on actual extracted resume content, NO static VIT/TCS mock data ──
+    console.log("[ResumeAnalyser] Using dynamic fallback based on extracted resume content.");
     const namePrefix = email ? email.split('@')[0] : "Candidate";
-    const cleanName = namePrefix.charAt(0).toUpperCase() + namePrefix.slice(1);
+    const cleanName = extractedText?.fullName || (namePrefix.charAt(0).toUpperCase() + namePrefix.slice(1));
+    const skillsArray = Array.isArray(extractedText?.skills) ? extractedText.skills : [];
     
-    res.json({
+    return res.json({
       isResume: true,
       errorMessage: "",
       fullName: cleanName,
-      contact: email || "",
-      atsScore: 50,
-      overview: "Resume analysis based on fallback metrics. The candidate demonstrates foundational professional experience and skills but lacks detailed metrics and specific achievements.",
+      contact: extractedText?.contact || email || "",
+      atsScore: skillsArray.length > 5 ? 65 : 50,
+      overview: `Resume analysis for ${cleanName}. The candidate demonstrates background in their specified domain, featuring skills such as ${skillsArray.slice(0, 6).join(", ") || "various professional competencies"}. Review includes education and experience details parsed directly from the uploaded file.`,
       grammarRating: "Good",
       structureRating: "Good",
       readabilityRating: "Good",
-      keywordDensity: "5%",
-      matchedSkills: ["Communication", "Problem Solving", "Project Management"],
-      missingSkills: ["Leadership", "Quantifiable Metrics"],
-      strengths: ["Clear section titles", "Contact info present"],
-      quickWins: ["Add quantifiable achievements to work/project bullets", "Include LinkedIn link in contact section"],
-      recommendations: ["Incorporate specific industry keywords", "Use active verbs like Developed, Managed, Coordinated"],
-      suggestedRoles: ["Associate Coordinator", "General Associate"],
+      keywordDensity: "7%",
+      matchedSkills: skillsArray,
+      missingSkills: ["Domain specific metrics", "Quantifiable achievements"],
+      strengths: ["Clear section layout", `Stated ${skillsArray.length} key skills`],
+      quickWins: ["Incorporate specific percentages, numbers, or volumes in experience description", "Ensure contact links like LinkedIn are present"],
+      recommendations: ["Highlight direct technical challenges faced and how they were resolved", "Tailor achievements closely to candidate domain"],
+      suggestedRoles: targetRole ? [targetRole] : ["Professional Associate"],
       extractedInfo: {
-        education: "Completed degree",
-        experience: "Professional work experience",
-        projects: "Relevant projects",
-        skills: ["Communication", "Problem Solving", "Project Management"],
-        certifications: "Completed certifications"
+        education: extractedText?.education || "Parsed education records",
+        experience: extractedText?.experience || "Parsed professional experience",
+        projects: extractedText?.projects || "Parsed projects",
+        skills: skillsArray,
+        certifications: extractedText?.certifications || "Certifications details"
       },
       keyData: {
-        technologies: [],
+        technologies: skillsArray,
         tools: [],
-        projects: ["Professional Projects"],
-        achievements: ["Successfully completed career milestones"],
-        claims: ["Demonstrated core work responsibilities"]
+        projects: [extractedText?.projects || "Resume Project"],
+        achievements: ["Successfully completed domain tasks"],
+        claims: ["Demonstrated professional work responsibilities"]
       },
-      importantClaims: ["Demonstrated core work responsibilities"],
+      importantClaims: ["Demonstrated professional work responsibilities"],
       topicMap: {
-        projectName: "Professional Achievement",
+        projectName: "Resume Project",
         topics: {
-          "Core Domain": ["Professional skills"],
-          "Management": ["Organization"]
+          "Core Competencies": skillsArray.slice(0, 6)
         }
       },
       jdComparison: {
-        requiredSkills: ["Communication", "Problem Solving", "Project Management", "Leadership"],
+        requiredSkills: skillsArray,
         skillMatchScore: 50,
         missingSkills: ["Leadership"],
-        strongSkills: ["Communication", "Problem Solving", "Project Management"]
+        strongSkills: skillsArray.slice(0, 4)
       },
       interviewPlan: {
-        "priority1": "Review career details and responsibilities",
-        "priority2": "Evaluate core communication and problem-solving skills",
-        "priority3": "Discuss alignment with target role",
-        "priority4": "Assess soft skills and behavioral scenarios"
+        "priority1": "Review work responsibility details",
+        "priority2": "Evaluate stated skills application",
+        "priority3": "Discuss project challenge resolutions",
+        "priority4": "Assess target alignment and soft skills"
       },
       verificationQueue: [
         {
-          claim: "Demonstrated core work responsibilities",
+          claim: "Demonstrated professional work responsibilities",
           steps: ["Ask details about tasks", "Verify metrics", "Evaluate role challenges"]
         }
       ],
       sectionScores: {
-        contactInfo: 70,
-        summary: 50,
-        experience: 50,
-        education: 70,
-        skills: 60,
-        projects: 50
+        contactInfo: extractedText?.contact ? 85 : 45,
+        summary: 60,
+        experience: extractedText?.experience ? 70 : 45,
+        education: extractedText?.education ? 80 : 45,
+        skills: skillsArray.length ? 75 : 45,
+        projects: extractedText?.projects ? 65 : 45
       }
     });
+
+    // Helper function to normalize parsed results
+    function normalizeAnalysisResult(result, textData) {
+      if (!result || typeof result !== 'object') return null;
+      
+      const res = { ...result };
+      if (!res.fullName && textData?.fullName) res.fullName = textData.fullName;
+      if (!res.contact && textData?.contact) res.contact = textData.contact;
+      
+      if (!res.atsScore) {
+        res.atsScore = res.ats_score || res.score || 55;
+      }
+      res.atsScore = Number(res.atsScore) || 55;
+      
+      if (!res.extractedInfo) {
+        res.extractedInfo = result.extracted_info || {
+          education: textData?.education || result.education || "",
+          experience: textData?.experience || result.experience || "",
+          projects: textData?.projects || result.projects || "",
+          skills: textData?.skills || result.skills || [],
+          certifications: textData?.certifications || result.certifications || ""
+        };
+      }
+      
+      if (!res.keyData) {
+        res.keyData = result.key_data || {
+          technologies: res.extractedInfo.skills || [],
+          tools: [],
+          projects: res.extractedInfo.projects ? [res.extractedInfo.projects.substring(0, 100)] : [],
+          achievements: [],
+          claims: []
+        };
+      }
+      
+      if (!res.matchedSkills || !res.matchedSkills.length) {
+        res.matchedSkills = res.matched_skills || res.extractedInfo.skills || [];
+      }
+      if (!res.missingSkills) res.missingSkills = res.missing_skills || [];
+      if (!res.strengths) res.strengths = [];
+      if (!res.quickWins) res.quickWins = [];
+      if (!res.recommendations) res.recommendations = [];
+      if (!res.suggestedRoles) res.suggestedRoles = [];
+      if (!res.importantClaims) res.importantClaims = res.keyData.claims || [];
+      
+      if (!res.topicMap) {
+        res.topicMap = {
+          projectName: "Resume Project",
+          topics: {
+            "Key Focus": res.extractedInfo.skills || ["General Skills"]
+          }
+        };
+      }
+      
+      if (!res.sectionScores) {
+        res.sectionScores = res.section_scores || {
+          contactInfo: res.contact ? 80 : 40,
+          summary: res.overview ? 70 : 40,
+          experience: res.extractedInfo.experience ? 65 : 40,
+          education: res.extractedInfo.education ? 70 : 40,
+          skills: res.extractedInfo.skills.length ? 75 : 40,
+          projects: res.extractedInfo.projects ? 60 : 40
+        };
+      }
+      
+      return res;
+    }
 
   } catch (err) {
     console.error("Resume analysis error:", err);
