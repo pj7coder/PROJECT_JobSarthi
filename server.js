@@ -3887,7 +3887,7 @@ Return a valid JSON object matching this structure:
       }
     }
 
-    const systemAnalysisPrompt = `You are a strict, world-class talent acquisition analyst and technical recruiter. Your task is to analyze the candidate's resume text and perform a rigorous, honest, and highly accurate evaluation based on the target job role and description.
+    const systemAnalysisPrompt = `You are a strict, world-class talent acquisition analyst and recruiter. Your task is to analyze the candidate's resume text and perform a rigorous, honest, and highly accurate evaluation.
 You MUST output a single valid JSON object following this EXACT schema (do not wrap in markdown or include extra text):
 {
   "isResume": true,
@@ -3895,61 +3895,49 @@ You MUST output a single valid JSON object following this EXACT schema (do not w
   "fullName": "Candidate Name",
   "contact": "Candidate Contact Info",
   "atsScore": 55,
-  "overview": "A detailed, constructive, and accurate summary of the candidate's background, identifying specific strengths and prominent gaps based on the target role/description.",
+  "overview": "A detailed, constructive, and accurate summary of the candidate's background, identifying specific strengths and prominent gaps based on their career domain.",
   "grammarRating": "Needs Improvement",
   "structureRating": "Good",
   "readabilityRating": "Good",
   "keywordDensity": "12%",
-  "matchedSkills": ["skill1", "skill2"],
-  "missingSkills": ["skill3", "skill4"],
-  "strengths": ["strength1", "strength2"],
-  "quickWins": ["win1", "win2"],
-  "recommendations": ["tip1", "tip2"],
-  "suggestedRoles": ["role1", "role2"],
+  "matchedSkills": [],
+  "missingSkills": [],
+  "strengths": [],
+  "quickWins": [],
+  "recommendations": [],
+  "suggestedRoles": [],
   "extractedInfo": {
-    "education": "summarized education",
-    "experience": "summarized experience",
-    "projects": "summarized projects",
-    "skills": ["skill1", "skill2"],
-    "certifications": "summarized certifications"
+    "education": "",
+    "experience": "",
+    "projects": "",
+    "skills": [],
+    "certifications": ""
   },
   "keyData": {
-    "technologies": ["tech1", "tech2"],
-    "tools": ["tool1", "tool2"],
-    "projects": ["proj1", "proj2"],
-    "achievements": ["achievement1", "achievement2"],
-    "claims": ["claim1", "claim2"]
+    "technologies": [],
+    "tools": [],
+    "projects": [],
+    "achievements": [],
+    "claims": []
   },
-  "importantClaims": ["claim1", "claim2"],
+  "importantClaims": [],
   "topicMap": {
-    "projectName": "Primary project name",
-    "topics": {
-      "Frontend": ["technologies/areas used in frontend"],
-      "Backend": ["technologies/areas used in backend"],
-      "Database": ["technologies/areas used in database"],
-      "AI Integration": ["technologies/areas used in AI Integration"],
-      "Authentication": ["technologies/areas used in Authentication"],
-      "Deployment": ["technologies/areas used in Deployment"]
-    }
+    "projectName": "Primary project name or key professional achievement",
+    "topics": {}
   },
   "jdComparison": {
-    "requiredSkills": ["list of skills required for the target role"],
+    "requiredSkills": [],
     "skillMatchScore": 55,
-    "missingSkills": ["skills required by JD but missing in resume"],
-    "strongSkills": ["skills in resume that match JD requirements"]
+    "missingSkills": [],
+    "strongSkills": []
   },
   "interviewPlan": {
-    "priority1": "Project Verification focus description",
-    "priority2": "Core Skills focus description",
-    "priority3": "Job Description Skills focus description",
-    "priority4": "Behavioral Questions focus description"
+    "priority1": "Key focus area 1",
+    "priority2": "Key focus area 2",
+    "priority3": "Key focus area 3",
+    "priority4": "Key focus area 4"
   },
-  "verificationQueue": [
-    {
-      "claim": "Specific claim (e.g. Built authentication)",
-      "steps": ["Verify Architecture", "Ask Metrics", "Check security implementation details"]
-    }
-  ],
+  "verificationQueue": [],
   "sectionScores": {
     "contactInfo": 60,
     "summary": 50,
@@ -3960,24 +3948,21 @@ You MUST output a single valid JSON object following this EXACT schema (do not w
   }
 }
 
-Strict Grading Guidelines:
-1. ATS Score & Section Scores must be strict and realistic. Do NOT inflate scores. An average resume should score between 40 and 60.
-2. Deduct points heavily for:
-   - Lack of quantifiable metrics/impact (e.g., specific percentages, dollar amounts, number of users, scale) in work experience or projects: Deduct 15-20 points.
-   - Missing professional portfolio, GitHub link, or LinkedIn URL: Deduct 10 points.
-   - Missing professional summary or objective: Deduct 10 points.
-   - Sparse description of projects/work (e.g., less than 3 sentences or vague responsibilities): Deduct 15 points.
-   - Lack of alignment with the target role: Deduct up to 30 points.
-3. Ratings (grammarRating, structureRating, readabilityRating) must be chosen strictly.
-   - "Needs Improvement": if there are any typos, poor formatting, blocks of unreadable text, or lack of standard sections.
-   - "Good": standard structure, readable, minor room for improvements.
-   - "Excellent": flawless layout, highly professional vocabulary, bulleted achievements with clear metrics.
-4. Quick Wins: List 2-4 concrete, easily implementable actions they can take right now to improve their resume (e.g., "Add a quantitative metric to your project description", "Include your LinkedIn profile link").
-5. Recommendations: List 3-5 high-quality, professional ATS optimization tips customized to their resume content.`;
+Crucial Rules:
+1. NO PLACEHOLDERS: Do NOT output placeholder text, example names, or dummy items (like "skill1", "proj1", "JobSarthi", "Built authentication"). If a field has no corresponding data in the resume, leave it empty (e.g., empty array [], empty object {}, or empty string "").
+2. DYNAMIC FIELD/DOMAIN ANALYSIS: Do NOT default to Computer Science, Software Engineering, or IT unless the resume explicitly shows the candidate is in that field. Carefully identify their actual career field/industry (e.g. Marketing, Sales, Civil Engineering, Nursing, Finance, Education, Hospitality, Design, etc.) and perform a precise, strict evaluation customized to that specific industry.
+3. ATS SCORE & SECTION SCORES: Scores must be strict and realistic. Do NOT inflate scores. An average resume should score between 40 and 60.
+4. DEDUCT POINTS STRICTOR:
+   - Deduct 15-20 points if the resume lacks quantifiable achievements/impact (e.g. metrics, percentages, money saved, volume handled).
+   - Deduct 10 points if contact details are missing links like LinkedIn or Portfolio.
+   - Deduct 10 points if there is no professional summary.
+   - Deduct 15 points if projects/experience are thin or described vaguely.
+5. Ratings (grammarRating, structureRating, readabilityRating) must be chosen strictly. "Needs Improvement" if there are formatting flaws or unreadable density; "Good" for average standard resumes; "Excellent" only for exceptional layouts with bulleted impact statements.
+6. topicMap: The 'topics' object should list key professional domains or elements of their primary project/achievement (e.g., for Marketing, this could be {"Campaign Strategy": [...], "Client Metrics": [...]}; for Finance: {"Risk Assessment": [...], "Financial Modeling": [...]}; for Civil Engineering: {"Structural Design": [...], "Quality Assurance": [...]}).`;
 
     const userAnalysisPrompt = `Perform the resume analysis for this candidate.
-Target Role: ${targetRole || "Software Developer"}
-Target Job Description: ${jdText || "General technical role focusing on software development, problem solving, frontend, backend, database and engineering excellence."}
+${targetRole ? `Target Role: ${targetRole}` : `Target Role: (Not provided - dynamically determine the candidate's target field/role from their resume content)`}
+${jdText ? `Target Job Description: ${jdText}` : `Target Job Description: (Not provided - dynamically evaluate alignment based on standard professional requirements for the detected field)`}
 
 Resume Content:
 ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
@@ -4031,69 +4016,65 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       errorMessage: "",
       fullName: cleanName,
       contact: email || "",
-      atsScore: 58,
-      overview: "Standard resume analysis report based on fallback metrics. The candidate demonstrates base knowledge of web technology but lacks advanced target alignment details.",
+      atsScore: 50,
+      overview: "Resume analysis based on fallback metrics. The candidate demonstrates foundational professional experience and skills but lacks detailed metrics and specific achievements.",
       grammarRating: "Good",
       structureRating: "Good",
       readabilityRating: "Good",
-      keywordDensity: "8%",
-      matchedSkills: ["HTML", "CSS", "JavaScript", "React"],
-      missingSkills: ["TypeScript", "Redux", "Jest", "CI/CD"],
-      strengths: ["Clear baseline web skills", "Clean section headers"],
-      quickWins: ["Add quantifiable achievements to project bullets", "Include LinkedIn link in contact section"],
-      recommendations: ["Incorporate industry keywords matching target descriptions", "Use active verbs like Developed, Optimized, Integrated"],
-      suggestedRoles: ["Frontend Developer", "Associate Software Engineer"],
+      keywordDensity: "5%",
+      matchedSkills: ["Communication", "Problem Solving", "Project Management"],
+      missingSkills: ["Leadership", "Quantifiable Metrics"],
+      strengths: ["Clear section titles", "Contact info present"],
+      quickWins: ["Add quantifiable achievements to work/project bullets", "Include LinkedIn link in contact section"],
+      recommendations: ["Incorporate specific industry keywords", "Use active verbs like Developed, Managed, Coordinated"],
+      suggestedRoles: ["Associate Coordinator", "General Associate"],
       extractedInfo: {
         education: "Completed degree",
-        experience: "Technical work experience",
-        projects: "Personal and professional engineering projects",
-        skills: ["HTML", "CSS", "JavaScript", "React"],
+        experience: "Professional work experience",
+        projects: "Relevant projects",
+        skills: ["Communication", "Problem Solving", "Project Management"],
         certifications: "Completed certifications"
       },
       keyData: {
-        technologies: ["JavaScript", "React"],
-        tools: ["Git"],
-        projects: ["MERN Web App"],
-        achievements: ["Successfully developed web features"],
-        claims: ["Built web application architecture"]
+        technologies: [],
+        tools: [],
+        projects: ["Professional Projects"],
+        achievements: ["Successfully completed career milestones"],
+        claims: ["Demonstrated core work responsibilities"]
       },
-      importantClaims: ["Built web application architecture", "Optimized user experience"],
+      importantClaims: ["Demonstrated core work responsibilities"],
       topicMap: {
-        projectName: "MERN Web App",
+        projectName: "Professional Achievement",
         topics: {
-          "Frontend": ["React", "HTML", "CSS"],
-          "Backend": ["Node.js", "Express"],
-          "Database": ["MongoDB"],
-          "AI Integration": ["LLM API"],
-          "Authentication": ["JWT"],
-          "Deployment": ["Local Server"]
+          "Core Domain": ["Professional skills"],
+          "Management": ["Organization"]
         }
       },
       jdComparison: {
-        requiredSkills: ["JavaScript", "React", "TypeScript", "Redux"],
-        skillMatchScore: 58,
-        missingSkills: ["TypeScript", "Redux"],
-        strongSkills: ["JavaScript", "React"]
+        requiredSkills: ["Communication", "Problem Solving", "Project Management", "Leadership"],
+        skillMatchScore: 50,
+        missingSkills: ["Leadership"],
+        strongSkills: ["Communication", "Problem Solving", "Project Management"]
       },
       interviewPlan: {
-        "priority1": "Review code architecture and logic of MERN Web App",
-        "priority2": "Evaluate foundational JavaScript and React concepts",
-        "priority3": "Discuss web development best practices",
-        "priority4": "Assess collaboration skills and behavioral scenarios"
+        "priority1": "Review career details and responsibilities",
+        "priority2": "Evaluate core communication and problem-solving skills",
+        "priority3": "Discuss alignment with target role",
+        "priority4": "Assess soft skills and behavioral scenarios"
       },
       verificationQueue: [
         {
-          claim: "Built web application architecture",
-          steps: ["Verify Architecture", "Ask Metrics", "Ask Bottlenecks"]
+          claim: "Demonstrated core work responsibilities",
+          steps: ["Ask details about tasks", "Verify metrics", "Evaluate role challenges"]
         }
       ],
       sectionScores: {
-        contactInfo: 75,
-        summary: 60,
-        experience: 55,
-        education: 80,
+        contactInfo: 70,
+        summary: 50,
+        experience: 50,
+        education: 70,
         skills: 60,
-        projects: 55
+        projects: 50
       }
     });
 
