@@ -80,7 +80,7 @@
         <div id="jd_badges" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
 
         <!-- Sarthi AI Match Analysis -->
-        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border-subtle);padding:18px;border-radius:var(--radius-md);">
+        <div class="sarthi-analysis-box" style="padding:18px;border-radius:var(--radius-md);">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-weight:700;color:var(--text-main);">
             <span>✨ Sarthi AI Skills Analysis</span>
           </div>
@@ -163,10 +163,10 @@
     if (!isLoggedIn) {
       skills.forEach(skill => {
         tbodyHtml += `
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
             <td style="padding: 10px 12px; font-weight: 500; color: var(--text-main);">${skill}</td>
             <td style="padding: 10px 12px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">
-              <span style="background: rgba(255,255,255,0.03); padding: 2px 6px; border-radius: 4px; border: 1px dashed var(--border-subtle);">Locked</span>
+              <span class="locked-badge" style="padding: 2px 6px; border-radius: 4px; border: 1px dashed var(--border-subtle);">Locked</span>
             </td>
           </tr>
         `;
@@ -199,7 +199,7 @@
           </div>
         `;
         tbodyHtml += `
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s;">
+          <tr style="border-bottom: 1px solid var(--border-subtle); transition: background 0.2s;">
             <td style="padding: 10px 12px; font-weight: 500; color: ${isMatched ? 'var(--text-main)' : 'var(--text-muted)'};">${skill}</td>
             <td style="padding: 10px 12px; text-align: center;">${statusHtml}</td>
           </tr>
@@ -354,8 +354,8 @@
             </svg>
           `;
         } else {
-          likeBtn.style.background = 'rgba(255,255,255,0.03)';
-          likeBtn.style.borderColor = 'var(--border-subtle)';
+          likeBtn.style.background = '';
+          likeBtn.style.borderColor = '';
           likeBtn.innerHTML = `
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -455,8 +455,8 @@
             </svg>
           `;
         } else {
-          likeBtn.style.background = 'rgba(255,255,255,0.03)';
-          likeBtn.style.borderColor = 'var(--border-subtle)';
+          likeBtn.style.background = '';
+          likeBtn.style.borderColor = '';
           likeBtn.innerHTML = `
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -477,8 +477,8 @@
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         `;
-        cardBtn.style.background = checked ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)';
-        cardBtn.style.borderColor = checked ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)';
+        cardBtn.style.background = checked ? 'rgba(255, 91, 137, 0.1)' : '';
+        cardBtn.style.borderColor = checked ? 'rgba(255, 91, 137, 0.25)' : '';
       }
 
       // Toast feedback
@@ -533,8 +533,8 @@
               </svg>
             `;
           } else {
-            likeBtn.style.background = 'rgba(255,255,255,0.03)';
-            likeBtn.style.borderColor = 'var(--border-subtle)';
+            likeBtn.style.background = '';
+            likeBtn.style.borderColor = '';
             likeBtn.innerHTML = `
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>

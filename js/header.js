@@ -58,7 +58,13 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Error parsing accent color:", e);
       }
     } else {
-      if (!isRecruiter && !isSeeker) {
+      if (isRecruiter) {
+        document.body.style.setProperty('--accent-secondary', '#db2777');
+        document.body.style.setProperty('--accent-tertiary', '#ec4899');
+        document.body.style.setProperty('--border-focus', 'rgba(219, 39, 119, 0.4)');
+        document.body.style.setProperty('--accent-secondary-hover', '#be185d');
+      } else {
+        // Seeker or Landing
         document.body.style.setProperty('--accent-secondary', '#2563eb');
         document.body.style.setProperty('--accent-tertiary', '#3b82f6');
         document.body.style.setProperty('--border-focus', 'rgba(59, 130, 246, 0.4)');
@@ -476,28 +482,28 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div style="display: grid; gap: 12px; margin-bottom: 16px;">
                           <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
                             <label class="form-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">Full Name</label>
-                            <input type="text" id="settingsFullName" class="form-control" style="background: rgba(255,255,255,0.02);" required>
+                            <input type="text" id="settingsFullName" class="form-control" required>
                           </div>
                           
                           <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
                             <label class="form-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">Email Address (Read-only)</label>
-                            <input type="email" id="settingsEmail" class="form-control" style="background: rgba(255,255,255,0.02); opacity: 0.6;" readonly>
+                            <input type="email" id="settingsEmail" class="form-control" style="opacity: 0.6;" readonly>
                           </div>
                           
                           <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
                             <label class="form-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">Mobile Number</label>
-                            <input type="tel" id="settingsMobile" class="form-control" style="background: rgba(255,255,255,0.02);" placeholder="e.g. +91 9876543210">
+                            <input type="tel" id="settingsMobile" class="form-control" placeholder="e.g. +91 9876543210">
                           </div>
                           
                           <div class="form-group" id="settingsCompanyGroup" style="display: none; flex-direction: column; gap: 6px;">
                             <label class="form-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">Company Name</label>
-                            <input type="text" id="settingsCompany" class="form-control" style="background: rgba(255,255,255,0.02);">
+                            <input type="text" id="settingsCompany" class="form-control">
                           </div>
                         </div>
                         
                         <div style="display: flex; gap: 10px; margin-top: 16px;">
                           <button type="submit" class="btn-primary-solid" style="flex: 1; height: 34px; font-size: 0.8rem;">Save Details</button>
-                          <button type="button" class="btn-danger-settings" onclick="window.triggerSettingsForgotPassword();" style="flex: 1; height: 34px; font-size: 0.8rem; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-main); cursor: pointer; transition: all 0.2s;">Change Password</button>
+                          <button type="button" class="btn-danger-settings" onclick="window.triggerSettingsForgotPassword();" style="flex: 1; height: 34px; font-size: 0.8rem; padding: 0 10px; border-radius: 6px;">Change Password</button>
                         </div>
                       </form>
                     </div>
