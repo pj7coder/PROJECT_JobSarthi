@@ -1189,67 +1189,82 @@ async function parseDocumentWithGemini(base64Data, mimeType, prompt) {
     }
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  let lastError = null;
 
-  const payload = {
-    contents: [
-      {
-        parts: [
-          {
-            text: prompt
-          },
-          {
-            inlineData: {
-              mimeType: cleanMimeType,
-              data: base64Content
+  for (const model of modelsToTry) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+    
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: prompt
+            },
+            {
+              inlineData: {
+                mimeType: cleanMimeType,
+                data: base64Content
+              }
             }
-          }
-        ]
+          ]
+        }
+      ],
+      generationConfig: {
+        responseMimeType: "application/json"
       }
-    ],
-    generationConfig: {
-      responseMimeType: "application/json"
-    }
-  };
+    };
 
-  const retries = 3;
-  let delay = 2000;
+    const retries = 2;
+    let delay = 1000;
 
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      let response = null;
+      try {
+        response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
 
-      if (!response.ok) {
-        if (response.status === 429 && attempt < retries) {
-          console.warn(`Gemini rate limit hit. Retrying attempt ${attempt}/${retries} in ${delay}ms...`);
+        if (!response.ok) {
+          if (response.status === 429 && attempt < retries) {
+            console.warn(`[Gemini] Rate limit hit for model ${model}. Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
+            continue;
+          }
+          const errorText = await response.text();
+          throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
+          throw new Error("Gemini returned an empty completion response.");
+        }
+        const textResponse = result.candidates[0].content.parts[0].text;
+        return safeParseJSON(textResponse);
+      } catch (err) {
+        lastError = err;
+        console.warn(`[Gemini] Model ${model} attempt ${attempt} failed: ${err.message}`);
+        
+        // If it's a quota/rate limit error (429 or RESOURCE_EXHAUSTED), don't waste retry loops, try next model directly
+        if (response?.status === 429 || err.message.includes("429") || err.message.toLowerCase().includes("quota")) {
+          break;
+        }
+
+        if (attempt < retries) {
           await new Promise(resolve => setTimeout(resolve, delay));
           delay *= 2;
-          continue;
         }
-        const errorText = await response.text();
-        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
       }
-
-      const result = await response.json();
-      if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
-        throw new Error("Gemini returned an empty completion response.");
-      }
-      return safeParseJSON(textResponse);
-    } catch (err) {
-      if (attempt === retries) {
-        throw err;
-      }
-      console.warn(`Attempt ${attempt} failed: ${err.message}. Retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2;
     }
   }
+
+  throw lastError || new Error("Failed to parse document with all available Gemini models.");
 }
 
 const SYSTEM_PROMPT = `
