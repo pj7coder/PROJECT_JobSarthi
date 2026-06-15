@@ -3339,62 +3339,67 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
 
     // Call LLM
     let responseJSON = null;
-    if (GROQ_API_KEY) {
-      console.log(`[Sarthi AI] Generating question using Groq... isFirstQuestion: ${isFirstQuestion}`);
-      const responseText = await callGroq(messages, true, 0.65);
-      let cleanText = responseText.trim();
-      if (cleanText.startsWith("```")) {
-        const lines = cleanText.split("\n");
-        if (lines[0].startsWith("```")) lines.shift();
-        if (lines[lines.length - 1].startsWith("```")) lines.pop();
-        cleanText = lines.join("\n").trim();
-      }
-      responseJSON = JSON.parse(cleanText);
-    } else if (process.env.GEMINI_API_KEY) {
-      console.log(`[Sarthi AI] Generating question using Gemini... isFirstQuestion: ${isFirstQuestion}`);
-      const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-      
-      const geminiContents = messages.map(msg => {
-        let roleName = "user";
-        if (msg.role === "system") roleName = "user";
-        else if (msg.role === "assistant") roleName = "model";
-        return {
-          role: roleName,
-          parts: [{ text: msg.content }]
-        };
-      });
-
-      const payload = {
-        contents: geminiContents,
-        systemInstruction: {
-          parts: [{ text: systemPrompt }]
-        },
-        generationConfig: { 
-          responseMimeType: "application/json",
-          temperature: 0.65
+    try {
+      if (GROQ_API_KEY) {
+        console.log(`[Sarthi AI] Generating question using Groq... isFirstQuestion: ${isFirstQuestion}`);
+        const responseText = await callGroq(messages, true, 0.65);
+        let cleanText = responseText.trim();
+        if (cleanText.startsWith("```")) {
+          const lines = cleanText.split("\n");
+          if (lines[0].startsWith("```")) lines.shift();
+          if (lines[lines.length - 1].startsWith("```")) lines.pop();
+          cleanText = lines.join("\n").trim();
         }
-      };
+        responseJSON = JSON.parse(cleanText);
+      } else if (process.env.GEMINI_API_KEY) {
+        console.log(`[Sarthi AI] Generating question using Gemini... isFirstQuestion: ${isFirstQuestion}`);
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        
+        const geminiContents = messages.map(msg => {
+          let roleName = "user";
+          if (msg.role === "system") roleName = "user";
+          else if (msg.role === "assistant") roleName = "model";
+          return {
+            role: roleName,
+            parts: [{ text: msg.content }]
+          };
+        });
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+        const payload = {
+          contents: geminiContents,
+          systemInstruction: {
+            parts: [{ text: systemPrompt }]
+          },
+          generationConfig: { 
+            responseMimeType: "application/json",
+            temperature: 0.65
+          }
+        };
 
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Gemini API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        let responseText = result.candidates[0].content.parts[0].text.trim();
+        if (responseText.startsWith("```")) {
+          const lines = responseText.split("\n");
+          if (lines[0].startsWith("```")) lines.shift();
+          if (lines[lines.length - 1].startsWith("```")) lines.pop();
+          responseText = lines.join("\n").trim();
+        }
+        responseJSON = JSON.parse(responseText);
       }
-
-      const result = await response.json();
-      let responseText = result.candidates[0].content.parts[0].text.trim();
-      if (responseText.startsWith("```")) {
-        const lines = responseText.split("\n");
-        if (lines[0].startsWith("```")) lines.shift();
-        if (lines[lines.length - 1].startsWith("```")) lines.pop();
-        responseText = lines.join("\n").trim();
-      }
-      responseJSON = JSON.parse(responseText);
+    } catch (llmErr) {
+      console.warn("[Sarthi AI] LLM call or JSON parsing failed. Falling back to local questions.", llmErr);
+      responseJSON = null;
     }
 
     if (!responseJSON) {
@@ -3505,6 +3510,48 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
 
     // Attach/Update interviewState in responseJSON
     if (responseJSON) {
+      // Normalize key formats returned by the LLM
+      if (responseJSON.next_question && !responseJSON.nextQuestion) {
+        responseJSON.nextQuestion = responseJSON.next_question;
+      }
+      if (responseJSON.spoken_question && !responseJSON.spokenQuestion) {
+        responseJSON.spokenQuestion = responseJSON.spoken_question;
+      }
+      if (responseJSON.is_interview_completed !== undefined && responseJSON.isInterviewCompleted === undefined) {
+        responseJSON.isInterviewCompleted = responseJSON.is_interview_completed;
+      }
+      if (responseJSON.difficulty_change && !responseJSON.difficultyChange) {
+        responseJSON.difficultyChange = responseJSON.difficulty_change;
+      }
+      if (responseJSON.controller_action && !responseJSON.controllerAction) {
+        responseJSON.controllerAction = responseJSON.controller_action;
+      }
+      if (responseJSON.controller_reason && !responseJSON.controllerReason) {
+        responseJSON.controllerReason = responseJSON.controller_reason;
+      }
+
+      // Ensure fallbacks for required fields
+      if (!responseJSON.nextQuestion) {
+        responseJSON.nextQuestion = responseJSON.spokenQuestion || "Can you explain the next challenge or project you solved?";
+      }
+      if (!responseJSON.spokenQuestion) {
+        responseJSON.spokenQuestion = responseJSON.nextQuestion;
+      }
+      if (responseJSON.isInterviewCompleted === undefined) {
+        responseJSON.isInterviewCompleted = false;
+      }
+      if (responseJSON.score === undefined) {
+        responseJSON.score = 5;
+      } else {
+        responseJSON.score = Number(responseJSON.score) || 5;
+      }
+      if (!responseJSON.difficultyChange) {
+        responseJSON.difficultyChange = "maintain";
+      }
+      if (!responseJSON.feedback) {
+        responseJSON.feedback = "Response noted.";
+      }
+
       if (!responseJSON.interviewState) {
         // Fallback state generation when LLM doesn't return interviewState
         const topics = ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"];

@@ -2937,6 +2937,18 @@
         console.error("API error:", err);
         if (isInterviewFinished) return;
         
+        // Record the history entry so we advance and don't get stuck
+        if (!firstCall) {
+          interviewHistory.push({
+            question: currentQuestionText,
+            answer: previousAnswer || "[No Answer / Skipped]",
+            score: 5,
+            feedback: "Evaluation completed via client-side fallback."
+          });
+          accumulatedScore += 5;
+          totalQuestionsAnswered++;
+        }
+
         // In fallback mode, complete the interview gracefully after 5 questions
         if (totalQuestionsAnswered >= 4) {
           currentQuestionText = "Thank you so much for your time today. That concludes our interview session. I will now compile and generate your evaluation report. Have a great day!";
@@ -3247,7 +3259,12 @@
       utterance.onend = () => { onSpeechFinished(); };
       utterance.onerror = () => { onSpeechFinished(); };
 
-      window.speechSynthesis.speak(utterance);
+      try {
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.warn("SpeechSynthesis.speak failed:", err);
+        onSpeechFinished();
+      }
     }
 
     function onSpeechFinished() {
