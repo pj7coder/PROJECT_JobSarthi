@@ -3897,7 +3897,7 @@ Return a valid JSON object matching this structure:
           });
         }
       } catch (geminiErr) {
-        console.warn("[ResumeAnalyser] Gemini extraction failed:", geminiErr.message);
+        console.error("[ResumeAnalyser] Gemini extraction failed (Step 1):", geminiErr);
       }
     }
 
@@ -3997,7 +3997,7 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
           return res.json(analysisResult);
         }
       } catch (groqErr) {
-        console.warn("[ResumeAnalyser] Groq analysis failed:", groqErr.message);
+        console.error("[ResumeAnalyser] Groq analysis failed (Step 2):", groqErr);
       }
     }
 
@@ -4012,7 +4012,7 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
           return res.json(parsedGemini);
         }
       } catch (geminiErr2) {
-        console.warn("[ResumeAnalyser] Gemini analysis fallback failed:", geminiErr2.message);
+        console.error("[ResumeAnalyser] Gemini analysis fallback failed (Step 2 Fallback):", geminiErr2);
       }
     }
 

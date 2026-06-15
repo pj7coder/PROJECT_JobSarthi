@@ -807,13 +807,17 @@ async function runAnalysis() {
   const r = resumes[activeTab];
   if (!r) return;
 
+  // Clear existing analysis data to ensure a fresh, clean re-analysis
+  analysisResults[activeTab] = null;
+  document.getElementById('dashboard').innerHTML = '';
+  document.getElementById('dashboard').style.display = 'none';
+
   const btn = document.getElementById('analyseBtn');
   btn.disabled = true;
   btn.innerHTML = `<span class="spin"></span> Analysing…`;
 
-  // Hide placeholder and dashboard, and show scan animation on the right panel
+  // Hide placeholder and show scan animation on the right panel
   document.getElementById('placeholder').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'none';
   
   // Remove existing loader if any
   const oldLoader = document.getElementById('scanLoader');
