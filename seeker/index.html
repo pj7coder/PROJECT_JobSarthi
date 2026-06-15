@@ -306,45 +306,126 @@
       color: var(--accent-primary);
     }
 
-    /* 3 dots wave loading animation */
+    /* SVG Circular dash loader */
     .loading-container {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       min-height: 200px;
       width: 100%;
+      gap: 16px;
     }
 
-    .loading-wave {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .absolute {
+      position: absolute;
     }
 
-    .loading-dot {
-      width: 6px;
-      height: 6px;
-      background-color: var(--accent-secondary);
-      border-radius: 50%;
+    .inline-block {
       display: inline-block;
-      animation: wave 1.2s infinite ease-in-out;
     }
 
-    .loading-dot:nth-child(2) {
-      animation-delay: 0.2s;
+    .loader {
+      display: flex;
+      margin: 0.25em 0;
+      justify-content: center;
+      align-items: center;
     }
 
-    .loading-dot:nth-child(3) {
-      animation-delay: 0.4s;
+    .w-2 {
+      width: 0.5em;
     }
 
-    @keyframes wave {
-      0%, 60%, 100% {
-        transform: translateY(0);
+    .dash {
+      animation: dashArray 2s ease-in-out infinite, dashOffset 2s linear infinite;
+    }
+
+    .spin {
+      animation: spinDashArray 2s ease-in-out infinite, spin 8s ease-in-out infinite,
+        dashOffset 2s linear infinite;
+      transform-origin: center;
+    }
+
+    @keyframes dashArray {
+      0% {
+        stroke-dasharray: 0 1 359 0;
       }
-      30% {
-        transform: translateY(-6px);
+
+      50% {
+        stroke-dasharray: 0 359 1 0;
       }
+
+      100% {
+        stroke-dasharray: 359 1 0 0;
+      }
+    }
+
+    @keyframes spinDashArray {
+      0% {
+        stroke-dasharray: 270 90;
+      }
+
+      50% {
+        stroke-dasharray: 0 360;
+      }
+
+      100% {
+        stroke-dasharray: 250 90;
+      }
+    }
+
+    @keyframes dashOffset {
+      0% {
+        stroke-dashoffset: 385;
+      }
+
+      100% {
+        stroke-dashoffset: 5;
+      }
+    }
+
+    @keyframes spin {
+      0% {
+        rotate: 0deg;
+        transform: rotate(0deg);
+      }
+
+      12.5%,
+      25% {
+        rotate: 270deg;
+        transform: rotate(270deg);
+      }
+
+      37.5%,
+      50% {
+        rotate: 540deg;
+        transform: rotate(540deg);
+      }
+
+      62.5%,
+      75% {
+        rotate: 810deg;
+        transform: rotate(810deg);
+      }
+
+      87.5%,
+      100% {
+        rotate: 1080deg;
+        transform: rotate(1080deg);
+      }
+    }
+
+    .loading-text {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      animation: loadingTextPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loadingTextPulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
     }
 
     /* Premium Pagination Styling */
@@ -723,11 +804,15 @@
       if (recommendedContainer) {
         recommendedContainer.innerHTML = `
           <div class="loading-container" style="grid-column: 1 / -1;">
-            <div class="loading-wave">
-              <div class="loading-dot"></div>
-              <div class="loading-dot"></div>
-              <div class="loading-dot"></div>
+            <div class="loader">
+              <svg viewBox="0 0 120 120" version="1.1" xmlns="http://www.w3.org/2000/svg" style="width: 48px; height: 48px;">
+                <g stroke="var(--accent-secondary)" stroke-width="10" fill="none" stroke-linecap="round">
+                  <circle class="spin" cx="60" cy="60" r="57" />
+                  <circle class="dash" cx="60" cy="60" r="57" style="stroke-dasharray: 0 359; stroke-dashoffset: 0;" />
+                </g>
+              </svg>
             </div>
+            <div class="loading-text">Loading you jobs . . .</div>
           </div>
         `;
       }

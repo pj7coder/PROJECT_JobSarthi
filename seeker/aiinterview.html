@@ -2252,6 +2252,73 @@
           if (profile && !profile.error) {
             candidateProfile = profile;
             console.log("[JobSarthi] Candidate profile pre-loaded successfully:", profile);
+
+            // Integrate with Resume Analyser plan if requested
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('usePlan') === 'true') {
+              const slot = parseInt(urlParams.get('slot') || '0', 10);
+              const saved = profile.analysisResumes || [];
+              const targetSlot = saved[slot];
+              if (targetSlot && targetSlot.analysisResult) {
+                const result = targetSlot.analysisResult;
+                
+                // Map the importantClaims to the structure expected by the state
+                const claimsArray = [];
+                if (Array.isArray(result.importantClaims)) {
+                  result.importantClaims.forEach(c => {
+                    claimsArray.push({ claim: c, status: "unverified" });
+                  });
+                } else if (result.keyData && Array.isArray(result.keyData.claims)) {
+                  result.keyData.claims.forEach(c => {
+                    claimsArray.push({ claim: c, status: "unverified" });
+                  });
+                }
+
+                window.interviewState = {
+                  stage: "introduction",
+                  currentTopic: "Introduction",
+                  topicGraph: {
+                    nodes: ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"],
+                    currentIndex: 0,
+                    completed: []
+                  },
+                  claims: claimsArray,
+                  verificationQueue: result.verificationQueue || [],
+                  topicMap: result.topicMap || null,
+                  interviewPlan: result.interviewPlan || null,
+                  jdComparison: result.jdComparison || null,
+                  keyData: result.keyData || null,
+                  extractedInfo: result.extractedInfo || null,
+                  atsScore: result.atsScore || null,
+                  satisfaction: {
+                    technicalKnowledge: 50,
+                    communication: 50,
+                    confidence: 50,
+                    authenticity: 50,
+                    problemSolving: 50,
+                    learningAbility: 50,
+                    ownership: 50,
+                    depth: 50,
+                    overall: 50
+                  },
+                  evidence: [],
+                  earlyExitTriggered: false,
+                  earlyExitReason: ""
+                };
+                console.log("[JobSarthi] Custom interviewState loaded from Resume Analyser:", window.interviewState);
+                
+                // Force include resume checkbox to checked
+                const chk = document.getElementById('includeResumeCheckbox');
+                if (chk) chk.checked = true;
+
+                // Set window._interviewJobSkills to required skills if present
+                if (result.jdComparison && Array.isArray(result.jdComparison.requiredSkills)) {
+                  window._interviewJobSkills = result.jdComparison.requiredSkills.join(", ");
+                }
+              } else {
+                console.warn("[JobSarthi] No resume analysis result found in slot " + slot);
+              }
+            }
           }
         })
         .catch(err => console.error("Error pre-fetching candidate profile:", err));
