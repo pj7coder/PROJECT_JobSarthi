@@ -17,6 +17,10 @@
     {
       "src": "/api/(.*)",
       "dest": "https://project-jobsarthi.onrender.com/api/$1"
+    },
+    {
+      "src": "/apply/(.*)",
+      "dest": "https://project-jobsarthi.onrender.com/apply/$1"
     }
   ],
   "headers": [

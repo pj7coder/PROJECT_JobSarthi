@@ -506,7 +506,8 @@
         _options.onApply(_currentJob);
       } else if (!_currentJob.isSample && (_currentJob.applyUrl || _currentJob.apply_url)) {
         const email = encodeURIComponent(localStorage.getItem('seeker_email') || '');
-        window.open(`/apply/${_currentJob.id}?email=${email}`, '_blank');
+        const baseUrl = window.API_BASE_URL || '';
+        window.open(`${baseUrl}/apply/${_currentJob.id}?email=${email}`, '_blank');
       }
     },
 

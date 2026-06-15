@@ -987,7 +987,8 @@
 
           const destUrl = currentSelectedJob.applyUrl || currentSelectedJob.apply_url;
           if (destUrl && destUrl.startsWith('http')) {
-            window.open(`/apply/${currentSelectedJob.id}?email=${encodeURIComponent(candidateEmail || '')}`, '_blank');
+            const baseUrl = window.API_BASE_URL || '';
+            window.open(`${baseUrl}/apply/${currentSelectedJob.id}?email=${encodeURIComponent(candidateEmail || '')}`, '_blank');
           }
         } else {
           const errData = await response.json();
@@ -1062,7 +1063,7 @@
           const actionBtn = job.isSample ? `
             <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; height: 38px; box-sizing: border-box;">${isApplied ? 'Applied' : 'Apply'}</button>
           ` : `
-            <a href="/apply/${job.id}?email=${encodeURIComponent(localStorage.getItem('seeker_email') || '')}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; height: 38px; box-sizing: border-box;">Open</a>
+            <a href="${window.API_BASE_URL || ''}/apply/${job.id}?email=${encodeURIComponent(localStorage.getItem('seeker_email') || '')}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; height: 38px; box-sizing: border-box;">Open</a>
           `;
 
           const savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
