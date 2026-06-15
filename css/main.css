@@ -13,10 +13,10 @@
 
   --accent-primary: #ffffff;
   /* Pure white for high contrast */
-  --accent-secondary: #27272a;
-  /* zinc-800 for buttons/active paginations */
-  --accent-tertiary: #3f3f46;
-  /* zinc-700 */
+  --accent-secondary: #2563eb;
+  /* Default brand blue accent color */
+  --accent-tertiary: #3b82f6;
+  /* Secondary accent color */
 
   --text-main: #fafafa;
   /* zinc-50 */
@@ -120,26 +120,26 @@
 
 /* Light Theme Variables */
 body.light-theme {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f4f4f5;
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
   --bg-surface: #ffffff;
 
   --accent-primary: #09090b;
-  --accent-secondary: #e4e4e7;
-  --accent-tertiary: #d4d4d8;
+  --accent-secondary: #2563eb;
+  --accent-tertiary: #3b82f6;
 
   --text-main: #09090b;
-  --text-muted: #71717a;
-  --text-dark: #a1a1aa;
+  --text-muted: #4b5563;
+  --text-dark: #1f2937;
 
-  --border-subtle: #e4e4e7;
-  --border-focus: #d4d4d8;
-  --glass-border: #e4e4e7;
+  --border-subtle: #cbd5e1;
+  --border-focus: #94a3b8;
+  --glass-border: #cbd5e1;
 
   /* Sarthi specific */
-  --sarthi-bg-minimized: rgba(255, 255, 255, 0.75);
-  --sarthi-bg-expanded: rgba(255, 255, 255, 0.9);
-  --sarthi-header-bg: rgba(255, 255, 255, 0.55);
+  --sarthi-bg-minimized: rgba(255, 255, 255, 0.85);
+  --sarthi-bg-expanded: rgba(255, 255, 255, 0.98);
+  --sarthi-header-bg: rgba(255, 255, 255, 0.7);
   --sarthi-dot-inactive: rgba(0, 0, 0, 0.25);
 }
 
@@ -1919,21 +1919,21 @@ body.light-theme .setting-item-title {
 }
 
 body.light-theme .setting-select {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  color: #09090b;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #09090b !important;
 }
 
 body.light-theme .form-control {
-  background: rgba(0, 0, 0, 0.02) !important;
-  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
   color: #09090b !important;
 }
 
 body.light-theme .form-control:focus {
-  border-color: var(--accent-primary, #09090b) !important;
+  border-color: var(--accent-secondary, #2563eb) !important;
   background: #ffffff !important;
-  box-shadow: 0 0 0 2px rgba(9, 9, 11, 0.05) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
 }
 
 body.light-theme .setting-badge {
@@ -1987,9 +1987,9 @@ body.light-theme .settings-modal-card .switch-toggle input:checked+.slider-round
 }
 
 body.light-theme .custom-select-trigger {
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  color: #09090b;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #09090b !important;
 }
 
 .custom-select-trigger:hover,
@@ -2000,8 +2000,8 @@ body.light-theme .custom-select-trigger {
 
 body.light-theme .custom-select-trigger:hover,
 body.light-theme .custom-select-trigger:focus {
-  background: rgba(0, 0, 0, 0.06);
-  border-color: var(--border-focus);
+  background: #f8fafc !important;
+  border-color: var(--accent-secondary, #2563eb) !important;
 }
 
 .custom-select-arrow {
@@ -2539,8 +2539,8 @@ body.about-active .mobile-bottom-nav {
     background: #ffffff !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    box-shadow: none !important;
-    border: 1px solid #e4e4e7 !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02) !important;
+    border: 1px solid #cbd5e1 !important;
   }
 
   /* Prevent inputs and selects from auto-zooming on focus in mobile browsers */
@@ -3278,6 +3278,11 @@ body.light-theme .job-card:hover {
   font-size: 1.5rem;
 }
 
+body.light-theme .job-card-logo {
+  background: var(--bg-primary) !important;
+  border-color: var(--border-subtle) !important;
+}
+
 .job-card-info h3 {
   font-size: 1.1rem;
   margin-bottom: 4px;
@@ -3330,26 +3335,25 @@ body.light-theme .settings-modal-card,
 body.light-theme .header-dropdown-menu,
 body.light-theme .sheet-content,
 body.light-theme .drawer-content {
-  background: rgba(255, 255, 255, 0.4) !important;
-  backdrop-filter: blur(25px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.6) !important;
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03) !important;
 }
 
 body.light-theme header.header {
-  background: rgba(255, 255, 255, 0.75) !important;
-  backdrop-filter: blur(25px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.6) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.02) !important;
 }
 
 body.light-theme .drawer-footer {
-  background: rgba(255, 255, 255, 0.25) !important;
-  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: #ffffff !important;
+  border-top: 1px solid #cbd5e1 !important;
   box-shadow: none !important;
 }
 

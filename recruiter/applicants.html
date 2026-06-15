@@ -226,7 +226,7 @@
         <!-- Role Filter -->
         <div style="display: flex; flex-direction: column; gap: 6px;">
           <label for="roleFilter" style="color: var(--text-muted); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Filter by Role</label>
-          <select id="roleFilter" class="form-control" style="width: 100%; padding: 8px 12px; background: rgba(0, 0, 0, 0.2); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 6px;" onchange="renderApplicants()">
+          <select id="roleFilter" class="form-control" style="width: 100%;" onchange="renderApplicants()">
             <option value="all">All Roles</option>
             <option value="Frontend Developer">Frontend Developer</option>
             <option value="UI/UX Designer">UI/UX Designer</option>
@@ -237,7 +237,7 @@
         <!-- Sort Filter -->
         <div style="display: flex; flex-direction: column; gap: 6px;">
           <label for="sortFilter" style="color: var(--text-muted); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Sort by</label>
-          <select id="sortFilter" class="form-control" style="width: 100%; padding: 8px 12px; background: rgba(0, 0, 0, 0.2); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 6px;" onchange="renderApplicants()">
+          <select id="sortFilter" class="form-control" style="width: 100%;" onchange="renderApplicants()">
             <option value="matchDesc">Match Score: High to Low</option>
             <option value="matchAsc">Match Score: Low to High</option>
             <option value="name">Candidate Name</option>
