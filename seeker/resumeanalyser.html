@@ -1005,20 +1005,7 @@ function renderDashboard(d) {
     <div class="acard-title">Suggested Roles</div>
     <div class="skills-wrap">${(d.suggestedRoles||[]).map(r=>`<span class="pill pill-zinc">${r}</span>`).join('')}</div>
   </div>` : ''}
-
-  <!-- Launch AI Interview CTA -->
-  <div style="margin-top: 24px; text-align: center;">
-    <button class="analyse-btn" style="padding: 14px; font-size: 0.95rem; background: var(--accent-tertiary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); width: 100%; border: none;" onclick="startMockWithPlan()">
-      🚀 Start AI Interview with this Plan
-    </button>
-  </div>
   `;
-}
-
-function startMockWithPlan() {
-  const d = analysisResults[activeTab];
-  const targetRole = d?.targetRole || 'Software Developer';
-  window.location.href = `aiinterview.html?usePlan=true&slot=${activeTab}&jobTitle=${encodeURIComponent(targetRole)}`;
 }
 
 function renderComparison() {
