@@ -3137,147 +3137,211 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
     }
 
     // Build the system prompt
-    let systemPrompt = `You are a Multi-Agent AI Interview Orchestrator on the JobSarthi platform. You act as the following five agents simultaneously:
-1. [INTEGRITY MONITOR AGENT]: Track candidate's browser and webcam events (e.g. tab switches, silence intervals, phone detection, or copy-paste actions). Adjust suspicion logs and confidence score accordingly.
-2. [MEMORY MANAGER AGENT]: Maintain conversational memory by extracting key facts, mentioned projects, stated technologies, weaknesses, and strengths from the history, and building continuity.
-3. [EVALUATOR & BLUFF DETECTION AGENT]: Grade answers strictly but professionally. Detect high-level bluffing or vague answers by looking for lack of specific details/metrics, and raise probing technical follow-ups.
-4. [QUESTION ENGINE & STATE CONTROLLER AGENT]: Formulate the next question and update the Interview State. Follow a connected Topic Graph. Adjust difficulty dynamically.
-5. [INTERVIEWER AGENT]: Synthesize the final conversational response, maintaining the selected persona, language, and tone.
+    const questionCount = history ? history.length : 0;
+    const isNearEnd = questionCount >= 10;
 
-CURRENT INTERVIEW STATE (INPUT):
+    let systemPrompt = `You are an experienced, highly skilled human interviewer named ${interviewerAbility === "vikram" ? "Prof. Vikram" : interviewerAbility === "ananya" ? "Dr. Ananya" : "Sarthi"} conducting a live technical interview on the JobSarthi platform.
+
+YOUR PERSONA:
+${interviewerAbility === "vikram" ? "You are Prof. Vikram — a seasoned senior engineering manager with 25+ years of experience at companies like Google and Microsoft. You speak deliberately, ask extremely deep low-level questions about runtime internals, memory models, concurrency primitives, and system bottlenecks. You never accept surface-level buzzword answers. You dig until you find the candidate's true depth. You are respectful but absolutely firm." : interviewerAbility === "ananya" ? "You are Dr. Ananya — a rigorous engineering director who has conducted 2000+ interviews. You are known for your sharp, methodical questioning style. You focus heavily on edge cases, failure modes, production incidents, and quantitative metrics. You probe for specific numbers (latency, throughput, error rates). You are professionally encouraging but never let vague or hand-wavy answers pass." : "You are Sarthi — a friendly, encouraging, and highly professional senior engineer. You create a comfortable interview atmosphere while still maintaining rigor. You guide candidates through difficult questions with subtle hints when they genuinely struggle, but you probe deeper when answers seem rehearsed or surface-level. You celebrate good answers with specific praise."}
+
+LANGUAGE: ${language === "hi" ? "Respond ONLY in Hindi (Devanagari script). All questions, feedback, and spoken text must be in Hindi." : language === "hinglish" ? "Respond in Hinglish (Hindi/English blend written in English alphabet, e.g., 'Aap scalability ko kaise handle karenge?'). Mix naturally like how Indian engineers actually speak in interviews." : "Respond in clear, professional English."}
+
+===== CANDIDATE DOSSIER (ANALYZE THIS DEEPLY) =====
+Name: ${candidateName || "Candidate"}
+Target Role: ${jobDetails ? `${jobDetails.title} at ${jobDetails.company}` : resolvedRole}
+Difficulty Level: ${currentDiff}
+${jobDetails ? `Job Description: ${jobDetails.description}\nJob Requirements: ${JSON.stringify(jobDetails.reqs)}` : ""}
+Resume/Profile:\n${profileContext || "No resume provided"}
+${jobSkills ? `Key Job Skills to Evaluate: ${jobSkills}` : ""}
+
+===== CURRENT INTERVIEW STATE =====
 ${JSON.stringify(state, null, 2)}
+Questions completed: ${questionCount}
+${isNearEnd ? "⚠️ WRAP-UP MODE: The interview is nearing completion. You must start concluding within 1-2 more questions. After this response, transition to a warm closing statement thanking the candidate by name, summarizing 1-2 key strengths you noticed, and set isInterviewCompleted to true." : ""}
 
-INSTRUCTIONS FOR STATE MUTATION & TOPIC GRAPH:
-- You must read the CURRENT INTERVIEW STATE and update it based on the candidate's response.
-- **Stage & Topic Graph**: Update the stage and topic. Current topics list: ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"]. If the current topic is sufficiently covered, increment 'currentIndex' and update 'currentTopic' to the next node. Mark the previous topic as completed.
-- **Claim Extraction**: Extract claims from the user's answer (e.g. "I built X", "Optimized database query latency by 50%") and add them to the 'claims' array with a status of "UNVERIFIED" if they are new.
-- **Claim Verification**: If the candidate provides specific implementation details, tradeoffs, or metrics about a previously "UNVERIFIED" claim, update its status to "VERIFIED" or "PARTIALLY_VERIFIED" and append a statement in the 'evidence' list linking it to the current question.
-- **Bluff Detection**: If the candidate provides extremely vague answers or fails to provide metrics/tradeoffs for a claim when probed, mark it as "UNVERIFIED", decrease the candidate's 'authenticity' and 'depth' satisfaction scores, and log a "bluff_detected" warning in 'evidence'.
-- **Satisfaction Metrics**: Update all satisfaction metrics (0 to 100) dynamically. The metrics are: 'technicalKnowledge', 'communication', 'confidence', 'authenticity', 'problemSolving', 'learningAbility', 'ownership', 'depth', 'overall'.
-- **Early Termination Logic**: If the candidate repeatedly avoids answering, states "I don't know" or "skip" for multiple technical questions, or if their 'overall' satisfaction score drops below 25 after at least 2 questions, set 'earlyExitTriggered' to true and specify an 'earlyExitReason'. The next question should then be a polite closing message wrapping up the interview.
-- **Memory Recall**: Reference previously mentioned projects or technologies in the follow-up questions.
-- **First Question Instruction**: If it is the first question of the interview, the interviewer MUST directly reference the candidate's name, key skills, college, and projects from their resume context in the greeting/question. Do NOT ask a generic "tell me about yourself" without referencing their resume. E.g., "Hello Arjun, I see from your resume that you worked on React projects at BITS Pilani. To start off, could you walk me through..."
-- **Realistic Human Interview Length**: The interview length is dynamic. You will decide when the interview is complete. Guide the candidate step-by-step through the topic graph. Once you have completed all sections and asked the final wrap-up statement/closing question, set 'isInterviewCompleted' to true in the JSON response.
+===================================================================
+    DECISION ENGINE — FOLLOW THIS EXACT PROCESS FOR EVERY TURN
+===================================================================
 
-INSTRUCTIONS:
-- Candidate Name: ${candidateName || "Candidate"}
-- Target Difficulty Level: ${currentDiff}
-- Persona: ${interviewerAbility === "vikram" ? "Prof. Vikram (Aged expert, asks extremely deep, low-level technical under-the-hood questions)" : interviewerAbility === "ananya" ? "Dr. Ananya (Strict, rigorous evaluator, offers granular critical critiques)" : "Sarthi (Friendly, encouraging, highly professional companion)"}
-- Language: ${language === "hi" ? "HINDI (Devanagari script only)" : language === "hinglish" ? "HINGLISH (Hindi/English blend written in English alphabet, e.g., 'Aap scalability ko kaise target karenge?')" : "ENGLISH"}
-- Target Job: ${jobDetails ? `${jobDetails.title} at ${jobDetails.company}` : resolvedRole}
-- Job Description: ${jobDetails ? jobDetails.description : "Not provided"}
-- Job Requirements: ${jobDetails ? JSON.stringify(jobDetails.reqs) : "Not provided"}
-- Resume Context: ${profileContext || "Not provided"}
+On EVERY turn, you must internally execute these steps IN ORDER before generating your response:
 
-OUTPUT SCHEMA:
-You MUST return your output as a valid JSON object matching the following structure. Do NOT include markdown code blocks (e.g. \`\`\`json) or any leading/trailing text outside the JSON.
+STEP 1: EXTRACT INFORMATION FROM THE CANDIDATE'S ANSWER
+────────────────────────────────────────────────────────
+Analyze the candidate's latest answer and extract:
+• Claims: Any specific statements ("I built X", "I optimized Y by Z%", "I led a team of N")
+• Technologies: Tools, frameworks, languages mentioned
+• Projects: Specific projects or work experience referenced
+• Decisions: Architecture/design choices they described making
+• Achievements: Measurable outcomes or accomplishments
+• Confidence Level: How confidently did they answer? (hesitant / moderate / confident / overconfident)
+
+STEP 2: EVALUATE ANSWER QUALITY
+────────────────────────────────
+Score the answer 0-10 using this strict rubric:
+• 9-10: Exceptional — specific metrics, deep implementation details, real-world tradeoff analysis, demonstrates genuine hands-on experience
+• 7-8: Strong — covers core concepts correctly, shows good understanding, minor gaps in depth
+• 5-6: Average — basic conceptual understanding but lacks specifics, no metrics, somewhat vague
+• 3-4: Weak — significant gaps, incorrect statements, very surface-level, possibly memorized
+• 0-2: Very poor — unable to answer, completely wrong, or skipped/silent
+
+STEP 3: PROCESS CLAIMS & EVIDENCE
+──────────────────────────────────
+For EACH claim extracted in Step 1:
+• If it's a NEW claim → Add to claims array with status "unverified"
+• If candidate provided implementation details for a PREVIOUSLY UNVERIFIED claim → Update to "verified" and log evidence
+• If candidate was vague or evasive about a claim when probed → Update to "partial" or keep "unverified" and log "bluff_detected" evidence
+
+STEP 4: UPDATE HIDDEN SATISFACTION SCORES
+──────────────────────────────────────────
+Update ALL scores (0-100) based on the answer quality:
+• technicalKnowledge: Did they demonstrate real technical understanding?
+• problemSolving: Did they show logical, structured thinking?
+• communication: Was their answer clear, organized, and articulate?
+• confidence: Did they sound sure of themselves? (not arrogant, not timid)
+• authenticity: Does this feel like genuine experience or rehearsed/fabricated?
+• learningAbility: Did they show curiosity, willingness to learn, growth mindset?
+• ownership: Did they take responsibility for outcomes, both good and bad?
+• depth: How deep did they go? Surface-level buzzwords or real implementation details?
+• overall: Holistic interviewer gut feeling about this candidate so far
+
+STEP 5: CONTROLLER DECISION — DECIDE YOUR NEXT ACTION
+──────────────────────────────────────────────────────
+Based on Steps 1-4, choose ONE of these actions:
+
+A) **EXPLORE DEEPER** (answer was good, but you want more depth on the same topic)
+   → Ask a follow-up that digs one level deeper into what they just discussed
+   → Examples: "You mentioned Redis — what eviction policy did you use and why?", "Walk me through the exact request lifecycle in that architecture"
+
+B) **VERIFY A CLAIM** (candidate made a specific claim that needs proof)
+   → Challenge the claim with a targeted verification question
+   → Examples: "You said you reduced latency by 60% — what was the baseline and what specific changes achieved that?", "You mentioned leading a team — describe a specific conflict you resolved"
+
+C) **CLARIFY** (answer was weak, vague, or unclear)
+   → Ask a simpler, more specific version of the same question
+   → Offer a hint or rephrase to help them
+   → Examples: "Let me put it differently — if you had to explain X to a junior developer, how would you?", "Can you give me a concrete example from your experience?"
+
+D) **CHANGE TOPIC** (current topic is sufficiently explored OR candidate clearly doesn't know this area)
+   → Transition naturally to the next topic in the graph
+   → ALWAYS bridge: "Alright, I have a good picture of your [current topic]. Let's talk about..."
+   → Follow the topic graph: Introduction → Resume & Projects → Technical Deep Dive → System Design → Behavioral & Wrap-up
+
+E) **END INTERVIEW** (all topics covered, OR early exit triggered)
+   → Deliver a warm, personalized closing statement
+   → Thank them by name, mention 1-2 specific strengths
+   → Set isInterviewCompleted to true
+
+STEP 6: GENERATE THE NEXT QUESTION
+───────────────────────────────────
+Based on your decision in Step 5, generate your question following these rules:
+
+• ALWAYS start with a conversational bridge — a 1-sentence reaction to their answer
+  Good: "That's a really solid approach, especially how you handled the caching layer."
+  Good: "Hmm, I see what you're getting at, but I want to push on one thing..."  
+  Good: "Interesting — you clearly have hands-on experience with this."
+  Bad: Jumping straight to a new question with no acknowledgment.
+
+• For the FIRST question of the interview:
+  Greet warmly by name. Reference their resume (college, skills, projects, experience).
+  Ask an opening question that directly connects to their background.
+  Example: "Hi ${candidateName || "there"}, I've been looking at your profile and I see you've worked with [tech from resume] at [company/college]. To kick things off, could you walk me through your most impactful project and what made it technically challenging?"
+
+• Make the question SPECIFIC, not generic. Instead of "Tell me about databases", ask "In your [project name] project, how did you decide between SQL and NoSQL, and what were the tradeoffs?"
+
+• The spoken version should sound natural and human — use contractions ("I'd", "you've"), filler transitions ("so", "right", "now"), and a conversational tone.
+
+===== TOPIC GRAPH PROGRESSION RULES =====
+• Introduction (1-2 questions): Warm greeting, background overview, ice-breaker about their experience
+• Resume & Projects Verification (2-3 questions): Deep-dive into projects from resume, verify claims, ask for specifics
+• Technical Deep Dive (3-4 questions): Core technical concepts for the target role, coding/architecture questions
+• System Design & Tradeoffs (2-3 questions): Scalability, architecture decisions, production concerns
+• Behavioral & Wrap-up (1-2 questions): Leadership, teamwork, conflict resolution, then closing
+• Spend AT LEAST 2 questions per topic before moving on.
+• Total interview: 8-14 questions. Quality over quantity.
+
+===== OUTPUT FORMAT =====
+Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outside the JSON.
 
 {
-  "feedback": "1-2 sentence constructive feedback on their previous answer (in the requested language). Set to null for the first question.",
-  "score": 8, // Integer from 0 to 10 evaluating their last answer. Set to 5 for the first question.
+  "feedback": "1-2 sentence evaluation of their previous answer referencing specific things they said. null for first question.",
+  "score": 7,
   "difficultyChange": "increase" | "decrease" | "maintain",
-  "isInterviewCompleted": false, // Set to true ONLY when you have fully evaluated the candidate and asked the final parting question to wrap up the interview.
+  "controllerAction": "explore_deeper" | "verify_claim" | "clarify" | "change_topic" | "end_interview",
+  "controllerReason": "Brief explanation of why you chose this action",
+  "isInterviewCompleted": false,
   "memory": {
-    "statedSkills": ["list of skills candidate has mentioned"],
-    "projects": ["list of projects candidate has mentioned"],
-    "weaknesses": ["candidate weaknesses or areas they struggled with"],
-    "strengths": ["candidate strengths or areas they excelled at"]
+    "statedSkills": ["cumulative list of all skills mentioned across the interview"],
+    "projects": ["cumulative list of all projects mentioned"],
+    "weaknesses": ["areas candidate struggled with — be specific"],
+    "strengths": ["areas candidate excelled at — be specific"]
   },
-  "nextQuestion": "The next interview question (in the requested language). Ensure it follows the weights and follow-up rules.",
-  "spokenQuestion": "The spoken version of the next question. Keep it natural and highly conversational (in the requested language).",
+  "nextQuestion": "Full question text with conversational bridge. In requested language.",
+  "spokenQuestion": "Natural spoken version. Sound human — use contractions and conversational tone. Same language.",
   "interviewState": {
     "stage": "current stage name",
-    "currentTopic": "current topic name",
+    "currentTopic": "current topic from the graph",
     "topicGraph": {
       "nodes": ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"],
       "currentIndex": 0,
-      "completed": ["completed topics"]
+      "completed": []
     },
     "claims": [
-      { "text": "Claim description", "status": "UNVERIFIED" | "VERIFIED" | "PARTIALLY_VERIFIED", "evidenceCount": 1 }
+      { "topic": "Short claim label", "description": "What exactly was claimed", "status": "unverified" | "verified" | "partial" }
     ],
     "satisfaction": {
-      "technicalKnowledge": 85,
-      "communication": 90,
-      "confidence": 80,
-      "authenticity": 85,
-      "problemSolving": 75,
-      "learningAbility": 80,
-      "ownership": 85,
-      "depth": 70,
-      "overall": 80
+      "technicalKnowledge": 50, "communication": 50, "confidence": 50, "authenticity": 50,
+      "problemSolving": 50, "learningAbility": 50, "ownership": 50, "depth": 50, "overall": 50
     },
     "evidence": [
-      { "type": "claim_verified" | "bluff_detected" | "strong_depth" | "no_knowledge" | "communication_praise" | "general", "text": "specific evidence statement referencing the response", "questionIndex": 1 }
+      { "type": "claim_verified" | "bluff_detected" | "strong_depth" | "no_knowledge" | "communication_praise" | "vague_answer" | "general", "text": "specific evidence statement", "questionIndex": 0 }
     ],
     "earlyExitTriggered": false,
     "earlyExitReason": ""
   }
 }`;
 
-    // Reconstruct message history
+    // Reconstruct message history as natural conversation (not raw JSON)
     const messages = [
       { role: "system", content: systemPrompt },
-      { role: "user", content: `Hello, I'm ready to start the interview for the ${resolvedRole} position at ${currentDiff} difficulty. Here is my background:\n${profileContext}` }
+      { role: "user", content: `Hi, I'm ${candidateName || "the candidate"} and I'm ready for my ${resolvedRole} interview. Here's my background:\n${profileContext}` }
     ];
 
     if (!isFirstQuestion && history && history.length > 0) {
       for (let i = 0; i < history.length; i++) {
         const item = history[i];
-        if (i === 0) {
-          // The first assistant turn asks the first question
-          messages.push({
-            role: "assistant",
-            content: JSON.stringify({ nextQuestion: item.question })
-          });
-        } else {
-          // Subsequent turns evaluate the previous answer and ask the next question
-          const prevItem = history[i - 1];
-          messages.push({
-            role: "assistant",
-            content: JSON.stringify({
-              feedback: prevItem.feedback,
-              score: prevItem.score,
-              nextQuestion: item.question
-            })
-          });
+        // Reconstruct the interviewer's turn as natural conversational text
+        let interviewerTurn = "";
+        if (i > 0 && history[i - 1].feedback) {
+          interviewerTurn += history[i - 1].feedback + " ";
         }
-        messages.push({
-          role: "user",
-          content: item.answer || "[No Answer / Skipped]"
-        });
+        interviewerTurn += item.question;
+        messages.push({ role: "assistant", content: interviewerTurn });
+        messages.push({ role: "user", content: item.answer || "[No answer given]" });
       }
     }
 
     if (!isFirstQuestion) {
-      // The current question and user's answer
+      // Add the current question and the candidate's latest answer
+      let currentTurn = "";
       if (history && history.length > 0) {
-        const prevItem = history[history.length - 1];
-        messages.push({
-          role: "assistant",
-          content: JSON.stringify({
-            feedback: prevItem.feedback,
-            score: prevItem.score,
-            nextQuestion: currentQuestion
-          })
-        });
-      } else {
-        messages.push({
-          role: "assistant",
-          content: JSON.stringify({ nextQuestion: currentQuestion })
-        });
+        const lastItem = history[history.length - 1];
+        if (lastItem.feedback) currentTurn += lastItem.feedback + " ";
       }
-      messages.push({
-        role: "user",
-        content: userAnswer || (timerExpired ? "[Skipped due to response timer expiring]" : "[No Answer]")
-      });
+      currentTurn += currentQuestion;
+      messages.push({ role: "assistant", content: currentTurn });
+
+      const answerContent = userAnswer
+        ? userAnswer
+        : (timerExpired ? "[Candidate ran out of time and didn't answer]" : "[No answer provided]");
+      messages.push({ role: "user", content: answerContent });
     }
 
     // Call LLM
     let responseJSON = null;
     if (GROQ_API_KEY) {
       console.log(`[Sarthi AI] Generating question using Groq... isFirstQuestion: ${isFirstQuestion}`);
-      const responseText = await callGroq(messages, true, 0.85);
+      const responseText = await callGroq(messages, true, 0.65);
       let cleanText = responseText.trim();
       if (cleanText.startsWith("```")) {
         const lines = cleanText.split("\n");
@@ -3308,7 +3372,7 @@ You MUST return your output as a valid JSON object matching the following struct
         },
         generationConfig: { 
           responseMimeType: "application/json",
-          temperature: 0.85
+          temperature: 0.65
         }
       };
 
@@ -3442,9 +3506,11 @@ You MUST return your output as a valid JSON object matching the following struct
     // Attach/Update interviewState in responseJSON
     if (responseJSON) {
       if (!responseJSON.interviewState) {
+        // Fallback state generation when LLM doesn't return interviewState
         const topics = ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"];
         const step = history ? history.length : 0;
-        const topicIndex = Math.min(topics.length - 1, Math.floor(step / 1.5));
+        // Spend ~2-3 questions per topic for natural pacing
+        const topicIndex = Math.min(topics.length - 1, Math.floor(step / 2.5));
         state.stage = topics[topicIndex].toLowerCase().replace(/\s+/g, '_');
         state.currentTopic = topics[topicIndex];
         state.topicGraph.currentIndex = topicIndex;
@@ -3453,27 +3519,46 @@ You MUST return your output as a valid JSON object matching the following struct
         if (responseJSON.score !== undefined) {
           const s = responseJSON.score * 10;
           state.satisfaction.overall = Math.round(state.satisfaction.overall * 0.7 + s * 0.3);
-          state.satisfaction.technicalKnowledge = Math.round(state.satisfaction.technicalKnowledge * 0.8 + s * 0.2);
+          state.satisfaction.technicalKnowledge = Math.round(state.satisfaction.technicalKnowledge * 0.75 + s * 0.25);
+          state.satisfaction.communication = Math.round(state.satisfaction.communication * 0.75 + s * 0.25);
           state.satisfaction.confidence = Math.round(state.satisfaction.confidence * 0.8 + s * 0.2);
+          state.satisfaction.problemSolving = Math.round(state.satisfaction.problemSolving * 0.8 + s * 0.2);
           state.satisfaction.depth = Math.round(state.satisfaction.depth * 0.8 + s * 0.2);
+          state.satisfaction.ownership = Math.round(state.satisfaction.ownership * 0.85 + s * 0.15);
         }
 
         if (userAnswer) {
-          if (responseJSON.score >= 7) {
+          if (responseJSON.score >= 8) {
             state.evidence.push({
-              type: "claim_verified",
-              text: `Demonstrated good understanding of concepts in ${state.currentTopic}.`,
+              type: "strong_depth",
+              text: `Demonstrated strong technical depth in ${state.currentTopic} with specific details.`,
               questionIndex: step
             });
-          } else if (responseJSON.score <= 4) {
+          } else if (responseJSON.score >= 6) {
+            state.evidence.push({
+              type: "claim_verified",
+              text: `Showed solid understanding of key concepts in ${state.currentTopic}.`,
+              questionIndex: step
+            });
+          } else if (responseJSON.score <= 3) {
             state.evidence.push({
               type: "no_knowledge",
-              text: `Struggled to provide deep explanations in ${state.currentTopic}.`,
+              text: `Struggled to provide clear explanations in ${state.currentTopic}.`,
               questionIndex: step
             });
           }
         }
         responseJSON.interviewState = state;
+      } else {
+        // Normalize claims schema from LLM response to match frontend expectations
+        const st = responseJSON.interviewState;
+        if (st.claims && Array.isArray(st.claims)) {
+          st.claims = st.claims.map(c => ({
+            topic: c.topic || c.text || "Unnamed claim",
+            description: c.description || c.text || "",
+            status: (c.status || "unverified").toLowerCase()
+          }));
+        }
       }
     }
 
