@@ -819,15 +819,22 @@
       // Show loading indicator
       const recommendedContainer = document.getElementById('recommendedJobsList');
       if (recommendedContainer) {
-        const loadingText = "Loading your jobs . . .";
-        const letterSpans = loadingText.split("").map((char, index) => {
-          if (char === " ") return `<span class="loader-letter" style="animation-delay: ${index * 0.04}s;">&nbsp;</span>`;
-          return `<span class="loader-letter" style="animation-delay: ${index * 0.04}s;">${char}</span>`;
-        }).join("");
-
         recommendedContainer.innerHTML = `
           <div class="loading-container" style="grid-column: 1 / -1;">
-            <div class="loading-text">${letterSpans}</div>
+            <svg viewBox="0 0 380 60" style="width: 380px; height: 60px;">
+              <text x="50%" y="50%" 
+                    dominant-baseline="middle" 
+                    text-anchor="middle" 
+                    class="dash" 
+                    stroke="var(--accent-secondary)" 
+                    stroke-width="1.8" 
+                    fill="none" 
+                    font-size="24" 
+                    font-weight="700" 
+                    font-family="system-ui, -apple-system, sans-serif">
+                Loading your jobs . . .
+              </text>
+            </svg>
           </div>
         `;
       }
