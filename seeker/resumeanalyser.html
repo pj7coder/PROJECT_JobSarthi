@@ -456,23 +456,13 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
         <button class="add-tab" id="addTabBtn" onclick="addResume()" title="Add another resume">+</button>
       </div>
 
-      <div class="viewer-area" style="overflow-y: auto;">
+      <div class="viewer-area">
         <div class="resume-embed empty-slot" id="viewer" onclick="triggerUpload(activeTab)">
           <span style="font-size:2rem;opacity:.4">📄</span>
           <span>Click to upload resume</span>
           <span style="font-size:0.72rem;opacity:.6">PDF or image (max 10MB)</span>
         </div>
         <input type="file" id="fileInput" class="hidden-input" accept=".pdf,image/*" onchange="handleFile(event)">
-
-        <div style="width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; text-align: left;">
-          <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Target Job Role</label>
-          <input type="text" id="targetRole" placeholder="e.g. Frontend Engineer, Product Manager" style="width:100%; padding:10px 12px; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-primary); color:var(--text-main); font-size:0.8rem; outline:none; transition: border-color 0.2s;" oninput="if(resumes[activeTab]) resumes[activeTab].targetRole=this.value">
-        </div>
-
-        <div style="width: 100%; display: flex; flex-direction: column; gap: 6px; text-align: left;">
-          <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Target Job Description (JD)</label>
-          <textarea id="targetJd" placeholder="Paste the job requirements here..." rows="3" style="width:100%; padding:10px 12px; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-primary); color:var(--text-main); font-size:0.8rem; outline:none; resize:vertical; transition: border-color 0.2s; font-family:var(--font-sans);" oninput="if(resumes[activeTab]) resumes[activeTab].targetJd=this.value"></textarea>
-        </div>
 
         <button class="analyse-btn" id="analyseBtn" onclick="runAnalysis()" disabled>
           <span>＋</span> Analyse Resume
@@ -561,11 +551,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     let loadedAny = false;
     for (let i = 0; i < 3; i++) {
       if (saved[i] && saved[i].url) {
-        resumes[i] = { base64: null, mime: null, name: saved[i].fileName || `Resume ${i+1}`, url: saved[i].url, targetRole: '', targetJd: '' };
+        resumes[i] = { base64: null, mime: null, name: saved[i].fileName || `Resume ${i+1}`, url: saved[i].url };
         if (saved[i].analysisResult) {
           analysisResults[i] = saved[i].analysisResult;
-          resumes[i].targetRole = saved[i].analysisResult.targetRole || '';
-          resumes[i].targetJd = saved[i].analysisResult.targetJd || '';
         }
         updateTabLabel(i, resumes[i].name);
         if (i > 0) {
@@ -578,11 +566,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     if (loadedAny) {
       renderViewer(0);
-      
-      const roleInput = document.getElementById('targetRole');
-      const jdInput = document.getElementById('targetJd');
-      if (roleInput && resumes[0]) roleInput.value = resumes[0].targetRole || '';
-      if (jdInput && resumes[0]) jdInput.value = resumes[0].targetJd || '';
 
       updateAnalyseButtonState();
       if (analysisResults[0]) {
@@ -606,9 +589,7 @@ function acceptExisting() {
   const e = window._existingResume;
   document.getElementById('existingModal').style.display = 'none';
   if (!e) return;
-  const currentRole = document.getElementById('targetRole')?.value || '';
-  const currentJd = document.getElementById('targetJd')?.value || '';
-  resumes[0] = { base64: null, mime: null, name: e.name, url: e.url, targetRole: currentRole, targetJd: currentJd };
+  resumes[0] = { base64: null, mime: null, name: e.name, url: e.url };
   updateTabLabel(0, e.name);
   renderViewer(0);
   updateAnalyseButtonState();
@@ -629,24 +610,12 @@ function declineExisting() {
 
 // ── Tabs ──
 function switchTab(idx) {
-  // Save inputs to current active tab before switching
-  if (resumes[activeTab]) {
-    resumes[activeTab].targetRole = document.getElementById('targetRole')?.value || '';
-    resumes[activeTab].targetJd = document.getElementById('targetJd')?.value || '';
-  }
-
   activeTab = idx;
   [0,1,2].forEach(i => {
     const t = document.getElementById('tab-'+i);
     if(t) t.classList.toggle('active', i===idx);
   });
   renderViewer(idx);
-
-  // Restore inputs for the new active tab
-  const roleInput = document.getElementById('targetRole');
-  const jdInput = document.getElementById('targetJd');
-  if (roleInput) roleInput.value = resumes[idx]?.targetRole || '';
-  if (jdInput) jdInput.value = resumes[idx]?.targetJd || '';
 
   updateAnalyseButtonState();
   if (analysisResults[idx]) renderDashboard(analysisResults[idx]);
@@ -686,12 +655,6 @@ function clearTab(idx) {
   }
 
   // Clear inputs when active tab is cleared
-  const roleInput = document.getElementById('targetRole');
-  const jdInput = document.getElementById('targetJd');
-  if (activeTab === idx) {
-    if (roleInput) roleInput.value = '';
-    if (jdInput) jdInput.value = '';
-  }
 
   if (idx === 0) {
     activeTab = 0;
@@ -728,15 +691,11 @@ function handleFile(event) {
   const reader = new FileReader();
   reader.onload = async () => {
     const slot = activeTab;
-    const currentRole = document.getElementById('targetRole')?.value || '';
-    const currentJd = document.getElementById('targetJd')?.value || '';
     resumes[slot] = { 
       base64: reader.result, 
       mime: file.type, 
       name: file.name, 
-      url: null, 
-      targetRole: currentRole, 
-      targetJd: currentJd 
+      url: null 
     };
     updateTabLabel(slot, file.name);
     renderViewer(slot);
@@ -848,9 +807,6 @@ async function runAnalysis() {
   const r = resumes[activeTab];
   if (!r) return;
 
-  const targetRole = document.getElementById('targetRole')?.value || '';
-  const jdText = document.getElementById('targetJd')?.value || '';
-
   const btn = document.getElementById('analyseBtn');
   btn.disabled = true;
   btn.innerHTML = `<span class="spin"></span> Analysing…`;
@@ -896,12 +852,12 @@ async function runAnalysis() {
         const resp = await fetch(r.url);
         const blob = await resp.blob();
         const b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = ()=>res(fr.result); fr.readAsDataURL(blob); });
-        body = { base64Data: b64, mimeType: blob.type || 'application/pdf', email, targetRole, jdText };
+        body = { base64Data: b64, mimeType: blob.type || 'application/pdf', email };
       } catch {
-        body = { base64Data: r.url, mimeType: 'application/pdf', email, targetRole, jdText };
+        body = { base64Data: r.url, mimeType: 'application/pdf', email };
       }
     } else {
-      body = { base64Data: r.base64, mimeType: r.mime, email, targetRole, jdText };
+      body = { base64Data: r.base64, mimeType: r.mime, email };
     }
 
     const resp = await fetch((window.API_BASE_URL||'')+'/api/seeker/analyse-resume', {
@@ -911,8 +867,6 @@ async function runAnalysis() {
     if (!resp.ok) throw new Error(data.error || 'Analysis failed');
 
     // Persist target inputs into the data object so they are loaded on return
-    data.targetRole = targetRole;
-    data.targetJd = jdText;
 
     analysisResults[activeTab] = data;
 
@@ -954,243 +908,103 @@ function renderDashboard(d) {
   const dash = document.getElementById('dashboard');
   dash.style.display = 'block';
 
+  const score = d.atsScore || 0;
+  const scoreColor = score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+  const circumference = 2 * Math.PI * 54;
+  const offset = circumference - (score / 100) * circumference;
+
+  const ratingPill = (label, val) => {
+    const cls = val === 'Excellent' ? 'pill-green' : val === 'Good' ? 'pill-amber' : 'pill-red';
+    return `<span class="pill ${cls}">${label}: ${val || 'N/A'}</span>`;
+  };
+
+  const barColor = v => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
+  const sectionScores = d.sectionScores || {};
+  const sections = [
+    ['Contact Info', sectionScores.contactInfo],
+    ['Summary', sectionScores.summary],
+    ['Experience', sectionScores.experience],
+    ['Education', sectionScores.education],
+    ['Skills', sectionScores.skills],
+    ['Projects', sectionScores.projects]
+  ].filter(([,v]) => v !== undefined);
+
   // Compare button if multiple results
   const hasMultiple = analysisResults.filter(Boolean).length > 1;
   const compareBtn = hasMultiple ? `<button class="compare-toggle" onclick="renderComparison()" style="margin-bottom:16px">⚡ Compare All Resumes</button>` : '';
 
-  // Step 4: Topic Map Category extraction
-  const tm = d.topicMap || {};
-  const projectName = tm.projectName || "Highlighted Project";
-  const topics = tm.topics || {};
-  const topicBranchesHtml = Object.entries(topics).map(([category, items]) => {
-    return `
-      <div class="topic-branch">
-        <div class="topic-branch-title">${category}</div>
-        <div class="topic-branch-items">${Array.isArray(items) ? items.join(", ") : items}</div>
-      </div>
-    `;
-  }).join('');
-
   dash.innerHTML = `
   ${compareBtn}
-  
-  <!-- Pipeline progress tracker -->
-  <div class="pipeline-progress-wrapper">
-    <div class="pipeline-progress">
-      <div class="pipe-step active">
-        <span>1</span>
-        <label>Parse Resume</label>
-      </div>
-      <div class="pipe-line active"></div>
-      <div class="pipe-step active">
-        <span>2</span>
-        <label>Analyze Resume</label>
-      </div>
-      <div class="pipe-line active"></div>
-      <div class="pipe-step active">
-        <span>3</span>
-        <label>Identify Claims</label>
-      </div>
-      <div class="pipe-line active"></div>
-      <div class="pipe-step active">
-        <span>4</span>
-        <label>Topic Map</label>
-      </div>
-      <div class="pipe-line active"></div>
-      <div class="pipe-step active">
-        <span>5</span>
-        <label>Compare JD</label>
-      </div>
-      <div class="pipe-line active"></div>
-      <div class="pipe-step active">
-        <span>6</span>
-        <label>Generate Plan</label>
-      </div>
-      <div class="pipe-line active"></div>
-      <div class="pipe-step active">
-        <span>7</span>
-        <label>Verify Queue</label>
+  <!-- Score + Ratings -->
+  <div class="acard" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+    <div style="text-align:center;flex-shrink:0">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle class="score-ring-bg" cx="60" cy="60" r="54"/>
+        <circle class="score-ring-fg" cx="60" cy="60" r="54"
+          stroke="${scoreColor}"
+          stroke-dasharray="${circumference}"
+          stroke-dashoffset="${offset}"
+          transform="rotate(-90 60 60)"/>
+        <text x="60" y="66" text-anchor="middle" font-size="26" font-weight="800" fill="${scoreColor}">${score}</text>
+        <text x="60" y="82" text-anchor="middle" font-size="11" fill="var(--text-muted)">ATS Score</text>
+      </svg>
+    </div>
+    <div style="flex:1;min-width:200px">
+      <h3 style="font-size:1rem;font-weight:700;color:var(--text-main);margin-bottom:8px">${resumes[activeTab]?.name || 'Resume'}</h3>
+      <p style="font-size:.83rem;color:var(--text-muted);line-height:1.5;margin-bottom:12px">${d.overview || ''}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${ratingPill('Grammar', d.grammarRating)}
+        ${ratingPill('Structure', d.structureRating)}
+        ${ratingPill('Readability', d.readabilityRating)}
+        ${d.keywordDensity ? `<span class="pill pill-zinc">Keywords: ${d.keywordDensity}</span>` : ''}
       </div>
     </div>
   </div>
 
-  <!-- Step 1 Card: Parse Resume -->
+  ${sections.length ? `
+  <!-- Section Scores -->
   <div class="acard">
-    <div class="acard-title">Step 1: Parsed Resume Information</div>
-    <div class="info-grid">
-      <div class="info-block">
-        <div class="info-label">Education</div>
-        <div class="info-value">${d.extractedInfo?.education || 'N/A'}</div>
-      </div>
-      <div class="info-block">
-        <div class="info-label">Experience</div>
-        <div class="info-value">${d.extractedInfo?.experience || 'N/A'}</div>
-      </div>
-      <div class="info-block">
-        <div class="info-label">Projects</div>
-        <div class="info-value">${d.extractedInfo?.projects || 'N/A'}</div>
-      </div>
-      <div class="info-block">
-        <div class="info-label">Certifications</div>
-        <div class="info-value">${d.extractedInfo?.certifications || 'N/A'}</div>
-      </div>
-    </div>
-    <div style="margin-top: 10px;">
-      <div class="info-label">Skills Found</div>
-      <div class="skills-wrap" style="margin-top: 6px;">
-        ${(d.extractedInfo?.skills || []).map(s => `<span class="pill pill-zinc">${s}</span>`).join('')}
-      </div>
-    </div>
+    <div class="acard-title">Section Breakdown</div>
+    ${sections.map(([label, val]) => `
+    <div class="sbar-row">
+      <span class="sbar-label">${label}</span>
+      <div class="sbar-track"><div class="sbar-fill" style="width:${val}%;background:${barColor(val)}"></div></div>
+      <span class="sbar-val">${val}</span>
+    </div>`).join('')}
+  </div>` : ''}
+
+  <!-- Skills -->
+  <div class="acard">
+    <div class="acard-title">Keyword Analysis</div>
+    ${(d.matchedSkills||[]).length ? `<div style="margin-bottom:10px"><div style="font-size:.78rem;font-weight:600;color:var(--success);margin-bottom:6px">✓ Matched (${(d.matchedSkills||[]).length})</div><div class="skills-wrap">${(d.matchedSkills||[]).map(s=>`<span class="tag-matched">${s}</span>`).join('')}</div></div>` : ''}
+    ${(d.missingSkills||[]).length ? `<div><div style="font-size:.78rem;font-weight:600;color:var(--danger);margin-bottom:6px">✗ Missing (${(d.missingSkills||[]).length})</div><div class="skills-wrap">${(d.missingSkills||[]).map(s=>`<span class="tag-missing">${s}</span>`).join('')}</div></div>` : ''}
   </div>
 
-  <!-- Step 2 Card: Analyze Resume -->
+  ${(d.strengths||[]).length ? `
   <div class="acard">
-    <div class="acard-title">Step 2: Key Data Extraction & Analysis</div>
-    <div class="keydata-section">
-      <div class="keydata-row">
-        <div class="keydata-label">Technologies</div>
-        <div class="skills-wrap">
-          ${(d.keyData?.technologies || []).map(t => `<span class="tag-matched" style="background: rgba(99, 102, 241, 0.1); color: var(--accent-tertiary); border-color: rgba(99, 102, 241, 0.2);">${t}</span>`).join('') || '<span style="font-size:0.8rem;color:var(--text-muted)">None detected</span>'}
-        </div>
-      </div>
-      <div class="keydata-row">
-        <div class="keydata-label">Tools & Frameworks</div>
-        <div class="skills-wrap">
-          ${(d.keyData?.tools || []).map(t => `<span class="pill pill-zinc">${t}</span>`).join('') || '<span style="font-size:0.8rem;color:var(--text-muted)">None detected</span>'}
-        </div>
-      </div>
-      <div class="keydata-row">
-        <div class="keydata-label">Projects Highlighted</div>
-        <div class="skills-wrap">
-          ${(d.keyData?.projects || []).map(p => `<span class="pill pill-zinc" style="font-weight: 700;">${p}</span>`).join('') || '<span style="font-size:0.8rem;color:var(--text-muted)">None detected</span>'}
-        </div>
-      </div>
-      <div class="keydata-row">
-        <div class="keydata-label">Key Achievements</div>
-        <ul style="margin-left: 16px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin-top: 4px;">
-          ${(d.keyData?.achievements || []).map(a => `<li>${a}</li>`).join('') || '<li>None detected</li>'}
-        </ul>
-      </div>
-    </div>
-  </div>
+    <div class="acard-title">Strengths</div>
+    <div class="skills-wrap">${(d.strengths||[]).map(s=>`<span class="pill pill-green">✓ ${s}</span>`).join('')}</div>
+  </div>` : ''}
 
-  <!-- Step 3 Card: Identify Claims -->
+  ${(d.quickWins||[]).length ? `
   <div class="acard">
-    <div class="acard-title">Step 3: Identified Important Claims</div>
-    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
-      These are the high-impact claims made in your resume that will require verification during the interview.
-    </p>
-    <div class="claims-list">
-      ${(d.importantClaims || d.keyData?.claims || []).map(c => `
-        <div class="claim-item">
-          <span class="claim-badge">Claim</span>
-          <span class="claim-text">"${c}"</span>
-        </div>
-      `).join('') || '<div style="font-size: 0.8rem; color: var(--text-muted)">No major claims identified.</div>'}
-    </div>
-  </div>
+    <div class="acard-title">Quick Wins</div>
+    <div class="skills-wrap">${(d.quickWins||[]).map(s=>`<span class="pill pill-amber">⚡ ${s}</span>`).join('')}</div>
+  </div>` : ''}
 
-  <!-- Step 4 Card: Topic Map -->
+  <!-- Recommendations -->
+  ${(d.recommendations||[]).length ? `
   <div class="acard">
-    <div class="acard-title">Step 4: Project Topic Map</div>
-    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
-      Deep dive map for verifying architecture of <strong>${projectName}</strong>:
-    </p>
-    <div class="topic-map-box">
-      <div class="topic-map-project">📂 ${projectName}</div>
-      ${topicBranchesHtml || '<div style="color:var(--text-muted);font-size:0.75rem;">No topic map generated.</div>'}
-    </div>
-  </div>
+    <div class="acard-title">ATS Optimization Tips</div>
+    ${(d.recommendations||[]).map(r=>`<div class="rec-item"><span class="rec-icon">→</span><span>${r}</span></div>`).join('')}
+  </div>` : ''}
 
-  <!-- Step 5 Card: Compare JD -->
+  <!-- Suggested Roles -->
+  ${(d.suggestedRoles||[]).length ? `
   <div class="acard">
-    <div class="acard-title">Step 5: Job Description (JD) Comparison</div>
-    <div style="display:flex;gap:24px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
-      <div style="text-align:center;flex-shrink:0">
-        <div style="font-size: 2.2rem; font-weight: 800; color: #10b981;">
-          ${d.jdComparison?.skillMatchScore || 0}%
-        </div>
-        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Match Score</div>
-      </div>
-      <div style="flex:1;min-width:200px">
-        <div class="info-label" style="margin-bottom: 4px;">Evaluation Focus</div>
-        <p style="font-size:0.8rem;color:var(--text-muted);line-height:1.4">
-          Your skills are being evaluated against the target role: <strong>${d.targetRole || document.getElementById('targetRole')?.value || 'Software Engineer'}</strong>.
-        </p>
-      </div>
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      <div>
-        <div style="font-size:0.76rem;font-weight:700;color:#10b981;margin-bottom:6px">✓ Strong Skills / Matches (${(d.jdComparison?.strongSkills || []).length})</div>
-        <div class="skills-wrap">
-          ${(d.jdComparison?.strongSkills || []).map(s => `<span class="tag-matched">${s}</span>`).join('') || '<span style="font-size:0.75rem;color:var(--text-muted)">None detected</span>'}
-        </div>
-      </div>
-      <div>
-        <div style="font-size:0.76rem;font-weight:700;color:#f87171;margin-bottom:6px">✗ Missing / Gaps (${(d.jdComparison?.missingSkills || []).length})</div>
-        <div class="skills-wrap">
-          ${(d.jdComparison?.missingSkills || []).map(s => `<span class="tag-missing">${s}</span>`).join('') || '<span style="font-size:0.75rem;color:var(--text-muted)">No gaps found</span>'}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Step 6 Card: Generate Interview Plan -->
-  <div class="acard">
-    <div class="acard-title">Step 6: AI Interview Action Plan</div>
-    <div class="plan-timeline">
-      <div class="plan-item">
-        <span class="plan-badge p1">P1</span>
-        <div class="plan-content">
-          <strong>Project Verification</strong>
-          <p>${d.interviewPlan?.priority1 || 'Verify architecture and claims related to projects.'}</p>
-        </div>
-      </div>
-      <div class="plan-item">
-        <span class="plan-badge p2">P2</span>
-        <div class="plan-content">
-          <strong>Core Engineering Skills</strong>
-          <p>${d.interviewPlan?.priority2 || 'Evaluate basic and advanced computer science fundamentals.'}</p>
-        </div>
-      </div>
-      <div class="plan-item">
-        <span class="plan-badge p3">P3</span>
-        <div class="plan-content">
-          <strong>JD Alignment Check</strong>
-          <p>${d.interviewPlan?.priority3 || 'Assess skills required by target Job Description.'}</p>
-        </div>
-      </div>
-      <div class="plan-item">
-        <span class="plan-badge p4">P4</span>
-        <div class="plan-content">
-          <strong>Behavioral & Ownership</strong>
-          <p>${d.interviewPlan?.priority4 || 'Review situational judgment, leadership, and communication.'}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Step 7 Card: Create Verification Queue -->
-  <div class="acard">
-    <div class="acard-title">Step 7: Claims Verification Queue</div>
-    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
-      The controller will systematically run through this queue to verify your resume claims:
-    </p>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      ${(d.verificationQueue || []).map((vq, idx) => `
-        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
-          <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
-            ${idx + 1}. Claim: <span style="font-style: italic; font-weight: 600; color: var(--accent-tertiary);">"${vq.claim}"</span>
-          </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-left: 12px;">
-            ${(vq.steps || []).map(step => `
-              <span style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px;">🔍 ${step}</span>
-            `).join('')}
-          </div>
-        </div>
-      `).join('') || '<div style="font-size:0.8rem;color:var(--text-muted)">Queue is empty.</div>'}
-    </div>
-  </div>
+    <div class="acard-title">Suggested Roles</div>
+    <div class="skills-wrap">${(d.suggestedRoles||[]).map(r=>`<span class="pill pill-zinc">${r}</span>`).join('')}</div>
+  </div>` : ''}
 
   <!-- Launch AI Interview CTA -->
   <div style="margin-top: 24px; text-align: center;">
@@ -1202,8 +1016,8 @@ function renderDashboard(d) {
 }
 
 function startMockWithPlan() {
-  const r = resumes[activeTab];
-  const targetRole = r?.targetRole || document.getElementById('targetRole')?.value || 'Software Developer';
+  const d = analysisResults[activeTab];
+  const targetRole = d?.targetRole || 'Software Developer';
   window.location.href = `aiinterview.html?usePlan=true&slot=${activeTab}&jobTitle=${encodeURIComponent(targetRole)}`;
 }
 
