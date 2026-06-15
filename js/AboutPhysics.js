@@ -11,7 +11,9 @@
   if (!window.Matter && !document.getElementById('matterJsCDN')) {
     const script = document.createElement('script');
     script.id = 'matterJsCDN';
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js';
+    script.integrity = 'sha384-OqQP3UcU7efkEYDRjGmQou2uEvzGFGRtwdYXTjnupeB9cWogSgQ4BOhyklFBYbBR';
+    script.crossOrigin = 'anonymous';
     document.head.appendChild(script);
   }
 

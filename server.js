@@ -278,16 +278,17 @@ app.use((req, res, next) => {
   res.setHeader("X-Frame-Options", "SAMEORIGIN");                  // Prevent clickjacking
   res.setHeader("X-XSS-Protection", "1; mode=block");              // Legacy XSS browser filter
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()"); // Restrict browser APIs
+  res.setHeader("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()"); // Allow cam/mic for self (needed by AI interview page)
   res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload"); // Force HTTPS
   res.setHeader("Content-Security-Policy",                         // Prevent XSS script injection
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
     "img-src 'self' data: blob: https://res.cloudinary.com https://logo.clearbit.com https://upload.wikimedia.org; " +
     "media-src 'self' blob: https://res.cloudinary.com; " +
-    "connect-src 'self' https://project-jobsarthi.onrender.com https://jobsarthi.vercel.app https://res.cloudinary.com; " +
-    "font-src 'self' https://fonts.gstatic.com; " +
+    "connect-src 'self' https://project-jobsarthi.onrender.com https://jobsarthi.vercel.app https://res.cloudinary.com https://cdn.jsdelivr.net; " +
+    "font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "worker-src blob: 'self'; " +
     "frame-src blob: data: https://res.cloudinary.com 'self' chrome-extension:; " +
     "object-src blob: data: https://res.cloudinary.com chrome-extension:; " +
     "frame-ancestors 'self';"
