@@ -3189,7 +3189,30 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
 
     // Build the system prompt
     const questionCount = history ? history.length : 0;
-    const isNearEnd = questionCount >= 11 || state.earlyExitTriggered;
+    
+    // Evaluate candidate performance (average score) to dynamically scale question length
+    let avgScore = 5.0;
+    let dynamicMaxQuestions = 8; // standard duration
+    if (history && history.length > 0) {
+      const scores = history.map(h => h.score !== undefined ? Number(h.score) : 5);
+      avgScore = scores.reduce((sum, val) => sum + val, 0) / scores.length;
+      
+      if (avgScore >= 7.2) {
+        // High performer: extend to 12 questions to probe for depth/advanced skills
+        dynamicMaxQuestions = 12;
+      } else if (avgScore < 4.5) {
+        // Struggling candidate: cut short to 5 questions
+        dynamicMaxQuestions = 5;
+      }
+    }
+
+    // Force early exit if candidate is consistently struggling after minimum questions
+    if (history && history.length >= 4 && avgScore < 4.0 && !state.earlyExitTriggered) {
+      state.earlyExitTriggered = true;
+      state.earlyExitReason = "Candidate showed significant struggle with elementary concepts. Ending early.";
+    }
+
+    const isNearEnd = questionCount >= dynamicMaxQuestions || state.earlyExitTriggered;
 
     let systemPrompt = `You are an experienced, highly skilled human interviewer named ${interviewerAbility === "vikram" ? "Prof. Vikram" : interviewerAbility === "ananya" ? "Dr. Ananya" : "Sarthi"} conducting a live technical interview on the JobSarthi platform.
 
@@ -3234,11 +3257,11 @@ You must strictly follow this progression:
 - Check if verification is needed:
   - If a claim is newly introduced or unverified -> Ask a Targeted Follow-up to verify it (explore How? Why? Challenges? Results?).
   - If no verification is needed or claim verification is complete -> Move to the Next Topic in the graph progression.
-- **Dynamic Exit Criteria** (You may end the interview early if any of the following are met):
-  - *Enough evidence collected*: You have asked at least 5-6 questions and have high confidence in the candidate's skills/scores.
-  - *Candidate repeatedly says "I don't know"*: If the candidate has dontKnowCount >= 3, trigger an early exit.
-  - *Refusal of participation*: Candidate refuses to answer or requests to end.
-  - If early exit is triggered: set interviewState.earlyExitTriggered = true, transition to Wrap-up, and conclude.
+- **Dynamic Exit & Duration Criteria**:
+  - *Standard Duration*: Normally, the interview lasts around 8 questions.
+  - *High Performer*: If the candidate is scoring high (average >= 7.2), extend the interview up to 12 questions to comprehensively test their depth with expert-level follow-ups.
+  - *Struggling Candidate*: If the candidate is performing poorly (average < 4.5) or repeatedly failing to answer, end the interview early (around 5 questions) to conclude the session.
+  - *Automatic Exit Trigger*: If earlyExitTriggered is true in the INTERVIEW STATE, immediately transition to Wrap-up, summarize strengths/weaknesses, and conclude the interview. Do not ask more technical questions.
 
 ===== OUTPUT FORMAT =====
 Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outside the JSON.
