@@ -308,9 +308,17 @@
       const shortlisted = applicants.filter(a => a.status === 'Shortlisted' || a.status === 'Interviewing').length;
       document.getElementById('shortlistedVal').textContent = shortlisted;
 
-      const jobs = JSON.parse(localStorage.getItem('posted_jobs') || '[]');
-      const activeJobs = jobs.filter(j => j.company === company).length;
-      document.getElementById('activeJobsVal').textContent = activeJobs > 0 ? activeJobs : 1;
+      let activeJobs = 0;
+      try {
+        const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?company=${encodeURIComponent(company)}&limit=1&t=${Date.now()}`);
+        if (jobsRes.ok) {
+          const data = await jobsRes.json();
+          activeJobs = data.total || 0;
+        }
+      } catch (jobErr) {
+        console.warn("Failed to fetch jobs for analytics stats:", jobErr);
+      }
+      document.getElementById('activeJobsVal').textContent = activeJobs;
 
       // 1. High AI Fit percentage
       const highFitCount = applicants.filter(a => a.match >= 85).length;
