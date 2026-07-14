@@ -547,6 +547,8 @@
 
   <script src="../js/header.js"></script>
   <script>
+    const API_BASE_URL = window.API_BASE_URL || '';
+
     function switchTab(tab, btn) {
       const tabs = document.querySelectorAll('.tabs-trigger');
       tabs.forEach(t => t.classList.remove('active'));
@@ -645,8 +647,6 @@
         submitBtn.textContent = originalText;
       }
     }
-
-    const API_BASE_URL = window.API_BASE_URL || '';
 
     async function handleAuth(event, type) {
       event.preventDefault();

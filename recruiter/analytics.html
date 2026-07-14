@@ -293,7 +293,7 @@
       let applicants = [];
       try {
         const email = localStorage.getItem('recruiter_email') || '';
-        const res = await fetch((window.API_BASE_URL || '') + \`/api/recruiter/applicants?company=\${encodeURIComponent(company)}&email=\${encodeURIComponent(email)}\`);
+        const res = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants?company=${encodeURIComponent(company)}&email=${encodeURIComponent(email)}`);
         if (res.ok) {
           applicants = await res.json();
         }
@@ -320,8 +320,8 @@
       const verifiedCount = applicants.filter(a => a.verified && a.verified.length > 0).length;
       const verifiedPercent = total > 0 ? Math.round((verifiedCount / total) * 100) : 0;
 
-      document.getElementById('highFitPercentText').textContent = \`\${highFitPercent}%\`;
-      document.getElementById('verifiedPercentText').textContent = \`\${verifiedPercent}%\`;
+      document.getElementById('highFitPercentText').textContent = `${highFitPercent}%`;
+      document.getElementById('verifiedPercentText').textContent = `${verifiedPercent}%`;
 
       const circumference = 2 * Math.PI * 45; // ~282.74
       const highOffset = circumference - (circumference * highFitPercent / 100);
@@ -341,7 +341,7 @@
         fills.forEach((bar, idx) => {
           const count = trafficDistribution[idx];
           const heightPercent = maxDayVal > 0 ? Math.round((count / maxDayVal) * 80) + 15 : 15;
-          bar.setAttribute('data-height', \`\${heightPercent}%\`);
+          bar.setAttribute('data-height', `${heightPercent}%`);
         });
       } else {
         fills.forEach(bar => bar.setAttribute('data-height', '10%'));
@@ -357,26 +357,26 @@
 
       const channelContainer = document.getElementById('channelContainer');
       if (total === 0) {
-        channelContainer.innerHTML = \`<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 20px;">No candidate data.</div>\`;
+        channelContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 20px;">No candidate data.</div>`;
       } else {
-        channelContainer.innerHTML = \`
+        channelContainer.innerHTML = `
           <div class="metric-row">
             <span style="font-size: 0.85rem;">High Compatibility Match (&ge; 75%)</span>
-            <span style="font-weight: 700; color: var(--accent-tertiary);">\${pipelineFitPercent}%</span>
+            <span style="font-weight: 700; color: var(--accent-tertiary);">${pipelineFitPercent}%</span>
           </div>
           <div class="metric-row">
             <span style="font-size: 0.85rem;">Shortlisted & Interviewing</span>
-            <span style="font-weight: 700; color: var(--accent-secondary);">\${shortlistedPercent}%</span>
+            <span style="font-weight: 700; color: var(--accent-secondary);">${shortlistedPercent}%</span>
           </div>
           <div class="metric-row">
             <span style="font-size: 0.85rem;">Pending Initial Review</span>
-            <span style="font-weight: 700; color: var(--success);">\${reviewingPercent}%</span>
+            <span style="font-weight: 700; color: var(--success);">${reviewingPercent}%</span>
           </div>
           <div class="metric-row">
             <span style="font-size: 0.85rem;">Low Compatibility Match (&lt; 75%)</span>
-            <span style="font-weight: 700; color: var(--text-muted);">\${otherPercent}%</span>
+            <span style="font-weight: 700; color: var(--text-muted);">${otherPercent}%</span>
           </div>
-        \`;
+        `;
       }
 
       setTimeout(() => {

@@ -361,6 +361,7 @@
 
   <script src="../js/header.js"></script>
   <script>
+    const API_BASE_URL = window.API_BASE_URL || '';
     let messages = [];
     let conversations = {}; // grouped by seekerEmail
     let activeChatEmail = null;
@@ -383,7 +384,7 @@
 
     async function loadMessages() {
       try {
-        const response = await fetch(`/api/messages?email=${encodeURIComponent(recruiterEmail)}&role=recruiter`);
+        const response = await fetch(API_BASE_URL + `/api/messages?email=${encodeURIComponent(recruiterEmail)}&role=recruiter`);
         if (!response.ok) return;
         const data = await response.json();
         messages = data;
@@ -601,7 +602,7 @@
       input.value = '';
 
       try {
-        const response = await fetch('/api/messages', {
+        const response = await fetch(API_BASE_URL + '/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -673,7 +674,7 @@
       closeScheduleModal();
 
       try {
-        const response = await fetch('/api/messages', {
+        const response = await fetch(API_BASE_URL + '/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
