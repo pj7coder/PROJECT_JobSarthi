@@ -3189,30 +3189,61 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
 
     // Build the system prompt
     const questionCount = history ? history.length : 0;
-    
-    // Evaluate candidate performance (average score) to dynamically scale question length
-    let avgScore = 5.0;
-    let dynamicMaxQuestions = 8; // standard duration
-    if (history && history.length > 0) {
-      const scores = history.map(h => h.score !== undefined ? Number(h.score) : 5);
-      avgScore = scores.reduce((sum, val) => sum + val, 0) / scores.length;
-      
-      if (avgScore >= 7.2) {
-        // High performer: extend to 12 questions to probe for depth/advanced skills
-        dynamicMaxQuestions = 12;
-      } else if (avgScore < 4.5) {
-        // Struggling candidate: cut short to 5 questions
-        dynamicMaxQuestions = 5;
+
+    // ─── ADAPTIVE LENGTH ENGINE ───────────────────────────────────────────────
+    // Replaces the flat cap with a performance-driven wrap-up signal.
+    // Signals: rolling 3-answer avg score, dontKnowCount, satisfaction scores.
+    function computeAdaptiveWrapUp() {
+      // 1. Explicit exit request or repeated refusal
+      if (state.earlyExitTriggered) return { wrap: true, reason: 'early_exit' };
+
+      // 2. Too many "I don't know" answers (>= 3)
+      if ((state.dontKnowCount || 0) >= 3) return { wrap: true, reason: 'repeated_dont_know' };
+
+      // 3. Rolling average from the last 3 answers
+      let rollingAvg = 5;
+      if (history && history.length >= 1) {
+        const recent = history.slice(-3);
+        rollingAvg = recent.reduce((s, h) => s + (h.score ?? 5), 0) / recent.length;
       }
+
+      // 4. Consistently poor: every answer in last 3 scored <= 3
+      if (history && history.length >= 3) {
+        const allPoor = history.slice(-3).every(h => (h.score ?? 5) <= 3);
+        if (allPoor) return { wrap: true, reason: 'consistently_poor' };
+      }
+
+      // 5. Very poor and at least 2 answers in: avg <= 2.5 means wrap immediately
+      if (history && history.length >= 2 && rollingAvg <= 2.5) {
+        return { wrap: true, reason: 'very_poor_early' };
+      }
+
+      // 6. Absolute hard cap — never exceed 18 questions
+      if (questionCount >= 18) return { wrap: true, reason: 'max_cap' };
+
+      // 7. Performance-based natural exit after minimum 6 questions:
+      //    Strong (avg >= 7.5): push to 14 questions
+      //    Average (avg >= 5):  wrap at 10 questions
+      //    Below avg (avg < 5): wrap at 7 questions
+      if (questionCount >= 6) {
+        if (rollingAvg >= 7.5 && questionCount >= 14) return { wrap: true, reason: 'strong_performer_full' };
+        if (rollingAvg >= 5.0 && questionCount >= 10) return { wrap: true, reason: 'average_performer_done' };
+        if (rollingAvg <  5.0 && questionCount >=  7) return { wrap: true, reason: 'below_avg_short_session' };
+      }
+
+      return { wrap: false, reason: 'continue' };
     }
 
-    // Force early exit if candidate is consistently struggling after minimum questions
-    if (history && history.length >= 4 && avgScore < 4.0 && !state.earlyExitTriggered) {
-      state.earlyExitTriggered = true;
-      state.earlyExitReason = "Candidate showed significant struggle with elementary concepts. Ending early.";
-    }
+    const wrapDecision = computeAdaptiveWrapUp();
+    const isNearEnd    = wrapDecision.wrap;
+    const wrapReason   = wrapDecision.reason;
 
-    const isNearEnd = questionCount >= dynamicMaxQuestions || state.earlyExitTriggered;
+    let rollingScoreAvg = 5;
+    if (history && history.length >= 1) {
+      const recent = history.slice(-3);
+      rollingScoreAvg = recent.reduce((s, h) => s + (h.score ?? 5), 0) / recent.length;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     let systemPrompt = `You are an experienced, highly skilled human interviewer named ${interviewerAbility === "vikram" ? "Prof. Vikram" : interviewerAbility === "ananya" ? "Dr. Ananya" : "Sarthi"} conducting a live technical interview on the JobSarthi platform.
 
@@ -3233,7 +3264,30 @@ ${jobSkills ? `Key Job Skills to Evaluate: ${jobSkills}` : ""}
 ===== INTERVIEW STATE =====
 ${JSON.stringify(state, null, 2)}
 Questions completed: ${questionCount}
-${isNearEnd ? "⚠️ WRAP-UP MODE: Conclude the interview. Do not ask any new questions. Move immediately to Candidate Questions or Wrap-up, summarize 1-2 strengths, and set isInterviewCompleted to true." : ""}
+Rolling score avg (last 3 answers): ${rollingScoreAvg.toFixed(1)} / 10
+Adaptive wrap-up signal: ${isNearEnd ? `WRAP UP NOW — Reason: ${wrapReason}` : `CONTINUE — keep going`}
+
+===== ADAPTIVE LENGTH RULES (CRITICAL) =====
+The interview length is NOT fixed. You decide dynamically based on performance:
+- POOR PERFORMER (avg <= 3, 3 consecutive poor answers, or dontKnowCount >= 3): End immediately. Be warm and professional.
+- BELOW AVERAGE  (avg < 5, >= 7 questions asked): Wrap up. Don't drag out a struggling session.
+- AVERAGE        (avg 5-7, >= 10 questions asked): Conclude naturally.
+- STRONG         (avg >= 7.5, up to 14 questions): Keep pushing — ask deeper, harder, edge-case questions.
+- EXCEPTIONAL    (consistent >= 9): May go up to 18 targeted questions to fully map expertise.
+${isNearEnd ? `
+⚠️ WRAP-UP MODE ACTIVE (${wrapReason}):
+- Do NOT ask any new technical questions.
+- Transition to a warm, personalised closing statement.
+- If candidate performed well: cite 1-2 specific observed strengths.
+- If candidate struggled: be encouraging — suggest 1 improvement area gently.
+- Set "isInterviewCompleted": true.
+` : `
+CONTINUE INTERVIEWING:
+- Rolling avg: ${rollingScoreAvg.toFixed(1)}/10
+- If trending UP (>= 7): Increase difficulty. Ask about architecture, tradeoffs, system design, edge cases.
+- If trending DOWN (< 5): Stay at current level. Try a different topic angle — give them a chance to recover.
+- If score very low (< 3) this turn: Record in evidence. Three in a row triggers auto-wrap next turn.
+`}
 
 ===== INTERVIEW PIPELINE FLOW =====
 You must strictly follow this progression:
@@ -3257,11 +3311,11 @@ You must strictly follow this progression:
 - Check if verification is needed:
   - If a claim is newly introduced or unverified -> Ask a Targeted Follow-up to verify it (explore How? Why? Challenges? Results?).
   - If no verification is needed or claim verification is complete -> Move to the Next Topic in the graph progression.
-- **Dynamic Exit & Duration Criteria**:
-  - *Standard Duration*: Normally, the interview lasts around 8 questions.
-  - *High Performer*: If the candidate is scoring high (average >= 7.2), extend the interview up to 12 questions to comprehensively test their depth with expert-level follow-ups.
-  - *Struggling Candidate*: If the candidate is performing poorly (average < 4.5) or repeatedly failing to answer, end the interview early (around 5 questions) to conclude the session.
-  - *Automatic Exit Trigger*: If earlyExitTriggered is true in the INTERVIEW STATE, immediately transition to Wrap-up, summarize strengths/weaknesses, and conclude the interview. Do not ask more technical questions.
+- **Dynamic Exit Criteria** (You may end the interview early if any of the following are met):
+  - *Enough evidence collected*: You have asked at least 5-6 questions and have high confidence in the candidate's skills/scores.
+  - *Candidate repeatedly says "I don't know"*: If the candidate has dontKnowCount >= 3, trigger an early exit.
+  - *Refusal of participation*: Candidate refuses to answer or requests to end.
+  - If early exit is triggered: set interviewState.earlyExitTriggered = true, transition to Wrap-up, and conclude.
 
 ===== OUTPUT FORMAT =====
 Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outside the JSON.
@@ -3455,7 +3509,7 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
 
       if (state.earlyExitTriggered || state.dontKnowCount >= 3) {
         isCompleted = true;
-        nextQ = `Thank you, ${candidateName || "Candidate"}. I've noticed you requested to stop or had difficulty with the topics. We will conclude the session here and compile your final evaluation report. Have a good day!`;
+        nextQ = `Thank you, ${candidateName || "Candidate"}. I've noticed you had difficulty with the topics — that's completely fine. We'll wrap up here and compile your evaluation. Have a great day!`;
         targetStage = "wrap_up";
         targetTopic = "Wrap-up";
       } else if (steps === 0) {
@@ -3479,20 +3533,53 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
         targetTopic = "Technical Assessment";
         nextQ = diffQuestions[1] || "How do you typically optimize database query performance and cache resources under heavy load?";
       } else if (steps === 5) {
-        targetStage = "behavioral_assessment";
-        targetTopic = "Behavioral Assessment";
-        nextQ = "Tell me about a time you had a technical disagreement with a team member. How did you handle it and what was the outcome?";
+        // Adaptive branch: wrap poor performers early, continue for average+
+        if (rollingScoreAvg < 4) {
+          isCompleted = true;
+          nextQ = `Thank you for your time today, ${candidateName || "Candidate"}. Based on today's session, I'd recommend revisiting some fundamentals before your next interview. I'll compile your report now. Keep learning!`;
+          targetStage = "wrap_up";
+          targetTopic = "Wrap-up";
+        } else {
+          targetStage = "behavioral_assessment";
+          targetTopic = "Behavioral Assessment";
+          nextQ = "Tell me about a time you had a technical disagreement with a team member. How did you handle it and what was the outcome?";
+        }
       } else if (steps === 6) {
         targetStage = "behavioral_assessment";
         targetTopic = "Behavioral Assessment";
-        nextQ = "Describe a situation where you had to quickly learn a new technology to solve a problem. How did you go about it?";
+        nextQ = "Describe a situation where you had to quickly learn a new technology to solve a problem. How did you approach it?";
       } else if (steps === 7) {
+        // Wrap below-average performers here
+        if (rollingScoreAvg < 5) {
+          targetStage = "candidate_questions";
+          targetTopic = "Candidate Questions";
+          nextQ = `We've covered the core areas. Do you have any questions for me before we finish?`;
+        } else {
+          targetStage = "technical_assessment";
+          targetTopic = "Technical Assessment (Advanced)";
+          nextQ = diffQuestions[2] || "Walk me through a system design scenario: how would you design a scalable notification service?";
+        }
+      } else if (steps === 8) {
+        if (rollingScoreAvg >= 7) {
+          targetStage = "technical_assessment";
+          targetTopic = "Technical Assessment (Expert)";
+          nextQ = diffQuestions[3] || "What tradeoffs would you consider when choosing between a microservices and monolithic architecture for a high-traffic product?";
+        } else {
+          targetStage = "candidate_questions";
+          targetTopic = "Candidate Questions";
+          nextQ = `I have gathered enough data for the assessment. Before we finish, do you have any questions for me about the role or the company?`;
+        }
+      } else if (steps === 9 && rollingScoreAvg >= 7) {
+        targetStage = "technical_assessment";
+        targetTopic = "Technical Assessment (Expert)";
+        nextQ = diffQuestions[4] || "How would you approach debugging a production memory leak in a Node.js service under live traffic?";
+      } else if ((steps === 9 && rollingScoreAvg < 7) || steps === 10) {
         targetStage = "candidate_questions";
         targetTopic = "Candidate Questions";
-        nextQ = `Alright, I have gathered enough data for the assessment. Before we finish, do you have any questions for me about the role, the team, or the company?`;
+        nextQ = `Excellent. I have a comprehensive picture now. Before we wrap up — do you have any questions for me about the role, the team, or the company?`;
       } else {
         isCompleted = true;
-        nextQ = `Thank you so much for your time today, ${candidateName || "Candidate"}. That concludes our interview session. I am compiling your performance metrics and generating your final report now. Good luck!`;
+        nextQ = `Thank you so much for your time today, ${candidateName || "Candidate"}. That concludes our interview session. I'm now compiling your performance metrics and generating your final report. Well done — good luck!`;
         targetStage = "wrap_up";
         targetTopic = "Wrap-up";
       }

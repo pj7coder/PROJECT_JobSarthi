@@ -3624,8 +3624,8 @@
       if (/\b(I|my|we|project|experience|worked|built|implemented|role|team)\b/i.test(answerVal))
         logProctorEvent('Personal experience references detected.', -6);
 
-      // Safety cap: after 14 questions force final wrap
-      if (totalQuestionsAnswered >= 14) {
+      // Safety cap: after 20 questions force final wrap (server adaptive engine handles 7-18 normally)
+      if (totalQuestionsAnswered >= 20) {
         updateAvatarExpression('thinking');
         _showLoaderText('COMPLETING EVALUATION & GENERATING FINAL REPORT...');
 
