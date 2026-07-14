@@ -2043,53 +2043,111 @@
       }
     };
 
-    // --- STATE MANAGEMENT ---
-    let localStream = null;
-    let audioContext = null;
-    let audioAnalyser = null;
-    let audioSource = null;
-    
-    // Customization config
-    let selectedRole = "Full Stack Developer";
-    let selectedDifficulty = "Intermediate";
-    let timerLimit = 10;
-    let proctorStrictness = "medium";
-    let isInterviewPaused = false;
-    let isThinkTimeActive = false;
+    // ═══════════════════════════════════════════════════════════
+    //  INTERVIEW ENGINE v2 — PHASE STATE MACHINE
+    //  Phases: IDLE → AI_SPEAKING → THINK_TIME → LISTENING → EVALUATING → FINISHED
+    // ═══════════════════════════════════════════════════════════
+    const PHASE = Object.freeze({
+      IDLE:        'IDLE',
+      AI_SPEAKING: 'AI_SPEAKING',
+      THINK_TIME:  'THINK_TIME',
+      LISTENING:   'LISTENING',
+      EVALUATING:  'EVALUATING',
+      FINISHED:    'FINISHED'
+    });
+    let enginePhase = PHASE.IDLE;
 
-    // Interview state variables
-    let currentQuestionIndex = 0;
-    let currentQuestionText = "";
-    let isAiSpeaking = false;
-    let suspicionScore = 0;
+    // Hardware / media
+    let localStream     = null;
+    let audioContext    = null;
+    let audioAnalyser   = null;
+    let audioSource     = null;
+
+    // Session config
+    let selectedRole       = 'Full Stack Developer';
+    let selectedDifficulty = 'Intermediate';
+    let timerLimit         = 0;  // 0 = no think-time timer
+    let proctorStrictness  = 'medium';
+
+    // Derived booleans (computed from enginePhase for backward-compat)
+    Object.defineProperty(window, 'isAiSpeaking',        { get: () => enginePhase === PHASE.AI_SPEAKING,  configurable: true });
+    Object.defineProperty(window, 'isThinkTimeActive',   { get: () => enginePhase === PHASE.THINK_TIME,   configurable: true });
+    Object.defineProperty(window, 'isInterviewPaused',   { get: () => _isInterviewPaused,                 configurable: true });
+    Object.defineProperty(window, 'isInterviewFinished', { get: () => enginePhase === PHASE.FINISHED,     configurable: true });
+
+    let _isInterviewPaused    = false;
+    let _phaseBeforePause     = PHASE.IDLE;  // restore phase on resume
+
+    // Scorekeeping
+    let currentQuestionText    = '';
+    let suspicionScore         = 0;
     let totalQuestionsAnswered = 0;
-    let accumulatedScore = 0;
-    let responseTimer = null;
-    let timerSecondsRemaining = 10;
-    
-    // Recording logs and transcripts
+    let accumulatedScore       = 0;
+    let responseTimer          = null;
+    let timerSecondsRemaining  = 0;
+
+    // Transcript / proctor logs
     let interviewHistory = [];
-    let proctorWarnings = [];
-    let tabSwitchCount = 0;
-    let voiceAlertCount = 0;
-    let gazeAlertCount = 0;
+    let proctorWarnings  = [];
+    let tabSwitchCount   = 0;
+    let voiceAlertCount  = 0;
 
-    // Speech synthesis and recognition
-    let speechRecognition = null;
-    let autoSubmitTimeout = null;
-    let candidateSilenceStartTime = null;
-    let continuousSpeakingTicks = 0;
+    // Speech recognition
+    let speechRecognition            = null;
+    let speechRecognitionActive      = false;
+    let speechRecognitionStarting    = false;
+    let speechRecognitionShouldBeActive = false;
+    let autoSubmitTimeout            = null;
+    let silenceStartTime             = null;   // renamed from candidateSilenceStartTime
+    let continuousSpeakingTicks      = 0;
+    let lastInterimLength            = 0;      // track how much the candidate has spoken
+    let _silencePromptGiven          = false;  // so we only prompt once per turn
 
-    let isInterviewFinished = false;
-    let selectedInterviewer = "sarthi";
-    let selectedLanguage = "en";
-    let lockedVoice = null;
-    window.interviewState = null;
+    // Timers / cleanup
+    let isInterviewFinished = false;  // local shadow (engine uses PHASE.FINISHED)
+    let decayInterval       = null;
+
+    // Identity
+    const seekerEmail  = localStorage.getItem('seeker_email') || 'user@jobsarthi.ai';
+    let selectedInterviewer = 'sarthi';
+    let selectedLanguage    = 'en';
+    let lockedVoice         = null;
+    window.interviewState   = null;
 
     let candidateProfile = null;
-    let candidateName = localStorage.getItem('seeker_name') || 'Candidate';
-    let currentXPercent = 0;
-    let currentYPercent = 0;
+    let candidateName    = localStorage.getItem('seeker_name') || 'Candidate';
+    let currentXPercent  = 0;
+    let currentYPercent  = 0;
+
+    // ── Conversational Reaction Pools (per interviewer character) ──
+    const REACTIONS = {
+      sarthi: {
+        good:        ['Great answer! That shows solid understanding.', 'Excellent — you really nailed that.', 'That\'s exactly the kind of depth I was looking for.', 'Nice work, very well articulated.'],
+        average:     ['Okay, fair enough.', 'Good start — let\'s build on that.', 'I see where you\'re going with that.', 'That works, though there\'s more to explore.'],
+        poor:        ['Hmm, let\'s revisit that idea.', 'Interesting — though I\'d push back a little.', 'Worth thinking about more carefully.', 'I see. Let me try a slightly different angle.'],
+        skipped:     ['No worries, let\'s move on.', 'Alright, we\'ll skip that one.', 'That\'s fine — let\'s continue.']
+      },
+      vikram: {
+        good:        ['Precise. Continue.', 'Acceptable — though I expect more depth in a moment.', 'Good. Now let\'s stress-test that.', 'Correct. Let\'s dig deeper.'],
+        average:     ['Partially correct.', 'Superficial. Push further.', 'That scratches the surface.', 'Acceptable at a high level.'],
+        poor:        ['Incorrect. Reconsider.', 'That\'s not right. Think again.', 'No. What\'s the actual mechanism here?', 'Wrong direction. Let me redirect you.'],
+        skipped:     ['Moving on.', 'Next question.', 'Fine.']
+      },
+      ananya: {
+        good:        ['Excellent — very precise answer!', 'That\'s exactly the depth I was looking for.', 'Great — you covered the edge cases too.', 'Wonderful — I appreciate the specificity.'],
+        average:     ['Okay, that\'s a reasonable take.', 'Good, though I\'d love more quantitative context.', 'Fair — let\'s dig a bit deeper.', 'That\'s a start.'],
+        poor:        ['Hmm, I expected more detail there.', 'That\'s quite vague — can you be more specific?', 'I\'m not fully convinced — let\'s try another angle.', 'Let me rephrase and come back to this.'],
+        skipped:     ['Alright, moving forward.', 'No problem — let\'s keep going.', 'Okay, next question.']
+      }
+    };
+
+    function getReaction(score, wasSkipped) {
+      const pool = REACTIONS[selectedInterviewer] || REACTIONS.sarthi;
+      if (wasSkipped) return pool.skipped[Math.floor(Math.random() * pool.skipped.length)];
+      if (score >= 8)  return pool.good   [Math.floor(Math.random() * pool.good.length)];
+      if (score >= 5)  return pool.average[Math.floor(Math.random() * pool.average.length)];
+      return pool.poor[Math.floor(Math.random() * pool.poor.length)];
+    }
 
     // --- WALL CLOCK & CHARACTER ABILITIES CONTROLLERS ---
     function startWallClock() {
@@ -2195,6 +2253,17 @@
       triggerBlink();
       startWallClock();
 
+      // Warm up TTS voices immediately on page load to prevent race conditions
+      if (window.speechSynthesis) {
+        const tryWarmVoices = () => {
+          selectVoiceForInterviewer();
+        };
+        tryWarmVoices();
+        if (window.speechSynthesis.addEventListener) {
+          window.speechSynthesis.addEventListener('voiceschanged', tryWarmVoices);
+        }
+      }
+
       // Check query params for custom Mock Interview setup
       const urlParams = new URLSearchParams(window.location.search);
       const urlJobTitle = urlParams.get('jobTitle');
@@ -2237,14 +2306,13 @@
       }
 
       // 30-second normal behaviour decay rule
-      setInterval(() => {
+      decayInterval = setInterval(() => {
         if (isInterviewFinished) return;
         if (isInterviewPaused) return;
         logProctorEvent("Normal behavior decay.", -2);
       }, 30000);
 
       // Pre-fetch candidate profile to customize interview questions
-      const seekerEmail = localStorage.getItem('seeker_email') || 'user@jobsarthi.ai';
       const profileUrl = (window.API_BASE_URL || '') + `/api/seeker/profile?email=${encodeURIComponent(seekerEmail)}`;
       fetch(profileUrl)
         .then(res => res.json())
@@ -2400,25 +2468,27 @@
     // --- SKIP QUESTION ---
     function skipQuestion() {
       document.getElementById('dotsDropdown').classList.remove('open');
-      logProctorEvent('Candidate skipped a question.', 3);
 
-      if (isAiSpeaking) {
+      // Stop AI speech if currently speaking
+      if (enginePhase === PHASE.AI_SPEAKING) {
         if (window.currentElevenLabsAudio) {
-          try {
-            window.currentElevenLabsAudio.pause();
-          } catch(e){}
+          try { window.currentElevenLabsAudio.pause(); } catch(e){}
           window.currentElevenLabsAudio = null;
         }
         if (window.speechSynthesis) window.speechSynthesis.cancel();
-        isAiSpeaking = false;
-        const qBox = document.getElementById("questionBox");
-        if (qBox) qBox.classList.remove("speaking-border-ai");
+        const qBox = document.getElementById('questionBox');
+        if (qBox) qBox.classList.remove('speaking-border-ai');
+        // Jump straight to submitting a skip
+        enginePhase = PHASE.LISTENING;
       }
 
-      const textarea = document.getElementById("answerTextarea");
-      if (textarea) textarea.value = "[Candidate skipped this question]";
+      if (enginePhase !== PHASE.LISTENING && enginePhase !== PHASE.THINK_TIME) return;
 
-      submitAnswer(false);
+      logProctorEvent('Candidate skipped a question.', 3);
+      const textarea = document.getElementById('answerTextarea');
+      if (textarea) textarea.value = '[Candidate skipped this question]';
+      enginePhase = PHASE.LISTENING; // allow submitAnswer
+      submitAnswer(true); // wasSkipped = true
     }
 
     // --- EXIT INTERVIEW (from menu) ---
@@ -2432,6 +2502,7 @@
           window.currentElevenLabsAudio = null;
         }
         if (localStream) { localStream.getTracks().forEach(track => track.stop()); }
+        stopListening();
         window.location.href = "index.html";
       }
     }
@@ -2476,13 +2547,18 @@
       document.getElementById("skipQuestionBtn").addEventListener("click", skipQuestion);
 
       // Submit answer manually (Start Answering / Submit Answer)
-      document.getElementById("submitAnswerBtn").addEventListener("click", () => {
-        if (isAiSpeaking) {
+      document.getElementById('submitAnswerBtn').addEventListener('click', () => {
+        if (enginePhase === PHASE.AI_SPEAKING) {
+          // Interrupt AI and jump to listening
           if (window.speechSynthesis) window.speechSynthesis.cancel();
+          if (window.currentElevenLabsAudio) {
+            try { window.currentElevenLabsAudio.pause(); } catch(e){}
+            window.currentElevenLabsAudio = null;
+          }
           onSpeechFinished();
-        } else if (isThinkTimeActive) {
+        } else if (enginePhase === PHASE.THINK_TIME) {
           skipThinkTime();
-        } else {
+        } else if (enginePhase === PHASE.LISTENING) {
           submitAnswer(false);
         }
       });
@@ -2787,262 +2863,260 @@
 
     // --- START INTERVIEW AND FLOW ---
     function startInterview() {
-      const rawRole = document.getElementById("jobRoleSelect").value;
-      if (rawRole.startsWith('job:')) {
-        selectedRole = rawRole.substring(4);
-      } else {
-        selectedRole = rawRole;
-      }
-      selectedDifficulty = document.getElementById("difficultySelect").value;
-      timerLimit = 0;
-      proctorStrictness = document.getElementById("proctorStrictnessSelect").value;
-      selectedLanguage = document.getElementById("languageSelect").value;
-      lockedVoice = null;
+      const rawRole = document.getElementById('jobRoleSelect').value;
+      selectedRole = rawRole.startsWith('job:') ? rawRole.substring(4) : rawRole;
+      selectedDifficulty = document.getElementById('difficultySelect').value;
+      timerLimit         = 0;
+      proctorStrictness  = document.getElementById('proctorStrictnessSelect').value;
+      selectedLanguage   = document.getElementById('languageSelect').value;
+      lockedVoice        = null;
 
-      document.getElementById("setupContainer").style.display = "none";
-      document.getElementById("interviewContainer").style.display = "grid";
-      document.body.classList.add("interview-active");
+      document.getElementById('setupContainer').style.display = 'none';
+      document.getElementById('interviewContainer').style.display = 'grid';
+      document.body.classList.add('interview-active');
 
-      const activeVideo = document.getElementById("webcamVideo");
-      if (localStream && activeVideo) {
-        activeVideo.srcObject = localStream;
-      }
+      const activeVideo = document.getElementById('webcamVideo');
+      if (localStream && activeVideo) activeVideo.srcObject = localStream;
 
-      document.getElementById("diffTag").textContent = selectedDifficulty;
+      document.getElementById('diffTag').textContent = selectedDifficulty;
 
       initAudioAnalysis();
       initSpeechRecognition();
       initGazeMonitoring();
       initTabMonitoring();
-
       updateControlIcons();
 
-      // finishInterviewBtn is now located inside the 3-dots menu
-
-      // Removed random fake multi-face detection — proctor is informational only
-
-      // Pre-lock the voice immediately so first question doesn't fire with wrong voice
-      // SpeechSynthesis voices may load async; handle both cases
+      // Lock TTS voice before first question fires
       if (window.speechSynthesis) {
         const tryLock = () => selectVoiceForInterviewer();
-        if (window.speechSynthesis.getVoices().length > 0) {
-          tryLock();
-        } else {
-          window.speechSynthesis.addEventListener('voiceschanged', tryLock, { once: true });
-        }
+        if (window.speechSynthesis.getVoices().length > 0) tryLock();
+        else window.speechSynthesis.addEventListener('voiceschanged', tryLock, { once: true });
       }
 
+      enginePhase = PHASE.AI_SPEAKING;  // will immediately transition inside fetch
       fetchNextQuestion(true);
     }
 
-    // --- GET NEXT QUESTION ---
-    async function fetchNextQuestion(firstCall = false, previousAnswer = "", wasTimerExpired = false) {
-      if (isInterviewPaused) return;
-      isAiSpeaking = true;
-      
-      const qBox = document.getElementById("questionBox");
-      if (qBox) qBox.classList.add("speaking-border-ai");
-      
-      document.getElementById("speechSupportedTag").textContent = "AI Speaking";
-      document.getElementById("speechSupportedTag").style.backgroundColor = "rgba(99, 102, 241, 0.15)";
-      document.getElementById("speechSupportedTag").style.color = "var(--accent-tertiary)";
-      document.getElementById("micStatusPulse").className = "mic-status-pulse";
+    // ───────────────────────────────────────────────────────────
+    //  FETCH NEXT QUESTION — conversational engine core
+    //  previousAnswer : string (empty on firstCall)
+    //  wasSkipped     : bool
+    // ───────────────────────────────────────────────────────────
+    async function fetchNextQuestion(firstCall = false, previousAnswer = '', wasSkipped = false) {
+      if (_isInterviewPaused) return;
 
-      if (speechRecognition) speechRecognition.stop();
+      enginePhase = PHASE.EVALUATING;
 
-      // Trigger avatar thinking state
+      // Reset per-turn silence flag
+      _silencePromptGiven = false;
+      silenceStartTime    = null;
+
+      const qBox = document.getElementById('questionBox');
+      if (qBox) qBox.classList.add('speaking-border-ai');
+
+      _setStatusBadge('AI Speaking', 'rgba(99,102,241,0.15)', 'var(--accent-tertiary)');
+      document.getElementById('micStatusPulse').className = 'mic-status-pulse';
+
+      stopListening();
       updateAvatarExpression('thinking');
 
-      const loadingText = firstCall ? "CONNECTING TO SARTHI AI..." : "GENERATING NEXT QUESTION...";
-      const letterSpans = loadingText.split("").map((char, index) => {
-        if (char === " ") return `<span class="loader-letter" style="animation-delay: ${index * 0.04}s;">&nbsp;</span>`;
-        return `<span class="loader-letter" style="animation-delay: ${index * 0.04}s;">${char}</span>`;
-      }).join("");
-
-      document.getElementById("questionDisplay").innerHTML = `
-        <div class="loader-wrapper" style="margin-top: 15px; display: flex; align-items: center; justify-content: flex-start;">
-          <div class="loader"></div>
-          <div class="letter-wrapper">
-            ${letterSpans}
-          </div>
-        </div>
-      `;
+      // --- Show animated loader in question box ---
+      const loadingText = firstCall ? 'CONNECTING TO SARTHI AI...' : 'EVALUATING YOUR ANSWER...';
+      _showLoaderText(loadingText);
 
       try {
         const includeResume = document.getElementById('includeResumeCheckbox')?.checked;
         const activeProfile = includeResume ? candidateProfile : null;
 
-        const response = await fetch((window.API_BASE_URL || '') + "/api/sarthi/interview/next", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch((window.API_BASE_URL || '') + '/api/sarthi/interview/next', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            role: selectedRole,
-            difficulty: selectedDifficulty,
-            history: interviewHistory,
-            currentQuestion: currentQuestionText,
-            userAnswer: previousAnswer,
-            timerExpired: wasTimerExpired,
-            candidateProfile: activeProfile,
-            candidateName: candidateName,
+            role:               selectedRole,
+            difficulty:         selectedDifficulty,
+            history:            interviewHistory,
+            currentQuestion:    currentQuestionText,
+            userAnswer:         previousAnswer,
+            timerExpired:       wasSkipped,
+            candidateProfile:   activeProfile,
+            candidateName:      candidateName,
             interviewerAbility: selectedInterviewer,
-            language: selectedLanguage,
-            jobSkills: window._interviewJobSkills || '',
-            jobId: window._interviewJobId || '',
-            interviewState: window.interviewState || null,
-            email: seekerEmail
+            language:           selectedLanguage,
+            jobSkills:          window._interviewJobSkills || '',
+            jobId:              window._interviewJobId    || '',
+            interviewState:     window.interviewState    || null,
+            email:              seekerEmail
           })
         });
 
         if (!response.ok) {
           if (response.status === 429) {
             const errData = await response.json();
-            alert(errData.error || "Rate limit exceeded. You can only start 5 interviews per hour.");
-            window.location.replace("index.html");
+            alert(errData.error || 'Rate limit exceeded. You can only start 5 interviews per hour.');
+            window.location.replace('index.html');
             return;
           }
-          throw new Error("HTTP error " + response.status);
+          throw new Error('HTTP ' + response.status);
         }
 
-        if (isInterviewFinished) return;
+        if (enginePhase === PHASE.FINISHED) return;
         const data = await response.json();
-        if (isInterviewFinished) return;
+        if (enginePhase === PHASE.FINISHED) return;
 
-        if (data && data.memory) {
-          window.finalInterviewMemory = data.memory;
-        }
+        // Sync server-side interview state
+        if (data?.memory)        window.finalInterviewMemory = data.memory;
+        if (data?.interviewState) window.interviewState      = data.interviewState;
 
-        if (data && data.interviewState) {
-          window.interviewState = data.interviewState;
-        }
-
-        if (data && (data.isInterviewCompleted || (data.interviewState && data.interviewState.earlyExitTriggered))) {
-          if (!firstCall) {
-            interviewHistory.push({
-              question: currentQuestionText,
-              answer: previousAnswer || "[No Answer / Skipped]",
-              score: data.score !== undefined ? data.score : 5,
-              feedback: data.feedback || "Evaluation completed."
-            });
-            accumulatedScore += data.score !== undefined ? data.score : 5;
-            totalQuestionsAnswered++;
-          }
-          currentQuestionText = data.nextQuestion;
-          document.getElementById("questionDisplay").textContent = currentQuestionText;
-          updateAvatarExpression(data.isInterviewCompleted ? 'happy' : 'serious');
-          speakQuestion(data.spokenQuestion || currentQuestionText, data.audioBase64);
-          
-          isInterviewFinished = true;
-          setTimeout(() => {
-            endInterview();
-          }, 8000);
-          return;
-        }
-        
+        // Record previous answer in history (not on first call)
         if (!firstCall) {
-          // Record history entry
           interviewHistory.push({
             question: currentQuestionText,
-            answer: previousAnswer || "[No Answer / Skipped]",
-            score: data.score !== undefined ? data.score : 5,
-            feedback: data.feedback || "Standard evaluation completed."
+            answer:   previousAnswer || '[No Answer / Skipped]',
+            score:    data.score   ?? 5,
+            feedback: data.feedback || 'Evaluation completed.'
           });
-          accumulatedScore += data.score !== undefined ? data.score : 5;
+          accumulatedScore += data.score ?? 5;
           totalQuestionsAnswered++;
+          logProctorEvent('Natural conversation flow maintained.', -4);
 
-          // Natural conversation flow reduction: -4
-          logProctorEvent("Natural conversation flow maintained.", -4);
-
-          // Display simple evaluating state
-          const evaluatingText = "EVALUATING YOUR ANSWER...";
-          const evalLetterSpans = evaluatingText.split("").map((char, index) => {
-            if (char === " ") return `<span class="loader-letter" style="animation-delay: ${index * 0.04}s;">&nbsp;</span>`;
-            return `<span class="loader-letter" style="animation-delay: ${index * 0.04}s;">${char}</span>`;
-          }).join("");
-
-          document.getElementById("questionDisplay").innerHTML = `
-            <div class="loader-wrapper" style="margin-top: 15px; display: flex; align-items: center; justify-content: flex-start;">
-              <div class="loader"></div>
-              <div class="letter-wrapper">
-                ${evalLetterSpans}
-              </div>
-            </div>
-          `;
-
-          // React visually based on score rules
-          if (data.score >= 8) {
-            updateAvatarExpression('happy');
-          } else if (data.score >= 5) {
-            updateAvatarExpression('encouraging');
-          } else {
-            updateAvatarExpression('confused');
+          // Adaptive difficulty adjustment
+          if (data.difficultyChange === 'increase') {
+            if (selectedDifficulty === 'Beginner')     selectedDifficulty = 'Intermediate';
+            else if (selectedDifficulty === 'Intermediate') selectedDifficulty = 'Expert';
+          } else if (data.difficultyChange === 'decrease') {
+            if (selectedDifficulty === 'Expert')       selectedDifficulty = 'Intermediate';
+            else if (selectedDifficulty === 'Intermediate') selectedDifficulty = 'Beginner';
           }
-
-          // Sleek transition delay
-          await new Promise(resolve => setTimeout(resolve, 1200));
-          if (isInterviewFinished) return;
-
-          if (data.difficultyChange === "increase") {
-            if (selectedDifficulty === "Beginner") selectedDifficulty = "Intermediate";
-            else if (selectedDifficulty === "Intermediate") selectedDifficulty = "Expert";
-          } else if (data.difficultyChange === "decrease") {
-            if (selectedDifficulty === "Expert") selectedDifficulty = "Intermediate";
-            else if (selectedDifficulty === "Intermediate") selectedDifficulty = "Beginner";
-          }
-          document.getElementById("diffTag").textContent = selectedDifficulty;
+          document.getElementById('diffTag').textContent = selectedDifficulty;
         }
 
-        // Move to the next question
-        currentQuestionText = data.nextQuestion;
-        document.getElementById("questionDisplay").textContent = currentQuestionText;
-        document.getElementById("questionNum").textContent = totalQuestionsAnswered + 1;
+        const isCompleted = data.isInterviewCompleted ||
+                            data.interviewState?.earlyExitTriggered;
 
-        // Set serious expression prior to speaking questions
+        currentQuestionText = data.nextQuestion;
+
+        // ─ STEP 1: If not first call, speak a reaction phrase FIRST ─
+        if (!firstCall) {
+          const reactionScore = data.score ?? 5;
+          const reaction = getReaction(reactionScore, wasSkipped);
+
+          const avatarExpr = reactionScore >= 8 ? 'happy' :
+                             reactionScore >= 5 ? 'encouraging' : 'serious';
+          updateAvatarExpression(avatarExpr);
+
+          // Show reaction as a short spoken bridge
+          await _speakAndWait(reaction);
+          if (enginePhase === PHASE.FINISHED) return;
+          await _sleep(350);
+        }
+
+        // ─ STEP 2: Show next question with typewriter effect ─
+        document.getElementById('questionNum').textContent = totalQuestionsAnswered + 1;
         updateAvatarExpression('serious');
-        speakQuestion(data.spokenQuestion || currentQuestionText, data.audioBase64);
+        _typewriterQuestion(currentQuestionText);
+
+        // ─ STEP 3: Speak the question ─
+        if (isCompleted) {
+          enginePhase = PHASE.FINISHED;
+          isInterviewFinished = true;
+          speakQuestion(data.spokenQuestion || currentQuestionText, data.audioBase64);
+          setTimeout(() => endInterview(), 8500);
+        } else {
+          speakQuestion(data.spokenQuestion || currentQuestionText, data.audioBase64);
+        }
 
       } catch (err) {
-        console.error("API error:", err);
-        if (isInterviewFinished) return;
-        
-        // Record the history entry so we advance and don't get stuck
+        console.error('[Interview] API error, using fallback:', err);
+        if (enginePhase === PHASE.FINISHED) return;
+
         if (!firstCall) {
           interviewHistory.push({
             question: currentQuestionText,
-            answer: previousAnswer || "[No Answer / Skipped]",
-            score: 5,
-            feedback: "Evaluation completed via client-side fallback."
+            answer:   previousAnswer || '[No Answer / Skipped]',
+            score:    5,
+            feedback: 'Evaluated via client-side fallback.'
           });
           accumulatedScore += 5;
           totalQuestionsAnswered++;
         }
 
-        // In fallback mode, complete the interview gracefully after 5 questions
         if (totalQuestionsAnswered >= 4) {
-          currentQuestionText = "Thank you so much for your time today. That concludes our interview session. I will now compile and generate your evaluation report. Have a great day!";
-          document.getElementById("questionDisplay").textContent = currentQuestionText;
+          currentQuestionText = `Thank you so much for your time today, ${candidateName}. That concludes our session. Generating your evaluation report now — well done!`;
+          _typewriterQuestion(currentQuestionText);
           updateAvatarExpression('happy');
           speakQuestion(currentQuestionText);
+          enginePhase = PHASE.FINISHED;
           isInterviewFinished = true;
-          setTimeout(() => {
-            endInterview();
-          }, 8000);
+          setTimeout(() => endInterview(), 8500);
           return;
         }
-        
-        const questionsList = CLIENT_FALLBACK_QUESTIONS[selectedRole] || CLIENT_FALLBACK_QUESTIONS["Full Stack Developer"];
-        const diffList = questionsList[selectedDifficulty] || questionsList["Intermediate"];
-        const fallbackIndex = totalQuestionsAnswered % diffList.length;
-        
-        currentQuestionText = diffList[fallbackIndex];
-        if (selectedInterviewer === 'vikram') {
-          currentQuestionText += " Please explain the deep under-the-hood engine mechanics and architectural bottlenecks related to this.";
-        }
-        
-        document.getElementById("questionDisplay").textContent = currentQuestionText;
-        document.getElementById("questionNum").textContent = totalQuestionsAnswered + 1;
+
+        const fallbackList = CLIENT_FALLBACK_QUESTIONS[selectedRole] ??
+                             CLIENT_FALLBACK_QUESTIONS['Full Stack Developer'];
+        const diffList  = fallbackList[selectedDifficulty] ?? fallbackList['Intermediate'];
+        currentQuestionText = diffList[totalQuestionsAnswered % diffList.length];
+
+        document.getElementById('questionNum').textContent = totalQuestionsAnswered + 1;
         updateAvatarExpression('serious');
+        _typewriterQuestion(currentQuestionText);
         speakQuestion(currentQuestionText);
       }
+    }
+
+    // ─── UI helpers ───
+    function _showLoaderText(text) {
+      const spans = text.split('').map((ch, i) =>
+        ch === ' '
+          ? `<span class="loader-letter" style="animation-delay:${i*0.04}s">&nbsp;</span>`
+          : `<span class="loader-letter" style="animation-delay:${i*0.04}s">${ch}</span>`
+      ).join('');
+      document.getElementById('questionDisplay').innerHTML = `
+        <div class="loader-wrapper" style="margin-top:15px;display:flex;align-items:center;justify-content:flex-start;">
+          <div class="loader"></div>
+          <div class="letter-wrapper">${spans}</div>
+        </div>`;
+    }
+
+    function _setStatusBadge(label, bg, color) {
+      const el = document.getElementById('speechSupportedTag');
+      if (!el) return;
+      el.textContent = label;
+      el.style.backgroundColor = bg;
+      el.style.color = color;
+    }
+
+    function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // Typewriter effect — renders the question char by char for realism
+    function _typewriterQuestion(text) {
+      const el = document.getElementById('questionDisplay');
+      if (!el) return;
+      el.textContent = '';
+      let i = 0;
+      const speed = Math.max(18, Math.min(42, Math.round(2800 / text.length)));
+      function tick() {
+        if (enginePhase === PHASE.FINISHED) { el.textContent = text; return; }
+        if (i < text.length) {
+          el.textContent += text[i++];
+          setTimeout(tick, speed);
+        }
+      }
+      tick();
+    }
+
+    // Speak a short phrase and resolve when it finishes (for reaction bridge)
+    function _speakAndWait(text) {
+      return new Promise(resolve => {
+        if (!window.speechSynthesis) { resolve(); return; }
+        window.speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(text);
+        if (!lockedVoice) selectVoiceForInterviewer();
+        if (lockedVoice) utt.voice = lockedVoice;
+        _applySpeechParams(utt);
+        utt.onend  = resolve;
+        utt.onerror = resolve;
+        try { window.speechSynthesis.speak(utt); } catch { resolve(); }
+      });
     }
 
     // --- VOICE TO TEXT ---
@@ -3108,8 +3182,42 @@
       speechRecognition.interimResults = true;
       speechRecognition.lang = 'en-US';
 
+      speechRecognition.onstart = () => {
+        speechRecognitionStarting = false;
+        speechRecognitionActive = true;
+        console.log("Speech recognition started.");
+        document.getElementById("speechSupportedTag").textContent = "Listening";
+        document.getElementById("speechSupportedTag").style.backgroundColor = "rgba(16, 185, 129, 0.15)";
+        document.getElementById("speechSupportedTag").style.color = "var(--success)";
+        document.getElementById("micStatusPulse").className = "mic-status-pulse listening";
+      };
+
+      speechRecognition.onend = () => {
+        speechRecognitionActive = false;
+        speechRecognitionStarting = false;
+        console.log("Speech recognition ended.");
+        document.getElementById("speechSupportedTag").textContent = "Speech Mode Ready";
+        document.getElementById("speechSupportedTag").style.backgroundColor = "rgba(59, 130, 246, 0.1)";
+        document.getElementById("speechSupportedTag").style.color = "var(--accent-secondary)";
+        document.getElementById("micStatusPulse").className = "mic-status-pulse";
+        
+        // Auto-restart if we should be active and interview is not paused/speaking
+        if (speechRecognitionShouldBeActive && !isAiSpeaking && !isInterviewPaused && !isThinkTimeActive && !isInterviewFinished) {
+          startListening();
+        }
+      };
+
+      speechRecognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        speechRecognitionStarting = false;
+        if (event.error === 'not-allowed') {
+          showToast("Microphone access blocked or not allowed.", "danger");
+          speechRecognitionShouldBeActive = false;
+        }
+      };
+
       speechRecognition.onresult = (event) => {
-        if (isInterviewPaused) return;
+        if (isInterviewPaused || isAiSpeaking || isThinkTimeActive || isInterviewFinished) return;
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
@@ -3121,14 +3229,19 @@
             processedText = transliterateDevanagariToLatin(processedText);
           }
           const textarea = document.getElementById("answerTextarea");
-          textarea.value = (textarea.value + " " + processedText).trim();
-          resetAutoSubmitTimer();
+          if (textarea && !textarea.disabled) {
+            textarea.value = (textarea.value + " " + processedText).trim();
+            resetAutoSubmitTimer();
+          }
         }
       };
     }
 
     function startListening() {
-      if (speechRecognition && !isAiSpeaking && !isInterviewPaused && !isThinkTimeActive) {
+      if (speechRecognition && !isAiSpeaking && !isInterviewPaused && !isThinkTimeActive && !isInterviewFinished) {
+        speechRecognitionShouldBeActive = true;
+        if (speechRecognitionActive || speechRecognitionStarting) return;
+        
         const audioTrack = localStream ? localStream.getAudioTracks()[0] : null;
         if (audioTrack && !audioTrack.enabled) return;
         
@@ -3138,14 +3251,24 @@
           speechRecognition.lang = 'en-US';
         }
 
-        document.getElementById("speechSupportedTag").textContent = "Listening";
-        document.getElementById("speechSupportedTag").style.backgroundColor = "rgba(16, 185, 129, 0.15)";
-        document.getElementById("speechSupportedTag").style.color = "var(--success)";
-        document.getElementById("micStatusPulse").className = "mic-status-pulse listening";
-        
         try {
+          speechRecognitionStarting = true;
           speechRecognition.start();
-        } catch (e) {}
+        } catch (e) {
+          console.error("SpeechRecognition start failed:", e);
+          speechRecognitionStarting = false;
+        }
+      }
+    }
+
+    function stopListening() {
+      speechRecognitionShouldBeActive = false;
+      if (speechRecognition && (speechRecognitionActive || speechRecognitionStarting)) {
+        try {
+          speechRecognition.stop();
+        } catch (e) {
+          console.warn("SpeechRecognition stop failed or already stopped:", e);
+        }
       }
     }
 
@@ -3296,205 +3419,167 @@
     }
 
     function speakQuestionFallback(text) {
-      if (!window.speechSynthesis) {
-        onSpeechFinished();
-        return;
-      }
+      if (!window.speechSynthesis) { onSpeechFinished(); return; }
 
       const utterance = new SpeechSynthesisUtterance(text);
-
-      // Ensure voice is locked before speaking
       if (!lockedVoice) selectVoiceForInterviewer();
       if (lockedVoice) utterance.voice = lockedVoice;
+      _applySpeechParams(utterance);
 
-      // Pitch, rate and volume per character and language
+      utterance.onend  = () => onSpeechFinished();
+      utterance.onerror = () => onSpeechFinished();
+
+      try { window.speechSynthesis.speak(utterance); }
+      catch (err) { console.warn('SpeechSynthesis.speak failed:', err); onSpeechFinished(); }
+    }
+
+    // Centralised speech param setter (pitch / rate per character + language)
+    function _applySpeechParams(utt) {
       if (selectedInterviewer === 'vikram') {
-        utterance.rate  = selectedLanguage === 'hi' ? 1.05 : 1.15;
-        utterance.pitch = 0.80; // Deep, authoritative
-        utterance.volume = 1.0;
+        utt.rate  = selectedLanguage === 'hi' ? 1.05 : 1.10;
+        utt.pitch = 0.80; utt.volume = 1.0;
       } else if (selectedInterviewer === 'ananya') {
-        utterance.rate  = selectedLanguage === 'hi' ? 1.10 : 1.20;
-        utterance.pitch = selectedLanguage === 'hi' ? 1.10 : 1.05; // Clear feminine
-        utterance.volume = 1.0;
+        utt.rate  = selectedLanguage === 'hi' ? 1.10 : 1.18;
+        utt.pitch = selectedLanguage === 'hi' ? 1.10 : 1.05; utt.volume = 1.0;
       } else {
-        // Sarthi
-        utterance.rate  = selectedLanguage === 'hi' ? 1.10 : 1.20;
-        utterance.pitch = selectedLanguage === 'hi' ? 1.00 : 1.0;
-        utterance.volume = 1.0;
-      }
-
-      utterance.onend = () => { onSpeechFinished(); };
-      utterance.onerror = () => { onSpeechFinished(); };
-
-      try {
-        window.speechSynthesis.speak(utterance);
-      } catch (err) {
-        console.warn("SpeechSynthesis.speak failed:", err);
-        onSpeechFinished();
+        utt.rate  = selectedLanguage === 'hi' ? 1.10 : 1.18;
+        utt.pitch = 1.0; utt.volume = 1.0;
       }
     }
 
     function onSpeechFinished() {
-      isAiSpeaking = false;
-      
+      // Only handle if we haven't already cleaned up
+      if (enginePhase === PHASE.FINISHED) return;
+
       if (window.currentElevenLabsAudio) {
-        try {
-          window.currentElevenLabsAudio.pause();
-        } catch(e){}
+        try { window.currentElevenLabsAudio.pause(); } catch(e){}
         window.currentElevenLabsAudio = null;
       }
-      
-      const qBox = document.getElementById("questionBox");
-      if (qBox) qBox.classList.remove("speaking-border-ai");
-      
-      document.getElementById("answerTextarea").value = "";
-      
+
+      const qBox = document.getElementById('questionBox');
+      if (qBox) qBox.classList.remove('speaking-border-ai');
+
+      // Clear the answer box and reset per-turn tracking
+      const textarea = document.getElementById('answerTextarea');
+      if (textarea) textarea.value = '';
+      lastInterimLength  = 0;
+      _silencePromptGiven = false;
+      silenceStartTime    = null;
+
       if (timerLimit > 0) {
+        enginePhase = PHASE.THINK_TIME;
         updateAvatarExpression('thinking');
         startThinkTimer();
       } else {
+        enginePhase = PHASE.LISTENING;
         updateAvatarExpression('listening');
         startListeningMode();
       }
     }
 
-    // --- COOLDOWN/THINK TIME TIMER ---
+    // --- THINK TIME TIMER ---
     function startThinkTimer() {
       if (responseTimer) clearInterval(responseTimer);
-      
-      isThinkTimeActive = true;
-      const submitAnsBtn = document.getElementById("submitAnswerBtn");
-      if (submitAnsBtn) {
-        submitAnsBtn.style.display = "block";
-        submitAnsBtn.textContent = "Start Answering";
-      }
-      
-      const textarea = document.getElementById("answerTextarea");
-      textarea.disabled = true;
-      textarea.placeholder = "Preparation Time active... Think about your response.";
-      
-      const timerContainer = document.getElementById("timerContainer");
-      const timerText = document.getElementById("timerVal");
-      const timerCircle = document.getElementById("timerCircleProgress");
-      
-      timerContainer.style.display = "flex";
-      timerContainer.classList.remove("danger");
-      
+
+      enginePhase = PHASE.THINK_TIME;
+      const submitAnsBtn = document.getElementById('submitAnswerBtn');
+      if (submitAnsBtn) { submitAnsBtn.style.display = 'block'; submitAnsBtn.textContent = 'Skip Prep Time'; }
+
+      const textarea = document.getElementById('answerTextarea');
+      if (textarea) { textarea.disabled = true; textarea.placeholder = 'Prep time active — think about your response...'; }
+
+      const timerContainer = document.getElementById('timerContainer');
+      const timerText      = document.getElementById('timerVal');
+      const timerCircle    = document.getElementById('timerCircleProgress');
+
+      timerContainer.style.display = 'flex';
+      timerContainer.classList.remove('danger');
+
       timerSecondsRemaining = timerLimit;
-      timerText.textContent = `Prep: ${timerSecondsRemaining}s`;
-      
+      if (timerText) timerText.textContent = `Prep: ${timerSecondsRemaining}s`;
+
       const dasharray = 54;
-      timerCircle.style.strokeDashoffset = 0;
-      
+      if (timerCircle) timerCircle.style.strokeDashoffset = 0;
+
       responseTimer = setInterval(() => {
-        if (isInterviewPaused || isAiSpeaking) return; // Freeze if paused or AI starts speaking
-        
+        if (_isInterviewPaused || enginePhase === PHASE.AI_SPEAKING) return;
         timerSecondsRemaining--;
-        timerText.textContent = `Prep: ${timerSecondsRemaining}s`;
-        
+        if (timerText) timerText.textContent = `Prep: ${timerSecondsRemaining}s`;
         const offset = dasharray - (dasharray * (timerSecondsRemaining / timerLimit));
-        timerCircle.style.strokeDashoffset = offset;
-        
-        if (timerSecondsRemaining <= 3) {
-          timerContainer.classList.add("danger");
-        }
-        
-        if (timerSecondsRemaining <= 0) {
-          clearInterval(responseTimer);
-          startListeningMode();
-        }
+        if (timerCircle) timerCircle.style.strokeDashoffset = offset;
+        if (timerSecondsRemaining <= 3) timerContainer.classList.add('danger');
+        if (timerSecondsRemaining <= 0) { clearInterval(responseTimer); startListeningMode(); }
       }, 1000);
     }
 
     function startListeningMode() {
       if (responseTimer) clearInterval(responseTimer);
-      isThinkTimeActive = false;
-      
-      // Hide timer HUD and update button displays
-      document.getElementById("timerContainer").style.display = "none";
-      const submitAnsBtn = document.getElementById("submitAnswerBtn");
-      if (submitAnsBtn) {
-        submitAnsBtn.style.display = "block";
-        submitAnsBtn.textContent = "Submit Answer";
+      enginePhase = PHASE.LISTENING;
+
+      document.getElementById('timerContainer').style.display = 'none';
+      const submitAnsBtn = document.getElementById('submitAnswerBtn');
+      if (submitAnsBtn) { submitAnsBtn.style.display = 'block'; submitAnsBtn.textContent = 'Submit Answer'; }
+
+      const textarea = document.getElementById('answerTextarea');
+      if (textarea) {
+        textarea.disabled   = false;
+        textarea.placeholder = 'Start speaking or type your answer here...';
+        textarea.focus();
       }
-      
-      const textarea = document.getElementById("answerTextarea");
-      textarea.disabled = false;
-      textarea.placeholder = "Start speaking or type your answer here...";
-      textarea.focus();
-      
-      // Update avatar state to listening
+
       updateAvatarExpression('listening');
-      
-      // Trigger microphone audio detection and transcription
+      _setStatusBadge('Listening', 'rgba(16,185,129,0.15)', 'var(--success)');
       startListening();
     }
 
     function skipThinkTime() {
-      if (isThinkTimeActive) {
-        startListeningMode();
-      }
+      if (enginePhase !== PHASE.THINK_TIME) return;
+      startListeningMode();
     }
 
     // --- PLAY/PAUSE INTERVIEW CONTROL ---
     function togglePlayPause() {
-      const btn = document.getElementById("playPauseBtn");
-      isInterviewPaused = !isInterviewPaused;
-      
-      if (isInterviewPaused) {
-        btn.innerHTML = PLAY_SVG;
-        btn.title = "Resume Interview";
-        btn.classList.add("muted");
-        logProctorEvent("Interview paused.", 0);
-        
-        if (window.currentElevenLabsAudio) {
-          window.currentElevenLabsAudio.pause();
-        }
-        if (window.speechSynthesis) {
-          window.speechSynthesis.pause();
-        }
-        if (speechRecognition) {
-          speechRecognition.stop();
-        }
-        
-        document.getElementById("answerTextarea").disabled = true;
-        document.getElementById("answerTextarea").placeholder = "Interview is currently paused. Click the Resume button to continue.";
-        document.getElementById("speechSupportedTag").textContent = "Paused";
-        document.getElementById("speechSupportedTag").style.backgroundColor = "rgba(245, 158, 11, 0.15)";
-        document.getElementById("speechSupportedTag").style.color = "var(--warning)";
-        document.getElementById("micStatusPulse").className = "mic-status-pulse";
+      const btn = document.getElementById('playPauseBtn');
+      _isInterviewPaused = !_isInterviewPaused;
 
+      if (_isInterviewPaused) {
+        _phaseBeforePause = enginePhase;
+        btn.innerHTML = PLAY_SVG; btn.title = 'Resume Interview'; btn.classList.add('muted');
+        logProctorEvent('Interview paused.', 0);
+
+        if (window.currentElevenLabsAudio) window.currentElevenLabsAudio.pause();
+        if (window.speechSynthesis) window.speechSynthesis.pause();
+        stopListening();
+
+        const ta = document.getElementById('answerTextarea');
+        if (ta) { ta.disabled = true; ta.placeholder = 'Interview is paused. Click Resume to continue.'; }
+        _setStatusBadge('Paused', 'rgba(245,158,11,0.15)', 'var(--warning)');
+        document.getElementById('micStatusPulse').className = 'mic-status-pulse';
         updateAvatarExpression('paused');
       } else {
-        btn.innerHTML = PAUSE_SVG;
-        btn.title = "Pause Interview";
-        btn.classList.remove("muted");
-        logProctorEvent("Interview resumed.", 0);
-        
-        if (window.currentElevenLabsAudio) {
-          window.currentElevenLabsAudio.play().catch(err => {
-            console.warn("ElevenLabs audio play failed on resume:", err);
-          });
-        }
-        if (window.speechSynthesis) {
-          window.speechSynthesis.resume();
-        }
-        
-        if (isAiSpeaking) {
+        btn.innerHTML = PAUSE_SVG; btn.title = 'Pause Interview'; btn.classList.remove('muted');
+        logProctorEvent('Interview resumed.', 0);
+
+        if (window.currentElevenLabsAudio)
+          window.currentElevenLabsAudio.play().catch(() => {});
+        if (window.speechSynthesis) window.speechSynthesis.resume();
+
+        if (_phaseBeforePause === PHASE.AI_SPEAKING) {
           updateAvatarExpression('speaking');
+        } else if (_phaseBeforePause === PHASE.THINK_TIME) {
+          enginePhase = PHASE.THINK_TIME;
+          updateAvatarExpression('thinking');
+          const ta = document.getElementById('answerTextarea');
+          if (ta) ta.placeholder = 'Prep time active — think about your response...';
         } else {
-          if (isThinkTimeActive) {
-            updateAvatarExpression('thinking');
-            document.getElementById("answerTextarea").placeholder = "Preparation Time active... Think about your response.";
-          } else {
-            updateAvatarExpression('listening');
-            document.getElementById("answerTextarea").disabled = false;
-            document.getElementById("answerTextarea").placeholder = "Start speaking or type your answer here...";
-            document.getElementById("answerTextarea").focus();
-            startListening();
-          }
+          enginePhase = PHASE.LISTENING;
+          updateAvatarExpression('listening');
+          const ta = document.getElementById('answerTextarea');
+          if (ta) { ta.disabled = false; ta.placeholder = 'Start speaking or type your answer here...'; ta.focus(); }
+          startListening();
         }
       }
+      updateControlIcons();
     }
 
     function toggleFullScreen() {
@@ -3518,105 +3603,73 @@
       }
     }
 
-    // --- SUBMIT ANSWER AND MOVE ON ---
-    function submitAnswer(wasTimerExpired = false) {
-      if (isAiSpeaking || isInterviewPaused) return;
+    // ───────────────────────────────────────────────
+    //  SUBMIT ANSWER  — phase-safe, no double submission
+    // ───────────────────────────────────────────────
+    function submitAnswer(wasSkipped = false) {
+      if (enginePhase !== PHASE.LISTENING) return;  // strict phase guard
+      if (_isInterviewPaused) return;
 
-      if (responseTimer) clearInterval(responseTimer);
+      enginePhase = PHASE.EVALUATING;  // lock immediately — prevents double-fire
+
+      stopListening();
+      if (responseTimer)     clearInterval(responseTimer);
       if (autoSubmitTimeout) clearTimeout(autoSubmitTimeout);
 
-      const textarea = document.getElementById("answerTextarea");
-      const answerVal = textarea.value.trim();
+      const textarea  = document.getElementById('answerTextarea');
+      const answerVal = (textarea?.value || '').trim();
 
-      // Proctor score reductions
-      if (answerVal.length > 80) {
-        logProctorEvent("Detailed, confident response length.", -6);
-      }
-      const experienceRegex = /\b(I|my|we|project|experience|worked|built|implemented|role|job|team)\b/i;
-      if (experienceRegex.test(answerVal)) {
-        logProctorEvent("Explaining own personal experience details.", -6);
-      }
+      // Proctor score adjustments based on answer quality signals
+      if (answerVal.length > 80) logProctorEvent('Detailed, confident response.', -6);
+      if (/\b(I|my|we|project|experience|worked|built|implemented|role|team)\b/i.test(answerVal))
+        logProctorEvent('Personal experience references detected.', -6);
 
-      // Dynamic human interviewer decision. Safeguard at 14 questions to protect API costs.
+      // Safety cap: after 14 questions force final wrap
       if (totalQuestionsAnswered >= 14) {
-        isAiSpeaking = true;
-        
-        // Show evaluating state
         updateAvatarExpression('thinking');
-        const loadingText = "COMPLETING EVALUATION & GENERATING FINAL REPORT...";
-        const letterSpans = loadingText.split("").map((char, index) => {
-          if (char === " ") return `<span class="loader-letter" style="animation-delay: ${index * 0.04}s;">&nbsp;</span>`;
-          return `<span class="loader-letter" style="animation-delay: ${index * 0.04}s;">${char}</span>`;
-        }).join("");
-
-        document.getElementById("questionDisplay").innerHTML = `
-          <div class="loader-wrapper" style="margin-top: 15px; display: flex; align-items: center; justify-content: flex-start;">
-            <div class="loader"></div>
-            <div class="letter-wrapper">
-              ${letterSpans}
-            </div>
-          </div>
-        `;
+        _showLoaderText('COMPLETING EVALUATION & GENERATING FINAL REPORT...');
 
         setTimeout(async () => {
           try {
             const includeResume = document.getElementById('includeResumeCheckbox')?.checked;
-            const activeProfile = includeResume ? candidateProfile : null;
-
-            const response = await fetch((window.API_BASE_URL || '') + "/api/sarthi/interview/next", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
+            const res = await fetch((window.API_BASE_URL || '') + '/api/sarthi/interview/next', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                role: selectedRole,
-                difficulty: selectedDifficulty,
-                history: interviewHistory,
-                currentQuestion: currentQuestionText,
-                userAnswer: answerVal,
-                timerExpired: wasTimerExpired,
-                candidateProfile: activeProfile,
-                candidateName: candidateName,
-                interviewerAbility: selectedInterviewer,
-                language: selectedLanguage,
-                jobSkills: window._interviewJobSkills || '',
-                jobId: window._interviewJobId || '',
-                interviewState: window.interviewState || null
+                role: selectedRole, difficulty: selectedDifficulty, history: interviewHistory,
+                currentQuestion: currentQuestionText, userAnswer: answerVal,
+                timerExpired: wasSkipped,
+                candidateProfile: includeResume ? candidateProfile : null,
+                candidateName, interviewerAbility: selectedInterviewer,
+                language: selectedLanguage, jobSkills: window._interviewJobSkills || '',
+                jobId: window._interviewJobId || '', interviewState: window.interviewState || null,
+                email: seekerEmail
               })
             });
-            const data = await response.json();
-            if (data && data.memory) {
-              window.finalInterviewMemory = data.memory;
-            }
-            if (data && data.interviewState) {
-              window.interviewState = data.interviewState;
-            }
-            
+            const data = await res.json();
+            if (data?.memory)        window.finalInterviewMemory = data.memory;
+            if (data?.interviewState) window.interviewState      = data.interviewState;
             interviewHistory.push({
               question: currentQuestionText,
-              answer: answerVal || "[No Answer / Skipped]",
-              score: data.score !== undefined ? data.score : 7,
-              feedback: data.feedback || "Final evaluation completed."
+              answer:   answerVal || '[No Answer / Skipped]',
+              score:    data.score ?? 7,
+              feedback: data.feedback || 'Final evaluation completed.'
             });
-            accumulatedScore += data.score !== undefined ? data.score : 7;
-            
-            // Do not show marks or feedback, just sleep briefly to finalize
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
+            accumulatedScore += data.score ?? 7;
           } catch(e) {
             interviewHistory.push({
               question: currentQuestionText,
-              answer: answerVal || "[No Answer / Skipped]",
-              score: 7,
-              feedback: "Final query evaluated."
+              answer:   answerVal || '[No Answer / Skipped]',
+              score: 7, feedback: 'Final query evaluated.'
             });
             accumulatedScore += 7;
           }
-          
           totalQuestionsAnswered++;
           endInterview();
         }, 500);
+
       } else {
-        // Move to next question dynamically
-        fetchNextQuestion(false, answerVal, wasTimerExpired);
+        fetchNextQuestion(false, answerVal, wasSkipped);
       }
     }
 
@@ -3713,93 +3766,72 @@
             if (selectedInterviewer === "vikram") charLabel = "PROF. VIKRAM";
             else if (selectedInterviewer === "ananya") charLabel = "DR. ANANYA";
 
-            if (isInterviewPaused) {
+            if (_isInterviewPaused) {
               statusText.textContent = `${charLabel} - PAUSED`;
-              statusPulse.style.backgroundColor = "var(--warning)";
-              if (avatarPulseRing) {
-                avatarPulseRing.setAttribute("stroke", "var(--warning)");
-                avatarPulseRing.style.animationPlayState = "paused";
-              }
-              if (avatarMouth) {
-                avatarMouth.classList.remove("talking-mouth");
-              }
-            } else if (isAiSpeaking) {
+              statusPulse.style.backgroundColor = 'var(--warning)';
+              if (avatarPulseRing) { avatarPulseRing.setAttribute('stroke','var(--warning)'); avatarPulseRing.style.animationPlayState = 'paused'; }
+              if (avatarMouth) avatarMouth.classList.remove('talking-mouth');
+            } else if (enginePhase === PHASE.AI_SPEAKING) {
               statusText.textContent = `${charLabel} - SPEAKING`;
-              statusPulse.style.backgroundColor = "var(--accent-secondary)";
-              if (avatarPulseRing) {
-                avatarPulseRing.setAttribute("stroke", "var(--accent-secondary)");
-                avatarPulseRing.style.animationPlayState = "running";
-              }
-              if (avatarMouth) {
-                avatarMouth.classList.add("talking-mouth");
-              }
-            } else if (isThinkTimeActive) {
-              statusText.textContent = `${charLabel} - PREPARING`;
-              statusPulse.style.backgroundColor = "var(--accent-tertiary)";
-              if (avatarPulseRing) {
-                avatarPulseRing.setAttribute("stroke", "var(--accent-tertiary)");
-                avatarPulseRing.style.animationPlayState = "running";
-              }
-              if (avatarMouth) {
-                avatarMouth.classList.remove("talking-mouth");
-              }
+              statusPulse.style.backgroundColor = 'var(--accent-secondary)';
+              if (avatarPulseRing) { avatarPulseRing.setAttribute('stroke','var(--accent-secondary)'); avatarPulseRing.style.animationPlayState = 'running'; }
+              if (avatarMouth) avatarMouth.classList.add('talking-mouth');
+            } else if (enginePhase === PHASE.THINK_TIME || enginePhase === PHASE.EVALUATING) {
+              statusText.textContent = `${charLabel} - THINKING`;
+              statusPulse.style.backgroundColor = 'var(--accent-tertiary)';
+              if (avatarPulseRing) { avatarPulseRing.setAttribute('stroke','var(--accent-tertiary)'); avatarPulseRing.style.animationPlayState = 'running'; }
+              if (avatarMouth) avatarMouth.classList.remove('talking-mouth');
             } else {
-              // Listening mode
+              // LISTENING
               statusText.textContent = `${charLabel} - LISTENING`;
-              statusPulse.style.backgroundColor = "var(--success)";
+              statusPulse.style.backgroundColor = 'var(--success)';
               if (avatarPulseRing) {
-                avatarPulseRing.setAttribute("stroke", "var(--success)");
-                avatarPulseRing.style.animationPlayState = "running";
-                // Modulate pulse ring scale based on candidate speech amplitude
-                const volumeScale = 1 + Math.min(0.4, averageVolume / 100);
-                avatarPulseRing.style.transform = `scale(${volumeScale})`;
+                avatarPulseRing.setAttribute('stroke','var(--success)');
+                avatarPulseRing.style.animationPlayState = 'running';
+                avatarPulseRing.style.transform = `scale(${1 + Math.min(0.4, averageVolume / 100)})`;
               }
-              if (avatarMouth) {
-                avatarMouth.classList.remove("talking-mouth");
-              }
+              if (avatarMouth) avatarMouth.classList.remove('talking-mouth');
             }
 
           // Candidate silence detection: if user stays silent during their turn
-          if (!isAiSpeaking && !isInterviewPaused && !isThinkTimeActive) {
-            // Consistent speaking reduction: if user speaks above threshold for ~4s
+          if (enginePhase === PHASE.LISTENING && !_isInterviewPaused) {
+            // Positive: sustained speaking lowers suspicion
             if (averageVolume > 15) {
               continuousSpeakingTicks++;
               if (continuousSpeakingTicks === 240) {
-                logProctorEvent("Consistent, confident speaking pattern.", -4);
+                logProctorEvent('Consistent, confident speaking pattern.', -4);
                 continuousSpeakingTicks = 0;
               }
             } else {
               continuousSpeakingTicks = 0;
             }
 
+            // Silence detection: prompt once per turn after 10 seconds, then again after 20 seconds
             if (averageVolume < 8) {
-              if (!candidateSilenceStartTime) {
-                candidateSilenceStartTime = Date.now();
-              } else if (Date.now() - candidateSilenceStartTime > 8000) {
-                candidateSilenceStartTime = Date.now(); // reset window
-                
-                // Very long silence penalty: +2
-                logProctorEvent("Very long silence detected.", 2);
-                
-                isAiSpeaking = true;
-                document.getElementById("speechSupportedTag").textContent = "AI Speaking";
-                document.getElementById("speechSupportedTag").style.backgroundColor = "rgba(99, 102, 241, 0.15)";
-                document.getElementById("speechSupportedTag").style.color = "var(--accent-tertiary)";
-                document.getElementById("micStatusPulse").className = "mic-status-pulse";
+              if (!silenceStartTime) silenceStartTime = Date.now();
+              const silentSec = (Date.now() - silenceStartTime) / 1000;
 
-                if (speechRecognition) {
-                  try {
-                    speechRecognition.stop();
-                  } catch(err){}
-                }
+              if (silentSec > 10 && !_silencePromptGiven) {
+                _silencePromptGiven = true;
+                // Brief audio nudge (non-blocking, does NOT advance question)
+                const nudge = new SpeechSynthesisUtterance("Take your time. I\'m listening.");
+                if (lockedVoice) nudge.voice = lockedVoice;
+                _applySpeechParams(nudge);
+                nudge.rate = (nudge.rate || 1.0) * 0.9;
+                try { window.speechSynthesis?.speak(nudge); } catch(e) {}
+              }
 
-                speakQuestion("I can't hear you clearly. Please repeat that or speak louder.");
+              if (silentSec > 25) {
+                // Extended silence — log and gentle prompt to speak up
+                silenceStartTime = Date.now();
+                _silencePromptGiven = false;
+                logProctorEvent('Extended silence detected.', 2);
               }
             } else {
-              candidateSilenceStartTime = null;
+              silenceStartTime = null;
             }
           } else {
-            candidateSilenceStartTime = null;
+            silenceStartTime       = null;
             continuousSpeakingTicks = 0;
           }
 
@@ -4085,7 +4117,7 @@
           audioTrack.enabled = false;
           btn.classList.add("muted");
           logProctorEvent("Microphone paused.", 0); // no suspicion for pausing mic
-          if (speechRecognition) speechRecognition.stop();
+           stopListening();
         } else {
           audioTrack.enabled = true;
           btn.classList.remove("muted");
@@ -4098,6 +4130,7 @@
 
     // --- END INTERVIEW & RENDER REPORT ---
     function endInterview() {
+      enginePhase    = PHASE.FINISHED;
       isInterviewFinished = true;
       // Cancel fullscreen
       try {
@@ -4111,7 +4144,8 @@
         localStream.getTracks().forEach(track => track.stop());
         if (localStream._mockCleanup) localStream._mockCleanup();
       }
-      if (speechRecognition) speechRecognition.stop();
+      stopListening();
+      if (decayInterval) clearInterval(decayInterval);
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       if (responseTimer) clearInterval(responseTimer);
       if (autoSubmitTimeout) clearTimeout(autoSubmitTimeout);
@@ -4504,7 +4538,6 @@
       }
 
       // Save report to database
-      const seekerEmail = localStorage.getItem('seeker_email');
       if (seekerEmail) {
         fetch((window.API_BASE_URL || '') + "/api/sarthi/interviews", {
           method: "POST",
