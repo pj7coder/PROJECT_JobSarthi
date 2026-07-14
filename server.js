@@ -1062,6 +1062,25 @@ const dbService = {
     local.apply_clicks.push(clickEvent);
     await writeLocalDB(local);
     return clickEvent;
+  },
+  createRecruiterInterview: async (config) => {
+    if (mongoDb) {
+      await mongoDb.collection("recruiter_interviews").insertOne(config);
+      return config;
+    }
+    const local = await readLocalDB();
+    if (!local.recruiterInterviews) local.recruiterInterviews = [];
+    local.recruiterInterviews.push(config);
+    await writeLocalDB(local);
+    return config;
+  },
+  findRecruiterInterview: async (id) => {
+    if (mongoDb) {
+      return await mongoDb.collection("recruiter_interviews").findOne({ id });
+    }
+    const local = await readLocalDB();
+    if (!local.recruiterInterviews) local.recruiterInterviews = [];
+    return local.recruiterInterviews.find(c => c.id === id);
   }
 };
 
@@ -2616,6 +2635,81 @@ app.post("/api/recruiter/applicants/:id/status", async (req, res) => {
   }
 });
 
+app.post("/api/recruiter/interview/create", async (req, res) => {
+  try {
+    const {
+      candidateName,
+      candidateEmail,
+      role,
+      difficulty,
+      persona,
+      customQuestions,
+      recruiterEmail,
+      recruiterCompany
+    } = req.body;
+
+    if (!candidateName || !candidateEmail || !role) {
+      return res.status(400).json({ error: "Missing required candidate details." });
+    }
+
+    const configId = "rc_int_" + Math.random().toString(36).substring(2, 11);
+    const config = {
+      id: configId,
+      candidateName,
+      candidateEmail: candidateEmail.toLowerCase().trim(),
+      role,
+      difficulty: difficulty || "Intermediate",
+      persona: persona || "sarthi",
+      customQuestions: Array.isArray(customQuestions) ? customQuestions : [],
+      recruiterEmail: recruiterEmail ? recruiterEmail.toLowerCase().trim() : "",
+      recruiterCompany: recruiterCompany || "JobSarthi Partner",
+      createdAt: new Date().toISOString()
+    };
+
+    await dbService.createRecruiterInterview(config);
+
+    // Auto-update candidate status to 'Interviewing' if they are an existing applicant
+    try {
+      if (mongoDb) {
+        await mongoDb.collection("applications").updateOne(
+          { candidateEmail: config.candidateEmail, jobTitle: role },
+          { $set: { status: "Interviewing" } }
+        );
+      } else {
+        const local = await readLocalDB();
+        const appIdx = local.applications.findIndex(a => 
+          a.candidateEmail.toLowerCase() === config.candidateEmail && 
+          a.jobTitle === role
+        );
+        if (appIdx !== -1) {
+          local.applications[appIdx].status = "Interviewing";
+          await writeLocalDB(local);
+        }
+      }
+    } catch (statusErr) {
+      console.warn("Could not auto-update candidate status to Interviewing:", statusErr.message);
+    }
+
+    res.json({ success: true, configId });
+  } catch (err) {
+    console.error("Failed to create recruiter custom interview:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/api/recruiter/interview/:id", async (req, res) => {
+  try {
+    const config = await dbService.findRecruiterInterview(req.params.id);
+    if (!config) {
+      return res.status(404).json({ error: "Interview configuration not found." });
+    }
+    res.json(config);
+  } catch (err) {
+    console.error("Failed to fetch recruiter custom interview:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // --- Chat Messages and AI Recruiting Agent APIs ---
 
 app.get("/api/messages", async (req, res) => {
@@ -3059,7 +3153,7 @@ app.get("/api/seeker/sarthi-limits", async (req, res) => {
 
 app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
   try {
-    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language, jobSkills, jobId, interviewState, email } = req.body;
+    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language, jobSkills, jobId, interviewState, email, recruiterConfigId } = req.body;
     const isFirstQuestion = !currentQuestion;
 
     if (isFirstQuestion) {
@@ -3074,8 +3168,36 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
       }
     }
 
-    const currentRole = role || "Full Stack Developer";
-    const currentDiff = difficulty || "Intermediate";
+    let finalRole = role || "Full Stack Developer";
+    let finalDifficulty = difficulty || "Intermediate";
+    let finalInterviewerAbility = interviewerAbility || "sarthi";
+    let finalCandidateName = candidateName || "Candidate";
+    let customQuestionsText = "";
+    let customQuestionsList = [];
+
+    if (recruiterConfigId) {
+      try {
+        const rConfig = await dbService.findRecruiterInterview(recruiterConfigId);
+        if (rConfig) {
+          finalRole = rConfig.role;
+          finalDifficulty = rConfig.difficulty;
+          finalInterviewerAbility = rConfig.persona;
+          if (rConfig.candidateName) {
+            finalCandidateName = rConfig.candidateName;
+          }
+          customQuestionsList = rConfig.customQuestions || [];
+          if (customQuestionsList.length > 0) {
+            customQuestionsText = `\n===== RECRUITER CUSTOM QUESTIONS (MANDATORY) =====\nThe recruiter has specified these custom questions that you MUST ask the candidate. Weave them in during the Technical/Behavioral phases:\n` + 
+              customQuestionsList.map((q, idx) => `- Question ${idx + 1}: "${q}"`).join("\n") + "\n";
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load recruiter config for interview:", e);
+      }
+    }
+
+    const currentRole = finalRole;
+    const currentDiff = finalDifficulty;
 
     let resolvedRole = currentRole;
     if (currentRole === "From your resume") {
@@ -3245,21 +3367,22 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    let systemPrompt = `You are an experienced, highly skilled human interviewer named ${interviewerAbility === "vikram" ? "Prof. Vikram" : interviewerAbility === "ananya" ? "Dr. Ananya" : "Sarthi"} conducting a live technical interview on the JobSarthi platform.
+    let systemPrompt = `You are an experienced, highly skilled human interviewer named ${finalInterviewerAbility === "vikram" ? "Prof. Vikram" : finalInterviewerAbility === "ananya" ? "Dr. Ananya" : "Sarthi"} conducting a live technical interview on the JobSarthi platform.
 
 YOUR PERSONA:
-${interviewerAbility === "vikram" ? "You are Prof. Vikram — a seasoned senior engineering manager with 25+ years of experience at companies like Google and Microsoft. You speak deliberately, ask extremely deep low-level questions about runtime internals, memory models, concurrency primitives, and system bottlenecks. You never accept surface-level buzzword answers. You dig until you find the candidate's true depth. You are respectful but absolutely firm." : interviewerAbility === "ananya" ? "You are Dr. Ananya — a rigorous engineering director who has conducted 2000+ interviews. You are known for your sharp, methodical questioning style. You focus heavily on edge cases, failure modes, production incidents, and quantitative metrics. You probe for specific numbers (latency, throughput, error rates). You are professionally encouraging but never let vague or hand-wavy answers pass." : "You are Sarthi — a friendly, encouraging, and highly professional senior engineer. You create a comfortable interview atmosphere while still maintaining rigor. You guide candidates through difficult questions with subtle hints when they genuinely struggle, but you probe deeper when answers seem rehearsed or surface-level. You celebrate good answers with specific praise."}
+${finalInterviewerAbility === "vikram" ? "You are Prof. Vikram — a seasoned senior engineering manager with 25+ years of experience at companies like Google and Microsoft. You speak deliberately, ask extremely deep low-level questions about runtime internals, memory models, concurrency primitives, and system bottlenecks. You never accept surface-level buzzword answers. You dig until you find the candidate's true depth. You are respectful but absolutely firm." : finalInterviewerAbility === "ananya" ? "You are Dr. Ananya — a rigorous engineering director who has conducted 2000+ interviews. You are known for your sharp, methodical questioning style. You focus heavily on edge cases, failure modes, production incidents, and quantitative metrics. You probe for specific numbers (latency, throughput, error rates). You are professionally encouraging but never let vague or hand-wavy answers pass." : "You are Sarthi — a friendly, encouraging, and highly professional senior engineer. You create a comfortable interview atmosphere while still maintaining rigor. You guide candidates through difficult questions with subtle hints when they genuinely struggle, but you probe deeper when answers seem rehearsed or surface-level. You celebrate good answers with specific praise."}
 
 LANGUAGE: ${language === "hi" ? "Respond ONLY in Hindi (Devanagari script). All questions, feedback, and spoken text must be in Hindi." : language === "hinglish" ? "Respond in Hinglish (Hindi/English blend written in English alphabet, e.g., 'Aap scalability ko kaise handle karenge?'). Mix naturally like how Indian engineers actually speak in interviews." : "Respond in clear, professional English."}
 
 ===== CANDIDATE DOSSIER =====
-Name: ${candidateName || "Candidate"}
+Name: ${finalCandidateName}
 Target Role: ${jobDetails ? `${jobDetails.title} at ${jobDetails.company}` : resolvedRole}
 Difficulty Level: ${currentDiff}
 ${jobDetails ? `Job Description: ${jobDetails.description}\nJob Requirements: ${JSON.stringify(jobDetails.reqs)}` : ""}
 Resume/Profile:
 ${profileContext || "No resume provided"}
 ${jobSkills ? `Key Job Skills to Evaluate: ${jobSkills}` : ""}
+${customQuestionsText}
 
 ===== INTERVIEW STATE =====
 ${JSON.stringify(state, null, 2)}
@@ -3498,7 +3621,10 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outs
       }
       
       const roleQuestions = FALLBACK_QUESTIONS[fallbackRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
-      const diffQuestions = roleQuestions[currentDiff] || roleQuestions["Intermediate"];
+      let diffQuestions = roleQuestions[currentDiff] || roleQuestions["Intermediate"];
+      if (customQuestionsList && customQuestionsList.length > 0) {
+        diffQuestions = [...customQuestionsList, ...diffQuestions];
+      }
 
       // Setup stage and currentTopic based on history index
       const steps = history ? history.length : 0;

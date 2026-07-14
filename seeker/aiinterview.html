@@ -1392,15 +1392,15 @@
                 <div class="char-name">Sarthi</div>
                 <div class="char-ability">Balanced</div>
               </div>
-              <div class="character-card" id="charCard_vikram" style="opacity: 0.45; cursor: not-allowed; pointer-events: none; padding: 14px 8px;">
+              <div class="character-card" id="charCard_vikram" onclick="selectCharacter('vikram')" style="padding: 14px 8px;">
                 <div class="char-avatar-mini" style="background: #334155;">👨‍🦳</div>
-                <div class="char-name" style="color: var(--text-muted);">Prof. Vikram</div>
-                <div class="char-ability" style="color: var(--accent-tertiary); font-weight: 700; font-size: 0.68rem;">Coming Soon</div>
+                <div class="char-name">Prof. Vikram</div>
+                <div class="char-ability">In-depth Internals</div>
               </div>
-              <div class="character-card" id="charCard_ananya" style="opacity: 0.45; cursor: not-allowed; pointer-events: none; padding: 14px 8px;">
+              <div class="character-card" id="charCard_ananya" onclick="selectCharacter('ananya')" style="padding: 14px 8px;">
                 <div class="char-avatar-mini" style="background: #831843;">👩‍💼</div>
-                <div class="char-name" style="color: var(--text-muted);">Dr. Ananya</div>
-                <div class="char-ability" style="color: var(--accent-tertiary); font-weight: 700; font-size: 0.68rem;">Coming Soon</div>
+                <div class="char-name">Dr. Ananya</div>
+                <div class="char-ability">Metrics &amp; Edges</div>
               </div>
             </div>
           </div>
@@ -2174,7 +2174,6 @@
     }
 
     window.selectCharacter = function(charName) {
-      if (charName !== 'sarthi') return;
       selectedInterviewer = charName;
       document.querySelectorAll(".character-card").forEach(c => c.classList.remove("active"));
       const card = document.getElementById(`charCard_${charName}`);
@@ -2266,6 +2265,76 @@
 
       // Check query params for custom Mock Interview setup
       const urlParams = new URLSearchParams(window.location.search);
+
+      const recruiterConfigId = urlParams.get('recruiterConfigId');
+      if (recruiterConfigId) {
+        window._recruiterConfigId = recruiterConfigId;
+        fetch((window.API_BASE_URL || '') + `/api/recruiter/interview/${recruiterConfigId}`)
+          .then(res => {
+            if (!res.ok) throw new Error('Recruiter interview config not found.');
+            return res.json();
+          })
+          .then(rConfig => {
+            console.log("[JobSarthi] Recruiter Interview configuration successfully loaded:", rConfig);
+            
+            // Override setup values
+            if (rConfig.role) {
+              const selectEl = document.getElementById('jobRoleSelect');
+              if (selectEl) {
+                // Add and select the role option
+                const newOpt = new Option(`Recruiter-led Interview: ${rConfig.role}`, `job:${rConfig.role}`, true, true);
+                selectEl.add(newOpt, selectEl.firstChild);
+                selectEl.selectedIndex = 0;
+                selectEl.disabled = true;
+              }
+            }
+
+            if (rConfig.difficulty) {
+              const diffEl = document.getElementById('difficultySelect');
+              if (diffEl) {
+                diffEl.value = rConfig.difficulty;
+                diffEl.disabled = true;
+              }
+            }
+
+            if (rConfig.persona) {
+              selectCharacter(rConfig.persona);
+              // Disable clicking other characters
+              document.querySelectorAll('.character-card').forEach(card => {
+                card.style.pointerEvents = 'none';
+              });
+            }
+
+            // Create customized info banner
+            const setupCard = document.getElementById('setupContainer');
+            if (setupCard) {
+              const banner = document.createElement('div');
+              banner.className = 'glass-panel';
+              banner.style.padding = '15px';
+              banner.style.marginBottom = '20px';
+              banner.style.borderColor = 'var(--accent-tertiary)';
+              banner.style.background = 'rgba(217, 70, 239, 0.05)';
+              banner.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 2rem;">🤖</span>
+                  <div>
+                    <h4 style="margin: 0; color: var(--accent-tertiary); font-size: 1rem;">Custom Recruiter Interview Activated</h4>
+                    <p style="margin: 4px 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                      This automated session is configured by <strong>${rConfig.recruiterCompany || 'your Recruiter'}</strong> for position <strong>${rConfig.role}</strong>. Difficulty is set to <strong>${rConfig.difficulty}</strong>.
+                    </p>
+                  </div>
+                </div>
+              `;
+              setupCard.insertBefore(banner, setupCard.firstChild);
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            if (typeof showToast === 'function') {
+              showToast("Failed to load recruiter custom interview configuration. Using normal settings.", "danger");
+            }
+          });
+      }
       const urlJobTitle = urlParams.get('jobTitle');
       const urlCompany = urlParams.get('company');
       const urlJobId = urlParams.get('jobId');
@@ -2945,7 +3014,8 @@
             jobSkills:          window._interviewJobSkills || '',
             jobId:              window._interviewJobId    || '',
             interviewState:     window.interviewState    || null,
-            email:              seekerEmail
+            email:              seekerEmail,
+            recruiterConfigId:  window._recruiterConfigId || ''
           })
         });
 

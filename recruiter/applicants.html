@@ -554,6 +554,18 @@
       b2.onclick = () => openScheduleModal();
       actionsDiv.appendChild(b2);
 
+      // Add "Configure AI Interview" button
+      const bAi = document.createElement('button');
+      bAi.className = 'btn btn-primary';
+      bAi.style.flex = '1';
+      bAi.style.background = 'var(--accent-tertiary)';
+      bAi.style.color = '#ffffff';
+      bAi.textContent = 'Configure AI Interview';
+      bAi.onclick = () => {
+        window.location.href = `ai_interview.html?name=${encodeURIComponent(selectedCandidate.name)}&email=${encodeURIComponent(selectedCandidate.email)}&role=${encodeURIComponent(selectedCandidate.role)}`;
+      };
+      actionsDiv.appendChild(bAi);
+
       if (selectedCandidate.status !== 'Rejected') {
         const b3 = document.createElement('button');
         b3.className = 'btn btn-secondary';
