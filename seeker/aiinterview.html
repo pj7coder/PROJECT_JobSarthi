@@ -2108,7 +2108,7 @@
     let decayInterval       = null;
 
     // Identity
-    const seekerEmail  = localStorage.getItem('seeker_email') || 'user@jobsarthi.ai';
+    let seekerEmail  = localStorage.getItem('seeker_email') || 'user@jobsarthi.ai';
     let selectedInterviewer = 'sarthi';
     let selectedLanguage    = 'en';
     let lockedVoice         = null;
@@ -2278,6 +2278,12 @@
             console.log("[JobSarthi] Recruiter Interview configuration successfully loaded:", rConfig);
             
             // Override setup values
+            if (rConfig.candidateName) {
+              candidateName = rConfig.candidateName;
+            }
+            if (rConfig.candidateEmail) {
+              seekerEmail = rConfig.candidateEmail;
+            }
             if (rConfig.role) {
               const selectEl = document.getElementById('jobRoleSelect');
               if (selectEl) {
