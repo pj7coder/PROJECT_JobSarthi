@@ -13,6 +13,12 @@ import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 
+// LangChain & RAG Vector Database Integration
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
+import { RecursiveCharacterTextSplitter } from "@langchain/classic/text_splitter";
+
+
 dotenv.config();
 
 // ============================================================
@@ -4222,9 +4228,61 @@ Crucial Rules:
 5. Ratings (grammarRating, structureRating, readabilityRating) must be chosen strictly. "Needs Improvement" if there are formatting flaws or unreadable density; "Good" for average standard resumes; "Excellent" only for exceptional layouts with bulleted impact statements.
 6. topicMap: The 'topics' object should list key professional domains or elements of their primary project/achievement (e.g., for Marketing, this could be {"Campaign Strategy": [...], "Client Metrics": [...]}; for Finance: {"Risk Assessment": [...], "Financial Modeling": [...]}; for Civil Engineering: {"Structural Design": [...], "Quality Assurance": [...]}).`;
 
+    // ── RAG Pipeline: Use LangChain and Memory Vector Store to align resume with JD requirements ──
+    let retrievedMatchesText = "";
+    if (jdText && extractedText && extractedText.rawText) {
+      try {
+        console.log("[RAG] Initializing LangChain Memory Vector Store & Embeddings...");
+        const embeddings = new GoogleGenerativeAIEmbeddings({
+          apiKey: GEMINI_API_KEY || process.env.GEMINI_API_KEY,
+          modelName: "gemini-embedding-001"
+        });
+
+        // Split the Job Description into semantic chunks
+        const splitter = new RecursiveCharacterTextSplitter({
+          chunkSize: 300,
+          chunkOverlap: 30
+        });
+        const jdDocs = await splitter.createDocuments([jdText]);
+        console.log(`[RAG] Split Job Description into ${jdDocs.length} chunks.`);
+
+        // Populate the Vector Store with the Job Description chunks
+        const vectorStore = await MemoryVectorStore.fromDocuments(jdDocs, embeddings);
+        console.log("[RAG] Seeded MemoryVectorStore with Job Description embeddings.");
+
+        // Split the candidate's extracted resume text
+        const resumeDocs = await splitter.createDocuments([extractedText.rawText]);
+        console.log(`[RAG] Split candidate resume into ${resumeDocs.length} chunks.`);
+
+        // For each resume chunk, search the vector store to match against JD requirements
+        let alignments = [];
+        for (const doc of resumeDocs) {
+          if (doc.pageContent.trim().length < 20) continue; // Skip small whitespace chunks
+          const matches = await vectorStore.similaritySearch(doc.pageContent, 1);
+          if (matches.length > 0 && matches[0]) {
+            alignments.push({
+              resumeSegment: doc.pageContent.replace(/\s+/g, " ").trim(),
+              jdRequirement: matches[0].pageContent.replace(/\s+/g, " ").trim()
+            });
+          }
+        }
+
+        if (alignments.length > 0) {
+          retrievedMatchesText = `\n===== RETRIEVED SEMANTIC ALIGNMENTS (LANGCHAIN RAG VECTOR STORE) =====\n` +
+            `The vector store matches these segments of the candidate's resume directly with specific requirements in the job description:\n` +
+            alignments.map((a, i) => `Alignment ${i+1}:\n- Candidate Resume Segment: "${a.resumeSegment}"\n- Matching Job Description Requirement: "${a.jdRequirement}"`).join("\n\n") + "\n";
+          console.log(`[RAG] Successfully mapped ${alignments.length} semantic alignments.`);
+        }
+      } catch (ragErr) {
+        console.error("[RAG] Failed to perform LangChain RAG comparison:", ragErr);
+      }
+    }
+
     const userAnalysisPrompt = `Perform the resume analysis for this candidate.
 ${targetRole ? `Target Role: ${targetRole}` : `Target Role: (Not provided - dynamically determine the candidate's target field/role from their resume content)`}
 ${jdText ? `Target Job Description: ${jdText}` : `Target Job Description: (Not provided - dynamically evaluate alignment based on standard professional requirements for the detected field)`}
+
+${retrievedMatchesText}
 
 Resume Content:
 ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
