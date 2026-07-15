@@ -659,7 +659,9 @@
         currentMonth = 11;
         currentYear--;
       }
+      selectedDate = new Date(currentYear, currentMonth, 1);
       renderCalendar();
+      renderEventsForSelectedDate();
     }
 
     function nextMonth() {
@@ -668,7 +670,9 @@
         currentMonth = 0;
         currentYear++;
       }
+      selectedDate = new Date(currentYear, currentMonth, 1);
       renderCalendar();
+      renderEventsForSelectedDate();
     }
 
     document.addEventListener("DOMContentLoaded", () => {

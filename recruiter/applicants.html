@@ -503,12 +503,12 @@
       // Update Candidate statement with details
       document.getElementById('drawerStatement').innerHTML = `
         <div style="margin-bottom: 12px;">
-          <strong>College:</strong> ${selectedCandidate.college}<br>
-          <strong>Degree:</strong> ${selectedCandidate.degree} (${selectedCandidate.cgpa ? 'CGPA: ' + selectedCandidate.cgpa : 'No CGPA'})
+          <strong>College:</strong> ${selectedCandidate.college || 'N/A'}<br>
+          <strong>Degree:</strong> ${selectedCandidate.degree || 'N/A'} (${selectedCandidate.cgpa ? 'CGPA: ' + selectedCandidate.cgpa : 'No CGPA'})
         </div>
         <div style="margin-bottom: 16px;">
           <strong>Experience Summary:</strong><br>
-          ${selectedCandidate.statement}
+          ${selectedCandidate.statement || 'No statement provided.'}
         </div>
         ${selectedCandidate.resumeUrl ? `
           <div style="margin-bottom: 16px;">
