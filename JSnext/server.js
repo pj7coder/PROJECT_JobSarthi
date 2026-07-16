@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import next from "next";
 // GoogleGenerativeAI removed (migrating to Groq)
 import { MongoClient } from "mongodb";
 import { v2 as cloudinary } from "cloudinary";
@@ -357,7 +358,7 @@ app.use(express.static(".", {
   }
 }));
 
-const DB_FILE = path.join(process.cwd(), "db.json");
+const DB_FILE = path.join(__dirname, "db.json");
 
 // Helper to read local database (fallback)
 async function readLocalDB() {
@@ -858,7 +859,7 @@ let cachedSampleJobs = [];
 
 async function loadCachedSampleJobs() {
   try {
-    const sampleJobsPath = path.join(process.cwd(), "database", "sample_jobs", "jobs.json");
+    const sampleJobsPath = path.join(__dirname, "database", "sample_jobs", "jobs.json");
     const data = await fs.readFile(sampleJobsPath, "utf-8");
     cachedSampleJobs = JSON.parse(data);
     console.log(`Loaded ${cachedSampleJobs.length} sample jobs from local jobs.json directly.`);
@@ -4736,19 +4737,7 @@ app.get("/api/resume/view", async (req, res) => {
   }
 });
 
-app.get("/", (req, res) => {
-  const publicDir = process.env.NEXT_JS === "true" ? path.join(process.cwd(), "public") : process.cwd();
-  res.sendFile(path.join(publicDir, "index.html"));
-});
-
-// Fallback to index.html for undefined frontend routes (but NOT for API routes)
-app.get("*", (req, res) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: "API endpoint not found." });
-  }
-  const publicDir = process.env.NEXT_JS === "true" ? path.join(process.cwd(), "public") : process.cwd();
-  res.sendFile(path.join(publicDir, "index.html"));
-});
+// Next.js handles all frontend routes at the bottom of this file.
 
 async function ensureAdminRecruiter() {
   try {
@@ -4800,33 +4789,21 @@ async function ensureAdminRecruiter() {
 
 export { app };
 
-let dbInitPromise = null;
-const initDatabase = async () => {
-  if (!dbInitPromise) {
-    dbInitPromise = (async () => {
-      await initDB();
-      await ensureAdminRecruiter();
-    })();
-  }
-  return dbInitPromise;
-};
+const dev = process.env.NODE_ENV !== "production";
+const nextApp = next({ dev });
+const handle = nextApp.getRequestHandler();
 
-if (process.env.NEXT_JS === "true") {
-  // Lazily connect to the database on the first request in Next.js Serverless environment
-  app.use(async (req, res, next) => {
-    try {
-      await initDatabase();
-      next();
-    } catch (err) {
-      console.error("Next.js lazy database initialization failed:", err);
-      next(err);
-    }
+nextApp.prepare().then(() => {
+  // Let Next.js handle all requests that are not Express API or static files
+  app.all("*", (req, res) => {
+    return handle(req, res);
   });
-} else {
-  // Standalone Node environment startup
-  initDatabase().then(async () => {
+
+  initDB().then(async () => {
+    await ensureAdminRecruiter();
+    
     app.listen(PORT, () => {
-      console.log(`JobSarthi server running at http://localhost:${PORT}`);
+      console.log(`JobSarthi Next.js server running at http://localhost:${PORT}`);
     });
 
     // Load sample jobs and aggregate in background to prevent server boot hang
@@ -4871,5 +4848,5 @@ if (process.env.NEXT_JS === "true") {
         .catch(err => console.error("[Background JobCollector] Scheduled 12h full Greenhouse sync failed:", err));
     }, 12 * 60 * 60 * 1000);
   });
-}
+});
 
