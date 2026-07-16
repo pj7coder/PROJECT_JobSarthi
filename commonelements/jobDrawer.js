@@ -443,6 +443,11 @@
       }
       localStorage.setItem('saved_jobs', JSON.stringify(savedIds));
 
+      // Sync with database if logged in
+      if (typeof window.syncFavouritesToDb === 'function') {
+        window.syncFavouritesToDb(savedIds);
+      }
+
       // Sync footer button style
       const likeBtn = _getEl('jd_likeBtn');
       if (likeBtn) {

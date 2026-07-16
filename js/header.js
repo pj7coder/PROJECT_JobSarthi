@@ -270,6 +270,44 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           })
           .catch(err => console.error("Error fetching avatar:", err));
+
+        // Async update favourites
+        const favouritesUrl = window.API_BASE_URL
+          ? `${window.API_BASE_URL}/api/seeker/favourites?email=${encodeURIComponent(userEmail)}`
+          : `${prefix}api/seeker/favourites?email=${encodeURIComponent(userEmail)}`;
+        fetch(favouritesUrl)
+          .then(res => res.json())
+          .then(data => {
+            if (data && Array.isArray(data.favourites)) {
+              localStorage.setItem('saved_jobs', JSON.stringify(data.favourites));
+              if (typeof updateFavouritesBadge === 'function') {
+                updateFavouritesBadge();
+              }
+            }
+          })
+          .catch(err => console.error("Error fetching favourites:", err));
+
+        // Define global sync function
+        window.syncFavouritesToDb = function(savedJobIds) {
+          const url = window.API_BASE_URL
+            ? `${window.API_BASE_URL}/api/seeker/favourites`
+            : `${prefix}api/seeker/favourites`;
+
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: userEmail, favourites: savedJobIds })
+          })
+          .then(res => res.json())
+          .then(data => {
+            console.log("[JobSarthi] Favourites synced to DB successfully:", data);
+          })
+          .catch(err => {
+            console.error("[JobSarthi] Failed to sync favourites to DB:", err);
+          });
+        };
       }
 
       // 6. Dropdown & Settings Modal Interactions
@@ -1338,7 +1376,7 @@ window.toggleTheme = function () {
 window.logout = function () {
   const keysToRemove = [
     'seeker_logged_in', 'seeker_name', 'seeker_email', 'seeker_avatar_url', 'applied_jobs', 'seeker_notifications',
-    'seeker_profile_data', 'seeker_apps_count', 'seeker_interviews_count',
+    'seeker_profile_data', 'seeker_apps_count', 'seeker_interviews_count', 'saved_jobs', 'saved_job_details',
     'recruiter_logged_in', 'recruiter_company', 'recruiter_email',
     'recruiter_applicants_list', 'recruiter_jobs_count'
   ];

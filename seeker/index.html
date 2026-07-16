@@ -1520,6 +1520,11 @@
       }
       localStorage.setItem('saved_jobs', JSON.stringify(savedJobIds));
 
+      // Sync with database if logged in
+      if (typeof window.syncFavouritesToDb === 'function') {
+        window.syncFavouritesToDb(savedJobIds);
+      }
+
       // Update heart icon on card
       const btn = document.getElementById(`like_btn_${jobId}`);
       if (btn) {

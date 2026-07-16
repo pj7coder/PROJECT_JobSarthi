@@ -2042,7 +2042,7 @@ app.get("/api/jobs", async (req, res) => {
     const isSortingByRelevance = (sort === "match-desc" || !sort);
 
     // Block relevance-based job listings if seeker hasn't uploaded a resume
-    if (email && isSortingByRelevance && !hasResume) {
+    if (email && isSortingByRelevance && !hasResume && !ids) {
       return res.json({
         jobs: [],
         total: 0,
@@ -2061,7 +2061,8 @@ app.get("/api/jobs", async (req, res) => {
       // Check specific IDs (useful for favourites / bookmarks)
       if (ids) {
         const idList = ids.split(',').map(id => String(id).trim());
-        if (!idList.includes(String(job.id))) return false;
+        const jobId = job.id || (job._id ? String(job._id) : '');
+        if (!idList.includes(String(jobId))) return false;
       }
       // Company filter
       if (company) {
@@ -4047,6 +4048,55 @@ app.get("/api/sarthi/interviews", async (req, res) => {
   } catch (err) {
     console.error("Failed to get interview reports:", err);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// --- Seeker Favourites APIs ---
+
+app.get("/api/seeker/favourites", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email query param is required." });
+    }
+    const user = await dbService.findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.json({ success: true, favourites: user.savedJobs || [] });
+  } catch (err) {
+    console.error("Failed to fetch favourites:", err);
+    res.status(500).json({ error: "Failed to fetch favourites." });
+  }
+});
+
+app.post("/api/seeker/favourites", async (req, res) => {
+  try {
+    const { email, favourites } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    if (!Array.isArray(favourites)) {
+      return res.status(400).json({ error: "Favourites must be an array of job IDs." });
+    }
+
+    if (mongoDb) {
+      await mongoDb.collection("users").updateOne(
+        { email: email.toLowerCase() },
+        { $set: { savedJobs: favourites } }
+      );
+    } else {
+      const local = await readLocalDB();
+      const user = local.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (user) {
+        user.savedJobs = favourites;
+        await writeLocalDB(local);
+      }
+    }
+    res.json({ success: true, message: "Favourites updated successfully." });
+  } catch (err) {
+    console.error("Failed to update favourites:", err);
+    res.status(500).json({ error: "Failed to update favourites." });
   }
 });
 
