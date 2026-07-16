@@ -333,40 +333,61 @@ function countActionVerbs(text) {
 }
 
 export function scoreExperienceSection(text) {
-  if (!text || text.trim().length < 8) return 0; // return 0 if experience is missing or empty
+  if (!text || text.trim().length < 8) return 0;
+  
+  const lower = text.toLowerCase();
   
   // Extract years of experience
   let years = 0;
-  const matches = text.match(/(\d+)\s*\+?\s*(year|yr)s?\b/i);
-  if (matches) {
-    years = parseInt(matches[1]);
+  const yearMatch = text.match(/(\d+)\s*\+?\s*(year|yr)s?\b/i);
+  if (yearMatch) {
+    years = parseInt(yearMatch[1]);
   } else {
-    // Check if mentioned in word numbers
     const wordNumbers = {
       one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
       eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15
     };
-    const wordMatches = text.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen)\s+(year|yr)s?\b/i);
-    if (wordMatches) {
-      years = wordNumbers[wordMatches[1].toLowerCase()] || 0;
-    }
+    const wordMatch = text.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen)\s+(year|yr)s?\b/i);
+    if (wordMatch) years = wordNumbers[wordMatch[1].toLowerCase()] || 0;
+  }
+  
+  // Convert months to fractional years if no year found
+  let months = 0;
+  if (years === 0) {
+    const monthMatch = text.match(/(\d+)\s*month/i);
+    if (monthMatch) months = parseInt(monthMatch[1]);
+    years = months / 12;
   }
 
-  // Base score based on years of experience
-  let baseScore = 30;
+  // Detect internship / fresher indicators
+  const isIntern = /intern|trainee|apprentice|student.*work|work.*student/i.test(lower);
+  const hasDates = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|20\d{2}/i.test(lower);
+  const hasCompany = /at |@|company|organisation|organization|ltd|pvt|inc|corp/i.test(lower);
+
+  // Base score
+  let baseScore;
   if (years >= 15) baseScore = 78;
   else if (years >= 10) baseScore = 70;
-  else if (years >= 5) baseScore = 60;
-  else if (years >= 2) baseScore = 45;
+  else if (years >= 5) baseScore = 62;
+  else if (years >= 3) baseScore = 52;
+  else if (years >= 2) baseScore = 46;
+  else if (years >= 1) baseScore = 40;
+  else if (months >= 6 || years >= 0.5) baseScore = 36;  // 6+ month internship
+  else if (months >= 3 || years >= 0.25) baseScore = 32;  // 3-5 month internship
+  else if (isIntern || hasDates || hasCompany) baseScore = 30; // has some work mention
+  else baseScore = 22; // minimal experience text
 
   const words = text.trim().split(/\s+/).length;
   const metrics = countMetrics(text);
   const verbs = countActionVerbs(text);
 
   let score = baseScore;
-  score += Math.min(25, (words / 150) * 25);
-  score += Math.min(20, metrics * 5);
+  score += Math.min(25, (words / 120) * 25);
+  score += Math.min(15, metrics * 5);
   score += Math.min(10, verbs * 2);
+  // Bonus for having real job markers
+  if (hasDates) score += 5;
+  if (hasCompany) score += 3;
 
   return Math.round(Math.min(100, score));
 }
@@ -386,52 +407,90 @@ export function scoreSkillsSection(skills) {
 }
 
 export function scoreEducationSection(text) {
-  if (!text || text.trim().length < 5) return 0; // return 0 if education is missing or empty
+  if (!text || text.trim().length < 5) return 0;
   const lower = text.toLowerCase();
-  let score = 40; // baseline presence of education
+  let score = 35; // baseline presence of any education text
   
-  if (lower.match(/bachelor|master|degree|b\.s|b\.c|b\.tech|m\.tech|mba|phd|bsc|msc|university|college/i)) score += 25;
-  if (lower.includes("gpa") || lower.includes("cgpa") || lower.match(/\d+\.\d+/)) score += 15;
-  if (lower.includes("first class") || lower.match(/[89]\d%/) || lower.match(/[89]\.\d cgpa/i)) score += 10;
-  if (lower.includes("honours") || lower.includes("distinction") || lower.includes("gold")) score += 10;
+  // Degree level detection
+  if (lower.match(/phd|doctorate|doctor/i)) score += 35;
+  else if (lower.match(/master|m\.tech|mba|msc|m\.e\b|m\.s\b/i)) score += 30;
+  else if (lower.match(/bachelor|b\.tech|btech|b\.e\b|bsc|b\.sc|b\.s\b|b\.c\b|undergraduate/i)) score += 25;
+  else if (lower.match(/diploma|polytechnic/i)) score += 15;
+  else if (lower.match(/university|college|institute|school/i)) score += 12;
+
+  // GPA / marks present
+  if (lower.includes("cgpa") || lower.includes("gpa")) score += 15;
+  else if (lower.match(/\d+\.\d+/)) score += 8; // any decimal number (could be GPA)
+  else if (lower.match(/\d+%/)) score += 8;  // percentage marks
+
+  // High achiever bonus
+  if (lower.includes("first class") || lower.match(/[89]\d%/) || lower.match(/[89]\.\d/)) score += 8;
+  if (lower.includes("honour") || lower.includes("distinction") || lower.includes("gold") || lower.includes("rank")) score += 7;
+
+  // Multiple education entries (school + college is common)
+  const eduEntries = (lower.match(/\b(university|college|institute|school)\b/gi) || []).length;
+  if (eduEntries >= 2) score += 5;
+
+  // Year range present (e.g. 2021-2025)
+  if (lower.match(/20\d{2}\s*[-–]\s*20\d{2}/)) score += 5;
   
   return Math.round(Math.min(100, score));
 }
 
 export function scoreProjectsSection(text) {
-  if (!text || text.trim().length < 8) return 0; // return 0 if projects are missing or empty
+  if (!text || text.trim().length < 8) return 0;
+  
+  const lower = text.toLowerCase();
+  // If explicitly "not specified" or "none", return a low but non-zero base
+  // (the candidate at least has certifications or other data)
+  const isNegative = /^(not specified|none|n\/a|no projects?|nil)$/i.test(text.trim());
+  if (isNegative) return 0;
+
   const words = text.trim().split(/\s+/).length;
   const metrics = countMetrics(text);
   const verbs = countActionVerbs(text);
   
-  let score = 30; // baseline presence of projects
-  score += Math.min(40, (words / 120) * 40);
-  score += Math.min(15, metrics * 5);
-  score += Math.min(15, verbs * 3);
+  // Check for specific project markers
+  const hasProjectName = /project|built|developed|created|app|system|platform|tool|website|dashboard/i.test(lower);
+  const hasStack = /using|with|via|built with|tech stack|python|javascript|react|node|java|flutter/i.test(lower);
+  
+  let score = 25; // baseline
+  if (hasProjectName) score += 10;
+  if (hasStack) score += 10;
+  score += Math.min(35, (words / 100) * 35);
+  score += Math.min(12, metrics * 4);
+  score += Math.min(8, verbs * 2);
   return Math.round(Math.min(100, score));
 }
 
 export function scoreSummarySection(text) {
-  if (!text || text.trim().length < 8) return 0; // return 0 if summary is missing or empty
+  if (!text || text.trim().length < 8) return 0;
   const words = text.trim().split(/\s+/).length;
   
-  let score = 40; // baseline summary presence
-  score += Math.min(30, (words / 50) * 30);
-  if (text.match(/seeking|passionate|motivated|driven|results/i)) score += 15;
-  if (text.match(/\d+\s*\+?\s*years?/i)) score += 15;
+  let score = 35; // baseline summary presence
+  score += Math.min(30, (words / 40) * 30);
+  if (text.match(/seeking|passionate|motivated|driven|results|dedicated|focused|experienced/i)) score += 12;
+  if (text.match(/\d+\s*\+?\s*years?/i)) score += 12;
+  if (text.match(/bachelor|master|degree|engineer|developer|analyst|designer/i)) score += 8;
+  if (text.match(/intern|fresher|graduate|student/i)) score += 5; // student summary is valid
   
   return Math.round(Math.min(100, score));
 }
 
 export function scoreContactSection(contact) {
-  if (!contact || contact.trim().length < 5) return 0; // return 0 if contact is missing or empty
+  if (!contact || contact.trim().length < 5) return 0;
   let score = 0;
   
-  if (contact.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/)) score += 30;
-  if (contact.match(/\+?[\d\s\-()]{8,}/)) score += 25;
-  if (contact.match(/linkedin\.com/i)) score += 25;
-  if (contact.match(/github\.com/i)) score += 15;
-  if (contact.match(/portfolio|behance|dribbble/i)) score += 5;
+  // Email
+  if (contact.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/)) score += 35;
+  // Phone (also match international formats like 919530000481)
+  if (contact.match(/\+?[\d][\d\s\-()]{7,}/)) score += 25;
+  // LinkedIn (handle both linkedin.com and /in/ patterns)
+  if (contact.match(/linkedin\.com|linkedin\.in|\/in\//i)) score += 25;
+  // GitHub
+  if (contact.match(/github\.com/i)) score += 10;
+  // Portfolio / other
+  if (contact.match(/portfolio|behance|dribbble|website|blog/i)) score += 5;
   
   return Math.round(Math.min(100, score));
 }

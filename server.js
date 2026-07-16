@@ -4377,15 +4377,25 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       }
       res.atsScore = Number(res.atsScore) || 55;
       
-      if (!res.extractedInfo) {
-        res.extractedInfo = result.extracted_info || {
-          education: textData?.education || result.education || "",
-          experience: textData?.experience || result.experience || "",
-          projects: textData?.projects || result.projects || "",
-          skills: textData?.skills || result.skills || [],
-          certifications: textData?.certifications || result.certifications || ""
-        };
-      }
+      // ── CRITICAL FIX: Always rebuild extractedInfo merging ALL sources ──
+      // Groq returns extractedInfo.experience="" while actual data is at res.experience
+      // or in textData (Gemini OCR Step 1). We always pick the richest non-empty value.
+      const _ei = res.extractedInfo || result.extracted_info || {};
+      const _pickStr = (...srcs) => srcs.find(v => typeof v === 'string' && v.trim().length > 4) || "";
+      const _pickArr = (...srcs) => {
+        for (const s of srcs) {
+          if (Array.isArray(s) && s.length > 0) return s;
+          if (typeof s === 'string' && s.trim().length > 2) return s.split(/[,;|\n]+/).map(x => x.trim()).filter(Boolean);
+        }
+        return [];
+      };
+      res.extractedInfo = {
+        education:      _pickStr(textData?.education,      _ei.education,      result.education),
+        experience:     _pickStr(textData?.experience,     _ei.experience,     result.experience),
+        projects:       _pickStr(textData?.projects,       _ei.projects,       result.projects),
+        skills:         _pickArr(textData?.skills,         _ei.skills,         result.skills),
+        certifications: _pickStr(textData?.certifications, _ei.certifications, result.certifications),
+      };
       
       if (!res.keyData) {
         res.keyData = result.key_data || {
@@ -4416,27 +4426,27 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         };
       }
       
-      // ── PRECISION SECTION SCORES via scoringEngine (overrides LLM guesses) ──
-      // scoringEngine produces floats like 63.7 rather than round integers
+      // ── PRECISION SECTION SCORES via scoringEngine ──
       const atsResult = calculateATSScore({
-        experience: res.extractedInfo?.experience || textData?.experience || "",
-        skills: res.extractedInfo?.skills || textData?.skills || [],
-        projects: res.extractedInfo?.projects || textData?.projects || "",
-        education: res.extractedInfo?.education || textData?.education || "",
-        overview: res.overview || "",
-        contact: res.contact || textData?.contact || "",
+        experience: res.extractedInfo.experience || "",
+        skills:     res.extractedInfo.skills     || [],
+        projects:   res.extractedInfo.projects   || "",
+        education:  res.extractedInfo.education  || "",
+        overview:   res.overview                 || "",
+        contact:    res.contact                  || textData?.contact || "",
       });
       const llmAts = Number(res.atsScore) || 55;
       res.atsScore = Math.round(llmAts * 0.6 + atsResult.total * 0.4);
 
       // Always replace section scores with precise computed values
-      res.sectionScores = res.section_scores || {};
-      res.sectionScores.contactInfo  = atsResult.sections.contact;
-      res.sectionScores.summary      = atsResult.sections.summary;
-      res.sectionScores.experience   = atsResult.sections.experience;
-      res.sectionScores.education    = atsResult.sections.education;
-      res.sectionScores.skills       = atsResult.sections.skills;
-      res.sectionScores.projects     = atsResult.sections.projects;
+      res.sectionScores = {
+        contactInfo: atsResult.sections.contact,
+        summary:     atsResult.sections.summary,
+        experience:  atsResult.sections.experience,
+        education:   atsResult.sections.education,
+        skills:      atsResult.sections.skills,
+        projects:    atsResult.sections.projects,
+      };
 
       return res;
     }
