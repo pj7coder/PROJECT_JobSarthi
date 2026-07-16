@@ -1196,17 +1196,7 @@ function renderActiveTabContent() {
       </div>` : ''}
     `;
   }
-  else if (currentDashTab === 'projects') {
-    html = `
-      <div class="acard" style="margin-bottom: 0;">
-        <div class="acard-title">Project & Domains Mindmap</div>
-        <p style="font-size:0.78rem;color:var(--text-muted);line-height:1.4;margin-bottom:14px;">
-          This visual topic map represents key elements, domains, and systems detected in your projects and career experience.
-        </p>
-        ${renderTopicMap(d.topicMap)}
-      </div>
-    `;
-  }
+
   else if (currentDashTab === 'interview') {
     html = `
       <div class="acard" style="margin-bottom: 0;">
@@ -1233,31 +1223,7 @@ function renderActiveTabContent() {
   contentDiv.innerHTML = html;
 }
 
-function renderTopicMap(topicMap) {
-  if (!topicMap || !topicMap.projectName) return '<p style="font-size:0.8rem;color:var(--text-muted);">No Project Mindmap data extracted from resume.</p>';
-  let treeHtml = `<div class="topic-map-box">`;
-  treeHtml += `<div class="topic-map-project" style="display:inline-flex; align-items:center; gap:6px;">${SVG_ICONS.folder} ${topicMap.projectName}</div>`;
-  
-  const topics = topicMap.topics || {};
-  for (const [topicName, subtopics] of Object.entries(topics)) {
-    treeHtml += `<div class="topic-branch">`;
-    treeHtml += `<div class="topic-branch-title" style="display:inline-flex; align-items:center; gap:4px;">${SVG_ICONS.branch} ${topicName}</div>`;
-    if (Array.isArray(subtopics) && subtopics.length > 0) {
-      treeHtml += `<div class="topic-branch-items">`;
-      subtopics.forEach(sub => {
-        treeHtml += `<div style="margin-left:12px; position:relative; padding-left:12px;">`;
-        treeHtml += `<span style="position:absolute; left:0; color:var(--text-muted);">├─</span> ${sub}`;
-        treeHtml += `</div>`;
-      });
-      treeHtml += `</div>`;
-    } else if (typeof subtopics === 'string') {
-      treeHtml += `<div style="margin-left:12px; color:var(--text-muted); font-size:0.75rem;">├─ ${subtopics}</div>`;
-    }
-    treeHtml += `</div>`;
-  }
-  treeHtml += `</div>`;
-  return treeHtml;
-}
+
 
 function renderInterviewPlan(plan) {
   if (!plan) return '<p style="font-size:0.8rem;color:var(--text-muted);">No customized Interview Plan data available.</p>';
@@ -1376,7 +1342,6 @@ function renderDashboard(d) {
     <button class="dash-tab active" data-tab="summary" onclick="switchDashTab('summary')">${SVG_ICONS.breakdown} Breakdown</button>
     <button class="dash-tab" data-tab="skills" onclick="switchDashTab('skills')">${SVG_ICONS.key} Keywords</button>
     <button class="dash-tab" data-tab="action" onclick="switchDashTab('action')">${SVG_ICONS.zap} Actions & Tips</button>
-    <button class="dash-tab" data-tab="projects" onclick="switchDashTab('projects')">${SVG_ICONS.branch} Mindmap</button>
     <button class="dash-tab" data-tab="interview" onclick="switchDashTab('interview')">${SVG_ICONS.target} Prep Guide</button>
     <button class="dash-tab" data-tab="verification" onclick="switchDashTab('verification')">${SVG_ICONS.shield} Claims</button>
   </div>

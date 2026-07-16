@@ -4279,10 +4279,10 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         strongSkills: skillsArray.slice(0, 4)
       },
       interviewPlan: {
-        "priority1": "Review work responsibility details",
-        "priority2": "Evaluate stated skills application",
-        "priority3": "Discuss project challenge resolutions",
-        "priority4": "Assess target alignment and soft skills"
+        "priority1": `Mastery of core methodologies: Be prepared to discuss your hands-on experience and implementation of ${skillsArray[0] || "core competencies"} and ${skillsArray[1] || "best practices"}.`,
+        "priority2": `Strategic execution: Detail how you leverage ${skillsArray[2] || "modern frameworks and methodologies"} to drive projects and achieve goals.`,
+        "priority3": `Problem solving & output: Walk through the optimization, troubleshooting, or measurement workflows for ${skillsArray[3] || "key initiatives"}.`,
+        "priority4": `Situational scenarios: Review case studies or past challenges where you successfully applied ${skillsArray.slice(0, 3).join(", ") || "your professional skill set"}.`
       },
       verificationQueue: [
         {
