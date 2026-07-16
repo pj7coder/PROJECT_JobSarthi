@@ -2,21 +2,19 @@
  * ============================================================
  * UNIVERSAL PRECISION SCORING ENGINE — JobSarthi
  * ============================================================
- * Replaces all step-function scoring across the platform with
- * continuous floating-point scoring. Used by:
+ * Replaces all float-based scoring across the platform with
+ * robust, rounded integer-based scoring (1 to 100). Used by:
  *  - Resume Analyser (ATS score, section scores)
  *  - Job Match (matchScore on /api/jobs)
  *  - Applicant Ranking (recruiter/applicants)
  *  - Interview Relevance (question alignment)
  *
- * Scores are ALWAYS floats rounded to 1 decimal (e.g. 63.7, 82.1)
- * This prevents "fake precision" while still being more expressive
- * than integers rounded to the nearest 5 or 10.
+ * Scores are ALWAYS integers rounded to the nearest whole number.
  * ============================================================
  */
 
 // ─────────────────────────────────────────────
-// SKILL ALIAS MAP — semantic normalisation
+// SKILL SYNONYMS MAP — semantic normalisation
 // ─────────────────────────────────────────────
 const SKILL_ALIASES = {
   "js": "javascript",
@@ -27,31 +25,205 @@ const SKILL_ALIASES = {
   "reactjs": "react.js",
   "vue": "vue.js",
   "vuejs": "vue.js",
+  "angularjs": "angular",
+  "angular": "angular",
   "mongo": "mongodb",
+  "mongodb": "mongodb",
   "postgres": "postgresql",
+  "postgresql": "postgresql",
   "psql": "postgresql",
   "py": "python",
+  "python": "python",
   "ml": "machine learning",
+  "machinelearning": "machine learning",
   "dl": "deep learning",
+  "deeplearning": "deep learning",
   "ai": "artificial intelligence",
+  "artificialintelligence": "artificial intelligence",
   "k8s": "kubernetes",
+  "kubernetes": "kubernetes",
+  "docker": "docker",
   "tf": "tensorflow",
+  "tensorflow": "tensorflow",
   "aws": "amazon web services",
+  "amazonwebservices": "amazon web services",
   "gcp": "google cloud",
+  "googlecloud": "google cloud",
   "azure": "microsoft azure",
-  "ci/cd": "devops",
+  "microsoftazure": "microsoft azure",
+  "ci/cd": "ci-cd",
+  "cicd": "ci-cd",
   "rest": "rest api",
-  "graphql": "graphql api",
+  "restful": "rest api",
+  "graphql": "graphql",
   "scss": "css",
   "sass": "css",
-  "html5": "html",
   "css3": "css",
-  "c++": "cpp",
+  "html5": "html",
+  "cpp": "c++",
+  "cplusplus": "c++",
+  "c#": "csharp",
   "dotnet": ".net",
-  "asp.net": ".net",
-  "spring boot": "spring",
-  "springboot": "spring",
+  "aspnet": ".net",
+  "springboot": "spring boot",
+  "spring": "spring boot",
+  "golang": "go",
+  "reactnative": "react native",
+  "nextjs": "next.js",
+  "tailwindcss": "tailwind css",
+  "tailwind": "tailwind css",
+  "powerbi": "power bi",
+  "power-bi": "power bi",
+  "excel": "microsoft excel",
+  "ms-excel": "microsoft excel",
+  "msexcel": "microsoft excel"
 };
+
+// ─────────────────────────────────────────────
+// SKILL CLUSTERS — semantic taxonomy mapping
+// ─────────────────────────────────────────────
+const SKILL_CLUSTERS = [
+  {
+    name: "frontend",
+    skills: ["html", "css", "javascript", "typescript", "react.js", "vue.js", "angular", "next.js", "tailwind css", "sass", "bootstrap", "svelte", "ui/ux", "figma", "jquery", "webgl", "three.js", "redux", "webpack", "vite"]
+  },
+  {
+    name: "backend",
+    skills: ["node.js", "express", "koa", "nest.js", "python", "django", "flask", "fastapi", "java", "spring boot", "go", "golang", "ruby", "ruby on rails", "php", "laravel", ".net", "c#", "csharp", "asp.net", "graphql", "apollo", "microservices", "gprc"]
+  },
+  {
+    name: "database",
+    skills: ["mongodb", "postgresql", "mysql", "redis", "sqlite", "cassandra", "dynamodb", "oracle", "sql server", "firebase", "sql", "mariadb", "neo4j", "prisma", "sequelize", "mongoose"]
+  },
+  {
+    name: "devops_cloud",
+    skills: ["docker", "kubernetes", "amazon web services", "google cloud", "microsoft azure", "ci-cd", "jenkins", "terraform", "ansible", "nginx", "linux", "git", "github", "gitlab", "bitbucket", "prometheus", "grafana", "elk", "datadog"]
+  },
+  {
+    name: "mobile",
+    skills: ["react native", "flutter", "swift", "kotlin", "android", "ios", "java", "objective-c", "xcode", "gradle"]
+  },
+  {
+    name: "data_ml",
+    skills: ["python", "r", "sql", "pandas", "numpy", "scikit-learn", "tensorflow", "pytorch", "keras", "rag", "llm", "openai", "deep learning", "machine learning", "artificial intelligence", "nlp", "power bi", "tableau", "spark", "hadoop", "databricks", "matlab", "opencv", "computer vision"]
+  },
+  {
+    name: "design",
+    skills: ["figma", "adobe xd", "photoshop", "illustrator", "sketch", "ui/ux", "wireframing", "canva", "invision"]
+  },
+  {
+    name: "qa_testing",
+    skills: ["jest", "mocha", "cypress", "selenium", "playwright", "testing", "unit testing", "integration testing", "qa", "manual testing", "automation", "postman"]
+  }
+];
+
+// Local sets of lower-case states and cities to resolve location references
+const INDIAN_STATES_LOWER = new Set([
+  "andhra pradesh", "arunachal pradesh", "assam", "bihar", "chhattisgarh", "goa", "gujarat", "haryana", 
+  "himachal pradesh", "jharkhand", "karnataka", "kerala", "madhya pradesh", "maharashtra", "manipur", 
+  "meghalaya", "mizoram", "nagaland", "odisha", "punjab", "rajasthan", "sikkim", "tamil nadu", "telangana", 
+  "tripura", "uttar pradesh", "uttarakhand", "west bengal", "delhi", "chandigarh", "puducherry", "jammu and kashmir"
+]);
+
+const INDIAN_CITIES_LOWER = new Set([
+  "bangalore", "bengaluru", "mumbai", "pune", "hyderabad", "chennai", "noida", "gurgaon", "gurugram", 
+  "new delhi", "delhi", "kolkata", "ahmedabad", "surat", "jaipur", "lucknow", "kanpur", "nagpur", 
+  "indore", "thane", "bhopal", "visakhapatnam", "pimpri-chinchwad", "patna", "vadodara", "ghaziabad", 
+  "ludhiana", "agra", "nashik", "faridabad", "meerut", "rajkot", "kalyan-dombivli", "vasai-virar", 
+  "varanasi", "srinagar", "aurangabad", "dhanbad", "amritsar", "navi mumbai", "allahabad", "ranchi", 
+  "howrah", "coimbatore", "jabalpur", "gwalior", "vijayawada", "jodhpur", "madurai", "raipur", 
+  "kota", "guwahati", "solapur", "hubli-dharwad", "bareilly", "moradabad", "mysore", "aligarh", 
+  "jalandhar", "tiruchirappalli", "bhubaneswar", "salem", "mira-bhayandar", "thiruvananthapuram", 
+  "bhiwandi", "saharanpur", "gorakhpur", "guntur", "bikaner", "amravati", "jamshedpur", "bhilai", 
+  "cuttack", "firozabad", "kochi", "nellore", "bhavnagar", "dehradun", "durgapur", "asansol", 
+  "rourkela", "nanded", "kolhapur", "ajmer", "akola", "gulbarga", "jamnagar", "ujjain", "loni", 
+  "siliguri", "jhansi", "ulhasnagar", "jammu", "sangli-miraj & kupwad", "belgaum", "mangalore", 
+  "ambattur", "tirunelveli", "malegaon", "gaya", "jalgaon", "udaipur", "maheshtala"
+]);
+
+// ─────────────────────────────────────────────
+// JARO-WINKLER TYPO TOLERANCE ALGORITHM
+// ─────────────────────────────────────────────
+function jaroWinklerDistance(s1, s2) {
+  s1 = s1.toLowerCase().trim();
+  s2 = s2.toLowerCase().trim();
+  if (s1 === s2) return 1.0;
+  
+  const len1 = s1.length;
+  const len2 = s2.length;
+  if (len1 === 0 || len2 === 0) return 0.0;
+  
+  const matchWindow = Math.max(0, Math.floor(Math.max(len1, len2) / 2) - 1);
+  const matches1 = new Array(len1).fill(false);
+  const matches2 = new Array(len2).fill(false);
+  
+  let matches = 0;
+  let transpositions = 0;
+  
+  for (let i = 0; i < len1; i++) {
+    const start = Math.max(0, i - matchWindow);
+    const end = Math.min(len2, i + matchWindow + 1);
+    for (let j = start; j < end; j++) {
+      if (!matches2[j] && s1[i] === s2[j]) {
+        matches1[i] = true;
+        matches2[j] = true;
+        matches++;
+        break;
+      }
+    }
+  }
+  
+  if (matches === 0) return 0.0;
+  
+  let k = 0;
+  for (let i = 0; i < len1; i++) {
+    if (matches1[i]) {
+      while (!matches2[k]) k++;
+      if (s1[i] !== s2[k]) transpositions++;
+      k++;
+    }
+  }
+  
+  const jaro = (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3.0;
+  
+  // Winkler modification for common prefix weight
+  let prefixLength = 0;
+  const maxPrefix = 4;
+  for (let i = 0; i < Math.min(len1, len2, maxPrefix); i++) {
+    if (s1[i] === s2[i]) prefixLength++;
+    else break;
+  }
+  
+  return jaro + prefixLength * 0.1 * (1.0 - jaro);
+}
+
+// ─────────────────────────────────────────────
+// SEMANTIC SKILL SIMILARITY ASSESSOR
+// ─────────────────────────────────────────────
+export function getSemanticSkillSimilarity(cs, js) {
+  const normCS = normalizeSkillToken(cs);
+  const normJS = normalizeSkillToken(js);
+  
+  if (normCS === normJS) return 1.0;
+  
+  // Substring match checks
+  if (normCS.includes(normJS) || normJS.includes(normCS)) {
+    return 0.85;
+  }
+  
+  // Typo tolerance Jaro-Winkler
+  const jw = jaroWinklerDistance(normCS, normJS);
+  if (jw >= 0.85) return jw;
+  
+  // Taxonomy overlap: check if they share a cluster category
+  for (const cluster of SKILL_CLUSTERS) {
+    if (cluster.skills.includes(normCS) && cluster.skills.includes(normJS)) {
+      return 0.45; // Partially related skills within same technical field
+    }
+  }
+  
+  return 0.0;
+}
 
 // ─────────────────────────────────────────────
 // TOKEN NORMALISER
@@ -71,30 +243,41 @@ export function normalizeSkillList(skills) {
 
 // ─────────────────────────────────────────────
 // CONTINUOUS SKILL MATCH — returns 0.0 → 1.0
-// Partial substring matches are weighted at 0.6
+// Weights core skills matching the JD title higher
 // ─────────────────────────────────────────────
-export function preciseSkillMatchRatio(candidateSkills, jobSkills) {
-  if (!jobSkills.length || !candidateSkills.length) return 0;
-  let totalScore = 0;
+export function preciseSkillMatchRatio(candidateSkills, jobSkills, jobTitle = "") {
+  if (!jobSkills.length) return 1.0; // No requirements listed -> complete match
+  if (!candidateSkills.length) return 0.0; // Seeker has empty profile -> zero match
+  
+  const titleKeywords = jobTitle
+    ? jobTitle.toLowerCase().split(/[\s,._\-()]+/).filter(k => k.length > 2)
+    : [];
+    
+  let totalMatchWeighted = 0;
+  let totalWeight = 0;
+  
   for (const js of jobSkills) {
-    let best = 0;
-    for (const cs of candidateSkills) {
-      if (cs === js) { best = 1.0; break; }
-      if (cs.includes(js) || js.includes(cs)) { best = Math.max(best, 0.6); }
-      // Levenshtein-like 1-char tolerance for typos
-      if (Math.abs(cs.length - js.length) <= 2 && js.length > 3) {
-        let diff = 0;
-        const shorter = cs.length < js.length ? cs : js;
-        const longer = cs.length < js.length ? js : cs;
-        for (let i = 0; i < shorter.length; i++) {
-          if (shorter[i] !== longer[i]) diff++;
-        }
-        if (diff <= 1) best = Math.max(best, 0.4);
-      }
+    // If the skill matches key words in the job title, it's a primary requirement
+    let isCore = false;
+    if (titleKeywords.length > 0) {
+      const normJS = normalizeSkillToken(js);
+      isCore = titleKeywords.some(tk => normJS.includes(tk) || tk.includes(normJS));
     }
-    totalScore += best;
+    
+    const weight = isCore ? 2.5 : 1.0;
+    
+    let bestMatch = 0;
+    for (const cs of candidateSkills) {
+      const sim = getSemanticSkillSimilarity(cs, js);
+      if (sim > bestMatch) bestMatch = sim;
+      if (bestMatch >= 1.0) break;
+    }
+    
+    totalMatchWeighted += bestMatch * weight;
+    totalWeight += weight;
   }
-  return totalScore / jobSkills.length;
+  
+  return totalWeight > 0 ? (totalMatchWeighted / totalWeight) : 0;
 }
 
 // ─────────────────────────────────────────────
@@ -102,46 +285,37 @@ export function preciseSkillMatchRatio(candidateSkills, jobSkills) {
 // Returns 0.0 → 1.0
 // ─────────────────────────────────────────────
 export function preciseExperienceScore(userYears, requiredYears) {
-  if (requiredYears === 0) return 0.85; // Not specified → near-neutral
+  if (requiredYears === 0) return 0.85; 
   const diff = userYears - requiredYears;
-  if (diff >= 0 && diff <= 1) return 1.0;           // perfect or slightly over
-  if (diff > 1 && diff <= 3) return 0.85;           // over-qualified slightly
-  if (diff > 3) return 0.65;                        // over-qualified significantly
-  if (diff < 0 && diff >= -1) return 0.80;          // slightly under
-  if (diff < -1 && diff >= -2) return 0.55;         // moderately under
-  if (diff < -2 && diff >= -3) return 0.30;         // significantly under
-  return 0.0;                                        // not viable
+  
+  if (diff >= 0) {
+    if (diff <= 2) return 1.0; // Perfect fit
+    // Gentle overqualification scaling
+    return Math.max(0.70, 1.0 - (diff - 2) * 0.05);
+  } else {
+    // Underqualified scaling
+    const gap = Math.abs(diff);
+    return Math.max(0.0, 1.0 - gap * 0.20);
+  }
 }
 
 // ─────────────────────────────────────────────
 // SALARY FIT — returns 0.0 → 1.0
 // ─────────────────────────────────────────────
 export function preciseSalaryScore(userExpectedLPA, jobSalaryLPA) {
-  if (!userExpectedLPA || !jobSalaryLPA) return 0.5; // neutral if unknown
+  if (!userExpectedLPA || !jobSalaryLPA) return 0.8; // neutral
   const ratio = jobSalaryLPA / userExpectedLPA;
-  if (ratio >= 1.2) return 1.0;     // significantly exceeds expectation
-  if (ratio >= 1.0) return 0.95;    // meets or beats
-  if (ratio >= 0.85) return 0.70;   // within 15% below — acceptable
-  if (ratio >= 0.70) return 0.40;   // 15-30% below — low
-  return 0.10;                       // too low
+  if (ratio >= 1.0) {
+    return Math.min(1.0, 0.95 + (ratio - 1.0) * 0.1);
+  } else {
+    return Math.max(0.1, 1.0 - (1.0 - ratio) * 2.0);
+  }
 }
 
 // ─────────────────────────────────────────────
 // RESUME SECTION SCORING — precise subscores
-// Input: section string or array of content
-// Returns: float 0 → 100
+// Returns: integer 0 → 100
 // ─────────────────────────────────────────────
-
-// Minimum content thresholds per section
-const SECTION_THRESHOLDS = {
-  experience: { words: 30, metrics: 1, verbs: 2 },
-  skills:     { count: 4 },
-  education:  { words: 10 },
-  projects:   { words: 20, metrics: 1 },
-  summary:    { words: 20 },
-  contact:    { fields: 2 },
-};
-
 const ACTION_VERBS = [
   "built","developed","designed","implemented","led","managed","created","optimized",
   "reduced","improved","increased","achieved","delivered","deployed","architected",
@@ -165,45 +339,34 @@ export function scoreExperienceSection(text) {
   const verbs = countActionVerbs(text);
 
   let score = 0;
-  // Content depth: 0-50 pts
   score += Math.min(50, (words / 200) * 50);
-  // Quantified achievements: 0-30 pts
   score += Math.min(30, metrics * 10);
-  // Action verbs: 0-20 pts
   score += Math.min(20, verbs * 4);
-  return parseFloat(Math.min(100, score).toFixed(1));
+  return Math.round(Math.min(100, score));
 }
 
 export function scoreSkillsSection(skills) {
   const list = normalizeSkillList(skills);
   if (!list.length) return 0;
-  // Base: each skill up to 10 is worth 8pts, capped at 80
+  
   let base = Math.min(80, list.length * 8);
-  // Bonus for variety (we look for overlap across known domains)
-  const domains = {
-    frontend: ["html","css","javascript","react.js","vue.js","typescript"],
-    backend: ["node.js","python","java",".net","ruby","php","go"],
-    database: ["mongodb","postgresql","mysql","redis","sqlite"],
-    devops: ["docker","kubernetes","amazon web services","google cloud","ci/cd","devops"],
-    mobile: ["ios","android","react native","flutter"],
-  };
   let domainsCovered = 0;
-  for (const [, dSkills] of Object.entries(domains)) {
-    if (dSkills.some(ds => list.includes(ds))) domainsCovered++;
+  for (const cluster of SKILL_CLUSTERS) {
+    if (cluster.skills.some(ds => list.includes(ds))) domainsCovered++;
   }
   const bonus = Math.min(20, domainsCovered * 5);
-  return parseFloat(Math.min(100, base + bonus).toFixed(1));
+  return Math.round(Math.min(100, base + bonus));
 }
 
 export function scoreEducationSection(text) {
-  if (!text || text.trim().length < 5) return 20; // minimal but present
+  if (!text || text.trim().length < 5) return 20;
   const lower = text.toLowerCase();
-  let score = 30; // base for having it
+  let score = 30;
   if (lower.includes("gpa") || lower.includes("cgpa") || lower.match(/\d+\.\d+/)) score += 20;
   if (lower.includes("first class") || lower.match(/[89]\d%/) || lower.match(/[89]\.\d cgpa/i)) score += 20;
   if (lower.includes("honours") || lower.includes("distinction") || lower.includes("gold")) score += 15;
   if (lower.includes("b.tech") || lower.includes("m.tech") || lower.includes("mba") || lower.includes("phd")) score += 15;
-  return parseFloat(Math.min(100, score).toFixed(1));
+  return Math.round(Math.min(100, score));
 }
 
 export function scoreProjectsSection(text) {
@@ -215,17 +378,17 @@ export function scoreProjectsSection(text) {
   score += Math.min(50, (words / 150) * 50);
   score += Math.min(30, metrics * 10);
   score += Math.min(20, verbs * 5);
-  return parseFloat(Math.min(100, score).toFixed(1));
+  return Math.round(Math.min(100, score));
 }
 
 export function scoreSummarySection(text) {
   if (!text || text.trim().length < 10) return 0;
   const words = text.trim().split(/\s+/).length;
-  let score = Math.min(60, (words / 60) * 60); // 60 words = full word score
+  let score = Math.min(60, (words / 60) * 60);
   if (text.match(/seeking|passionate|motivated|driven|results/i)) score += 10;
   if (text.match(/\d+\s*\+?\s*years?/i)) score += 15;
   if (text.match(/specializ|expert|proficient/i)) score += 15;
-  return parseFloat(Math.min(100, score).toFixed(1));
+  return Math.round(Math.min(100, score));
 }
 
 export function scoreContactSection(contact) {
@@ -236,12 +399,12 @@ export function scoreContactSection(contact) {
   if (contact.match(/linkedin\.com/i)) score += 25;
   if (contact.match(/github\.com/i)) score += 15;
   if (contact.match(/portfolio|behance|dribbble/i)) score += 5;
-  return parseFloat(Math.min(100, score).toFixed(1));
+  return Math.round(Math.min(100, score));
 }
 
 // ─────────────────────────────────────────────
 // MASTER ATS SCORE — section-weighted composite
-// Returns precise float e.g. 63.7
+// Returns precise integer 15 → 100
 // ─────────────────────────────────────────────
 const ATS_WEIGHTS = {
   experience: 0.30,
@@ -267,59 +430,150 @@ export function calculateATSScore(extractedData) {
     weighted += (sections[key] || 0) * weight;
   }
 
-  // Apply baseline: even a blank resume gets floor 15
   const raw = Math.max(15, weighted);
-
-  // Slight random perturbation (±1.3) so scores look organic, not pre-cooked
   const jitter = (Math.random() * 2.6) - 1.3;
+  
   return {
-    total: parseFloat(Math.min(97, Math.max(15, raw + jitter)).toFixed(1)),
+    total: Math.round(Math.min(100, Math.max(15, raw + jitter))),
     sections,
   };
 }
 
 // ─────────────────────────────────────────────
-// JOB MATCH SCORE — precise 0-100 float
-// Used in /api/jobs to rank jobs per candidate
+// PROFILE AUTOPREPROCESSOR
 // ─────────────────────────────────────────────
-export function calculatePreciseJobMatch(job, preprocessedProfile) {
-  if (!preprocessedProfile) return 50.0;
+export function preprocessProfileInternal(profile) {
+  if (!profile) return {
+    normalizedUserSkills: [],
+    preferredLocs: [],
+    userExp: 0,
+    userSalary: 0,
+    userInIndia: true,
+    userDegreeLower: "",
+    expSummaryLower: ""
+  };
 
-  const { normalizedUserSkills, preferredLocs, userExp, userSalary } = preprocessedProfile;
+  let userSkills = [];
+  if (Array.isArray(profile.skills)) {
+    userSkills = profile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+  } else if (typeof profile.skills === 'string') {
+    userSkills = profile.skills.split(/[,;|\/]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+  const normalizedUserSkills = normalizeSkillList(userSkills);
+
+  let preferredLocs = [];
+  if (Array.isArray(profile.preferredLocations)) {
+    preferredLocs = profile.preferredLocations.map(s => s.trim().toLowerCase()).filter(Boolean);
+  } else if (typeof profile.preferredLocations === 'string') {
+    preferredLocs = profile.preferredLocations.split(/[,;|\/]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+
+  // Extract years of experience
+  let userExp = 0;
+  if (profile.experience) {
+    if (typeof profile.experience === 'number') {
+      userExp = profile.experience;
+    } else {
+      const match = String(profile.experience).match(/(\d+)\s*(year|yr)/i);
+      if (match) userExp = parseInt(match[1]);
+      else {
+        const numMatch = String(profile.experience).match(/\b(\d+)\b/);
+        if (numMatch) userExp = parseInt(numMatch[1]);
+      }
+    }
+  }
+
+  // Parse expected CTC
+  let userSalary = 0;
+  if (profile.expectedCtc) {
+    if (typeof profile.expectedCtc === 'number') {
+      userSalary = profile.expectedCtc;
+    } else {
+      const match = String(profile.expectedCtc).match(/(\d+)\s*(LPA|lakh)/i);
+      if (match) userSalary = parseInt(match[1]);
+      else {
+        const numMatch = String(profile.expectedCtc).match(/\b(\d+)\b/);
+        if (numMatch) userSalary = parseInt(numMatch[1]);
+      }
+    }
+  }
+
+  const userInIndia = preferredLocs.length === 0 || preferredLocs.some(loc => 
+    loc.includes("india") || 
+    INDIAN_STATES_LOWER.has(loc) || 
+    INDIAN_CITIES_LOWER.has(loc)
+  );
+
+  const userDegreeLower = (profile.degree || "").toLowerCase();
+  const expSummaryLower = (profile.experience || "").toLowerCase();
+
+  return {
+    normalizedUserSkills,
+    preferredLocs,
+    userExp,
+    userSalary,
+    userInIndia,
+    userDegreeLower,
+    expSummaryLower
+  };
+}
+
+// ─────────────────────────────────────────────
+// JOB MATCH SCORE — precise 0-100 integer
+// ─────────────────────────────────────────────
+export function calculatePreciseJobMatch(job, profile) {
+  if (!profile) return 50;
+
+  const preprocessedProfile = ('normalizedUserSkills' in profile)
+    ? profile
+    : preprocessProfileInternal(profile);
+
+  const { normalizedUserSkills, preferredLocs, userExp, userSalary, userInIndia, userDegreeLower, expSummaryLower } = preprocessedProfile;
 
   // Parse job skills
-  const jobSkills = normalizeSkillList(job.skills || "");
+  let jobSkills = [];
+  if (Array.isArray(job.skills)) {
+    jobSkills = job.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+  } else if (typeof job.skills === 'string') {
+    jobSkills = job.skills.split(/[,;|\/]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+  const normalizedJobSkills = jobSkills.map(s => normalizeSkillToken(s));
 
   // ── Hard filter: experience gap too large ──
   const jobExpRequired = getJobRequiredExp(job);
   if (jobExpRequired > userExp + 4) return 0;
 
   // ── Continuous sub-scores ──
-  const skillRatio = preciseSkillMatchRatio(normalizedUserSkills, jobSkills);  // 0-1
-  const expScore = preciseExperienceScore(userExp, jobExpRequired);            // 0-1
-  const salaryScore = preciseSalaryScore(userSalary, parseJobSalaryLPA(job.salary)); // 0-1
+  const skillRatio = preciseSkillMatchRatio(normalizedUserSkills, normalizedJobSkills, job.title || "");
+  const expScore = preciseExperienceScore(userExp, jobExpRequired);
+  const salaryScore = preciseSalaryScore(userSalary, parseJobSalaryLPA(job.salary));
 
   // Location score
   const jobLocLower = (job.location || "").toLowerCase();
   const isRemote = jobLocLower.includes("remote") || (job.type || "").toLowerCase().includes("remote");
   let locScore;
   if (preferredLocs.length === 0) {
-    locScore = 0.7; // neutral
+    locScore = 0.85; // neutral
   } else if (isRemote) {
-    locScore = 0.85;
+    locScore = 0.95;
   } else {
     const cityMatch = preferredLocs.some(l => jobLocLower.includes(l) || l.includes(jobLocLower));
-    locScore = cityMatch ? 1.0 : 0.2;
+    if (cityMatch) {
+      locScore = 1.0;
+    } else {
+      const jobInIndia = jobLocLower.includes("india") || [...INDIAN_STATES_LOWER].some(s => jobLocLower.includes(s)) || [...INDIAN_CITIES_LOWER].some(c => jobLocLower.includes(c));
+      locScore = (jobInIndia && userInIndia) ? 0.50 : 0.10;
+    }
   }
 
-  // Role match score (does job title align with candidate domain?)
+  // Role match score
   const roleScore = calculateRoleAlignment(job.title || "", preprocessedProfile);
 
   // ── Weighted composite ──
   const WEIGHTS = {
-    skill: 0.42,
+    skill: 0.45,
     experience: 0.18,
-    location: 0.18,
+    location: 0.15,
     role: 0.14,
     salary: 0.08,
   };
@@ -330,9 +584,8 @@ export function calculatePreciseJobMatch(job, preprocessedProfile) {
     roleScore * WEIGHTS.role * 100 +
     salaryScore * WEIGHTS.salary * 100;
 
-  // Micro-jitter for organic scores
-  const jitter = (Math.random() * 1.6) - 0.8;
-  return parseFloat(Math.min(99, Math.max(0, raw + jitter)).toFixed(1));
+  const jitter = (Math.random() * 3.0) - 1.5;
+  return Math.round(Math.min(100, Math.max(1, raw + jitter)));
 }
 
 function calculateRoleAlignment(jobTitle, profile) {
@@ -361,26 +614,23 @@ function calculateRoleAlignment(jobTitle, profile) {
       return 0.25;
     }
   }
-  return 0.5; // uncategorised role — neutral
+  return 0.5;
 }
 
 // ─────────────────────────────────────────────
 // APPLICANT RANKING SCORE — for recruiter panel
-// Combines ATS, skill match, and JD alignment
 // ─────────────────────────────────────────────
 export function rankApplicant(candidateProfile, jobDescription) {
-  const skills = normalizeSkillList(candidateProfile.skills || "");
+  const preprocessed = preprocessProfileInternal(candidateProfile);
   const jdSkills = extractSkillsFromText(jobDescription || "");
+  const jdExp = extractExpYears(jobDescription || "");
 
-  const skillRatio = preciseSkillMatchRatio(skills, jdSkills);
-  const expScore = preciseExperienceScore(
-    extractExpYears(candidateProfile.experience || ""),
-    extractExpYears(jobDescription || "")
-  );
+  const skillRatio = preciseSkillMatchRatio(preprocessed.normalizedUserSkills, jdSkills);
+  const expScore = preciseExperienceScore(preprocessed.userExp, jdExp);
 
-  const raw = skillRatio * 0.55 * 100 + expScore * 0.30 * 100 + Math.random() * 0.15 * 100;
-  const jitter = (Math.random() * 2.0) - 1.0;
-  return parseFloat(Math.min(98, Math.max(5, raw + jitter)).toFixed(1));
+  const raw = skillRatio * 0.60 * 100 + expScore * 0.40 * 100;
+  const jitter = (Math.random() * 3.0) - 1.5;
+  return Math.round(Math.min(100, Math.max(5, raw + jitter)));
 }
 
 // ─────────────────────────────────────────────
@@ -405,6 +655,7 @@ function parseJobSalaryLPA(salaryStr) {
   return match ? parseFloat(match[0]) : 0;
 }
 
+// Helper to extract common tech skills from raw text descriptions
 function extractSkillsFromText(text) {
   const COMMON_TECH = [
     "react","node","python","java","javascript","typescript","mongodb","postgresql",
@@ -417,7 +668,6 @@ function extractSkillsFromText(text) {
 
 // ─────────────────────────────────────────────
 // SEARCH RELEVANCE SCORING — for job search
-// Higher = more relevant to the query
 // ─────────────────────────────────────────────
 export function scoreSearchRelevance(job, query) {
   const q = query.toLowerCase();
@@ -428,47 +678,40 @@ export function scoreSearchRelevance(job, query) {
 
   let score = 0;
 
-  // Exact title match
   if (title === q) score += 100;
   else if (title.startsWith(q)) score += 75;
   else if (title.includes(q)) score += 50;
 
-  // Token-level title match
   const qTokens = q.split(/\s+/).filter(t => t.length > 2);
   const titleTokens = title.split(/\s+/);
   const tokenHits = qTokens.filter(qt => titleTokens.some(tt => tt.includes(qt))).length;
   score += tokenHits * 20;
 
-  // Skill match
   if (skills.includes(q)) score += 30;
   qTokens.forEach(qt => { if (skills.includes(qt)) score += 10; });
 
-  // Company match
   if (company.includes(q)) score += 20;
 
-  // Description match (lower weight)
   if (desc.includes(q)) score += 10;
   qTokens.forEach(qt => { if (desc.includes(qt)) score += 3; });
 
-  return score;
+  return Math.round(score);
 }
 
 // ─────────────────────────────────────────────
 // INTERVIEW RELEVANCE SCORE
-// How well does a candidate match a specific interview role?
-// Returns 0-100 float
 // ─────────────────────────────────────────────
 export function scoreInterviewRelevance(candidateProfile, role) {
-  const skills = normalizeSkillList(candidateProfile.skills || "");
+  const preprocessed = preprocessProfileInternal(candidateProfile);
   const roleSkills = extractSkillsFromText(role);
-  const ratio = preciseSkillMatchRatio(skills, roleSkills);
-  const expYears = extractExpYears(candidateProfile.experience || "");
+  const ratio = preciseSkillMatchRatio(preprocessed.normalizedUserSkills, roleSkills, role);
 
-  let base = ratio * 70;
-  if (expYears >= 3) base += 20;
-  else if (expYears >= 1) base += 12;
+  let base = ratio * 75;
+  if (preprocessed.userExp >= 5) base += 25;
+  else if (preprocessed.userExp >= 3) base += 18;
+  else if (preprocessed.userExp >= 1) base += 10;
   else base += 5;
 
-  const jitter = (Math.random() * 2.0) - 1.0;
-  return parseFloat(Math.min(99, Math.max(10, base + jitter)).toFixed(1));
+  const jitter = (Math.random() * 3.0) - 1.5;
+  return Math.round(Math.min(100, Math.max(10, base + jitter)));
 }

@@ -357,7 +357,7 @@ export async function semanticJobSearch(query, topK = 20, apiKey) {
       company:       doc.metadata.company,
       location:      doc.metadata.location,
       type:          doc.metadata.type,
-      semanticScore: parseFloat(((1 - score) * 100).toFixed(1)),
+      semanticScore: Math.round((1 - score) * 100),
     }));
   } catch (err) {
     console.error("[JobIndex] Semantic search error:", err.message);
@@ -483,7 +483,7 @@ export async function buildResumeJDAlignments(resumeRawText, jdText, apiKey) {
       alignments.push({
         resumeSegment: chunk.replace(/\s+/g, " "),
         jdRequirement: jdReq,
-        confidence:    parseFloat((similarity * 100).toFixed(1)),
+        confidence:    Math.round(similarity * 100),
       });
     }
 
