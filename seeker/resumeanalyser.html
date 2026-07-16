@@ -540,7 +540,7 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
 <!-- Existing Resume Modal -->
 <div id="existingModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
-    <div style="font-size:2rem;margin-bottom:10px">📄</div>
+    <div style="display:flex; justify-content:center; margin-bottom:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--accent-tertiary);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
     <h3>Resume Found</h3>
     <p id="existingModalText">You already have a resume uploaded in your Profile. Would you like to load it here for analysis?</p>
     <div class="modal-actions">
@@ -572,7 +572,7 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
 
       <div class="viewer-area">
         <div class="resume-embed empty-slot" id="viewer" onclick="triggerUpload(activeTab)">
-          <span style="font-size:2rem;opacity:.4">📄</span>
+          <div style="display:flex; justify-content:center; margin-bottom:8px; opacity: 0.4;"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
           <span>Click to upload resume</span>
           <span style="font-size:0.72rem;opacity:.6">PDF or image (max 10MB)</span>
         </div>
@@ -591,7 +591,7 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
     <div class="ra-right">
       <div class="ra-right-inner" id="rightPanel">
         <div class="ra-placeholder" id="placeholder">
-          <div class="icon">🔍</div>
+          <div class="icon" style="display:flex; justify-content:center; margin-bottom:16px; color: var(--text-muted); opacity: 0.7;"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
           <h3 style="font-size:1rem;font-weight:700;color:var(--text-main)">No Analysis Yet</h3>
           <p style="font-size:0.84rem;max-width:340px">Upload a resume on the left and click <strong>Analyse Resume</strong> to get your ATS score, keyword gaps, and actionable tips.</p>
         </div>
@@ -1021,6 +1021,24 @@ function showPlaceholder() {
 
 let currentDashTab = 'summary';
 
+// Clean SVG Icons to replace all emojis
+const SVG_ICONS = {
+  breakdown: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`,
+  key: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>`,
+  zap: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`,
+  branch: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>`,
+  target: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`,
+  shield: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`,
+  folder: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
+  file: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`,
+  check: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+  cross: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+  arrow: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`,
+  info: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
+  academic: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path></svg>`,
+  phone: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-icon"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`
+};
+
 function switchDashTab(tabName) {
   currentDashTab = tabName;
   
@@ -1071,7 +1089,7 @@ function renderActiveTabContent() {
       </div>
 
       ${sections.length ? `
-      <div class="acard" style="margin-bottom: 0;">
+      <div class="acard" style="margin-bottom: 16px;">
         <div class="acard-title" style="margin-bottom: 12px;">Section Breakdown</div>
         ${sections.map(([label, val]) => `
         <div class="sbar-row">
@@ -1080,14 +1098,74 @@ function renderActiveTabContent() {
           <span class="sbar-val">${val}</span>
         </div>`).join('')}
       </div>` : ''}
+
+      <!-- Smart Points Allocation & Tips Section -->
+      <div class="acard" style="margin-bottom: 0;">
+        <div class="acard-title" style="display:flex; align-items:center; gap:6px;">
+          ${SVG_ICONS.info} Smart Points Allocation & Improvement Tips
+        </div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;line-height:1.4;">
+          Your ATS score is calculated out of 100 points based on the following professional scoring standards:
+        </p>
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:0.78rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-subtle); padding-bottom:6px;">
+            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
+              ${SVG_ICONS.breakdown} Experience (Max 30 pts)
+            </span>
+            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
+              Verbs & metrics. <strong style="color:#10b981; font-weight:600;">Tip: Add quantifiable metrics (%, $, x) to gain up to 10 pts.</strong>
+            </span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-subtle); padding-bottom:6px;">
+            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
+              ${SVG_ICONS.key} Skills (Max 25 pts)
+            </span>
+            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
+              Core tech. <strong style="color:#10b981; font-weight:600;">Tip: Group core skills clearly by domain/cluster.</strong>
+            </span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-subtle); padding-bottom:6px;">
+            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
+              ${SVG_ICONS.folder} Projects (Max 20 pts)
+            </span>
+            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
+              Impact & stack. <strong style="color:#10b981; font-weight:600;">Tip: List technical architectures and systems deployed.</strong>
+            </span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-subtle); padding-bottom:6px;">
+            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
+              ${SVG_ICONS.academic} Education (Max 12 pts)
+            </span>
+            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
+              Degree & GPA. <strong style="color:#10b981; font-weight:600;">Tip: Explicitly mention GPA, CGPA or honors/distinctions.</strong>
+            </span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-subtle); padding-bottom:6px;">
+            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
+              ${SVG_ICONS.file} Summary (Max 8 pts)
+            </span>
+            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
+              Role focus. <strong style="color:#10b981; font-weight:600;">Tip: Start with years of experience and core domain tags.</strong>
+            </span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:2px;">
+            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
+              ${SVG_ICONS.phone} Contact (Max 5 pts)
+            </span>
+            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
+              Professional links. <strong style="color:#10b981; font-weight:600;">Tip: Include active links to LinkedIn and GitHub.</strong>
+            </span>
+          </div>
+        </div>
+      </div>
     `;
   } 
   else if (currentDashTab === 'skills') {
     html = `
       <div class="acard" style="margin-bottom: 16px;">
         <div class="acard-title">Keyword Match Analysis</div>
-        ${(d.matchedSkills||[]).length ? `<div style="margin-bottom:14px"><div style="font-size:.78rem;font-weight:600;color:var(--success);margin-bottom:6px">✓ Matched (${(d.matchedSkills||[]).length})</div><div class="skills-wrap">${(d.matchedSkills||[]).map(s=>`<span class="tag-matched">${s}</span>`).join('')}</div></div>` : '<p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;">No matching skills found.</p>'}
-        ${(d.missingSkills||[]).length ? `<div><div style="font-size:.78rem;font-weight:600;color:var(--danger);margin-bottom:6px">✗ Missing / Recommended (${(d.missingSkills||[]).length})</div><div class="skills-wrap">${(d.missingSkills||[]).map(s=>`<span class="tag-missing">${s}</span>`).join('')}</div></div>` : ''}
+        ${(d.matchedSkills||[]).length ? `<div style="margin-bottom:14px"><div style="font-size:.78rem;font-weight:600;color:var(--success);margin-bottom:6px; display:inline-flex; align-items:center; gap:4px;">${SVG_ICONS.check} Matched (${(d.matchedSkills||[]).length})</div><div class="skills-wrap">${(d.matchedSkills||[]).map(s=>`<span class="tag-matched">${s}</span>`).join('')}</div></div>` : '<p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;">No matching skills found.</p>'}
+        ${(d.missingSkills||[]).length ? `<div><div style="font-size:.78rem;font-weight:600;color:var(--danger);margin-bottom:6px; display:inline-flex; align-items:center; gap:4px;">${SVG_ICONS.cross} Missing / Recommended (${(d.missingSkills||[]).length})</div><div class="skills-wrap">${(d.missingSkills||[]).map(s=>`<span class="tag-missing">${s}</span>`).join('')}</div></div>` : ''}
       </div>
       
       ${(d.suggestedRoles||[]).length ? `
@@ -1102,19 +1180,19 @@ function renderActiveTabContent() {
       ${(d.strengths||[]).length ? `
       <div class="acard" style="margin-bottom: 16px;">
         <div class="acard-title">Identified Strengths</div>
-        <div class="skills-wrap" style="gap:8px;">${(d.strengths||[]).map(s=>`<span class="pill pill-green" style="padding:6px 12px;">✓ ${s}</span>`).join('')}</div>
+        <div class="skills-wrap" style="gap:8px;">${(d.strengths||[]).map(s=>`<span class="pill pill-green" style="padding:6px 12px; display:inline-flex; align-items:center; gap:4px;">${SVG_ICONS.check} ${s}</span>`).join('')}</div>
       </div>` : ''}
 
       ${(d.quickWins||[]).length ? `
       <div class="acard" style="margin-bottom: 16px;">
         <div class="acard-title">Quick Wins (Easiest Improvements)</div>
-        <div class="skills-wrap" style="gap:8px;">${(d.quickWins||[]).map(s=>`<span class="pill pill-amber" style="padding:6px 12px;">⚡ ${s}</span>`).join('')}</div>
+        <div class="skills-wrap" style="gap:8px;">${(d.quickWins||[]).map(s=>`<span class="pill pill-amber" style="padding:6px 12px; display:inline-flex; align-items:center; gap:4px;">${SVG_ICONS.zap} ${s}</span>`).join('')}</div>
       </div>` : ''}
 
       ${(d.recommendations||[]).length ? `
       <div class="acard" style="margin-bottom: 0;">
         <div class="acard-title">ATS Optimization Tips</div>
-        ${(d.recommendations||[]).map(r=>`<div class="rec-item"><span class="rec-icon">→</span><span>${r}</span></div>`).join('')}
+        ${(d.recommendations||[]).map(r=>`<div class="rec-item"><span class="rec-icon" style="display:inline-flex; align-items:center; margin-right:4px;">${SVG_ICONS.arrow}</span><span>${r}</span></div>`).join('')}
       </div>` : ''}
     `;
   }
@@ -1158,12 +1236,12 @@ function renderActiveTabContent() {
 function renderTopicMap(topicMap) {
   if (!topicMap || !topicMap.projectName) return '<p style="font-size:0.8rem;color:var(--text-muted);">No Project Mindmap data extracted from resume.</p>';
   let treeHtml = `<div class="topic-map-box">`;
-  treeHtml += `<div class="topic-map-project">📁 ${topicMap.projectName}</div>`;
+  treeHtml += `<div class="topic-map-project" style="display:inline-flex; align-items:center; gap:6px;">${SVG_ICONS.folder} ${topicMap.projectName}</div>`;
   
   const topics = topicMap.topics || {};
   for (const [topicName, subtopics] of Object.entries(topics)) {
     treeHtml += `<div class="topic-branch">`;
-    treeHtml += `<div class="topic-branch-title">🌿 ${topicName}</div>`;
+    treeHtml += `<div class="topic-branch-title" style="display:inline-flex; align-items:center; gap:4px;">${SVG_ICONS.branch} ${topicName}</div>`;
     if (Array.isArray(subtopics) && subtopics.length > 0) {
       treeHtml += `<div class="topic-branch-items">`;
       subtopics.forEach(sub => {
@@ -1218,8 +1296,8 @@ function renderVerificationQueue(queue) {
       : `<li>Verify details on this claim</li>`;
     queueHtml += `
       <div class="claim-card">
-        <div class="claim-check" id="check-${index}" onclick="toggleClaimCheck(${index})">⬜</div>
-        <div class="claim-body">
+        <div class="claim-check" id="check-${index}" onclick="toggleClaimCheck(${index})" style="display:inline-flex; align-items:center; justify-content:center; width: 16px; height: 16px; border: 1px solid var(--border-subtle); border-radius: 4px; font-size: 0.75rem; cursor: pointer;"></div>
+        <div class="claim-body" style="margin-left:8px;">
           <div class="claim-title-text" id="claim-text-${index}">${item.claim}</div>
           <ul class="claim-step-list">
             ${stepsList}
@@ -1236,12 +1314,17 @@ function toggleClaimCheck(index) {
   const check = document.getElementById(`check-${index}`);
   const title = document.getElementById(`claim-text-${index}`);
   if (check && title) {
-    if (check.textContent === '⬜') {
-      check.textContent = '✅';
+    if (check.innerHTML === '') {
+      check.innerHTML = '✓';
+      check.style.background = 'var(--accent-secondary)';
+      check.style.color = '#fff';
+      check.style.borderColor = 'var(--accent-secondary)';
       title.style.textDecoration = 'line-through';
       title.style.opacity = '0.6';
     } else {
-      check.textContent = '⬜';
+      check.innerHTML = '';
+      check.style.background = 'none';
+      check.style.borderColor = 'var(--border-subtle)';
       title.style.textDecoration = 'none';
       title.style.opacity = '1';
     }
@@ -1263,7 +1346,7 @@ function renderDashboard(d) {
   const offset = circumference - (score / 100) * circumference;
 
   const hasMultiple = analysisResults.filter(Boolean).length > 1;
-  const compareBtn = hasMultiple ? `<button class="compare-toggle" onclick="renderComparison()" style="margin-bottom:16px">⚡ Compare All Resumes</button>` : '';
+  const compareBtn = hasMultiple ? `<button class="compare-toggle" onclick="renderComparison()" style="margin-bottom:16px; display:inline-flex; align-items:center; gap:6px;">${SVG_ICONS.zap} Compare All Resumes</button>` : '';
 
   dash.innerHTML = `
   ${compareBtn}
@@ -1282,7 +1365,7 @@ function renderDashboard(d) {
       </svg>
     </div>
     <div style="flex:1;min-width:200px">
-      <h3 style="font-size:1.05rem;font-weight:800;color:var(--text-main);margin-bottom:4px">${resumes[activeTab]?.name || 'Resume'}</h3>
+      <h3 style="font-size:1.05rem;font-weight:800;color:var(--text-main);margin-bottom:4px; display:inline-flex; align-items:center; gap:6px;">${SVG_ICONS.file} ${resumes[activeTab]?.name || 'Resume'}</h3>
       <div style="font-size:0.75rem;color:var(--accent-secondary);font-weight:600;margin-bottom:8px">Target: ${d.suggestedRoles?.[0] || 'Professional'}</div>
       <p style="font-size:.82rem;color:var(--text-muted);line-height:1.45;">Overall compatibility analysis complete. Click through the tabs below to explore keyword alignments, roadmap priorities, and verification steps.</p>
     </div>
@@ -1290,12 +1373,12 @@ function renderDashboard(d) {
 
   <!-- Interactive Dashboard Tabs -->
   <div class="dash-tabs">
-    <button class="dash-tab active" data-tab="summary" onclick="switchDashTab('summary')">📊 Breakdown</button>
-    <button class="dash-tab" data-tab="skills" onclick="switchDashTab('skills')">🔑 Keywords</button>
-    <button class="dash-tab" data-tab="action" onclick="switchDashTab('action')">⚡ Actions & Tips</button>
-    <button class="dash-tab" data-tab="projects" onclick="switchDashTab('projects')">🌳 Mindmap</button>
-    <button class="dash-tab" data-tab="interview" onclick="switchDashTab('interview')">🎯 Prep Guide</button>
-    <button class="dash-tab" data-tab="verification" onclick="switchDashTab('verification')">🛡️ Claims</button>
+    <button class="dash-tab active" data-tab="summary" onclick="switchDashTab('summary')">${SVG_ICONS.breakdown} Breakdown</button>
+    <button class="dash-tab" data-tab="skills" onclick="switchDashTab('skills')">${SVG_ICONS.key} Keywords</button>
+    <button class="dash-tab" data-tab="action" onclick="switchDashTab('action')">${SVG_ICONS.zap} Actions & Tips</button>
+    <button class="dash-tab" data-tab="projects" onclick="switchDashTab('projects')">${SVG_ICONS.branch} Mindmap</button>
+    <button class="dash-tab" data-tab="interview" onclick="switchDashTab('interview')">${SVG_ICONS.target} Prep Guide</button>
+    <button class="dash-tab" data-tab="verification" onclick="switchDashTab('verification')">${SVG_ICONS.shield} Claims</button>
   </div>
 
   <!-- Dynamic Content Area -->
