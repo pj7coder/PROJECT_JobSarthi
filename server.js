@@ -1222,7 +1222,7 @@ async function parseDocumentWithGemini(base64Data, mimeType, prompt) {
     }
   }
 
-  const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  const modelsToTry = ["gemini-2.5-flash-lite", "gemini-2.5-flash"];
   let lastError = null;
 
   for (const model of modelsToTry) {
@@ -3945,6 +3945,43 @@ app.post("/api/seeker/parse-resume", uploadRateLimiter, largeBodyParser, async (
   }
 });
 
+// Robust helper to extract plain text and hex text streams from binary PDF files
+function extractTextFromPdfBuffer(buffer) {
+  const binaryString = buffer.toString('binary');
+  
+  // Extract text in parentheses (standard PDF strings)
+  const parenMatches = binaryString.match(/\(([^)]+)\)/g) || [];
+  let extractedText = parenMatches
+    .map(m => m.slice(1, -1))
+    .map(str => str.replace(/[^a-zA-Z0-9\s,.\-@_:/#]/g, ""))
+    .join(" ");
+    
+  // Extract hex strings (standard PDF hex strings)
+  const hexMatches = binaryString.match(/<([a-fA-F0-9]{4,})>/g) || [];
+  const hexDecoded = hexMatches
+    .map(m => {
+      const hex = m.slice(1, -1);
+      try {
+        const buf = Buffer.from(hex, 'hex');
+        if (buf.length >= 2 && buf[0] === 0x00) {
+          let decoded = "";
+          for (let i = 0; i < buf.length; i += 2) {
+            decoded += String.fromCharCode((buf[i] << 8) | buf[i+1]);
+          }
+          return decoded;
+        } else {
+          return buf.toString('ascii');
+        }
+      } catch (_) {
+        return "";
+      }
+    })
+    .map(str => str.replace(/[^a-zA-Z0-9\s,.\-@_:/#]/g, ""))
+    .join(" ");
+    
+  return (extractedText + " " + hexDecoded).trim();
+}
+
 app.post("/api/seeker/analyse-resume", uploadRateLimiter, largeBodyParser, async (req, res) => {
   try {
     const { base64Data, mimeType, email, targetRole, jdText } = req.body;
@@ -4168,11 +4205,23 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
 
     try {
       const base64Content = base64Data.split(",")[1] || base64Data;
-      const docText = Buffer.from(base64Content, 'base64').toString('utf8');
+      const buffer = Buffer.from(base64Content, 'base64');
+      
+      let cleanMimeType = mimeType;
+      if (!cleanMimeType && base64Data) {
+        if (base64Data.startsWith("data:")) {
+          cleanMimeType = base64Data.split(";")[0].split(":")[1];
+        } else {
+          cleanMimeType = "application/pdf";
+        }
+      }
+
+      const isPdf = cleanMimeType === 'application/pdf' || (mimeType && mimeType.includes('pdf')) || base64Data.includes('application/pdf') || buffer.slice(0, 4).toString('ascii') === '%PDF';
+      const docText = isPdf ? extractTextFromPdfBuffer(buffer) : buffer.toString('utf8');
       
       // Strict regex matching to check if these sections actually exist
       hasProjectsInText = /project|portfolio|hackathon|selected work/i.test(docText);
-      hasExperienceInText = /experience|work history|employment|internship|job|position/i.test(docText);
+      hasExperienceInText = /experience|work history|employment|internship|job|position|intern/i.test(docText);
       hasEducationInText = /education|degree|school|college|university|btech|b\.tech|bachelor|master|ssc|hsc/i.test(docText);
 
       const commonSkills = [
