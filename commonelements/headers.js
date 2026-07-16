@@ -246,145 +246,6 @@ window.headerSeekerHTML = `
   <!-- Integrated About Content -->
   <div class="about-content" id="aboutContent"></div>
 </header>
-
-<script>
-// ── Notification Sidebar Logic (Seeker) ──────────────────────────────────
-(function() {
-  const API = window.API_BASE_URL || '';
-  let _notifPollTimer = null;
-
-  function getSeekerEmail() {
-    return localStorage.getItem('seeker_email') || '';
-  }
-
-  window.toggleNotifSidebar = function() {
-    const sidebar = document.getElementById('notifSidebar');
-    const overlay = document.getElementById('notifSidebarOverlay');
-    const isOpen = sidebar.style.display === 'flex';
-    if (isOpen) {
-      closeNotifSidebar();
-    } else {
-      sidebar.style.display = 'flex';
-      overlay.style.display = 'block';
-      loadNotifSidebar();
-    }
-  };
-
-  window.closeNotifSidebar = function() {
-    document.getElementById('notifSidebar').style.display = 'none';
-    document.getElementById('notifSidebarOverlay').style.display = 'none';
-  };
-
-  async function loadNotifSidebar() {
-    const email = getSeekerEmail();
-    if (!email) return;
-    try {
-      const res = await fetch(API + '/api/notifications?email=' + encodeURIComponent(email) + '&role=seeker');
-      if (!res.ok) return;
-      const notifs = await res.json();
-      renderNotifSidebar(notifs);
-      updateBadge(notifs);
-    } catch(e) { console.warn('Notif load failed', e); }
-  }
-
-  function timeAgo(isoStr) {
-    if (!isoStr) return '';
-    const diff = Date.now() - new Date(isoStr).getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return m + 'm ago';
-    const h = Math.floor(m / 60);
-    if (h < 24) return h + 'h ago';
-    return Math.floor(h / 24) + 'd ago';
-  }
-
-  function renderNotifSidebar(notifs) {
-    const list = document.getElementById('notifSidebarList');
-    const countEl = document.getElementById('notifSidebarCount');
-    if (!list) return;
-    const unread = notifs.filter(n => !n.read).length;
-    if (countEl) countEl.textContent = unread > 0 ? unread + ' unread' : 'All caught up';
-
-    if (!notifs.length) {
-      list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:0.85rem;">No notifications yet.</div>';
-      return;
-    }
-
-    const iconMap = { star:'⭐', calendar:'📅', 'x-circle':'❌', 'check-circle':'✅', eye:'👁️', bell:'🔔', message:'💬' };
-    list.innerHTML = notifs.slice(0, 20).map(n => {
-      const icon = iconMap[n.icon] || '🔔';
-      return \`<div onclick="markOneNotifRead('\${n.id}')" style="padding:12px;border-radius:10px;background:\${n.read ? 'transparent' : 'rgba(6,182,212,0.07)'};border:1px solid \${n.read ? 'var(--border-subtle)' : 'rgba(6,182,212,0.25)'};cursor:pointer;transition:background 0.2s;">
-        <div style="display:flex;gap:10px;align-items:flex-start;">
-          <span style="font-size:1.2rem;line-height:1.3;">\${icon}</span>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:0.82rem;font-weight:\${n.read ? '500' : '700'};color:var(--text-main);margin-bottom:2px;">\${n.title}</div>
-            <div style="font-size:0.75rem;color:var(--text-muted);line-height:1.4;">\${n.desc}</div>
-            <div style="font-size:0.7rem;color:var(--text-dark);margin-top:4px;">\${timeAgo(n.createdAt)}</div>
-          </div>
-          \${!n.read ? '<span style="width:7px;height:7px;border-radius:50%;background:#06b6d4;flex-shrink:0;margin-top:4px;"></span>' : ''}
-        </div>
-      </div>\`;
-    }).join('');
-  }
-
-  function updateBadge(notifs) {
-    const badge = document.getElementById('notifBadge');
-    if (!badge) return;
-    const unread = notifs.filter(n => !n.read).length;
-    if (unread > 0) {
-      badge.textContent = unread > 9 ? '9+' : unread;
-      badge.style.display = 'block';
-    } else {
-      badge.style.display = 'none';
-    }
-  }
-
-  window.markOneNotifRead = async function(id) {
-    const email = getSeekerEmail();
-    if (!email) return;
-    await fetch(API + '/api/notifications/read', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, role: 'seeker', id })
-    });
-    loadNotifSidebar();
-  };
-
-  window.markAllNotifsRead = async function() {
-    const email = getSeekerEmail();
-    if (!email) return;
-    await fetch(API + '/api/notifications/read', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, role: 'seeker' })
-    });
-    loadNotifSidebar();
-  };
-
-  window.clearAllNotifs = async function() {
-    const email = getSeekerEmail();
-    if (!email) return;
-    await fetch(API + '/api/notifications/clear?email=' + encodeURIComponent(email) + '&role=seeker', { method: 'DELETE' });
-    loadNotifSidebar();
-  };
-
-  // Poll badge count every 30 seconds
-  function startNotifPolling() {
-    const email = getSeekerEmail();
-    if (!email) return;
-    async function pollBadge() {
-      try {
-        const res = await fetch(API + '/api/notifications?email=' + encodeURIComponent(email) + '&role=seeker');
-        if (res.ok) updateBadge(await res.json());
-      } catch(e) {}
-    }
-    pollBadge();
-    _notifPollTimer = setInterval(pollBadge, 30000);
-  }
-
-  document.addEventListener('DOMContentLoaded', startNotifPolling);
-})();
-</script>
 `;
 
 
@@ -416,23 +277,16 @@ window.headerRecruiterHTML = `
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
-          <span class="notification-dot active"></span>
+          <span class="notification-dot"></span>
         </button>
         <!-- Notification Dropdown -->
         <div class="header-dropdown-menu notif-dropdown">
           <div class="dropdown-header">
             <h4>Notifications</h4>
-            <button class="mark-all-read-btn">Mark all as read</button>
+            <button class="mark-all-read-btn" onclick="markAllNotifsRead()">Mark all as read</button>
           </div>
           <div class="dropdown-body">
-            <div class="notif-item unread">
-              <div class="notif-bullet"></div>
-              <div class="notif-content">
-                <div class="notif-title">New Application Received</div>
-                <div class="notif-desc">A qualified candidate applied for React Developer role.</div>
-                <div class="notif-time">5 mins ago</div>
-              </div>
-            </div>
+            <div style="text-align:center;color:var(--text-muted);padding:20px 0;font-size:0.8rem;">Loading notifications…</div>
           </div>
         </div>
       </div>

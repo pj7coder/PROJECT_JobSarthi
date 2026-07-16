@@ -2355,9 +2355,8 @@ app.post("/api/jobs", async (req, res) => {
 app.post("/api/jobs/:id/apply", async (req, res) => {
   try {
     const { id } = req.params;
-    const { candidateName, candidateEmail } = req.body;
-    const finalName = candidateName || "Anonymous Candidate";
-    const finalEmail = candidateEmail || "anonymous@jobsarthi.com";
+    const finalName = req.body.candidateName || req.body.name || "Anonymous Candidate";
+    const finalEmail = req.body.candidateEmail || req.body.email || "anonymous@jobsarthi.com";
 
     const job = await dbService.findJobById(id);
     if (!job) {
@@ -2381,6 +2380,34 @@ app.post("/api/jobs/:id/apply", async (req, res) => {
     };
 
     await dbService.createApplication(newApp);
+
+    // 1. Create a notification for the seeker (candidate)
+    dbService.createNotification({
+      id: 'notif_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
+      recipientEmail: finalEmail.toLowerCase().trim(),
+      recipientRole: 'seeker',
+      type: 'application_status',
+      icon: 'check-circle',
+      title: `Application Sent: ${job.title}`,
+      desc: `Your application has been successfully submitted to ${job.company}.`,
+      read: false,
+      createdAt: new Date().toISOString(),
+      meta: { jobTitle: job.title, companyName: job.company, jobId: id }
+    }).catch(e => console.warn('Candidate notification failed:', e));
+
+    // 2. Create a notification for the recruiter
+    dbService.createNotification({
+      id: 'notif_' + (Date.now()+1) + '_' + Math.floor(Math.random() * 9999),
+      recipientEmail: recEmail.toLowerCase().trim(),
+      recipientRole: 'recruiter',
+      type: 'new_application',
+      icon: 'star',
+      title: `New Application: ${finalName}`,
+      desc: `${finalName} applied for the ${job.title} position.`,
+      read: false,
+      createdAt: new Date().toISOString(),
+      meta: { candidateName: finalName, jobTitle: job.title, jobId: id }
+    }).catch(e => console.warn('Recruiter notification failed:', e));
 
     // Send application confirmation email in background
     sendApplicationConfirmationEmail({

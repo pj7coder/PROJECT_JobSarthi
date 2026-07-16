@@ -1584,5 +1584,215 @@ window.triggerSettingsForgotPassword = async () => {
   }
 };
 
+// ── Notification Sidebar & Dropdown Controller Logic ──────────────────────────────────
+(function() {
+  const API = window.API_BASE_URL || '';
+  let _notifPollTimer = null;
+
+  function getNotifConfig() {
+    const isRec = window.location.pathname.includes('/recruiter/');
+    if (isRec) {
+      return {
+        email: localStorage.getItem('recruiter_email') || '',
+        role: 'recruiter'
+      };
+    } else {
+      return {
+        email: localStorage.getItem('seeker_email') || '',
+        role: 'seeker'
+      };
+    }
+  }
+
+  window.toggleNotifSidebar = function() {
+    const sidebar = document.getElementById('notifSidebar');
+    const overlay = document.getElementById('notifSidebarOverlay');
+    if (!sidebar || !overlay) return;
+    const isOpen = sidebar.style.display === 'flex';
+    if (isOpen) {
+      closeNotifSidebar();
+    } else {
+      sidebar.style.display = 'flex';
+      overlay.style.display = 'block';
+      loadNotificationsData();
+    }
+  };
+
+  window.closeNotifSidebar = function() {
+    const sidebar = document.getElementById('notifSidebar');
+    const overlay = document.getElementById('notifSidebarOverlay');
+    if (sidebar) sidebar.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
+  };
+
+  async function loadNotificationsData() {
+    const config = getNotifConfig();
+    if (!config.email) return;
+    try {
+      const res = await fetch(API + '/api/notifications?email=' + encodeURIComponent(config.email) + '&role=' + config.role);
+      if (!res.ok) return;
+      const notifs = await res.json();
+      updateBadge(notifs, config.role);
+      if (config.role === 'recruiter') {
+        renderNotifDropdown(notifs);
+      } else {
+        renderNotifSidebar(notifs);
+      }
+    } catch(e) { console.warn('Notif load failed', e); }
+  }
+
+  function timeAgo(isoStr) {
+    if (!isoStr) return '';
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ago';
+    return Math.floor(h / 24) + 'd ago';
+  }
+
+  function renderNotifSidebar(notifs) {
+    const list = document.getElementById('notifSidebarList');
+    const countEl = document.getElementById('notifSidebarCount');
+    if (!list) return;
+    const unread = notifs.filter(n => !n.read).length;
+    if (countEl) countEl.textContent = unread > 0 ? unread + ' unread' : 'All caught up';
+
+    if (!notifs.length) {
+      list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:0.85rem;">No notifications yet.</div>';
+      return;
+    }
+
+    const iconMap = { star:'⭐', calendar:'📅', 'x-circle':'❌', 'check-circle':'✅', eye:'👁️', bell:'🔔', message:'💬' };
+    list.innerHTML = notifs.slice(0, 20).map(n => {
+      const icon = iconMap[n.icon] || '🔔';
+      return `<div onclick="markOneNotifRead('${n.id}')" style="padding:12px;border-radius:10px;background:${n.read ? 'transparent' : 'rgba(6,182,212,0.07)'};border:1px solid ${n.read ? 'var(--border-subtle)' : 'rgba(6,182,212,0.25)'};cursor:pointer;transition:background 0.2s;margin-bottom:8px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="font-size:1.2rem;line-height:1.3;">${icon}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.82rem;font-weight:${n.read ? '500' : '700'};color:var(--text-main);margin-bottom:2px;">${n.title}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);line-height:1.4;">${n.desc}</div>
+            <div style="font-size:0.7rem;color:var(--text-dark);margin-top:4px;">${timeAgo(n.createdAt)}</div>
+          </div>
+          ${!n.read ? '<span style="width:7px;height:7px;border-radius:50%;background:#06b6d4;flex-shrink:0;margin-top:4px;"></span>' : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderNotifDropdown(notifs) {
+    const dropdownBody = document.querySelector('.notif-dropdown .dropdown-body');
+    if (!dropdownBody) return;
+    
+    if (!notifs.length) {
+      dropdownBody.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;font-size:0.8rem;">No notifications yet.</div>';
+      return;
+    }
+    
+    const iconMap = { star:'⭐', calendar:'📅', 'x-circle':'❌', 'check-circle':'✅', eye:'👁️', bell:'🔔', message:'💬' };
+    
+    dropdownBody.innerHTML = notifs.slice(0, 10).map(n => {
+      const icon = iconMap[n.icon] || '🔔';
+      return `
+        <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markOneNotifRead('${n.id}')" style="display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background 0.2s;">
+          <div class="notif-bullet" style="width:6px;height:6px;border-radius:50%;background:${n.read ? 'transparent' : 'var(--accent-secondary)'};flex-shrink:0;margin-top:5px;"></div>
+          <span style="font-size:1.1rem;line-height:1.2;">${icon}</span>
+          <div class="notif-content" style="flex:1;min-width:0;">
+            <div class="notif-title" style="font-size:0.82rem;font-weight:${n.read ? '500' : '700'};color:var(--text-main);margin-bottom:2px;white-space:normal;overflow:visible;">${n.title}</div>
+            <div class="notif-desc" style="font-size:0.75rem;color:var(--text-muted);line-height:1.4;white-space:normal;overflow:visible;">${n.desc}</div>
+            <div class="notif-time" style="font-size:0.7rem;color:var(--text-dark);margin-top:4px;">${timeAgo(n.createdAt)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function updateBadge(notifs, role) {
+    const unread = notifs.filter(n => !n.read).length;
+    
+    if (role === 'recruiter') {
+      const dot = document.querySelector('.notif-dropdown')?.parentElement?.querySelector('.notification-dot');
+      if (dot) {
+        if (unread > 0) {
+          dot.classList.add('active');
+        } else {
+          dot.classList.remove('active');
+        }
+      }
+    } else {
+      const badge = document.getElementById('notifBadge');
+      if (badge) {
+        if (unread > 0) {
+          badge.textContent = unread > 9 ? '9+' : unread;
+          badge.style.display = 'block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    }
+  }
+
+  window.markOneNotifRead = async function(id) {
+    const config = getNotifConfig();
+    if (!config.email) return;
+    await fetch(API + '/api/notifications/read', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: config.email, role: config.role, id })
+    });
+    loadNotificationsData();
+  };
+
+  window.markAllNotifsRead = async function() {
+    const config = getNotifConfig();
+    if (!config.email) return;
+    await fetch(API + '/api/notifications/read', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: config.email, role: config.role })
+    });
+    loadNotificationsData();
+  };
+
+  window.clearAllNotifs = async function() {
+    const config = getNotifConfig();
+    if (!config.email) return;
+    await fetch(API + '/api/notifications/clear?email=' + encodeURIComponent(config.email) + '&role=' + config.role, { method: 'DELETE' });
+    loadNotificationsData();
+  };
+
+  // Poll badge count every 30 seconds
+  function startNotifPolling() {
+    const config = getNotifConfig();
+    if (!config.email) return;
+    
+    async function pollBadge() {
+      try {
+        const res = await fetch(API + '/api/notifications?email=' + encodeURIComponent(config.email) + '&role=' + config.role);
+        if (res.ok) {
+          const notifs = await res.json();
+          updateBadge(notifs, config.role);
+          if (config.role === 'recruiter') {
+            renderNotifDropdown(notifs);
+          } else {
+            renderNotifSidebar(notifs);
+          }
+        }
+      } catch(e) {}
+    }
+    pollBadge();
+    _notifPollTimer = setInterval(pollBadge, 30000);
+  }
+
+  // Hook into DOMContentLoaded or execute immediately if DOM already loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startNotifPolling);
+  } else {
+    startNotifPolling();
+  }
+})();
+
+
 
 

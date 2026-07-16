@@ -742,8 +742,19 @@ export function calculatePreciseJobMatch(job, profile) {
     roleScore * WEIGHTS.role * 100 +
     salaryScore * WEIGHTS.salary * 100;
 
+  let finalScore = raw;
+  if (normalizedJobSkills.length > 0) {
+    if (skillRatio === 0) {
+      finalScore = Math.min(25, finalScore);
+    } else if (skillRatio < 0.15) {
+      finalScore = Math.min(40, finalScore);
+    } else if (skillRatio < 0.3) {
+      finalScore = Math.min(55, finalScore);
+    }
+  }
+
   const jitter = (Math.random() * 3.0) - 1.5;
-  return Math.round(Math.min(100, Math.max(1, raw + jitter)));
+  return Math.round(Math.min(100, Math.max(1, finalScore + jitter)));
 }
 
 function calculateRoleAlignment(jobTitle, profile) {
@@ -787,8 +798,20 @@ export function rankApplicant(candidateProfile, jobDescription) {
   const expScore = preciseExperienceScore(preprocessed.userExp, jdExp);
 
   const raw = skillRatio * 0.60 * 100 + expScore * 0.40 * 100;
+  
+  let finalScore = raw;
+  if (jdSkills.length > 0) {
+    if (skillRatio === 0) {
+      finalScore = Math.min(25, finalScore);
+    } else if (skillRatio < 0.15) {
+      finalScore = Math.min(40, finalScore);
+    } else if (skillRatio < 0.3) {
+      finalScore = Math.min(55, finalScore);
+    }
+  }
+
   const jitter = (Math.random() * 3.0) - 1.5;
-  return Math.round(Math.min(100, Math.max(5, raw + jitter)));
+  return Math.round(Math.min(100, Math.max(5, finalScore + jitter)));
 }
 
 // ─────────────────────────────────────────────

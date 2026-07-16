@@ -3314,7 +3314,7 @@ body.light-theme .job-card-logo {
 .header-dropdown-menu,
 .sheet-content,
 .drawer-content {
-  background: rgba(255, 255, 255, 0.03) !important;
+  background: rgba(24, 24, 27, 0.98) !important;
   backdrop-filter: blur(20px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
