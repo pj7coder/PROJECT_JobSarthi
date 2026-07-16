@@ -4121,7 +4121,14 @@ Crucial Rules:
    - Deduct 10 points if there is no professional summary.
    - Deduct 15 points if projects/experience are thin or described vaguely.
 5. Ratings (grammarRating, structureRating, readabilityRating) must be chosen strictly. "Needs Improvement" if there are formatting flaws or unreadable density; "Good" for average standard resumes; "Excellent" only for exceptional layouts with bulleted impact statements.
-6. topicMap: The 'topics' object should list key professional domains or elements of their primary project/achievement (e.g., for Marketing, this could be {"Campaign Strategy": [...], "Client Metrics": [...]}; for Finance: {"Risk Assessment": [...], "Financial Modeling": [...]}; for Civil Engineering: {"Structural Design": [...], "Quality Assurance": [...]}).`;
+6. topicMap: The 'topics' object should list key professional domains or elements of their primary project/achievement (e.g., for Marketing, this could be {"Campaign Strategy": [...], "Client Metrics": [...]}; for Finance: {"Risk Assessment": [...], "Financial Modeling": [...]}; for Civil Engineering: {"Structural Design": [...], "Quality Assurance": [...]}).
+7. HIGHLY SPECIFIC SUGGESTIONS AND ARRAYS:
+   - "strengths": Identify 2-4 actual, concrete positive items found in this exact candidate's resume (e.g. "Hands-on experience in PyTorch/Python during Pantech.AI internship", "Clear educational timeline at Techno India NJR Institute").
+   - "quickWins": Provide 2-3 highly actionable, low-effort changes custom to their actual content (e.g., "Add specific project links or GitHub repo URL for your Python projects", "Specify Class X & XII percentages to make your academic profile complete", "Update contact info with an active portfolio URL").
+   - "recommendations": Provide 2-3 mid-to-long term suggestions (e.g., "Rewrite Pantech.AI internship points using the X-Y-Z formula to include quantifiable results", "Pursue a foundational AWS/Azure cloud certification to match your backend interests").
+   - "suggestedRoles": Suggest 2-3 exact roles that match their current experience and credentials (e.g. "Software Engineering Intern", "Junior Python Developer", "Cybersecurity Trainee").
+   - "interviewPlan": The priorities must focus on real tech/domain gaps found in their profile (e.g. Priority 1 should address their primary stack Python/AI; Priority 2 should detail architecture/internship tasks; Priority 3 should cover certification topics like Cybersecurity/ChatGPT).
+   - "verificationQueue": Must be an array of objects matching their real claims (e.g., [{"claim": "4 months Student Intern at Pantech.AI", "steps": ["Verify exact tasks performed", "Verify internship completion certificate"]}, {"claim": "Bachelor of Technology - BTech, Computer Science from Techno India NJR", "steps": ["Verify current CGPA/GPA", "Verify active student status"]}]).`;
 
     // ── RAG Pipeline: Uses JD Vector CACHE (avoids re-embedding same JD) ──
     let retrievedMatchesText = "";
@@ -4301,6 +4308,72 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       projScore    * 0.18
     );
 
+    // Build highly specific dynamic fallback suggestions based on parsed markers
+    const fbStrengths = [];
+    const fbQuickWins = [];
+    const fbRecommendations = [];
+    const fbRoles = [];
+
+    const lowerSkills = skillsArray.map(s => s.toLowerCase());
+    const hasPython    = lowerSkills.some(s => s.includes("python"));
+    const hasJs        = lowerSkills.some(s => s.includes("javascript") || s.includes("typescript") || s.includes("react") || s.includes("node"));
+    const hasAi        = lowerSkills.some(s => s.includes("ai") || s.includes("artificial intelligence") || s.includes("machine learning") || s.includes("deep learning"));
+    const hasCyber     = lowerSkills.some(s => s.includes("cybersecurity") || s.includes("hacking") || s.includes("security"));
+
+    if (skillsArray.length > 0) {
+      fbStrengths.push(`Stated ${skillsArray.length} key professional skills including ${skillsArray.slice(0, 2).join(", ")}`);
+    }
+    if (hasExperience) {
+      fbStrengths.push("Demonstrated work experience via professional internships or roles");
+    }
+    if (hasEducation) {
+      fbStrengths.push("Clear academic background matching the technical profile");
+    }
+    if (extractedText?.certifications) {
+      fbStrengths.push("Has listed specialized certifications or training workshops");
+    }
+    if (fbStrengths.length === 0) {
+      fbStrengths.push("Structured contact details and clear resume formatting");
+    }
+
+    const contactText = (extractedText?.contact || email || "").toLowerCase();
+    if (!contactText.includes("linkedin.com") && !contactText.includes("linkedin")) {
+      fbQuickWins.push("Add an active LinkedIn profile URL to your contact header");
+    }
+    if (!hasProjects) {
+      fbQuickWins.push("Create a projects section to showcase practical applications of your skills");
+    } else {
+      if (!contactText.includes("github.com") && !contactText.includes("github")) {
+        fbQuickWins.push("Add a GitHub profile link to make project source code accessible");
+      }
+    }
+    if (hasExperience && !extractedText?.experience?.includes("%") && !extractedText?.experience?.includes("0")) {
+      fbQuickWins.push("Quantify your internship/work impact by adding numbers, volumes, or percentages");
+    }
+    if (fbQuickWins.length < 2) {
+      fbQuickWins.push("Add a professional summary at the top outlining your career goals");
+    }
+
+    if (hasPython && !hasJs) {
+      fbRecommendations.push("Learn Javascript and a backend framework like Node.js/Express to expand to Full-Stack roles");
+    } else if (hasJs && !lowerSkills.some(s => s.includes("react") || s.includes("angular"))) {
+      fbRecommendations.push("Learn a modern frontend framework like React.js or Vue.js to build single-page applications");
+    }
+    if (hasAi) {
+      fbRecommendations.push("Build a project incorporating Large Language Models (LLMs) or agentic frameworks to showcase AI capabilities");
+    }
+    if (hasCyber) {
+      fbRecommendations.push("Pursue an industry-recognized security certification such as CompTIA Security+ or Certified Ethical Hacker (CEH)");
+    }
+    fbRecommendations.push("Rewrite experience bullet points using the Google X-Y-Z formula (Accomplished [X], measured by [Y], by doing [Z])");
+    fbRecommendations.push("Tailor your resume description and key skills closely to match specific target job descriptions");
+
+    if (hasAi) fbRoles.push("AI Developer Intern", "Data Associate");
+    if (hasJs) fbRoles.push("Frontend Developer Intern", "Junior Web Developer");
+    if (hasPython) fbRoles.push("Python Developer Trainee");
+    if (hasCyber) fbRoles.push("Cybersecurity Trainee");
+    if (fbRoles.length === 0) fbRoles.push("Graduate Engineering Trainee", "Technical Associate");
+
     return res.json({
       isResume: true,
       errorMessage: "",
@@ -4314,10 +4387,10 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       keywordDensity: "7%",
       matchedSkills: skillsArray,
       missingSkills: ["Domain specific metrics", "Quantifiable achievements"],
-      strengths: ["Clear section layout", `Stated ${skillsArray.length} key skills`],
-      quickWins: ["Incorporate specific percentages, numbers, or volumes in experience description", "Ensure contact links like LinkedIn are present"],
-      recommendations: ["Highlight direct technical challenges faced and how they were resolved", "Tailor achievements closely to candidate domain"],
-      suggestedRoles: targetRole ? [targetRole] : ["Professional Associate"],
+      strengths: fbStrengths,
+      quickWins: fbQuickWins,
+      recommendations: fbRecommendations,
+      suggestedRoles: targetRole ? [targetRole, ...fbRoles.slice(0, 2)] : fbRoles,
       extractedInfo: {
         education: hasEducation ? (extractedText?.education || "Parsed education records") : "",
         experience: hasExperience ? (extractedText?.experience || "Parsed professional experience") : "",
@@ -4359,11 +4432,11 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       ] : [],
       sectionScores: {
         contactInfo: contactScore,
-        summary: summaryScore,
-        experience: expScore,
-        education: eduScore,
-        skills: skillsScore,
-        projects: projScore
+        summary:     summaryScore,
+        experience:  expScore,
+        education:   eduScore,
+        skills:      skillsScore,
+        projects:    projScore
       }
     });
 
