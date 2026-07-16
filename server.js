@@ -13,10 +13,19 @@ import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 
-// LangChain & RAG Vector Database Integration
+// ── LangChain, RAG Cache & Universal Scoring Engine ──
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
 import { RecursiveCharacterTextSplitter } from "@langchain/classic/text_splitter";
+import {
+  getResumeCache, setResumeCache,
+  getOrBuildJDVectorStore, buildResumeJDAlignments,
+  buildJobSearchIndex, semanticJobSearch, isJobIndexReady, getJobIndexStats
+} from "./ragCache.js";
+import {
+  calculateATSScore, calculatePreciseJobMatch, scoreSearchRelevance,
+  normalizeSkillList, normalizeSkillToken
+} from "./scoringEngine.js";
 
 
 dotenv.config();
@@ -2003,25 +2012,16 @@ function calculateMatchScore(job, profile) {
     location_score = 3;
   }
 
-  // STEP 3: SKILL MATCH SCORING (max 40)
+  // STEP 3: SKILL MATCH SCORING — continuous via scoringEngine.preciseSkillMatchRatio
   if (normalizedJobSkills.length > 0 && normalizedUserSkills.length > 0) {
-    let matchCount = 0;
-    normalizedJobSkills.forEach(js => {
-      if (normalizedUserSkills.includes(js) || normalizedUserSkills.some(us => us.includes(js) || js.includes(us))) {
-        matchCount++;
-      }
-    });
-    const skillMatchRatio = matchCount / normalizedJobSkills.length;
-    // Scale: 0.9+ => 40, 0.7+ => 32, 0.5+ => 22, 0.3+ => 12, else => 5
-    if (skillMatchRatio >= 0.9) skill_score = 40;
-    else if (skillMatchRatio >= 0.7) skill_score = 32;
-    else if (skillMatchRatio >= 0.5) skill_score = 22;
-    else if (skillMatchRatio >= 0.3) skill_score = 12;
-    else skill_score = 5;
+    // preciseSkillMatchRatio is imported at top of file from scoringEngine.js
+    const skillMatchRatio = preciseSkillMatchRatio(normalizedUserSkills, normalizedJobSkills);
+    // Continuous scale — no hard step-function buckets
+    skill_score = parseFloat((skillMatchRatio * 40).toFixed(1));
   } else if (normalizedUserSkills.length === 0) {
-    skill_score = 15; // Profile incomplete — neutral score
+    skill_score = 15;
   } else {
-    skill_score = 15; // Job has no listed skills — neutral
+    skill_score = 15;
   }
 
   // STEP 4: ROLE MATCH (max 20)
@@ -2225,34 +2225,31 @@ app.get("/api/jobs", async (req, res) => {
       return true;
     });
 
+    // ── PRECISION SCORING: use calculatePreciseJobMatch from scoringEngine ──
+    // Build a profile compatible with scoringEngine if preprocessedProfile exists
+    const engineProfile = preprocessedProfile ? {
+      normalizedUserSkills: preprocessedProfile.normalizedUserSkills,
+      preferredLocs: preprocessedProfile.preferredLocs,
+      userExp: preprocessedProfile.userExp,
+      userSalary: preprocessedProfile.userSalary,
+      expSummaryLower: preprocessedProfile.expSummaryLower,
+      userDegreeLower: preprocessedProfile.userDegreeLower,
+    } : null;
+
     // Score & Enrich jobs dynamically
     filtered = filtered.map(job => {
-      let score = calculateMatchScore(job, preprocessedProfile);
-      if (!preprocessedProfile) {
-        score = 50;
-      }
-      
+      // Use precision engine score (returns float like 73.4)
+      let score = engineProfile
+        ? calculatePreciseJobMatch(job, engineProfile)
+        : 50.0;
+
       if (search) {
-        const query = search.toLowerCase();
-        let boost = 0;
-        if (job.title && job.title.toLowerCase() === query) {
-          boost += 40;
-        } else if (job.title && job.title.toLowerCase().includes(query)) {
-          boost += 25;
-        }
-        if (job.skills && String(job.skills).toLowerCase().includes(query)) {
-          boost += 15;
-        }
-        if (job.company && job.company.toLowerCase().includes(query)) {
-          boost += 10;
-        }
-        if (job.description && job.description.toLowerCase().includes(query)) {
-          boost += 5;
-        }
-        score += boost;
+        // Use precision search relevance from scoringEngine instead of ad-hoc boosts
+        const searchBoost = scoreSearchRelevance(job, search) * 0.3;
+        score = Math.min(99, score + searchBoost);
       }
-      
-      const matchScore = Math.min(100, Math.max(0, score));
+
+      const matchScore = parseFloat(Math.min(99, Math.max(0, score)).toFixed(1));
       const v = getVerificationStatus(job.last_seen_at || job.updated_at || job.posted_date || job.created_at, job.status || 'active');
 
       return {
@@ -4120,6 +4117,10 @@ app.post("/api/seeker/analyse-resume", uploadRateLimiter, largeBodyParser, async
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
+    // ── RAG CACHE CHECK: Skip LLM entirely if same resume was analysed before ──
+    // We will populate cacheKey after Gemini extraction gives us rawText
+    let _cachedResult = null;
+
     // ── Step 1: Use Gemini to PARSE the document and extract structured resume text ──
     let extractedText = null;
     if (GEMINI_API_KEY) {
@@ -4142,6 +4143,15 @@ Return a valid JSON object matching this structure:
 }`;
         extractedText = await parseDocumentWithGemini(base64Data, mimeType, extractPrompt);
         console.log("[ResumeAnalyser] Gemini extraction complete. isResume:", extractedText?.isResume);
+
+        // ── Check resume cache after extraction (we now have rawText for hashing) ──
+        if (extractedText && extractedText.rawText) {
+          _cachedResult = getResumeCache(extractedText.rawText, targetRole || "");
+          if (_cachedResult) {
+            console.log("[ResumeCache] Returning cached analysis — no LLM call needed.");
+            return res.json(_cachedResult);
+          }
+        }
         
         if (extractedText && extractedText.isResume === false) {
           console.log("[ResumeAnalyser] Uploaded file rejected: not a valid resume.");
@@ -4228,50 +4238,22 @@ Crucial Rules:
 5. Ratings (grammarRating, structureRating, readabilityRating) must be chosen strictly. "Needs Improvement" if there are formatting flaws or unreadable density; "Good" for average standard resumes; "Excellent" only for exceptional layouts with bulleted impact statements.
 6. topicMap: The 'topics' object should list key professional domains or elements of their primary project/achievement (e.g., for Marketing, this could be {"Campaign Strategy": [...], "Client Metrics": [...]}; for Finance: {"Risk Assessment": [...], "Financial Modeling": [...]}; for Civil Engineering: {"Structural Design": [...], "Quality Assurance": [...]}).`;
 
-    // ── RAG Pipeline: Use LangChain and Memory Vector Store to align resume with JD requirements ──
+    // ── RAG Pipeline: Uses JD Vector CACHE (avoids re-embedding same JD) ──
     let retrievedMatchesText = "";
-    if (jdText && extractedText && extractedText.rawText) {
+    if (jdText && extractedText && extractedText.rawText && GEMINI_API_KEY) {
       try {
-        console.log("[RAG] Initializing LangChain Memory Vector Store & Embeddings...");
-        const embeddings = new GoogleGenerativeAIEmbeddings({
-          apiKey: GEMINI_API_KEY || process.env.GEMINI_API_KEY,
-          modelName: "gemini-embedding-001"
-        });
-
-        // Split the Job Description into semantic chunks
-        const splitter = new RecursiveCharacterTextSplitter({
-          chunkSize: 300,
-          chunkOverlap: 30
-        });
-        const jdDocs = await splitter.createDocuments([jdText]);
-        console.log(`[RAG] Split Job Description into ${jdDocs.length} chunks.`);
-
-        // Populate the Vector Store with the Job Description chunks
-        const vectorStore = await MemoryVectorStore.fromDocuments(jdDocs, embeddings);
-        console.log("[RAG] Seeded MemoryVectorStore with Job Description embeddings.");
-
-        // Split the candidate's extracted resume text
-        const resumeDocs = await splitter.createDocuments([extractedText.rawText]);
-        console.log(`[RAG] Split candidate resume into ${resumeDocs.length} chunks.`);
-
-        // For each resume chunk, search the vector store to match against JD requirements
-        let alignments = [];
-        for (const doc of resumeDocs) {
-          if (doc.pageContent.trim().length < 20) continue; // Skip small whitespace chunks
-          const matches = await vectorStore.similaritySearch(doc.pageContent, 1);
-          if (matches.length > 0 && matches[0]) {
-            alignments.push({
-              resumeSegment: doc.pageContent.replace(/\s+/g, " ").trim(),
-              jdRequirement: matches[0].pageContent.replace(/\s+/g, " ").trim()
-            });
-          }
-        }
-
+        const alignments = await buildResumeJDAlignments(
+          extractedText.rawText, jdText, GEMINI_API_KEY
+        );
         if (alignments.length > 0) {
           retrievedMatchesText = `\n===== RETRIEVED SEMANTIC ALIGNMENTS (LANGCHAIN RAG VECTOR STORE) =====\n` +
-            `The vector store matches these segments of the candidate's resume directly with specific requirements in the job description:\n` +
-            alignments.map((a, i) => `Alignment ${i+1}:\n- Candidate Resume Segment: "${a.resumeSegment}"\n- Matching Job Description Requirement: "${a.jdRequirement}"`).join("\n\n") + "\n";
-          console.log(`[RAG] Successfully mapped ${alignments.length} semantic alignments.`);
+            `Confidence-ranked semantic matches between candidate resume and job requirements:\n` +
+            alignments.map((a, i) =>
+              `Alignment ${i+1} [Confidence: ${a.confidence}%]:\n` +
+              `  Resume: "${a.resumeSegment}"\n` +
+              `  JD Requirement: "${a.jdRequirement}"`
+            ).join("\n\n") + "\n";
+          console.log(`[RAG] Mapped ${alignments.length} semantic alignments (cached JD store used if available).`);
         }
       } catch (ragErr) {
         console.error("[RAG] Failed to perform LangChain RAG comparison:", ragErr);
@@ -4288,6 +4270,7 @@ Resume Content:
 ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
 
     // ── Step 2: Use Groq to ANALYSE and generate the pipeline outputs ──
+    const _rawTextForCache = extractedText?.rawText || "";
     if (extractedText && GROQ_API_KEY) {
       try {
         console.log("[ResumeAnalyser] Step 2 — Generating pipeline analysis via Groq...");
@@ -4301,7 +4284,7 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         console.log("[ResumeAnalyser] Groq analysis complete. Score:", analysisResult?.atsScore);
         if (analysisResult && typeof analysisResult === "object") {
           const normalized = normalizeAnalysisResult(analysisResult, extractedText);
-          if (normalized) return res.json(normalized);
+          if (normalized) return cacheAndSend(normalized, _rawTextForCache, targetRole);
         }
       } catch (groqErr) {
         console.error("[ResumeAnalyser] Groq analysis failed (Step 2):", groqErr);
@@ -4317,7 +4300,7 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         const parsedGemini = safeParseJSON(geminiAnalysis);
         if (parsedGemini && typeof parsedGemini === "object") {
           const normalized = normalizeAnalysisResult(parsedGemini, extractedText);
-          if (normalized) return res.json(normalized);
+          if (normalized) return cacheAndSend(normalized, _rawTextForCache, targetRole);
         }
       } catch (geminiErr2) {
         console.error("[ResumeAnalyser] Gemini analysis fallback failed (Step 2 Fallback):", geminiErr2);
@@ -4448,18 +4431,36 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         };
       }
       
-      if (!res.sectionScores) {
-        res.sectionScores = res.section_scores || {
-          contactInfo: res.contact ? 80 : 40,
-          summary: res.overview ? 70 : 40,
-          experience: res.extractedInfo.experience ? 65 : 40,
-          education: res.extractedInfo.education ? 70 : 40,
-          skills: res.extractedInfo.skills.length ? 75 : 40,
-          projects: res.extractedInfo.projects ? 60 : 40
-        };
-      }
-      
+      // ── PRECISION SECTION SCORES via scoringEngine (overrides LLM guesses) ──
+      // scoringEngine produces floats like 63.7 rather than round integers
+      const atsResult = calculateATSScore({
+        experience: res.extractedInfo?.experience || textData?.experience || "",
+        skills: res.extractedInfo?.skills || textData?.skills || [],
+        projects: res.extractedInfo?.projects || textData?.projects || "",
+        education: res.extractedInfo?.education || textData?.education || "",
+        overview: res.overview || "",
+        contact: res.contact || textData?.contact || "",
+      });
+      // Blend LLM ATS score (60%) + engine-computed (40%) for best accuracy
+      const llmAts = Number(res.atsScore) || 55;
+      res.atsScore = parseFloat((llmAts * 0.6 + atsResult.total * 0.4).toFixed(1));
+
+      // Always replace section scores with precise computed values
+      res.sectionScores = res.section_scores || {};
+      res.sectionScores.contactInfo  = atsResult.sections.contact;
+      res.sectionScores.summary      = atsResult.sections.summary;
+      res.sectionScores.experience   = atsResult.sections.experience;
+      res.sectionScores.education    = atsResult.sections.education;
+      res.sectionScores.skills       = atsResult.sections.skills;
+      res.sectionScores.projects     = atsResult.sections.projects;
+
       return res;
+    }
+
+    // ── Helper: store analysis in resume cache after successful response ──
+    function cacheAndSend(result, rawText, role) {
+      try { setResumeCache(rawText || "", role || "", result); } catch (_) {}
+      return res.json(result);
     }
 
   } catch (err) {
@@ -4805,7 +4806,16 @@ initDB().then(async () => {
   // Load sample jobs and aggregate in background to prevent server boot hang
   loadCachedSampleJobs().then(async () => {
     await autoAggregateJobs();
-    
+
+    // ── Build semantic job search index after jobs are loaded ──
+    if (process.env.GEMINI_API_KEY) {
+      dbService.getJobs().then(allJobs => {
+        buildJobSearchIndex(allJobs, process.env.GEMINI_API_KEY)
+          .then(() => console.log("[JobIndex] Semantic job search index built successfully."))
+          .catch(err => console.warn("[JobIndex] Index build failed (non-critical):", err.message));
+      }).catch(() => {});
+    }
+
     // Trigger a background run of job aggregation on boot
     syncNextCompany()
       .then(stats => console.log("[Background JobCollector] Initial boot round-robin sync completed:", stats))
