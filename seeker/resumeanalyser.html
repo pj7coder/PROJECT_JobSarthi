@@ -418,6 +418,120 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
   margin: 0;
   line-height: 1.4;
 }
+
+/* Interactive Dashboard Tabs & Timelines Styling */
+.dash-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border-subtle);
+  padding-bottom: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dash-tabs::-webkit-scrollbar {
+  display: none;
+}
+.dash-tab {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.dash-tab:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.02);
+}
+.dash-tab.active {
+  color: var(--accent-tertiary);
+  background: rgba(99, 102, 241, 0.08);
+  box-shadow: inset 0 -2px 0 var(--accent-tertiary);
+}
+
+.timeline-prep {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  padding-left: 20px;
+  margin-top: 10px;
+}
+.timeline-prep::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: var(--border-subtle);
+}
+.timeline-step {
+  position: relative;
+}
+.timeline-step::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 3px solid var(--accent-tertiary);
+  box-shadow: 0 0 0 3px var(--bg-surface);
+}
+.timeline-step.active::before {
+  border-color: #10b981;
+}
+.timeline-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+.timeline-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.claim-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255,255,255,0.01);
+  margin-bottom: 10px;
+}
+.claim-check {
+  font-size: 1.1rem;
+  color: var(--accent-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.claim-body {
+  flex: 1;
+}
+.claim-title-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+.claim-step-list {
+  padding-left: 18px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
 </style>
 </head>
 <body>
@@ -905,6 +1019,235 @@ function showPlaceholder() {
   document.getElementById('dashboard').style.display = 'none';
 }
 
+let currentDashTab = 'summary';
+
+function switchDashTab(tabName) {
+  currentDashTab = tabName;
+  
+  // Update tab button active classes
+  const tabButtons = document.querySelectorAll('.dash-tab');
+  tabButtons.forEach(btn => {
+    const btnTab = btn.getAttribute('data-tab');
+    btn.classList.toggle('active', btnTab === tabName);
+  });
+  
+  renderActiveTabContent();
+}
+
+function renderActiveTabContent() {
+  const d = window.currentAnalysis;
+  const contentDiv = document.getElementById('dash-tab-content');
+  if (!d || !contentDiv) return;
+  
+  let html = '';
+  
+  if (currentDashTab === 'summary') {
+    const ratingPill = (label, val) => {
+      const cls = val === 'Excellent' ? 'pill-green' : val === 'Good' ? 'pill-amber' : 'pill-red';
+      return `<span class="pill ${cls}">${label}: ${val || 'N/A'}</span>`;
+    };
+
+    const barColor = v => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
+    const sectionScores = d.sectionScores || {};
+    const sections = [
+      ['Contact Info', sectionScores.contactInfo],
+      ['Summary', sectionScores.summary],
+      ['Experience', sectionScores.experience],
+      ['Education', sectionScores.education],
+      ['Skills', sectionScores.skills],
+      ['Projects', sectionScores.projects]
+    ].filter(([,v]) => v !== undefined);
+
+    html = `
+      <div style="margin-bottom: 20px;">
+        <h3 style="font-size:0.9rem;font-weight:700;color:var(--text-main);margin-bottom:8px">Candidate Overview</h3>
+        <p style="font-size:.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:12px">${d.overview || 'No overview provided.'}</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+          ${ratingPill('Grammar', d.grammarRating)}
+          ${ratingPill('Structure', d.structureRating)}
+          ${ratingPill('Readability', d.readabilityRating)}
+          ${d.keywordDensity ? `<span class="pill pill-zinc">Keywords: ${d.keywordDensity}</span>` : ''}
+        </div>
+      </div>
+
+      ${sections.length ? `
+      <div class="acard" style="margin-bottom: 0;">
+        <div class="acard-title" style="margin-bottom: 12px;">Section Breakdown</div>
+        ${sections.map(([label, val]) => `
+        <div class="sbar-row">
+          <span class="sbar-label">${label}</span>
+          <div class="sbar-track"><div class="sbar-fill" style="width:${val}%;background:${barColor(val)}"></div></div>
+          <span class="sbar-val">${val}</span>
+        </div>`).join('')}
+      </div>` : ''}
+    `;
+  } 
+  else if (currentDashTab === 'skills') {
+    html = `
+      <div class="acard" style="margin-bottom: 16px;">
+        <div class="acard-title">Keyword Match Analysis</div>
+        ${(d.matchedSkills||[]).length ? `<div style="margin-bottom:14px"><div style="font-size:.78rem;font-weight:600;color:var(--success);margin-bottom:6px">✓ Matched (${(d.matchedSkills||[]).length})</div><div class="skills-wrap">${(d.matchedSkills||[]).map(s=>`<span class="tag-matched">${s}</span>`).join('')}</div></div>` : '<p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;">No matching skills found.</p>'}
+        ${(d.missingSkills||[]).length ? `<div><div style="font-size:.78rem;font-weight:600;color:var(--danger);margin-bottom:6px">✗ Missing / Recommended (${(d.missingSkills||[]).length})</div><div class="skills-wrap">${(d.missingSkills||[]).map(s=>`<span class="tag-missing">${s}</span>`).join('')}</div></div>` : ''}
+      </div>
+      
+      ${(d.suggestedRoles||[]).length ? `
+      <div class="acard" style="margin-bottom: 0;">
+        <div class="acard-title">Suggested Career Roles</div>
+        <div class="skills-wrap">${(d.suggestedRoles||[]).map(r=>`<span class="pill pill-zinc">${r}</span>`).join('')}</div>
+      </div>` : ''}
+    `;
+  }
+  else if (currentDashTab === 'action') {
+    html = `
+      ${(d.strengths||[]).length ? `
+      <div class="acard" style="margin-bottom: 16px;">
+        <div class="acard-title">Identified Strengths</div>
+        <div class="skills-wrap" style="gap:8px;">${(d.strengths||[]).map(s=>`<span class="pill pill-green" style="padding:6px 12px;">✓ ${s}</span>`).join('')}</div>
+      </div>` : ''}
+
+      ${(d.quickWins||[]).length ? `
+      <div class="acard" style="margin-bottom: 16px;">
+        <div class="acard-title">Quick Wins (Easiest Improvements)</div>
+        <div class="skills-wrap" style="gap:8px;">${(d.quickWins||[]).map(s=>`<span class="pill pill-amber" style="padding:6px 12px;">⚡ ${s}</span>`).join('')}</div>
+      </div>` : ''}
+
+      ${(d.recommendations||[]).length ? `
+      <div class="acard" style="margin-bottom: 0;">
+        <div class="acard-title">ATS Optimization Tips</div>
+        ${(d.recommendations||[]).map(r=>`<div class="rec-item"><span class="rec-icon">→</span><span>${r}</span></div>`).join('')}
+      </div>` : ''}
+    `;
+  }
+  else if (currentDashTab === 'projects') {
+    html = `
+      <div class="acard" style="margin-bottom: 0;">
+        <div class="acard-title">Project & Domains Mindmap</div>
+        <p style="font-size:0.78rem;color:var(--text-muted);line-height:1.4;margin-bottom:14px;">
+          This visual topic map represents key elements, domains, and systems detected in your projects and career experience.
+        </p>
+        ${renderTopicMap(d.topicMap)}
+      </div>
+    `;
+  }
+  else if (currentDashTab === 'interview') {
+    html = `
+      <div class="acard" style="margin-bottom: 0;">
+        <div class="acard-title">Customized Interview Preparation Roadmap</div>
+        <p style="font-size:0.78rem;color:var(--text-muted);line-height:1.4;margin-bottom:14px;">
+          Based on gaps and strengths in your profile, prepare for these key areas to perform best in your interviews.
+        </p>
+        ${renderInterviewPlan(d.interviewPlan)}
+      </div>
+    `;
+  }
+  else if (currentDashTab === 'verification') {
+    html = `
+      <div class="acard" style="margin-bottom: 0;">
+        <div class="acard-title">Claims Verification Checklist</div>
+        <p style="font-size:0.78rem;color:var(--text-muted);line-height:1.4;margin-bottom:14px;">
+          Review and verify specific achievements and tech claims extracted from your resume to ensure they stand up to rigorous interview questions.
+        </p>
+        ${renderVerificationQueue(d.verificationQueue)}
+      </div>
+    `;
+  }
+  
+  contentDiv.innerHTML = html;
+}
+
+function renderTopicMap(topicMap) {
+  if (!topicMap || !topicMap.projectName) return '<p style="font-size:0.8rem;color:var(--text-muted);">No Project Mindmap data extracted from resume.</p>';
+  let treeHtml = `<div class="topic-map-box">`;
+  treeHtml += `<div class="topic-map-project">📁 ${topicMap.projectName}</div>`;
+  
+  const topics = topicMap.topics || {};
+  for (const [topicName, subtopics] of Object.entries(topics)) {
+    treeHtml += `<div class="topic-branch">`;
+    treeHtml += `<div class="topic-branch-title">🌿 ${topicName}</div>`;
+    if (Array.isArray(subtopics) && subtopics.length > 0) {
+      treeHtml += `<div class="topic-branch-items">`;
+      subtopics.forEach(sub => {
+        treeHtml += `<div style="margin-left:12px; position:relative; padding-left:12px;">`;
+        treeHtml += `<span style="position:absolute; left:0; color:var(--text-muted);">├─</span> ${sub}`;
+        treeHtml += `</div>`;
+      });
+      treeHtml += `</div>`;
+    } else if (typeof subtopics === 'string') {
+      treeHtml += `<div style="margin-left:12px; color:var(--text-muted); font-size:0.75rem;">├─ ${subtopics}</div>`;
+    }
+    treeHtml += `</div>`;
+  }
+  treeHtml += `</div>`;
+  return treeHtml;
+}
+
+function renderInterviewPlan(plan) {
+  if (!plan) return '<p style="font-size:0.8rem;color:var(--text-muted);">No customized Interview Plan data available.</p>';
+  let timelineHtml = `<div class="timeline-prep">`;
+  const steps = [
+    { key: 'priority1', badge: 'Step 1: Core Tech', color: 'p1' },
+    { key: 'priority2', badge: 'Step 2: Architecture', color: 'p2' },
+    { key: 'priority3', badge: 'Step 3: Optimization', color: 'p3' },
+    { key: 'priority4', badge: 'Step 4: Scenario/Soft', color: 'p4' },
+  ];
+  let hasSteps = false;
+  steps.forEach(step => {
+    const val = plan[step.key] || plan[step.key.toLowerCase()];
+    if (val) {
+      hasSteps = true;
+      timelineHtml += `
+        <div class="timeline-step">
+          <span class="plan-badge ${step.color}">${step.badge}</span>
+          <div class="timeline-desc" style="margin-top: 6px; font-weight: 500; color: var(--text-main); font-size: 0.82rem;">
+            ${val}
+          </div>
+        </div>
+      `;
+    }
+  });
+  timelineHtml += `</div>`;
+  return hasSteps ? timelineHtml : '<p style="font-size:0.8rem;color:var(--text-muted);">No Interview Plan steps extracted.</p>';
+}
+
+function renderVerificationQueue(queue) {
+  if (!queue || queue.length === 0) return '<p style="font-size:0.8rem;color:var(--text-muted);">No verification items available.</p>';
+  let queueHtml = `<div>`;
+  queue.forEach((item, index) => {
+    const stepsList = Array.isArray(item.steps) 
+      ? item.steps.map(s => `<li>${s}</li>`).join('') 
+      : `<li>Verify details on this claim</li>`;
+    queueHtml += `
+      <div class="claim-card">
+        <div class="claim-check" id="check-${index}" onclick="toggleClaimCheck(${index})">⬜</div>
+        <div class="claim-body">
+          <div class="claim-title-text" id="claim-text-${index}">${item.claim}</div>
+          <ul class="claim-step-list">
+            ${stepsList}
+          </ul>
+        </div>
+      </div>
+    `;
+  });
+  queueHtml += `</div>`;
+  return queueHtml;
+}
+
+function toggleClaimCheck(index) {
+  const check = document.getElementById(`check-${index}`);
+  const title = document.getElementById(`claim-text-${index}`);
+  if (check && title) {
+    if (check.textContent === '⬜') {
+      check.textContent = '✅';
+      title.style.textDecoration = 'line-through';
+      title.style.opacity = '0.6';
+    } else {
+      check.textContent = '⬜';
+      title.style.textDecoration = 'none';
+      title.style.opacity = '1';
+    }
+  }
+}
+
 function renderDashboard(d) {
   const loader = document.getElementById('scanLoader');
   if (loader) loader.remove();
@@ -912,35 +1255,20 @@ function renderDashboard(d) {
   const dash = document.getElementById('dashboard');
   dash.style.display = 'block';
 
+  window.currentAnalysis = d;
+
   const score = d.atsScore || 0;
   const scoreColor = score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
   const circumference = 2 * Math.PI * 54;
   const offset = circumference - (score / 100) * circumference;
 
-  const ratingPill = (label, val) => {
-    const cls = val === 'Excellent' ? 'pill-green' : val === 'Good' ? 'pill-amber' : 'pill-red';
-    return `<span class="pill ${cls}">${label}: ${val || 'N/A'}</span>`;
-  };
-
-  const barColor = v => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
-  const sectionScores = d.sectionScores || {};
-  const sections = [
-    ['Contact Info', sectionScores.contactInfo],
-    ['Summary', sectionScores.summary],
-    ['Experience', sectionScores.experience],
-    ['Education', sectionScores.education],
-    ['Skills', sectionScores.skills],
-    ['Projects', sectionScores.projects]
-  ].filter(([,v]) => v !== undefined);
-
-  // Compare button if multiple results
   const hasMultiple = analysisResults.filter(Boolean).length > 1;
   const compareBtn = hasMultiple ? `<button class="compare-toggle" onclick="renderComparison()" style="margin-bottom:16px">⚡ Compare All Resumes</button>` : '';
 
   dash.innerHTML = `
   ${compareBtn}
-  <!-- Score + Ratings -->
-  <div class="acard" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+  <!-- Score Ring Card (Always Visible) -->
+  <div class="acard" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
     <div style="text-align:center;flex-shrink:0">
       <svg width="120" height="120" viewBox="0 0 120 120">
         <circle class="score-ring-bg" cx="60" cy="60" r="54"/>
@@ -954,62 +1282,28 @@ function renderDashboard(d) {
       </svg>
     </div>
     <div style="flex:1;min-width:200px">
-      <h3 style="font-size:1rem;font-weight:700;color:var(--text-main);margin-bottom:8px">${resumes[activeTab]?.name || 'Resume'}</h3>
-      <p style="font-size:.83rem;color:var(--text-muted);line-height:1.5;margin-bottom:12px">${d.overview || ''}</p>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${ratingPill('Grammar', d.grammarRating)}
-        ${ratingPill('Structure', d.structureRating)}
-        ${ratingPill('Readability', d.readabilityRating)}
-        ${d.keywordDensity ? `<span class="pill pill-zinc">Keywords: ${d.keywordDensity}</span>` : ''}
-      </div>
+      <h3 style="font-size:1.05rem;font-weight:800;color:var(--text-main);margin-bottom:4px">${resumes[activeTab]?.name || 'Resume'}</h3>
+      <div style="font-size:0.75rem;color:var(--accent-secondary);font-weight:600;margin-bottom:8px">Target: ${d.suggestedRoles?.[0] || 'Professional'}</div>
+      <p style="font-size:.82rem;color:var(--text-muted);line-height:1.45;">Overall compatibility analysis complete. Click through the tabs below to explore keyword alignments, roadmap priorities, and verification steps.</p>
     </div>
   </div>
 
-  ${sections.length ? `
-  <!-- Section Scores -->
-  <div class="acard">
-    <div class="acard-title">Section Breakdown</div>
-    ${sections.map(([label, val]) => `
-    <div class="sbar-row">
-      <span class="sbar-label">${label}</span>
-      <div class="sbar-track"><div class="sbar-fill" style="width:${val}%;background:${barColor(val)}"></div></div>
-      <span class="sbar-val">${val}</span>
-    </div>`).join('')}
-  </div>` : ''}
-
-  <!-- Skills -->
-  <div class="acard">
-    <div class="acard-title">Keyword Analysis</div>
-    ${(d.matchedSkills||[]).length ? `<div style="margin-bottom:10px"><div style="font-size:.78rem;font-weight:600;color:var(--success);margin-bottom:6px">✓ Matched (${(d.matchedSkills||[]).length})</div><div class="skills-wrap">${(d.matchedSkills||[]).map(s=>`<span class="tag-matched">${s}</span>`).join('')}</div></div>` : ''}
-    ${(d.missingSkills||[]).length ? `<div><div style="font-size:.78rem;font-weight:600;color:var(--danger);margin-bottom:6px">✗ Missing (${(d.missingSkills||[]).length})</div><div class="skills-wrap">${(d.missingSkills||[]).map(s=>`<span class="tag-missing">${s}</span>`).join('')}</div></div>` : ''}
+  <!-- Interactive Dashboard Tabs -->
+  <div class="dash-tabs">
+    <button class="dash-tab active" data-tab="summary" onclick="switchDashTab('summary')">📊 Breakdown</button>
+    <button class="dash-tab" data-tab="skills" onclick="switchDashTab('skills')">🔑 Keywords</button>
+    <button class="dash-tab" data-tab="action" onclick="switchDashTab('action')">⚡ Actions & Tips</button>
+    <button class="dash-tab" data-tab="projects" onclick="switchDashTab('projects')">🌳 Mindmap</button>
+    <button class="dash-tab" data-tab="interview" onclick="switchDashTab('interview')">🎯 Prep Guide</button>
+    <button class="dash-tab" data-tab="verification" onclick="switchDashTab('verification')">🛡️ Claims</button>
   </div>
 
-  ${(d.strengths||[]).length ? `
-  <div class="acard">
-    <div class="acard-title">Strengths</div>
-    <div class="skills-wrap">${(d.strengths||[]).map(s=>`<span class="pill pill-green">✓ ${s}</span>`).join('')}</div>
-  </div>` : ''}
-
-  ${(d.quickWins||[]).length ? `
-  <div class="acard">
-    <div class="acard-title">Quick Wins</div>
-    <div class="skills-wrap">${(d.quickWins||[]).map(s=>`<span class="pill pill-amber">⚡ ${s}</span>`).join('')}</div>
-  </div>` : ''}
-
-  <!-- Recommendations -->
-  ${(d.recommendations||[]).length ? `
-  <div class="acard">
-    <div class="acard-title">ATS Optimization Tips</div>
-    ${(d.recommendations||[]).map(r=>`<div class="rec-item"><span class="rec-icon">→</span><span>${r}</span></div>`).join('')}
-  </div>` : ''}
-
-  <!-- Suggested Roles -->
-  ${(d.suggestedRoles||[]).length ? `
-  <div class="acard">
-    <div class="acard-title">Suggested Roles</div>
-    <div class="skills-wrap">${(d.suggestedRoles||[]).map(r=>`<span class="pill pill-zinc">${r}</span>`).join('')}</div>
-  </div>` : ''}
+  <!-- Dynamic Content Area -->
+  <div id="dash-tab-content"></div>
   `;
+
+  // Initialize active tab content
+  switchDashTab(currentDashTab || 'summary');
 }
 
 function renderComparison() {
