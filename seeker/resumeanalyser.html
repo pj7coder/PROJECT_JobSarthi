@@ -1125,14 +1125,54 @@ function renderActiveTabContent() {
   let html = '';
   
   if (currentDashTab === 'categories') {
+    const getScore = (key) => {
+      if (d.atsDetail && d.atsDetail.top5) {
+        const found = d.atsDetail.top5.find(s => s.key === key);
+        if (found) return { score: found.score, weight: found.weight };
+      }
+      const sec = d.sectionScores || {};
+      let val = 0;
+      let wt = 20;
+      if (key === 'experience') { val = sec.experience || 0; wt = 30; }
+      else if (key === 'education') { val = sec.education || 0; wt = 20; }
+      else if (key === 'skills') { val = sec.skills || 0; wt = 18; }
+      else if (key === 'structure') { val = sec.summary || 0; wt = 12; }
+      else if (key === 'contact') { val = sec.contactInfo || sec.contact || 0; wt = 8; }
+      return { score: Math.round(Number(val) || 0), weight: wt };
+    };
+
+    const top5 = [
+      { label: "Experience", key: "experience", icon: "💼" },
+      { label: "Education",  key: "education",  icon: "🎓" },
+      { label: "Skills",     key: "skills",     icon: "⚡" },
+      { label: "Summary",    key: "structure",  icon: "📄" },
+      { label: "Contact",    key: "contact",    icon: "📬" },
+    ].map(s => {
+      const { score, weight } = getScore(s.key);
+      return { ...s, score, weight };
+    });
+
+    const barCol = v => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
+
     html = `
-      <div class="acard" style="margin-bottom:16px">
-        <div class="acard-title" style="margin-bottom:12px">📊 10-Category ATS Score Breakdown</div>
+      <div class="acard" style="margin-bottom:16px;padding:16px 18px">
+        <div class="acard-title" style="margin-bottom:12px">📋 Section Score Breakdown</div>
         <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
-          Each category is scored 0–100 using deterministic rules (no AI guessing). 
-          Click any card to see exactly which issues lost you points and why.
+          Your ATS score is calculated out of 100 points based on these 5 key pillars in descending order of weight.
         </p>
-        ${renderCategoryGrid(d)}
+        ${top5.map(s => {
+          const earned = Math.round(s.weight * s.score / 100);
+          return `
+          <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span style="font-size:0.82rem;font-weight:700;color:var(--text-main)">${s.icon} ${s.label}</span>
+              <span style="font-size:0.76rem;font-weight:700;color:${barCol(s.score)}">${s.score}/100 &nbsp;<span style="color:var(--text-muted);font-weight:500">(${earned}/${s.weight} pts)</span></span>
+            </div>
+            <div style="height:7px;background:var(--border-subtle);border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:${s.score}%;background:${barCol(s.score)};border-radius:4px;transition:width 1.2s ease"></div>
+            </div>
+          </div>`;
+        }).join('')}
       </div>
       <div class="acard" style="margin-bottom:0">
         <div class="acard-title" style="margin-bottom:10px">${SVG_ICONS.info} Candidate Summary</div>
@@ -1344,33 +1384,9 @@ function renderDashboard(d) {
     </div>
   </div>
 
-  <!-- 5 Priority Section Bars (Experience > Education > Skills > Summary > Contact) -->
-  <div class="acard" style="margin-bottom:16px;padding:16px 18px">
-    <div class="acard-title" style="margin-bottom:12px">📋 Section Score Breakdown</div>
-    ${(() => {
-      const top5 = det.top5 || [];
-      if (!top5.length) return '<p style="color:var(--text-muted);font-size:.8rem">Section data unavailable.</p>';
-      const barCol = v => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
-      const icons = { Experience: '💼', Education: '🎓', Skills: '⚡', Summary: '📄', Contact: '📬' };
-      return top5.map(s => {
-        const earned = Math.round(s.weight * s.score / 100);
-        return `
-        <div style="margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-size:0.82rem;font-weight:700;color:var(--text-main)">${icons[s.label]||''} ${s.label}</span>
-            <span style="font-size:0.76rem;font-weight:700;color:${barCol(s.score)}">${s.score}/100 &nbsp;<span style="color:var(--text-muted);font-weight:500">(${earned}/${s.weight} pts)</span></span>
-          </div>
-          <div style="height:7px;background:var(--border-subtle);border-radius:4px;overflow:hidden">
-            <div style="height:100%;width:${s.score}%;background:${barCol(s.score)};border-radius:4px;transition:width 1.2s ease"></div>
-          </div>
-        </div>`;
-      }).join('');
-    })()}
-  </div>
-
   <!-- Dashboard Tabs -->
   <div class="dash-tabs">
-    <button class="dash-tab active" data-tab="categories" onclick="switchDashTab('categories')">${SVG_ICONS.breakdown} Categories</button>
+    <button class="dash-tab active" data-tab="categories" onclick="switchDashTab('categories')">${SVG_ICONS.breakdown} Breakdown</button>
     <button class="dash-tab" data-tab="priority" onclick="switchDashTab('priority')">${SVG_ICONS.zap} Priorities</button>
     <button class="dash-tab" data-tab="skills" onclick="switchDashTab('skills')">${SVG_ICONS.key} Keywords</button>
     <button class="dash-tab" data-tab="action" onclick="switchDashTab('action')">${SVG_ICONS.zap} Actions</button>
