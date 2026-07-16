@@ -357,7 +357,7 @@ app.use(express.static(".", {
   }
 }));
 
-const DB_FILE = path.join(__dirname, "db.json");
+const DB_FILE = path.join(process.cwd(), "db.json");
 
 // Helper to read local database (fallback)
 async function readLocalDB() {
@@ -858,7 +858,7 @@ let cachedSampleJobs = [];
 
 async function loadCachedSampleJobs() {
   try {
-    const sampleJobsPath = path.join(__dirname, "database", "sample_jobs", "jobs.json");
+    const sampleJobsPath = path.join(process.cwd(), "database", "sample_jobs", "jobs.json");
     const data = await fs.readFile(sampleJobsPath, "utf-8");
     cachedSampleJobs = JSON.parse(data);
     console.log(`Loaded ${cachedSampleJobs.length} sample jobs from local jobs.json directly.`);
@@ -4737,7 +4737,8 @@ app.get("/api/resume/view", async (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+  const publicDir = process.env.NEXT_JS === "true" ? path.join(process.cwd(), "public") : process.cwd();
+  res.sendFile(path.join(publicDir, "index.html"));
 });
 
 // Fallback to index.html for undefined frontend routes (but NOT for API routes)
@@ -4745,7 +4746,8 @@ app.get("*", (req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: "API endpoint not found." });
   }
-  res.sendFile(path.join(__dirname, "index.html"));
+  const publicDir = process.env.NEXT_JS === "true" ? path.join(process.cwd(), "public") : process.cwd();
+  res.sendFile(path.join(publicDir, "index.html"));
 });
 
 async function ensureAdminRecruiter() {
@@ -4796,52 +4798,78 @@ async function ensureAdminRecruiter() {
   }
 }
 
-initDB().then(async () => {
-  await ensureAdminRecruiter();
-  
-  app.listen(PORT, () => {
-    console.log(`JobSarthi server running at http://localhost:${PORT}`);
-  });
+export { app };
 
-  // Load sample jobs and aggregate in background to prevent server boot hang
-  loadCachedSampleJobs().then(async () => {
-    await autoAggregateJobs();
+let dbInitPromise = null;
+const initDatabase = async () => {
+  if (!dbInitPromise) {
+    dbInitPromise = (async () => {
+      await initDB();
+      await ensureAdminRecruiter();
+    })();
+  }
+  return dbInitPromise;
+};
 
-    // ── Build semantic job search index after jobs are loaded ──
-    if (process.env.GEMINI_API_KEY) {
-      dbService.getJobs().then(allJobs => {
-        buildJobSearchIndex(allJobs, process.env.GEMINI_API_KEY)
-          .then(() => console.log("[JobIndex] Semantic job search index built successfully."))
-          .catch(err => console.warn("[JobIndex] Index build failed (non-critical):", err.message));
-      }).catch(() => {});
+if (process.env.NEXT_JS === "true") {
+  // Lazily connect to the database on the first request in Next.js Serverless environment
+  app.use(async (req, res, next) => {
+    try {
+      await initDatabase();
+      next();
+    } catch (err) {
+      console.error("Next.js lazy database initialization failed:", err);
+      next(err);
     }
-
-    // Trigger a background run of job aggregation on boot
-    syncNextCompany()
-      .then(stats => console.log("[Background JobCollector] Initial boot round-robin sync completed:", stats))
-      .catch(err => console.error("[Background JobCollector] Initial boot round-robin sync failed:", err));
-
-    // Trigger a background run of full Greenhouse sync on boot
-    runGreenhouseSync()
-      .then(stats => console.log("[Background JobCollector] Initial boot Greenhouse sync completed:", stats))
-      .catch(err => console.error("[Background JobCollector] Initial boot Greenhouse sync failed:", err));
-  }).catch(err => {
-    console.error("Error in background seeding/loading:", err);
   });
+} else {
+  // Standalone Node environment startup
+  initDatabase().then(async () => {
+    app.listen(PORT, () => {
+      console.log(`JobSarthi server running at http://localhost:${PORT}`);
+    });
 
-  // Run scheduler every 10 minutes (600000ms)
-  setInterval(() => {
-    console.log("[Background JobCollector] Scheduled 10m round-robin sync started...");
-    syncNextCompany()
-      .then(stats => console.log("[Background JobCollector] Scheduled 10m sync completed:", stats))
-      .catch(err => console.error("[Background JobCollector] Scheduled 10m sync failed:", err));
-  }, 10 * 60 * 1000);
+    // Load sample jobs and aggregate in background to prevent server boot hang
+    loadCachedSampleJobs().then(async () => {
+      await autoAggregateJobs();
 
-  // Run full Greenhouse sync every 12 hours (12 * 60 * 60 * 1000 ms)
-  setInterval(() => {
-    console.log("[Background JobCollector] Scheduled 12h full Greenhouse sync started...");
-    runGreenhouseSync()
-      .then(stats => console.log("[Background JobCollector] Scheduled 12h full Greenhouse sync completed:", stats))
-      .catch(err => console.error("[Background JobCollector] Scheduled 12h full Greenhouse sync failed:", err));
-  }, 12 * 60 * 60 * 1000);
-});
+      // ── Build semantic job search index after jobs are loaded ──
+      if (process.env.GEMINI_API_KEY) {
+        dbService.getJobs().then(allJobs => {
+          buildJobSearchIndex(allJobs, process.env.GEMINI_API_KEY)
+            .then(() => console.log("[JobIndex] Semantic job search index built successfully."))
+            .catch(err => console.warn("[JobIndex] Index build failed (non-critical):", err.message));
+        }).catch(() => {});
+      }
+
+      // Trigger a background run of job aggregation on boot
+      syncNextCompany()
+        .then(stats => console.log("[Background JobCollector] Initial boot round-robin sync completed:", stats))
+        .catch(err => console.error("[Background JobCollector] Initial boot round-robin sync failed:", err));
+
+      // Trigger a background run of full Greenhouse sync on boot
+      runGreenhouseSync()
+        .then(stats => console.log("[Background JobCollector] Initial boot Greenhouse sync completed:", stats))
+        .catch(err => console.error("[Background JobCollector] Initial boot Greenhouse sync failed:", err));
+    }).catch(err => {
+      console.error("Error in background seeding/loading:", err);
+    });
+
+    // Run scheduler every 10 minutes (600000ms)
+    setInterval(() => {
+      console.log("[Background JobCollector] Scheduled 10m round-robin sync started...");
+      syncNextCompany()
+        .then(stats => console.log("[Background JobCollector] Scheduled 10m sync completed:", stats))
+        .catch(err => console.error("[Background JobCollector] Scheduled 10m sync failed:", err));
+    }, 10 * 60 * 1000);
+
+    // Run full Greenhouse sync every 12 hours (12 * 60 * 60 * 1000 ms)
+    setInterval(() => {
+      console.log("[Background JobCollector] Scheduled 12h full Greenhouse sync started...");
+      runGreenhouseSync()
+        .then(stats => console.log("[Background JobCollector] Scheduled 12h full Greenhouse sync completed:", stats))
+        .catch(err => console.error("[Background JobCollector] Scheduled 12h full Greenhouse sync failed:", err));
+    }, 12 * 60 * 60 * 1000);
+  });
+}
+

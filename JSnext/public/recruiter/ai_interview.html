@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configure AI Interview - JobSarthi</title>
+  <meta name="description" content="Set up customized AI interviewer settings, upload questions, and invite candidates.">
+  <link rel="stylesheet" href="../css/main.css">
+  <script src="https://unpkg.com/lucide@0.511.0/dist/umd/lucide.min.js" integrity="sha384-YCxwI7HW+hlnktW3yOnKN44k9F/E859McBSCz+NoK45Sww88vGY9Kqfdo794td6J" crossorigin="anonymous"></script>
+  <script>
+    if (localStorage.getItem('recruiter_logged_in') !== 'true') {
+      window.location.replace('login_signup.html');
+    }
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme && savedTheme !== 'dark') {
+      document.documentElement.classList.add(savedTheme + '-theme');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add(savedTheme + '-theme');
+      });
+    }
+  </script>
+  <style>
+    .config-container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 30px;
+    }
+    .form-group {
+      margin-bottom: 24px;
+    }
+    .form-label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+    .questions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .question-item {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .question-item input {
+      flex: 1;
+    }
+    .persona-card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 10px;
+    }
+    .persona-card {
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.02);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .persona-card:hover {
+      border-color: rgba(217, 70, 239, 0.3);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .persona-card.selected {
+      border-color: var(--accent-tertiary);
+      background: rgba(217, 70, 239, 0.1);
+      box-shadow: 0 0 12px rgba(217, 70, 239, 0.2);
+    }
+    .persona-card h4 {
+      margin-top: 0;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+    .persona-card p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.4;
+    }
+    .action-row {
+      display: flex;
+      gap: 15px;
+      margin-top: 30px;
+    }
+    .action-row button {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="header-wrapper"></div>
+
+  <main class="container">
+    <div class="glass-panel config-container">
+      <h2 style="margin-top: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; margin-bottom: 24px;">
+        <i data-lucide="settings-2" style="color: var(--accent-tertiary);"></i> Customize AI Interview Settings
+      </h2>
+
+      <!-- Candidate Details -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="form-group">
+          <label class="form-label" for="candidateName">Candidate Name</label>
+          <input type="text" id="candidateName" class="form-control" placeholder="e.g. John Doe">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="candidateEmail">Candidate Email</label>
+          <input type="email" id="candidateEmail" class="form-control" placeholder="e.g. john@example.com">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="form-group">
+          <label class="form-label" for="targetRole">Target Role / Job Position</label>
+          <input type="text" id="targetRole" class="form-control" placeholder="e.g. Senior Frontend Engineer">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="difficulty">Interview Difficulty</label>
+          <select id="difficulty" class="form-control">
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate" selected>Intermediate</option>
+            <option value="Expert">Expert</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Interviewer Style -->
+      <div class="form-group">
+        <label class="form-label">Interviewer Persona</label>
+        <div class="persona-card-grid">
+          <div class="persona-card selected" onclick="selectPersona('sarthi')" id="persona-sarthi">
+            <h4>Sarthi</h4>
+            <p>Encouraging, professional, helps candidates who get stuck with hints.</p>
+          </div>
+          <div class="persona-card" onclick="selectPersona('vikram')" id="persona-vikram">
+            <h4>Prof. Vikram</h4>
+            <p>Authoritative, senior manager. Probes low-level runtime internals.</p>
+          </div>
+          <div class="persona-card" onclick="selectPersona('ananya')" id="persona-ananya">
+            <h4>Dr. Ananya</h4>
+            <p>Sharp engineering director. Focuses heavily on edge cases and metrics.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customized Questions -->
+      <div class="form-group">
+        <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Custom Technical/Screening Questions (Optional)</span>
+          <button class="btn btn-secondary" onclick="addQuestionField()" style="padding: 4px 10px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px;">
+            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Question
+          </button>
+        </label>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -4px; margin-bottom: 12px;">
+          The AI Interviewer will weave these specific questions into the conversational assessment.
+        </p>
+        <div class="questions-list" id="questionsList">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-row">
+        <button class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+        <button class="btn btn-primary" style="background: var(--accent-tertiary);" onclick="generateInterviewLink()">Generate & Invite Candidate</button>
+      </div>
+
+      <!-- Result Link Box -->
+      <div id="resultBox" class="glass-panel" style="display: none; margin-top: 30px; padding: 20px; border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05);">
+        <h4 style="color: var(--success); margin-top: 0; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="check-circle2"></i> AI Interview Configured successfully!
+        </h4>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">
+          You can share the invitation link directly with the candidate or copy it.
+        </p>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="interviewLink" class="form-control" readonly style="flex: 1; background: var(--bg-primary);">
+          <button class="btn btn-primary" onclick="copyLink()">Copy Link</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    let selectedPersona = 'sarthi';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Parse parameters pre-filled from applicant details
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('name')) document.getElementById('candidateName').value = urlParams.get('name');
+      if (urlParams.get('email')) document.getElementById('candidateEmail').value = urlParams.get('email');
+      if (urlParams.get('role')) document.getElementById('targetRole').value = urlParams.get('role');
+
+      // Add one default question input field
+      addQuestionField();
+    });
+
+    function selectPersona(personaId) {
+      selectedPersona = personaId;
+      document.querySelectorAll('.persona-card').forEach(card => card.classList.remove('selected'));
+      document.getElementById('persona-' + personaId).classList.add('selected');
+    }
+
+    function addQuestionField(value = '') {
+      const container = document.getElementById('questionsList');
+      const div = document.createElement('div');
+      div.className = 'question-item';
+      div.innerHTML = `
+        <input type="text" class="form-control custom-question-input" placeholder="e.g. Explain your approach to state management in React." value="${value}">
+        <button class="btn btn-secondary" style="color: var(--danger); padding: 8px 12px;" onclick="this.parentElement.remove()" title="Remove Question">&times;</button>
+      `;
+      container.appendChild(div);
+    }
+
+    async function generateInterviewLink() {
+      const name = document.getElementById('candidateName').value.trim();
+      const email = document.getElementById('candidateEmail').value.trim();
+      const role = document.getElementById('targetRole').value.trim();
+      const difficulty = document.getElementById('difficulty').value;
+
+      if (!name || !email || !role) {
+        alert('Please fill out Name, Email, and Target Role.');
+        return;
+      }
+
+      // Collect custom questions
+      const questions = [];
+      document.querySelectorAll('.custom-question-input').forEach(input => {
+        const val = input.value.trim();
+        if (val) questions.push(val);
+      });
+
+      const recruiterEmail = localStorage.getItem('recruiter_email') || 'recruiter@jobsarthi.ai';
+      const recruiterCompany = localStorage.getItem('recruiter_company') || 'Company';
+
+      try {
+        const response = await fetch((window.API_BASE_URL || '') + '/api/recruiter/interview/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidateName: name,
+            candidateEmail: email,
+            role,
+            difficulty,
+            persona: selectedPersona,
+            customQuestions: questions,
+            recruiterEmail,
+            recruiterCompany
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to create interview config');
+        const data = await response.json();
+
+        // Show result link
+        const inviteLink = `${window.location.origin}/seeker/aiinterview.html?recruiterConfigId=${data.configId}&seeker_email=${encodeURIComponent(email)}&seeker_name=${encodeURIComponent(name)}`;
+        document.getElementById('interviewLink').value = inviteLink;
+        document.getElementById('resultBox').style.display = 'block';
+
+        // Scroll to result box
+        document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth' });
+
+        if (window.lucide) lucide.createIcons();
+      } catch (err) {
+        console.error(err);
+        alert('Error generating interview configuration.');
+      }
+    }
+
+    function copyLink() {
+      const copyText = document.getElementById('interviewLink');
+      copyText.select();
+      copyText.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(copyText.value);
+      alert('Interview Link copied to clipboard!');
+    }
+  </script>
+  <script src="../js/header.js"></script>
+</body>
+</html>

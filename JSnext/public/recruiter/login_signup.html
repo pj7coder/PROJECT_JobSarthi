@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recruiter Authentication - JobSarthi</title>
+  <meta name="description" content="Sign in or register for an employer account on JobSarthi to start recruiting.">
+  <link rel="stylesheet" href="../css/main.css">
+  <script>
+    if (localStorage.getItem('recruiter_logged_in') === 'true') {
+      window.location.replace('index.html');
+    } else {
+      // Clear residual session cache to prevent profile photo flashes or data leaks
+      const keysToRemove = [
+        'recruiter_logged_in', 'recruiter_company', 'recruiter_email',
+        'recruiter_applicants_list', 'recruiter_jobs_count'
+      ];
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      try { sessionStorage.clear(); } catch(e) {}
+    }
+
+    // Theme initializer
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme && savedTheme !== 'dark') {
+      document.documentElement.classList.add(savedTheme + '-theme');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add(savedTheme + '-theme');
+      });
+    }
+  </script>
+  <style>
+    .auth-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: var(--bg-primary);
+      font-family: var(--font-sans);
+      padding: 24px;
+      margin: 0;
+    }
+
+    .auth-container {
+      width: 100%;
+      max-width: 384px; /* w-full max-w-sm */
+      display: flex;
+      flex-direction: column;
+      gap: 16px; /* reduced from 24px */
+      position: relative;
+    }
+
+    .auth-bg-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 550px;
+      height: 550px;
+      background: radial-gradient(circle, rgba(217, 70, 239, 0.16) 0%, rgba(162, 28, 175, 0.06) 45%, rgba(0,0,0,0) 70%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: var(--transition-fast);
+      align-self: flex-start;
+    }
+
+    .back-btn:hover {
+      color: var(--text-main);
+      transform: translateX(-4px);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .logo-icon {
+      width: 24px;
+      height: 24px;
+      background: var(--accent-primary);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg-primary);
+      font-weight: 800;
+      font-size: 0.85rem;
+    }
+
+    .logo-text {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+
+    .logo-badge {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(162, 28, 175, 0.1);
+      color: var(--accent-tertiary);
+      font-weight: 600;
+    }
+
+    .tabs-list {
+      display: flex;
+      background-color: rgba(24, 24, 27, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 4px;
+      width: 100%;
+      position: relative;
+    }
+
+    body.light-theme .tabs-list {
+      background-color: rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .tabs-slider {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 4px;
+      width: calc(50% - 4px);
+      background-color: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body.light-theme .tabs-slider {
+      background-color: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .tabs-trigger {
+      flex: 1;
+      text-align: center;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 0.2s ease;
+      outline: none !important;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tabs-trigger.active {
+      color: var(--text-main);
+    }
+
+    /* Card Styling */
+    .card {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      background: var(--bg-surface);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      width: 100%;
+      position: relative;
+    }
+
+    .card::before {
+      display: none;
+    }
+
+    body.light-theme .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .tabs-contents {
+      padding: 0;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .forms-slider {
+      display: flex;
+      width: 300%;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tabs-content {
+      width: 33.333%;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+      padding: 20px;
+      opacity: 0.35;
+      transition: opacity 0.35s ease;
+    }
+
+    .tabs-content.active {
+      opacity: 1;
+    }
+
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      line-height: 1;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    .card-description {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    .card-content {
+      display: grid;
+      gap: 16px;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-main);
+      line-height: 1;
+    }
+
+    .form-control {
+      height: 36px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background-color: transparent;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+
+    .form-control::placeholder {
+      color: var(--text-dark);
+      opacity: 0.8;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--text-muted);
+      box-shadow: 0 0 0 2px var(--border-subtle);
+    }
+
+    .forgot-link {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: var(--transition-fast);
+    }
+
+    .forgot-link:hover {
+      color: var(--text-main);
+      text-decoration: underline;
+    }
+
+    /* Primary solid button */
+    .btn-primary-solid {
+      height: 36px;
+      width: 100%;
+      background: #c026d3;
+      color: #ffffff;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s ease;
+      outline: none;
+    }
+
+    .btn-primary-solid:hover {
+      opacity: 0.95;
+      box-shadow: 0 4px 12px rgba(217, 70, 239, 0.35);
+    }
+
+    .btn-primary-solid:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+
+<body class="auth-body">
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="auth-bg-glow"></div>
+
+  <div class="auth-container">
+    <div class="logo-container" style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 4px;">
+      <a href="../index.html" class="back-btn" style="margin-bottom: 0; align-self: center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Back to Portal
+      </a>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="logo-text">JobSarthi</span>
+        <span class="logo-badge">Recruiter</span>
+      </div>
+    </div>
+
+    <!-- Tabs List Pill Container -->
+    <div class="tabs-list">
+      <div class="tabs-slider"></div>
+      <button class="tabs-trigger active" onclick="switchTab('login', this)">Sign In</button>
+      <button class="tabs-trigger" onclick="switchTab('signup', this)">Sign Up</button>
+    </div>
+
+    <!-- Main Card containing forms -->
+    <div class="card">
+      <div class="tabs-contents">
+        <div class="forms-slider">
+        
+        <!-- Login Form Panel -->
+        <div id="loginForm" class="tabs-content active">
+          <div class="card-header">
+            <h2 class="card-title">Sign In</h2>
+            <p class="card-description">Enter your credentials to access your recruiter dashboard.</p>
+          </div>
+          <form onsubmit="handleAuth(event, 'login')">
+            <div class="card-content">
+              <div class="form-group">
+                <label class="form-label" for="loginEmail">Work Email Address</label>
+                <input type="email" id="loginEmail" class="form-control" placeholder="hr@company.com" required>
+              </div>
+              <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label class="form-label" for="loginPassword">Password</label>
+                  <a href="#" id="forgotPasswordLink" class="forgot-link">Forgot Password?</a>
+                </div>
+                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button type="submit" class="btn-primary-solid">Sign In</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Sign Up Form Panel -->
+        <div id="signupForm" class="tabs-content">
+          <div class="card-header">
+            <h2 class="card-title">Create Account</h2>
+            <p class="card-description">Create your business/employer account on JobSarthi.</p>
+          </div>
+          <form onsubmit="handleAuth(event, 'signup')">
+            <div class="card-content">
+              <div class="form-group">
+                <label class="form-label" for="companyName">Company Name</label>
+                <input type="text" id="companyName" class="form-control" placeholder="Acme Corporation" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="signupEmail">Work Email Address</label>
+                <input type="email" id="signupEmail" class="form-control" placeholder="name@company.com" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="signupPassword">Password</label>
+                <input type="password" id="signupPassword" class="form-control" placeholder="At least 8 characters" required>
+                <!-- Password Strength and Requirements Panel -->
+                <div id="password-strength-panel" style="margin-top: 8px; display: none; flex-direction: column; gap: 8px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
+                    <span>Strength: <span id="strength-text" style="font-weight: 600; color: #ef4444;">Weak</span></span>
+                  </div>
+                  <div style="height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; width: 100%;">
+                    <div id="strength-bar" style="height: 100%; width: 20%; background-color: #ef4444; transition: all 0.3s ease;"></div>
+                  </div>
+                  <ul id="password-requirements" style="list-style: none; padding: 0; margin: 4px 0 0 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; color: var(--text-dark);">
+                    <li id="req-length" style="display: flex; align-items: center; gap: 6px;">
+                      <span class="status-dot" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #64748b;"></span> At least 8 characters
+                    </li>
+                    <li id="req-upper" style="display: flex; align-items: center; gap: 6px;">
+                      <span class="status-dot" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #64748b;"></span> One uppercase letter
+                    </li>
+                    <li id="req-lower" style="display: flex; align-items: center; gap: 6px;">
+                      <span class="status-dot" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #64748b;"></span> One lowercase letter
+                    </li>
+                    <li id="req-number" style="display: flex; align-items: center; gap: 6px;">
+                      <span class="status-dot" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #64748b;"></span> One number
+                    </li>
+                    <li id="req-special" style="display: flex; align-items: center; gap: 6px;">
+                      <span class="status-dot" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #64748b;"></span> One special character
+                    </li>
+                    <li id="req-weak" style="display: flex; align-items: center; gap: 6px;">
+                      <span class="status-dot" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #64748b;"></span> Not a common/easy password
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button type="submit" id="signupSubmitBtn" class="btn-primary-solid">Create Account</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Forgot Password Form Panel -->
+        <div id="forgotPasswordForm" class="tabs-content">
+          <div class="card-header">
+            <h2 class="card-title">Reset Password</h2>
+            <p class="card-description">Enter your registered work email to receive a password reset link.</p>
+          </div>
+          <form onsubmit="handleForgotPassword(event)">
+            <div class="card-content">
+              <div class="form-group">
+                <label class="form-label" for="forgotEmail">Work Email Address</label>
+                <input type="email" id="forgotEmail" class="form-control" placeholder="hr@company.com" required>
+              </div>
+            </div>
+            <div class="card-footer" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+              <button type="submit" class="btn-primary-solid">Send Reset Link</button>
+              <a href="#" id="backToSignInLink" class="forgot-link" style="align-self: center;">Back to Sign In</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script src="../js/header.js"></script>
+  <script>
+    const API_BASE_URL = window.API_BASE_URL || '';
+
+    function switchTab(tab, btn) {
+      const tabs = document.querySelectorAll('.tabs-trigger');
+      tabs.forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+
+      const slider = document.querySelector('.tabs-slider');
+      const formsSlider = document.querySelector('.forms-slider');
+      const loginForm = document.getElementById('loginForm');
+      const signupForm = document.getElementById('signupForm');
+      const forgotForm = document.getElementById('forgotPasswordForm');
+
+      if (tab === 'login') {
+        slider.style.transform = 'translateX(0)';
+        formsSlider.style.transform = 'translateX(0)';
+        loginForm.classList.add('active');
+        signupForm.classList.remove('active');
+        forgotForm.classList.remove('active');
+      } else {
+        slider.style.transform = 'translateX(100%)';
+        formsSlider.style.transform = 'translateX(-33.333%)';
+        signupForm.classList.add('active');
+        loginForm.classList.remove('active');
+        forgotForm.classList.remove('active');
+      }
+    }
+
+    function showForgotPassword(event) {
+      if (event) event.preventDefault();
+      const formsSlider = document.querySelector('.forms-slider');
+      const loginForm = document.getElementById('loginForm');
+      const signupForm = document.getElementById('signupForm');
+      const forgotForm = document.getElementById('forgotPasswordForm');
+      
+      formsSlider.style.transform = 'translateX(-66.666%)';
+      
+      loginForm.classList.remove('active');
+      signupForm.classList.remove('active');
+      forgotForm.classList.add('active');
+      
+      // Clear tab header active states
+      const tabs = document.querySelectorAll('.tabs-trigger');
+      tabs.forEach(t => t.classList.remove('active'));
+    }
+
+    function backToSignIn(event) {
+      if (event) event.preventDefault();
+      const formsSlider = document.querySelector('.forms-slider');
+      const loginForm = document.getElementById('loginForm');
+      const signupForm = document.getElementById('signupForm');
+      const forgotForm = document.getElementById('forgotPasswordForm');
+      
+      formsSlider.style.transform = 'translateX(0)';
+      
+      loginForm.classList.add('active');
+      signupForm.classList.remove('active');
+      forgotForm.classList.remove('active');
+      
+      const tabs = document.querySelectorAll('.tabs-trigger');
+      tabs.forEach(t => t.classList.remove('active'));
+      tabs[0].classList.add('active');
+      
+      const slider = document.querySelector('.tabs-slider');
+      slider.style.transform = 'translateX(0)';
+    }
+
+    async function handleForgotPassword(event) {
+      event.preventDefault();
+      const email = document.getElementById('forgotEmail').value;
+      const isRecruiter = window.location.pathname.includes('/recruiter/');
+      const role = isRecruiter ? 'recruiter' : 'jobseeker';
+      
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      
+      try {
+        const response = await fetch(API_BASE_URL + '/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, role })
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+          alert('Password changing link shared to your email id. Please check your inbox.');
+          backToSignIn();
+        } else {
+          alert(result.error || 'Failed to send reset link.');
+        }
+      } catch (err) {
+        console.error('Error in forgot password request:', err);
+        alert('Server error sending password reset link.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    }
+
+    async function handleAuth(event, type) {
+      event.preventDefault();
+
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Connecting...';
+
+      // Cold start warning indicator
+      const warningTimer = setTimeout(() => {
+        submitBtn.textContent = 'Waking up server (takes up to 30s)...';
+      }, 3500);
+
+      let body = {};
+      let endpoint = '';
+
+      if (type === 'signup') {
+        const companyName = document.getElementById('companyName').value;
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
+
+        body = { fullName: companyName + " HR", email, password, role: 'recruiter', company: companyName };
+        endpoint = API_BASE_URL + '/api/auth/signup';
+      } else {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        body = { email, password, role: 'recruiter' };
+        endpoint = API_BASE_URL + '/api/auth/login';
+      }
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const result = await response.json();
+        clearTimeout(warningTimer);
+
+        if (!response.ok) {
+          alert(result.error || 'Authentication failed. Please check your credentials.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          return;
+        }
+
+        // Store user info in localStorage for frontend compatibility
+        localStorage.setItem('recruiter_logged_in', 'true');
+        localStorage.setItem('recruiter_company', result.user.company || 'InnovateTech');
+        localStorage.setItem('recruiter_email', result.user.email);
+
+        // Redirect to recruiter home dashboard
+        window.location.href = 'index.html';
+      } catch (err) {
+        clearTimeout(warningTimer);
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        console.error('Backend connection error:', err);
+        alert('Server error. Please try again after some time.');
+      }
+    }
+
+    // Attach event listeners for forgot password flow
+    document.getElementById('forgotPasswordLink')?.addEventListener('click', showForgotPassword);
+    document.getElementById('backToSignInLink')?.addEventListener('click', backToSignIn);
+
+    // Password strength and complexity requirements logic
+    document.addEventListener('DOMContentLoaded', () => {
+      const signupPasswordInput = document.getElementById('signupPassword');
+      const signupSubmitBtn = document.getElementById('signupSubmitBtn');
+      const strengthPanel = document.getElementById('password-strength-panel');
+      const strengthText = document.getElementById('strength-text');
+      const strengthBar = document.getElementById('strength-bar');
+
+      const reqLength = document.getElementById('req-length');
+      const reqUpper = document.getElementById('req-upper');
+      const reqLower = document.getElementById('req-lower');
+      const reqNumber = document.getElementById('req-number');
+      const reqSpecial = document.getElementById('req-special');
+      const reqWeak = document.getElementById('req-weak');
+
+      const commonWeak = [
+        "password", "qwerty", "123456", "12345678", "admin123", "welcome",
+        "welcome123", "password123", "jobsarthi", "sarthicareer", "letmein",
+        "pass123", "123456789"
+      ];
+
+      if (signupPasswordInput) {
+        // Disable submit button by default on signup tab since password is empty
+        signupSubmitBtn.disabled = true;
+
+        signupPasswordInput.addEventListener('input', () => {
+          const val = signupPasswordInput.value;
+          if (val === '') {
+            strengthPanel.style.display = 'none';
+            signupSubmitBtn.disabled = true;
+            return;
+          }
+          strengthPanel.style.display = 'flex';
+
+          const checks = {
+            length: val.length >= 8,
+            upper: /[A-Z]/.test(val),
+            lower: /[a-z]/.test(val),
+            number: /[0-9]/.test(val),
+            special: /[^A-Za-z0-9]/.test(val),
+            notWeak: !commonWeak.some(w => val.toLowerCase().includes(w))
+          };
+
+          // Update checklist styling
+          const updateReq = (el, met) => {
+            const dot = el.querySelector('.status-dot');
+            if (met) {
+              dot.style.backgroundColor = '#10b981'; // Green
+              el.style.color = 'var(--text-main)';
+            } else {
+              dot.style.backgroundColor = '#ef4444'; // Red
+              el.style.color = 'var(--text-muted)';
+            }
+          };
+
+          updateReq(reqLength, checks.length);
+          updateReq(reqUpper, checks.upper);
+          updateReq(reqLower, checks.lower);
+          updateReq(reqNumber, checks.number);
+          updateReq(reqSpecial, checks.special);
+          updateReq(reqWeak, checks.notWeak);
+
+          // Calculate strength score
+          let score = 0;
+          if (checks.length) score++;
+          if (checks.upper) score++;
+          if (checks.lower) score++;
+          if (checks.number) score++;
+          if (checks.special) score++;
+          if (checks.notWeak && val.length > 0) score++;
+
+          // Map score to bar & text
+          let barWidth = '20%';
+          let barColor = '#ef4444'; // Red
+          let strengthName = 'Very Weak';
+
+          if (score >= 6) {
+            barWidth = '100%';
+            barColor = '#10b981'; // Green
+            strengthName = 'Strong';
+          } else if (score >= 4) {
+            barWidth = '70%';
+            barColor = '#f59e0b'; // Yellow/Orange
+            strengthName = 'Medium';
+          } else if (score >= 2) {
+            barWidth = '40%';
+            barColor = '#f87171'; // Light red/pink
+            strengthName = 'Weak';
+          }
+
+          strengthBar.style.width = barWidth;
+          strengthBar.style.backgroundColor = barColor;
+          strengthText.textContent = strengthName;
+          strengthText.style.color = barColor;
+
+          // Enable/disable submit button based on validation
+          const isValid = checks.length && checks.upper && checks.lower && checks.number && checks.special && checks.notWeak;
+          signupSubmitBtn.disabled = !isValid;
+        });
+      }
+    });
+  </script>
+
+</body>
+
+</html>

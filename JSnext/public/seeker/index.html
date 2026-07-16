@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script>
+    if (localStorage.getItem('seeker_logged_in') !== 'true') {
+      window.location.replace('login_signup.html');
+    } else {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme && savedTheme !== 'dark') {
+        document.documentElement.classList.add(savedTheme + '-theme');
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(savedTheme + '-theme');
+        });
+      }
+    }
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - JobSarthi Seeker</title>
+  <meta name="description" content="Manage your career profile, view AI job suggestions, and interact with Sarthi.">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .profile-sidebar {
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      height: fit-content;
+      overflow: hidden !important;
+    }
+
+    @media (min-width: 901px) {
+      .profile-sidebar {
+        position: sticky;
+        top: 90px;
+      }
+    }
+
+    .profile-avatar-large {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: var(--accent-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 20px;
+      border: 2px solid var(--border-subtle);
+    }
+
+    .seeker-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .seeker-title {
+      font-size: 0.9rem;
+      color: var(--accent-secondary);
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .profile-progress-container {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-full);
+      height: 8px;
+      margin: 10px 0;
+      overflow: hidden;
+    }
+
+    .profile-progress-bar {
+      height: 100%;
+      background: var(--text-main);
+      border-radius: var(--radius-full);
+      width: 80%;
+    }
+
+    .sidebar-stats {
+      width: 100%;
+      border-top: 1px solid var(--glass-border);
+      margin-top: 24px;
+      padding-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .stat-row.clickable {
+      cursor: pointer;
+      padding: 6px 8px;
+      margin: -6px -8px;
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
+    }
+    .stat-row.clickable:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    body.light-theme .stat-row.clickable:hover {
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+    }
+
+    .stat-value {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Main Content Area */
+    .dashboard-main {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .welcome-card {
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .welcome-text h1 {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
+
+    .welcome-text p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 500px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Job Card Grid */
+    .job-cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .job-card {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 20px;
+      align-items: center;
+      background: var(--bg-secondary) !important;
+      border: 1px solid var(--border-subtle) !important;
+      border-radius: 12px !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      transition: all 0.2s ease !important;
+    }
+
+    body.light-theme .job-card {
+      background: #ffffff !important;
+      box-shadow: none !important;
+    }
+
+    .job-card:hover {
+      border-color: var(--border-subtle) !important;
+      background: rgba(255, 255, 255, 0.04) !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    body.light-theme .job-card:hover {
+      background: #fafafa !important;
+      box-shadow: none !important;
+    }
+
+    @media (max-width: 600px) {
+      .job-card {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .job-card-logo {
+        margin: 0 auto;
+      }
+
+      .job-card-actions {
+        justify-content: center;
+      }
+    }
+
+    .job-card-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .job-card-info h3 {
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+    }
+
+    .job-card-meta {
+      display: flex;
+      gap: 16px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .job-card-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .job-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .match-score {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--accent-secondary);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    /* Skills Tracker Section */
+    .skills-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .skill-card-summary {
+      padding: 16px;
+      text-align: center;
+    }
+
+    .skill-icon-wrap {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px auto;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--accent-primary);
+    }
+
+    /* SVG Circular dash loader */
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+      width: 100%;
+      gap: 16px;
+    }
+
+    .absolute {
+      position: absolute;
+    }
+
+    .inline-block {
+      display: inline-block;
+    }
+
+    .loader {
+      display: flex;
+      margin: 0.25em 0;
+    }
+
+    .w-2 {
+      width: 0.5em;
+    }
+
+    .dash {
+      animation: dashArray 4s ease-in-out infinite, dashOffset 4s linear infinite;
+    }
+
+    .spin {
+      animation: spinDashArray 4s ease-in-out infinite, spin 8s ease-in-out infinite,
+        dashOffset 4s linear infinite;
+      transform-origin: center;
+    }
+
+    @keyframes dashArray {
+      0% {
+        stroke-dasharray: 0 360;
+      }
+      25% {
+        stroke-dasharray: 360 0;
+      }
+      75% {
+        stroke-dasharray: 360 0;
+      }
+      100% {
+        stroke-dasharray: 0 360;
+      }
+    }
+
+    @keyframes spinDashArray {
+      0% {
+        stroke-dasharray: 0 360;
+      }
+      25% {
+        stroke-dasharray: 360 0;
+      }
+      75% {
+        stroke-dasharray: 360 0;
+      }
+      100% {
+        stroke-dasharray: 0 360;
+      }
+    }
+
+    @keyframes dashOffset {
+      0% {
+        stroke-dashoffset: 360;
+      }
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes spin {
+      0% {
+        rotate: 0deg;
+      }
+
+      12.5%,
+      25% {
+        rotate: 270deg;
+      }
+
+      37.5%,
+      50% {
+        rotate: 540deg;
+      }
+
+      62.5%,
+      75% {
+        rotate: 810deg;
+      }
+
+      87.5%,
+      100% {
+        rotate: 1080deg;
+      }
+    }
+
+    .loading-text {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--accent-secondary);
+      letter-spacing: 0.5px;
+      display: flex;
+      gap: 1px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .loader-letter {
+      display: inline-block;
+      opacity: 0.4;
+      transform: translateY(0);
+      animation: loader-letter-anim 2s infinite;
+      z-index: 1;
+      border-radius: 50ch;
+      border: none;
+      font-weight: 700;
+    }
+
+    @keyframes loader-letter-anim {
+      0%, 100% {
+        opacity: 0.4;
+        transform: translateY(0);
+      }
+      20% {
+        opacity: 1;
+        transform: scale(1.15);
+      }
+      40% {
+        opacity: 0.7;
+        transform: translateY(0);
+      }
+    }
+
+    /* Premium Pagination Styling */
+    .pagination-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 25px;
+      flex-wrap: wrap;
+    }
+
+    .pagination-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-main);
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    body.light-theme .pagination-btn {
+      background: rgba(0, 0, 0, 0.01);
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+      border-color: var(--accent-secondary);
+      background: rgba(6, 182, 212, 0.08);
+      color: var(--accent-secondary);
+      transform: translateY(-1px);
+    }
+
+    .pagination-btn.active {
+      background: var(--accent-secondary);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+    }
+
+    .pagination-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .pagination-ellipsis {
+      color: var(--text-muted);
+      padding: 0 6px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Seeker Header (loaded dynamically via js/header.js) -->
+  <div class="header-wrapper"></div>
+
+  <!-- Container -->
+  <main class="container">
+    <div class="dashboard-grid">
+      <!-- Profile Sidebar -->
+      <aside class="glass-panel profile-sidebar">
+        <button onclick="window.CalendarPopup.open()" title="My Interviews Calendar" style="position: absolute; top: 16px; left: 16px; background: transparent; border: none; color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 6px; border-radius: 50%; transition: background 0.2s, transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'; this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.transform='scale(1)'; this.style.background='transparent'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </button>
+        <div class="profile-avatar-large" id="sidebarAvatar">C</div>
+        <h2 class="seeker-name" id="sidebarName">Candidate Profile</h2>
+        <p class="seeker-title" id="sidebarTitle">Software Seeker</p>
+
+        <div style="width: 100%; text-align: left; margin-top: 10px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500;">
+            <span class="stat-label">Profile Completeness</span>
+            <span style="color: var(--accent-secondary);" id="profileCompletenessText">0%</span>
+          </div>
+          <div class="profile-progress-container">
+            <div class="profile-progress-bar" id="profileProgressBar" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="sidebar-stats" id="applications">
+          <div class="stat-row clickable" onclick="window.location.href='analytics.html'">
+            <span class="stat-label">Applications Sent</span>
+            <span class="stat-value" id="applicationsSentCount">0</span>
+          </div>
+          <div class="stat-row clickable" onclick="window.location.href='analytics.html'">
+            <span class="stat-label">Interviews Scheduled</span>
+            <span class="stat-value" style="color: var(--success);" id="interviewsScheduledCount">0</span>
+          </div>
+          <div class="stat-row clickable" onclick="window.location.href='analytics.html'">
+            <span class="stat-label">AI Interview Reports</span>
+            <span class="stat-value" style="color: var(--accent-secondary);" id="aiInterviewsCount">0</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Section -->
+      <section class="dashboard-main">
+        <div style="margin-bottom: -10px;">
+          <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin: 0; letter-spacing: -0.02em;">Welcome back, <span id="welcomeName" style="color: var(--accent-secondary);">Candidate</span>!</h1>
+        </div>
+
+        <!-- Recommended Jobs Section -->
+        <div>
+          <div class="section-header">
+            <h2 class="section-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-secondary);">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              Top Job Matches for You
+            </h2>
+            <a href="jobs.html" style="color: var(--accent-primary); font-size: 0.9rem; font-weight: 600;">View All Jobs
+              &rarr;</a>
+          </div>
+
+          <div class="job-cards-list" id="recommendedJobsList">
+            <!-- Dynamically populated from Database -->
+          </div>
+
+          <!-- Dashboard Pagination Controls -->
+          <div id="dashboardPaginationContainer"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Job Details Drawer — rendered by commonelements/jobDrawer.js on demand -->
+  <div class="applied-alert" id="successToast" style="position: fixed; bottom: 30px; right: 30px; padding: 16px 24px; background: var(--success); color: #fff; border-radius: var(--radius-md); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); display: none; z-index: 2000; font-weight: 600;">
+    Application submitted successfully! Recruiter will contact you soon.
+  </div>
+
+
+  <!-- Unified Floating Sarthi AI Pill -->
+  <div id="floatingSarthiBtn" onclick="onFloatingSarthiClick(event)" class="gemini-pill-border moved-up-mobile"
+    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans); transition: transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease; transform-origin: bottom right; will-change: transform, opacity;">
+    <!-- Shine Overlay -->
+    <div class="sarthi-shine-overlay"></div>
+    <!-- Small State Content -->
+    <div id="floatingSmallContent"
+      style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.95rem; white-space: nowrap; z-index: 10;">
+      Sarthi
+    </div>
+  </div>
+
+  <!-- Click Expanded Content (4 Vertical Cards) - Separate Sibling -->
+  <div id="clickExpandedContent" class="gemini-pill-border"
+    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; flex-direction: column; width: 350px; height: 460px; max-width: calc(100vw - 40px); max-height: calc(100vh - 80px); border-radius: 24px; background: var(--sarthi-bg-expanded); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); box-sizing: border-box; padding: 20px 24px; justify-content: space-between; overflow: hidden; opacity: 0; pointer-events: none; transform: scale(0.15); transform-origin: bottom right; transition: transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease; font-family: var(--font-sans); will-change: transform, opacity;">
+
+      <!-- Panel Header -->
+      <div
+        style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0; z-index: 10;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.15rem;">✨</span>
+          <span style="font-weight: 700; font-size: 1.05rem; letter-spacing: 0.5px;">Sarthi AI Tools</span>
+        </div>
+        <button id="clickCloseBtn" onclick="closeClickPanel(event)"
+          style="background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; z-index: 10;">✕</button>
+      </div>
+
+      <!-- Vertical Card Stack -->
+      <div style="display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: center; z-index: 10;">
+
+        <!-- Card 1: Interview Mode -->
+        <a href="aiinterview.html" onclick="event.stopPropagation();" class="sarthi-tool-card"
+          style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+          <div
+            style="width: 36px; height: 36px; border-radius: 10px; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.25); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+            🎙️</div>
+          <div style="flex: 1; text-align: left;">
+            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Interview Mode</h4>
+            <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Real-time voice mock trials</p>
+            <p id="sarthiLimitInterviews" style="margin: 3px 0 0 0; font-size: 0.65rem; color: var(--accent-secondary); font-weight: 600;">Loading remaining limits...</p>
+          </div>
+          <span class="tool-arrow"
+            style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        </a>
+
+        <!-- Card 2: Resume Analyser -->
+        <a href="resumeanalyser.html" class="sarthi-tool-card"
+          style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+          <div
+            style="width: 36px; height: 36px; border-radius: 10px; background: rgba(217,70,239,0.1); border: 1px solid rgba(217,70,239,0.25); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+            📄</div>
+          <div style="flex: 1; text-align: left;">
+            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Resume Analyser</h4>
+            <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Instant ATS score & tips</p>
+            <p id="sarthiLimitResume" style="margin: 3px 0 0 0; font-size: 0.65rem; color: var(--accent-tertiary); font-weight: 600;">Loading remaining limits...</p>
+          </div>
+          <span class="tool-arrow"
+            style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        </a>
+
+        <!-- Card 3: Job Tracker -->
+        <a href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); alert('Job Tracker is coming soon!');" class="sarthi-tool-card"
+          style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: not-allowed; box-sizing: border-box; opacity: 0.6;">
+          <div
+            style="width: 36px; height: 36px; border-radius: 10px; background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+            📈</div>
+          <div style="flex: 1; text-align: left;">
+            <div style="display: flex; align-items: center;">
+              <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Job Tracker</h4>
+              <span style="font-size: 0.58rem; padding: 1px 6px; font-weight: 700; text-transform: uppercase; margin-left: 6px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 4px;">Coming Soon</span>
+            </div>
+            <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Visual application pipeline</p>
+          </div>
+          <span class="tool-arrow"
+            style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        </a>
+
+        <!-- Card 4: Career Guide -->
+        <a href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); alert('Career Guide is coming soon!');"
+          class="sarthi-tool-card"
+          style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: not-allowed; box-sizing: border-box; opacity: 0.6;">
+          <div
+            style="width: 36px; height: 36px; border-radius: 10px; background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+            🗺️</div>
+          <div style="flex: 1; text-align: left;">
+            <div style="display: flex; align-items: center;">
+              <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Career Guide</h4>
+              <span style="font-size: 0.58rem; padding: 1px 6px; font-weight: 700; text-transform: uppercase; margin-left: 6px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 4px;">Coming Soon</span>
+            </div>
+            <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">AI roadmap recommendations</p>
+          </div>
+          <span class="tool-arrow"
+            style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+        </a>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/header.js"></script>
+  <script>
+    let seekerSkills = [];
+    let lastRecommendedJobs = [];
+    let currentDashboardPage = 1;
+    const dashboardJobsPerPage = 10;
+
+    const indianStates = [
+      "andhra pradesh", "arunachal pradesh", "assam", "bihar", "chhattisgarh", "goa", "gujarat", "haryana", 
+      "himachal pradesh", "jharkhand", "karnataka", "kerala", "madhya pradesh", "maharashtra", "manipur", 
+      "meghalaya", "mizoram", "nagaland", "odisha", "punjab", "rajasthan", "sikkim", "tamil nadu", 
+      "telangana", "tripura", "uttar pradesh", "uttarakhand", "west bengal", "delhi", "chandigarh"
+    ];
+
+    const indianCities = [
+      "mumbai", "pune", "nagpur", "thane", "nashik", "aurangabad", "navi mumbai",
+      "bangalore", "bengaluru", "mysore", "hubli", "mangalore",
+      "chennai", "coimbatore", "madurai", "salem", "trichy",
+      "hyderabad", "warangal", "secunderabad",
+      "delhi", "new delhi", "noida", "gurgaon", "gurugram", "ghaziabad", "faridabad",
+      "kolkata", "howrah", "durgapur", "siliguri",
+      "ahmedabad", "surat", "vadodara", "rajkot",
+      "jaipur", "jodhpur", "udaipur", "kota",
+      "lucknow", "kanpur", "agra", "varanasi", "noida",
+      "patna", "gaya",
+      "bhopal", "indore", "gwalior",
+      "chandigarh", "ludhiana", "amritsar",
+      "kochi", "trivandrum", "kozhikode",
+      "bhubaneswar", "cuttack",
+      "guwahati",
+      "dehradun"
+    ];
+
+    function extractYearsOfExperience(expStr) {
+      if (!expStr) return 0;
+      const match = expStr.match(/(\d+)\s*(year|yr)/i);
+      if (match) return parseInt(match[1]);
+      const numMatch = expStr.match(/\b(\d+)\b/);
+      if (numMatch) return parseInt(numMatch[1]);
+      return 0;
+    }
+
+    function getJobRequiredExperience(job) {
+      const textToSearch = `${job.title} ${job.description || ''} ${(job.reqs || []).join(' ')}`.toLowerCase();
+      const match = textToSearch.match(/(\d+)\s*(?:-|to|\+)?\s*(?:\d+)?\s*years?\s*(?:of\s*)?experience/i);
+      if (match) {
+        return parseInt(match[1]);
+      }
+      if (job.title.toLowerCase().includes("senior") || job.title.toLowerCase().includes("lead") || job.title.toLowerCase().includes("principal")) {
+        return 5;
+      }
+      if (job.title.toLowerCase().includes("junior") || job.title.toLowerCase().includes("entry") || job.title.toLowerCase().includes("associate")) {
+        return 1;
+      }
+      return 2; 
+    }
+
+    function parseSalaryLPA(salaryStr) {
+      if (!salaryStr) return 0;
+      const match = salaryStr.match(/(\d+)\s*(LPA|lakh)/i);
+      if (match) return parseInt(match[1]);
+      const numMatch = salaryStr.match(/\b(\d+)\b/);
+      if (numMatch) return parseInt(numMatch[1]);
+      return 0;
+    }
+
+    /**
+     * getJobMatchScore – returns the authoritative backend matchScore.
+     * Using job.matchScore ensures the dashboard card and drawer always show identical values.
+     */
+    function getJobMatchScore(job) {
+      if (!job) return 0;
+      return job.matchScore !== undefined ? job.matchScore : 0;
+    }
+
+    function getMatchClassification(score) {
+      if (score === null || score === undefined) return "Low Match";
+      if (score >= 90) return "Excellent Match";
+      if (score >= 75) return "Strong Match";
+      if (score >= 60) return "Good Match";
+      if (score >= 40) return "Moderate Match";
+      return "Low Match";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadDashboardProfile();
+    });
+
+    function renderProfile(profile) {
+      if (!profile) return;
+      seekerProfile = profile;
+      seekerSkills = profile.skills || [];
+      
+      // Set title
+      const sidebarTitle = document.getElementById('sidebarTitle');
+      if (sidebarTitle) {
+        if (profile.degree) {
+          sidebarTitle.textContent = `${profile.degree} ${profile.college ? 'at ' + profile.college : ''}`;
+        } else {
+          sidebarTitle.textContent = "Software Seeker";
+        }
+      }
+
+      // Calculate completeness score
+      let completenessScore = 0;
+      if (profile.college) completenessScore += 20;
+      if (profile.degree) completenessScore += 20;
+      if (profile.cgpa) completenessScore += 10;
+      if (profile.experience) completenessScore += 25;
+      if (profile.skills && profile.skills.length > 0) completenessScore += 15;
+      if (profile.resumeFileName) completenessScore += 10;
+
+      const completenessText = document.getElementById('profileCompletenessText');
+      if (completenessText) completenessText.textContent = `${completenessScore}%`;
+      const progressBar = document.getElementById('profileProgressBar');
+      if (progressBar) progressBar.style.width = `${completenessScore}%`;
+
+      // Update other stats counts
+    }
+
+    async function loadDashboardProfile() {
+      // Show loading indicator
+      const recommendedContainer = document.getElementById('recommendedJobsList');
+      if (recommendedContainer) {
+        recommendedContainer.innerHTML = `
+          <div class="loading-container" style="grid-column: 1 / -1;">
+            <svg height="0" width="0" viewBox="0 0 100 100" class="absolute">
+              <defs>
+                <linearGradient id="b" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100">
+                  <stop stop-color="var(--accent-secondary)" stop-opacity="1"></stop>
+                  <stop stop-color="var(--accent-secondary)" stop-opacity="0.3" offset="1.5"></stop>
+                </linearGradient>
+                <linearGradient id="c" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100">
+                  <stop stop-color="var(--accent-secondary)" stop-opacity="1"></stop>
+                  <stop stop-color="var(--accent-secondary)" stop-opacity="0.4" offset="1"></stop>
+                  <animateTransform
+                    repeatCount="indefinite"
+                    keySplines=".42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1"
+                    keyTimes="0; 0.125; 0.25; 0.375; 0.5; 0.625; 0.75; 0.875; 1"
+                    dur="8s"
+                    values="0 50 50;-270 50 50;-270 50 50;-540 50 50;-540 50 50;-810 50 50;-810 50 50;-1080 50 50;-1080 50 50"
+                    type="rotate"
+                    attributeName="gradientTransform"
+                  ></animateTransform>
+                </linearGradient>
+                <linearGradient id="d" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100">
+                  <stop stop-color="var(--accent-secondary)" stop-opacity="0.4"></stop>
+                  <stop stop-color="var(--accent-secondary)" stop-opacity="1" offset="1.5"></stop>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="loader" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px; align-items: center;">
+              <!-- LOADING -->
+              <div class="loader-word" style="display: flex; gap: 3px;">
+                <!-- L -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#b)"
+                    d="M 25,20 L 25,80 L 75,80" class="dash" pathLength="360"></path>
+                </svg>
+                <!-- O -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="11" stroke="url(#c)"
+                    d="M 50,15 A 35,35 0 0 1 85,50 A 35,35 0 0 1 50,85 A 35,35 0 0 1 15,50 A 35,35 0 0 1 50,15 Z" class="spin" pathLength="360"></path>
+                </svg>
+                <!-- A -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#b)"
+                    d="M 20,80 L 50,20 L 80,80 L 65,50 L 35,50" class="dash" pathLength="360"></path>
+                </svg>
+                <!-- D -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#d)"
+                    d="M 25,80 L 25,20 L 50,20 A 30,30 0 0 1 50,80 Z" class="dash" pathLength="360"></path>
+                </svg>
+                <!-- I -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#b)"
+                    d="M 50,20 L 50,80" class="dash" pathLength="360"></path>
+                </svg>
+                <!-- N -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#b)"
+                    d="M 25,80 L 25,20 L 75,80 L 75,20" class="dash" pathLength="360"></path>
+                </svg>
+                <!-- G -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#b)"
+                    d="M 75,30 A 30,30 0 1 0 75,70 L 75,50 L 50,50" class="dash" pathLength="360"></path>
+                </svg>
+              </div>
+
+              <!-- YOUR -->
+              <div class="loader-word" style="display: flex; gap: 3px;">
+                <!-- Y -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#b)"
+                    d="M 25,20 L 50,50 L 50,80 L 50,50 L 75,20" class="dash" pathLength="360"></path>
+                </svg>
+                <!-- O -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="11" stroke="url(#c)"
+                    d="M 50,15 A 35,35 0 0 1 85,50 A 35,35 0 0 1 50,85 A 35,35 0 0 1 15,50 A 35,35 0 0 1 50,15 Z" class="spin" pathLength="360"></path>
+                </svg>
+                <!-- U -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#b)"
+                    d="M 25,20 L 25,60 A 25,25 0 0 0 75,60 L 75,20" class="dash" pathLength="360"></path>
+                </svg>
+                <!-- R -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#d)"
+                    d="M 25,80 L 25,20 L 55,20 A 15,15 0 0 1 55,50 L 25,50 L 50,50 L 75,80" class="dash" pathLength="360"></path>
+                </svg>
+              </div>
+
+              <!-- JOBS -->
+              <div class="loader-word" style="display: flex; gap: 3px;">
+                <!-- J -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#b)"
+                    d="M 55,20 L 55,70 A 15,15 0 0 1 25,70" class="dash" pathLength="360"></path>
+                </svg>
+                <!-- O -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="11" stroke="url(#c)"
+                    d="M 50,15 A 35,35 0 0 1 85,50 A 35,35 0 0 1 50,85 A 35,35 0 0 1 15,50 A 35,35 0 0 1 50,15 Z" class="spin" pathLength="360"></path>
+                </svg>
+                <!-- B -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#d)"
+                    d="M 25,80 L 25,20 L 55,20 A 15,15 0 0 1 55,50 L 25,50 L 55,50 A 15,15 0 0 1 55,80 Z" class="dash" pathLength="360"></path>
+                </svg>
+                <!-- S -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100" width="32" height="32">
+                  <path stroke-linejoin="round" stroke-linecap="round" stroke-width="10" stroke="url(#b)"
+                    d="M 70,25 C 70,15 30,15 30,35 C 30,55 70,45 70,65 C 70,85 30,85 30,75" class="dash" pathLength="360"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      const email = localStorage.getItem('seeker_email');
+      const name = localStorage.getItem('seeker_name') || 'Candidate';
+      if (!email) return;
+
+      const welcomeNameEl = document.getElementById('welcomeName');
+      if (welcomeNameEl) {
+        welcomeNameEl.textContent = name.split(' ')[0];
+      }
+
+      // 1. Instantly load cached profile and stats from localStorage
+      try {
+        const cachedProfile = localStorage.getItem('seeker_profile_data');
+        if (cachedProfile) {
+          renderProfile(JSON.parse(cachedProfile));
+        }
+        
+        const cachedAppsCount = localStorage.getItem('seeker_apps_count');
+        const cachedInterviewsCount = localStorage.getItem('seeker_interviews_count');
+        const cachedAiInterviewsCount = localStorage.getItem('seeker_ai_interviews_count');
+        if (cachedAppsCount !== null) {
+          document.getElementById('applicationsSentCount').textContent = cachedAppsCount;
+        }
+        if (cachedInterviewsCount !== null) {
+          document.getElementById('interviewsScheduledCount').textContent = cachedInterviewsCount;
+        }
+        if (cachedAiInterviewsCount !== null) {
+          document.getElementById('aiInterviewsCount').textContent = cachedAiInterviewsCount;
+        }
+      } catch (e) {
+        console.warn("Error parsing cached profile details:", e);
+      }
+
+      // 2. Fetch Fresh Profile (Independent)
+      try {
+        const profileRes = await fetch((window.API_BASE_URL || '') + `/api/seeker/profile?email=${encodeURIComponent(email)}`);
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          localStorage.setItem('seeker_profile_data', JSON.stringify(profile));
+          renderProfile(profile);
+        }
+      } catch (profileErr) {
+        console.warn("Failed to fetch fresh profile:", profileErr);
+      }
+
+      // 3. Fetch Applications to count (Independent)
+      try {
+        const appsRes = await fetch((window.API_BASE_URL || '') + `/api/recruiter/applicants`);
+        if (appsRes.ok) {
+          const allApps = await appsRes.json();
+          const applications = allApps.filter(app => app.email && app.email.toLowerCase() === email.toLowerCase());
+          const appsSent = applications.length;
+          const interviewsScheduled = applications.filter(app => app.status === 'Interviewing').length;
+
+          localStorage.setItem('seeker_apps_count', appsSent);
+          localStorage.setItem('seeker_interviews_count', interviewsScheduled);
+
+          document.getElementById('applicationsSentCount').textContent = appsSent;
+          document.getElementById('interviewsScheduledCount').textContent = interviewsScheduled;
+        }
+      } catch (appsErr) {
+        console.warn("Failed to fetch applications for stats:", appsErr);
+      }
+
+      // Fetch fresh AI Interviews Count
+      try {
+        const aiRes = await fetch((window.API_BASE_URL || '') + `/api/sarthi/interviews?email=${encodeURIComponent(email)}`);
+        if (aiRes.ok) {
+          const reports = await aiRes.json();
+          const count = reports ? reports.length : 0;
+          localStorage.setItem('seeker_ai_interviews_count', count);
+          document.getElementById('aiInterviewsCount').textContent = count;
+        }
+      } catch (aiErr) {
+        console.warn("Failed to fetch AI interviews count:", aiErr);
+      }
+
+      // 4. Fetch Jobs and Populate Recommended Matches (Independent)
+      try {
+        let profileIncomplete = false;
+        const jobsRes = await fetch((window.API_BASE_URL || '') + `/api/jobs?email=${encodeURIComponent(email)}&limit=50&sort=match-desc&t=${Date.now()}`);
+        if (jobsRes.ok) {
+          const data = await jobsRes.json();
+          jobs = data.jobs || [];
+          profileIncomplete = !!data.profileIncomplete;
+        }
+
+        const recommendedContainer = document.getElementById('recommendedJobsList');
+        if (recommendedContainer) {
+          if (profileIncomplete) {
+            recommendedContainer.innerHTML = `
+              <div class="glass-panel" style="grid-column: 1 / -1; padding: 40px; text-align: center; border-radius: 16px; border: 1px solid var(--border-subtle); background: var(--bg-surface);">
+                <div style="font-size: 3rem; margin-bottom: 20px;">📄</div>
+                <h3 style="font-size: 1.3rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Resume & Profile Details Required</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; max-width: 480px; margin-left: auto; margin-right: auto;">
+                  Please upload your resume and fill in your details to unlock personalized job recommendations matched by Sarthi AI.
+                </p>
+                <a href="resume.html" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+                  Upload Resume & Details
+                </a>
+              </div>
+            `;
+            document.getElementById('dashboardPaginationContainer').innerHTML = '';
+          } else if (jobs && jobs.length > 0) {
+            lastRecommendedJobs = jobs;
+            currentDashboardPage = 1;
+            renderPaginatedDashboardJobs();
+          } else {
+            recommendedContainer.innerHTML = `
+              <div class="glass-panel" style="grid-column: 1 / -1; padding: 20px; text-align: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
+                <p style="color: var(--text-dark); margin-bottom: 12px; font-size: 0.9rem;">No jobs match your profile yet. Add more skills to improve matches.</p>
+                <a href="jobs.html" class="btn btn-secondary" style="display: inline-block; padding: 6px 12px; font-size: 0.85rem;">Browse All Jobs</a>
+              </div>
+            `;
+            document.getElementById('dashboardPaginationContainer').innerHTML = '';
+          }
+        }
+      } catch (jobErr) {
+        console.warn("Failed to load recommended jobs:", jobErr);
+      }
+    }
+
+    function getJobLogoHtml(logo) {
+      const isUrl = logo && (logo.startsWith('http') || logo.startsWith('/') || logo.startsWith('data:'));
+      const isGreenhouse = logo && (String(logo).toLowerCase().includes('greenhouse') || String(logo).includes('🌿') || String(logo).toLowerCase().includes('green'));
+      
+      if (isUrl && !isGreenhouse) {
+        return `<img src="${logo}" alt="Logo" style="width:100%; height:100%; object-fit:contain; border-radius:8px;" onerror="this.outerHTML='<svg width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'color: var(--text-muted);\'><rect x=\'2\' y=\'7\' width=\'20\' height=\'14\' rx=\'2\' ry=\'2\'></rect><path d=\'M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16\'></path></svg>'">`;
+      }
+      return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>`;
+    }
+
+    let currentSelectedJob = null;
+
+    function openDrawerFromBtn(id) {
+      const job = lastRecommendedJobs.find(j => String(j.id) === String(id) || String(j._id) === String(id));
+      if (job) openDrawer(job);
+    }
+
+    function openDrawer(job) {
+      currentSelectedJob = job;
+      window.JobDrawer.open(job, {
+        getJobLogoHtml,
+        getMatchScore: getJobMatchScore,
+        getSkillsMatchInfo,
+        onSave: (j, checked) => {
+          // Keep dashboard card like status synchronized
+          const btn = document.getElementById(`like_btn_${j.id}`);
+          if (btn) {
+            btn.innerHTML = checked ? `
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            ` : `
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            `;
+            btn.style.background = checked ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)';
+            btn.style.borderColor = checked ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)';
+          }
+        },
+        onApply: () => applyToCurrentJob()
+      });
+    }
+
+    function toggleSaveJobState(checked) {
+      if (!currentSelectedJob) return;
+      const job = currentSelectedJob;
+      let savedJobIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      if (checked) {
+        if (!savedJobIds.includes(job.id)) {
+          savedJobIds.push(job.id);
+        }
+      } else {
+        savedJobIds = savedJobIds.filter(id => id !== job.id);
+      }
+      localStorage.setItem('saved_jobs', JSON.stringify(savedJobIds));
+
+      const toast = document.getElementById("successToast");
+      if (toast) {
+        if (checked) {
+          toast.textContent = "Job saved to your bookmarks!";
+          toast.style.background = "#ff5b89";
+          toast.style.boxShadow = "0 10px 20px rgba(255, 91, 137, 0.3)";
+        } else {
+          toast.textContent = "Job removed from bookmarks.";
+          toast.style.background = "var(--bg-secondary)";
+          toast.style.boxShadow = "none";
+        }
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 3000);
+      }
+    }
+
+    function closeDrawer(event) {
+      if (event === null || (event.target && event.target.id === 'jd_detailDrawer')) {
+        window.JobDrawer.close();
+      }
+    }
+
+    function startMockSession() {
+      if (currentSelectedJob) {
+        const title = encodeURIComponent(currentSelectedJob.title || '');
+        const company = encodeURIComponent(currentSelectedJob.company || '');
+        const jobId = encodeURIComponent(currentSelectedJob.id || '');
+        const skills = encodeURIComponent((currentSelectedJob.skills || '').slice(0, 300));
+        window.location.href = `aiinterview.html?jobId=${jobId}&jobTitle=${title}&company=${company}&jobSkills=${skills}`;
+      }
+    }
+
+    async function applyToCurrentJob() {
+      if (!currentSelectedJob) return;
+      
+      const candidateName = localStorage.getItem('seeker_name') || 'Guest';
+      const candidateEmail = localStorage.getItem('seeker_email');
+      if (!candidateEmail) {
+        alert("Please log in to apply for this job.");
+        window.location.href = "login_signup.html";
+        return;
+      }
+
+      try {
+        const response = await fetch((window.API_BASE_URL || '') + `/api/jobs/${currentSelectedJob.id}/apply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: candidateName,
+            email: candidateEmail
+          })
+        });
+
+        const applyBtn = document.getElementById('applyBtn');
+        if (response.ok) {
+          const appliedJobs = JSON.parse(localStorage.getItem('applied_jobs') || '[]');
+          if (!appliedJobs.includes(currentSelectedJob.id)) {
+            appliedJobs.push(currentSelectedJob.id);
+            localStorage.setItem('applied_jobs', JSON.stringify(appliedJobs));
+          }
+          
+          if (applyBtn) {
+            applyBtn.textContent = 'Applied';
+            applyBtn.disabled = true;
+            applyBtn.className = 'btn btn-secondary';
+            applyBtn.style.cursor = 'not-allowed';
+            applyBtn.onclick = null;
+          }
+
+          alert("Application submitted successfully!");
+          loadDashboardProfile();
+          closeDrawer(null);
+
+          const destUrl = currentSelectedJob.applyUrl || currentSelectedJob.apply_url;
+          if (destUrl && destUrl.startsWith('http')) {
+            const baseUrl = window.API_BASE_URL || '';
+            window.open(`${baseUrl}/apply/${currentSelectedJob.id}?email=${encodeURIComponent(candidateEmail || '')}`, '_blank');
+          }
+        } else {
+          const errData = await response.json();
+          alert(errData.message || "Failed to apply.");
+        }
+      } catch (err) {
+        console.error("Apply error:", err);
+        alert("An error occurred while submitting your application.");
+      }
+    }
+
+    function getSkillsMatchInfo(job) {
+      const jobSkillsStr = job.skills || "";
+      const jobSkills = jobSkillsStr.split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+        
+      if (jobSkills.length === 0) {
+        return { matched: [], missing: [] };
+      }
+      
+      const seekerSkillsLower = seekerSkills.map(s => s.trim().toLowerCase());
+      
+      const matched = [];
+      const missing = [];
+      
+      jobSkills.forEach(js => {
+        const jsLower = js.toLowerCase();
+        if (seekerSkillsLower.includes(jsLower) || seekerSkillsLower.some(ss => ss.includes(jsLower) || jsLower.includes(ss))) {
+          matched.push(js);
+        } else {
+          missing.push(js);
+        }
+      });
+      
+      return { matched, missing };
+    }
+
+    function renderPaginatedDashboardJobs() {
+      const recommendedContainer = document.getElementById('recommendedJobsList');
+      if (!recommendedContainer) return;
+      recommendedContainer.innerHTML = '';
+      
+      const totalJobs = lastRecommendedJobs.length;
+      const totalPages = Math.ceil(totalJobs / dashboardJobsPerPage) || 1;
+      
+      if (currentDashboardPage < 1) currentDashboardPage = 1;
+      if (currentDashboardPage > totalPages) currentDashboardPage = totalPages;
+      
+      const startIndex = (currentDashboardPage - 1) * dashboardJobsPerPage;
+      const endIndex = Math.min(startIndex + dashboardJobsPerPage, totalJobs);
+      
+      const pageJobs = lastRecommendedJobs.slice(startIndex, endIndex);
+      
+      if (pageJobs.length > 0) {
+        pageJobs.forEach(job => {
+          const matchVal = (localStorage.getItem('seeker_logged_in') === 'true') ? job.matchScore : null;
+          let matchPill = '';
+          if (matchVal !== null && matchVal > 0) {
+            let matchStyle = '';
+            if (matchVal >= 80) {
+              matchStyle = 'color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.05);';
+            } else if (matchVal >= 50) {
+              matchStyle = 'color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.05);';
+            } else {
+              matchStyle = 'color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.05);';
+            }
+            matchPill = `<span class="match-badge" style="font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; ${matchStyle}">${matchVal}% Match</span>`;
+          }
+
+          const isApplied = (JSON.parse(localStorage.getItem('applied_jobs') || '[]')).includes(job.id);
+          const actionBtn = job.isSample ? `
+            <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; height: 38px; box-sizing: border-box;">${isApplied ? 'Applied' : 'Apply'}</button>
+          ` : `
+            <a href="${window.API_BASE_URL || ''}/apply/${job.id}?email=${encodeURIComponent(localStorage.getItem('seeker_email') || '')}" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; height: 38px; box-sizing: border-box;">Open</a>
+          `;
+
+          const savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+          const isSaved = savedIds.includes(job.id);
+          const heartSvg = isSaved ? `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          ` : `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          `;
+
+          // Verification badge removed – not shown on dashboard cards
+
+          const card = document.createElement('div');
+          card.className = 'glass-card job-card';
+          card.innerHTML = `
+            <div class="job-card-logo">${getJobLogoHtml(job.logo)}</div>
+            <div class="job-card-info">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 2px;">
+                <h3 style="margin: 0; font-size: 1.05rem; font-weight: 600;">${job.title}</h3>
+                ${matchPill}
+              </div>
+              <div style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">${job.company}</div>
+              <div class="job-card-meta">
+                <div class="job-card-meta-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  ${job.location || 'Remote'}
+                </div>
+                <div class="job-card-meta-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  ${(job.salary || 'Not specified').split(' / ')[0]}
+                </div>
+                <div class="job-card-meta-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 4px; color: var(--text-muted);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  ${job.type || 'Full-time'}
+                </div>
+
+              </div>
+            </div>
+            <div class="job-card-actions" onclick="event.stopPropagation()">
+              <button onclick="openDrawerFromBtn('${job.id}')" class="btn btn-details-animated" style="height: 38px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;">Details</button>
+              ${actionBtn}
+              <button onclick="toggleSaveJobFromCard('${job.id}', event)" class="btn btn-like-card" id="like_btn_${job.id}" style="height: 38px; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: ${isSaved ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${isSaved ? 'rgba(255, 91, 137, 0.25)' : 'var(--border-subtle)'}; color: var(--text-muted); cursor: pointer; transition: all 0.2s;" title="Save Job">
+                ${heartSvg}
+              </button>
+            </div>
+          `;
+          recommendedContainer.appendChild(card);
+        });
+        
+        renderDashboardPaginationControls(totalPages);
+      } else {
+        recommendedContainer.innerHTML = `
+          <div class="glass-panel" style="grid-column: 1 / -1; padding: 20px; text-align: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
+            <p style="color: var(--text-dark); margin-bottom: 12px; font-size: 0.9rem;">No jobs match your profile yet. Add more skills to improve matches.</p>
+            <a href="jobs.html" class="btn btn-secondary" style="display: inline-block; padding: 6px 12px; font-size: 0.85rem;">Browse All Jobs</a>
+          </div>
+        `;
+        document.getElementById('dashboardPaginationContainer').innerHTML = '';
+      }
+    }
+
+    function renderDashboardPaginationControls(totalPages) {
+      const container = document.getElementById('dashboardPaginationContainer');
+      if (!container) return;
+      
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+      
+      let html = `<div class="pagination-wrap">`;
+      
+      // Previous button
+      html += `
+        <button class="pagination-btn" ${currentDashboardPage === 1 ? 'disabled' : ''} onclick="goToDashboardPage(${currentDashboardPage - 1})">
+          &larr; Prev
+        </button>
+      `;
+      
+      // Page numbers
+      const maxVisible = 5;
+      let startPage = Math.max(1, currentDashboardPage - 2);
+      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+      
+      if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+      }
+      
+      if (startPage > 1) {
+        html += `<button class="pagination-btn" onclick="goToDashboardPage(1)">1</button>`;
+        if (startPage > 2) {
+          html += `<span class="pagination-ellipsis">...</span>`;
+        }
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        html += `
+          <button class="pagination-btn ${i === currentDashboardPage ? 'active' : ''}" onclick="goToDashboardPage(${i})">
+            ${i}
+          </button>
+        `;
+      }
+      
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          html += `<span class="pagination-ellipsis">...</span>`;
+        }
+        html += `<button class="pagination-btn" onclick="goToDashboardPage(${totalPages})">${totalPages}</button>`;
+      }
+      
+      // Next button
+      html += `
+        <button class="pagination-btn" ${currentDashboardPage === totalPages ? 'disabled' : ''} onclick="goToDashboardPage(${currentDashboardPage + 1})">
+          Next &rarr;
+        </button>
+      `;
+      
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+    
+    function goToDashboardPage(pageNum) {
+      currentDashboardPage = pageNum;
+      renderPaginatedDashboardJobs();
+      // Scroll smoothly to top of the recommended section
+      const recommendedSection = document.getElementById('recommendedJobsList');
+      if (recommendedSection) {
+        recommendedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+
+
+    // Sarthi Pill Click Toggle Logic
+    let sarthiMode = 'minimized'; // 'minimized' or 'clickExpanded'
+
+    async function loadSarthiLimits() {
+      const email = localStorage.getItem('seeker_email') || '';
+      try {
+        const res = await fetch((window.API_BASE_URL || '') + `/api/seeker/sarthi-limits?email=${encodeURIComponent(email)}`);
+        if (res.ok) {
+          const data = await res.json();
+          const intL = document.getElementById('sarthiLimitInterviews');
+          const resL = document.getElementById('sarthiLimitResume');
+          if (intL) intL.textContent = `${data.interviewsLeft} out of 5 interviews left`;
+          if (resL) resL.textContent = `${data.resumeAnalysisLeft} out of 10 analyses left`;
+        }
+      } catch (err) {
+        console.warn("Failed to load Sarthi rate limits:", err);
+      }
+    }
+
+    function onFloatingSarthiClick(event) {
+      if (event) event.stopPropagation();
+      const floatingBtn = document.getElementById('floatingSarthiBtn');
+      const clickContent = document.getElementById('clickExpandedContent');
+
+      if (sarthiMode === 'minimized') {
+        loadSarthiLimits();
+        sarthiMode = 'clickExpanded';
+        if (floatingBtn) {
+          floatingBtn.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
+          floatingBtn.style.opacity = '0';
+          floatingBtn.style.pointerEvents = 'none';
+          floatingBtn.style.transform = 'scale(0.15)';
+        }
+        if (clickContent) {
+          clickContent.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
+          clickContent.style.opacity = '1';
+          clickContent.style.pointerEvents = 'auto';
+          clickContent.style.transform = 'scale(1)';
+        }
+      }
+    }
+
+    function closeClickPanel(event) {
+      if (event) event.stopPropagation();
+      const floatingBtn = document.getElementById('floatingSarthiBtn');
+      const clickContent = document.getElementById('clickExpandedContent');
+
+      sarthiMode = 'minimized';
+      if (floatingBtn) {
+        floatingBtn.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
+        floatingBtn.style.opacity = '1';
+        floatingBtn.style.pointerEvents = 'auto';
+        floatingBtn.style.transform = 'scale(1)';
+      }
+      if (clickContent) {
+        clickContent.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
+        clickContent.style.opacity = '0';
+        clickContent.style.pointerEvents = 'none';
+        clickContent.style.transform = 'scale(0.15)';
+      }
+    }
+
+    // Close panel on document click outside
+    document.addEventListener('click', (e) => {
+      const clickContent = document.getElementById('clickExpandedContent');
+      const floatingBtn = document.getElementById('floatingSarthiBtn');
+      if (sarthiMode === 'clickExpanded' && clickContent && !clickContent.contains(e.target) && (!floatingBtn || !floatingBtn.contains(e.target))) {
+        closeClickPanel(e);
+      }
+    });
+
+    function startMockForJobId(jobId) {
+      const jobsList = (typeof lastRecommendedJobs !== 'undefined' ? lastRecommendedJobs : []);
+      const job = jobsList.find(j => String(j.id) === String(jobId) || String(j._id) === String(jobId));
+      if (job) {
+        const title = encodeURIComponent(job.title || '');
+        const company = encodeURIComponent(job.company || '');
+        const skills = encodeURIComponent((job.skills || '').slice(0, 300));
+        window.location.href = `aiinterview.html?jobId=${jobId}&jobTitle=${title}&company=${company}&jobSkills=${skills}`;
+      }
+    }
+
+    function toggleSaveJobFromCard(jobId, event) {
+      if (event) event.stopPropagation();
+      let savedJobIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
+      const index = savedJobIds.indexOf(jobId);
+      const checked = index === -1;
+      
+      if (checked) {
+        savedJobIds.push(jobId);
+        // Cache job details for sidebar favorites list
+        if (typeof lastRecommendedJobs !== 'undefined') {
+          const job = lastRecommendedJobs.find(j => j.id === jobId || j._id === jobId);
+          if (job) {
+            let savedDetails = JSON.parse(localStorage.getItem('saved_job_details') || '{}');
+            savedDetails[jobId] = {
+              id: jobId,
+              title: job.title || 'Opportunity',
+              company: job.company || 'Company Details',
+              location: job.location || 'Remote'
+            };
+            localStorage.setItem('saved_job_details', JSON.stringify(savedDetails));
+          }
+        }
+      } else {
+        savedJobIds.splice(index, 1);
+        let savedDetails = JSON.parse(localStorage.getItem('saved_job_details') || '{}');
+        delete savedDetails[jobId];
+        localStorage.setItem('saved_job_details', JSON.stringify(savedDetails));
+      }
+      localStorage.setItem('saved_jobs', JSON.stringify(savedJobIds));
+
+      // Update heart icon on card
+      const btn = document.getElementById(`like_btn_${jobId}`);
+      if (btn) {
+        btn.innerHTML = checked ? `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff5b89" stroke="#ff5b89" stroke-width="2">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        ` : `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        `;
+        btn.style.background = checked ? 'rgba(255, 91, 137, 0.1)' : 'rgba(255,255,255,0.03)';
+      }
+
+      // Update drawer save state if currently open
+      if (window.JobDrawer) {
+        window.JobDrawer.syncLikeState(jobId, checked);
+      }
+
+      // Toast feedback
+      const toast = document.getElementById("successToast");
+      if (toast) {
+        if (checked) {
+          toast.textContent = "Job saved to your bookmarks!";
+          toast.style.background = "#ff5b89";
+          toast.style.boxShadow = "0 10px 20px rgba(255, 91, 137, 0.3)";
+        } else {
+          toast.textContent = "Job removed from bookmarks.";
+          toast.style.background = "var(--bg-secondary)";
+          toast.style.boxShadow = "none";
+        }
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 1500);
+      }
+    }
+  </script>
+  <script src="../commonelements/jobDrawer.js"></script>
+
+</body>
+
+</html>

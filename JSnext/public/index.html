@@ -1,0 +1,2185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script>
+    if (localStorage.getItem('seeker_logged_in') === 'true') {
+      window.location.replace('seeker/index.html');
+    } else if (localStorage.getItem('recruiter_logged_in') === 'true') {
+      window.location.replace('recruiter/index.html');
+    } else {
+      // Clear residual session details to prevent data leak
+      localStorage.removeItem('seeker_name');
+      localStorage.removeItem('seeker_email');
+      localStorage.removeItem('seeker_avatar_url');
+      localStorage.removeItem('recruiter_company');
+      localStorage.removeItem('recruiter_email');
+    }
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobSarthi - AI-Powered Career & Recruitment Ecosystem</title>
+  <meta name="description"
+    content="Welcome to JobSarthi, an AI-powered career companion and recruiter platform that connects talented job seekers with industry-leading employers.">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <link rel="stylesheet" href="css/VariableProximity.css">
+  <link rel="stylesheet" href="css/LogoLoop.css">
+
+  <style>
+    /* Preloader CSS to prevent Flash of Unstyled Content (FOUC) */
+    #page-preloader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #09090b;
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    #page-preloader.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .shiny-text {
+      font-family: 'Roboto Flex', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: inline-block;
+      background-image: linear-gradient(120deg, #494949 0%, #494949 35%, #ffffff 50%, #494949 65%, #494949 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shine 2.5s linear infinite;
+    }
+
+    @keyframes shine {
+      0% {
+        background-position: 150% center;
+      }
+
+      100% {
+        background-position: -50% center;
+      }
+    }
+
+    /* Specific layouts and alignments for landing page components */
+    .landing-body {
+      background-color: var(--bg-primary);
+      position: relative;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .hero-layout {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      align-items: center;
+      gap: 48px;
+      min-height: calc(100vh - 120px);
+      position: relative;
+      z-index: 5;
+      padding: 10px 0 40px 0;
+    }
+
+    @media (max-width: 900px) {
+      .hero-layout {
+        grid-template-columns: 1fr;
+        padding-top: 40px;
+        text-align: center;
+        gap: 32px;
+      }
+    }
+
+    .mini-chat-preview {
+      bottom: 90px !important;
+      right: 30px !important;
+      display: none;
+    }
+
+    .hero-pretitle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: var(--radius-full);
+      color: #818cf8;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 24px;
+    }
+
+    .hero-headline {
+      font-size: 3.5rem;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      font-weight: 800;
+    }
+
+    .hero-subtitle {
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      line-height: 1.6;
+      margin-bottom: 36px;
+      max-width: 580px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-subtitle {
+        margin: 0 auto 36px auto;
+      }
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-ctas {
+        justify-content: center;
+      }
+    }
+
+    .section-title-wrap {
+      text-align: center;
+      margin-bottom: 40px;
+      margin-top: 80px;
+    }
+
+    .section-title-wrap h2 {
+      font-size: 2.2rem;
+      margin-bottom: 12px;
+    }
+
+    .section-title-wrap p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      max-width: 550px;
+      margin: 0 auto;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--neon-cyan);
+      box-shadow: 0 0 10px var(--neon-cyan);
+      animation: core-pulsate 1.5s infinite alternate;
+    }
+
+    @keyframes core-pulsate {
+      0% {
+        transform: scale(0.8);
+        opacity: 0.5;
+      }
+
+      100% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
+    }
+
+    /* Animated Portal Cards */
+    .portal-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 320px;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portal-card:hover {
+      transform: translateY(-8px);
+    }
+
+    .portal-card-glow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.08), transparent 50%);
+      pointer-events: none;
+      transition: opacity 0.3s;
+      opacity: 0.5;
+    }
+
+    .portal-card:hover .portal-card-glow {
+      opacity: 1;
+    }
+
+    /* Expanding Pill Section */
+    .sarthi-sticky-trigger {
+      position: sticky;
+      top: 100px;
+      height: 500px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .feature-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      transition: all 0.2s ease;
+    }
+
+    .feature-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--border-focus);
+      transform: translateY(-2px);
+    }
+
+    /* Header Wrapper to prevent page content reflow on expansion */
+    .header-wrapper {
+      position: sticky;
+      top: 16px;
+      margin: 0 auto 12px auto;
+      width: calc(100% - 80px);
+      max-width: 1300px;
+      height: 54px;
+      z-index: 1000;
+    }
+
+    /* Override header to position absolute inside wrapper */
+    .header {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      margin: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 100%;
+      border-radius: 27px !important;
+      /* Match collapsed height / 2 to avoid ballooning bug */
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
+      overflow: hidden;
+      transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.4s, box-shadow 0.4s;
+    }
+
+    .header-main-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+      width: 100%;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    /* Fade out standard nav and actions when About is active */
+    .header.about-active nav,
+    .header.about-active .header-actions {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Fade in Close Button */
+    #closeAboutBtn {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, background-color 0.2s ease, color 0.2s ease;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      outline: none !important;
+      box-shadow: none !important;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+
+    #closeAboutBtn:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: var(--text-main) !important;
+    }
+
+    body.light-theme #closeAboutBtn:hover {
+      background: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .header.about-active #closeAboutBtn {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Expanded About State */
+    .header.about-active {
+      height: 85vh !important;
+      border-radius: 27px !important;
+      /* Keep border-radius identical to collapsed state to avoid ballooning curves */
+      background: rgba(9, 9, 11, 0.96) !important;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+      border-color: var(--border-focus) !important;
+    }
+
+    body.light-theme .header.about-active {
+      background: rgba(255, 255, 255, 0.98) !important;
+    }
+
+    /* About Content Area */
+    .about-content {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      width: 100%;
+      overflow-y: auto;
+      flex-grow: 1;
+      padding: 40px 24px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-subtle) transparent;
+    }
+
+    .about-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .about-content::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: var(--radius-full);
+    }
+
+    .header.about-active .about-content {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+      transition-delay: 0.2s;
+    }
+
+    .about-grid {
+      max-width: 800px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+      margin: auto 0;
+    }
+
+    .about-hero {
+      text-align: center;
+    }
+
+    .about-hero h2 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--text-main), var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.04em;
+    }
+
+    .about-hero p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    .about-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .about-columns {
+        grid-template-columns: 1fr;
+      }
+
+      .about-hero h2 {
+        font-size: 1.8rem;
+      }
+    }
+
+    .about-col {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: all 0.3s ease;
+    }
+
+    .about-col:hover {
+      border-color: var(--border-focus);
+      background: rgba(255, 255, 255, 0.04);
+      transform: translateY(-2px);
+    }
+
+    .about-col h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text-main);
+    }
+
+    .about-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .about-col ul li {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      position: relative;
+      padding-left: 20px;
+      line-height: 1.5;
+    }
+
+    .about-col ul li::before {
+      content: "✦";
+      position: absolute;
+      left: 0;
+      color: var(--accent-tertiary);
+    }
+
+    .about-footer {
+      text-align: center;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .about-footer p {
+      color: var(--text-dark);
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+
+    .team-credit {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .team-credit .highlight {
+      color: var(--text-main);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    /* Portal row and carousel layouts */
+    .seeker-portal-card:hover {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 12px 30px rgba(59, 130, 246, 0.25) !important;
+    }
+
+    .recruiter-portal-card:hover {
+      border-color: #d946ef !important;
+      box-shadow: 0 12px 30px rgba(217, 70, 239, 0.25) !important;
+    }
+
+    @media (max-width: 900px) {
+      .portal-row {
+        grid-template-columns: 1fr !important;
+        gap: 24px !important;
+        padding: 24px !important;
+      }
+    }
+
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/10;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: rgba(24, 24, 27, 0.4);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .carousel-slides {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .carousel-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .carousel-slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .carousel-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .carousel-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(24, 24, 27, 0.95), rgba(9, 9, 11, 0.98));
+      color: var(--text-main);
+      gap: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .placeholder-icon {
+      font-size: 3rem;
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
+    }
+
+    .placeholder-text {
+      font-weight: 500;
+      font-size: 1.05rem;
+      color: var(--text-muted);
+    }
+
+    .carousel-dots-container {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .carousel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    [data-carousel="finder"] .carousel-dot.active {
+      width: 24px;
+      background: #3b82f6;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+    }
+
+    [data-carousel="recruiter"] .carousel-dot.active {
+      width: 24px;
+      background: #d946ef;
+      box-shadow: 0 0 8px rgba(217, 70, 239, 0.6);
+    }
+
+    /* Review Card styles */
+    .review-card {
+      padding: 32px;
+      transition: all 0.3s ease;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+
+    .review-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-focus);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Disable double hover animation inside the ticker */
+    .logoloop__item .review-card:hover {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+  </style>
+</head>
+
+<body class="landing-body" style="padding-bottom: 0px !important;">
+
+  <!-- Page Preloader Screen to prevent Flash of Unstyled Content (FOUC) -->
+  <div id="page-preloader">
+    <span class="shiny-text">JobSarthi</span>
+  </div>
+  <script>
+    // Fade out preloader when all assets are fully loaded
+    window.addEventListener('load', () => {
+      const preloader = document.getElementById('page-preloader');
+      if (preloader) {
+        preloader.classList.add('fade-out');
+        setTimeout(() => {
+          preloader.remove();
+        }, 400);
+      }
+    });
+  </script>
+
+  <!-- Liquid Glass Backdrop Blobs -->
+  <div class="liquid-blob-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+  </div>
+
+  <!-- Interactive Subtle Network Background -->
+  <canvas id="networkCanvas" style="opacity: 0.22;"></canvas>
+
+  <!-- Header Wrapper (loaded dynamically via js/header.js) -->
+  <div class="header-wrapper"></div>
+
+    <!-- Container -->
+    <main class="container">
+
+    <!-- Hero Area -->
+    <section id="hero" class="hero-layout">
+      <div class="hero-left"
+        style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <h1 id="heroHeadline" class="hero-headline variable-proximity"
+          style="font-size: 3.5rem; line-height: 1.1; margin-bottom: 24px; font-weight: 800; width: 100%; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
+          Welcome to JobSarthi
+        </h1>
+        <p id="heroSubtitle" class="hero-subtitle"
+          style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 36px; max-width: 680px; text-align: center; font-family: 'Roboto Flex', sans-serif; font-variation-settings: 'wght' 400, 'opsz' 9;">
+          Your intelligent companion in navigating modern careers. Powered by Sarthi AI, connecting talented seekers
+          with top company recruiter pipelines.
+        </p>
+        <div class="hero-ctas" style="display: flex; justify-content: center; width: 100%;">
+          <a href="#portal" class="cssbuttons-io-button">
+            Get Started
+            <div class="icon">
+              <svg height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M16.172 11l-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2z"
+                  fill="currentColor"></path>
+              </svg>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="video-container"
+          style="border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-secondary); aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); position: relative;">
+          <video id="introVideo" src="assets/video1.mp4" autoplay muted playsinline
+            style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </div>
+    </section>
+
+    <!-- Choose Your Journey portals -->
+    <section id="portal" style="padding: 40px 0; border-top: 1px solid var(--border-subtle);">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h2 style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">Choose Your Journey</h2>
+        <p style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Select one of our
+          customized dashboards below to begin.</p>
+      </div>
+
+      <div class="portals-grid">
+        <!-- Finder / Seeker Card (Left) -->
+        <div class="portal-card seeker-portal-card" onclick="window.location.href='seeker/login_signup.html'">
+          <div class="portal-card-glow"
+            style="background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.15), transparent 70%);"></div>
+
+          <div class="portal-icon-wrapper">
+            <svg class="portal-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <circle cx="18" cy="18" r="3" />
+              <line x1="22" y1="22" x2="20" y2="20" />
+            </svg>
+          </div>
+
+          <div class="portal-static-title seeker-color">Want to Find a Job</div>
+
+          <div class="portal-text">
+            <p>Create your profile, complete assessments, earn skills validation, and talk to your career companion
+              Sarthi AI.</p>
+          </div>
+        </div>
+
+        <!-- Recruiter Card (Right) -->
+        <div class="portal-card recruiter-portal-card" onclick="window.location.href='recruiter/login_signup.html'">
+          <div class="portal-card-glow"
+            style="background: radial-gradient(circle at 50% 50%, rgba(217, 70, 239, 0.15), transparent 70%);"></div>
+
+          <div class="portal-icon-wrapper">
+            <svg class="portal-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+            </svg>
+          </div>
+
+          <div class="portal-static-title recruiter-color">Need an Employee</div>
+
+          <div class="portal-text">
+            <p>Post listings, manage active applicant pools, view verified skill assessments, and optimize hiring
+              pipelines.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scroll-driven Sarthi Feature Panel Expansion -->
+    <section id="sarthi-scroll-section"
+      style="min-height: 200vh; position: relative; padding: 30px 0; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box;">
+    </section>
+
+    <!-- 3D Dome Gallery and Employer Partner Section -->
+    <section id="employer-gallery-section"
+      style="padding: 40px 0; background: var(--bg-primary); border-top: 1px solid var(--border-subtle); overflow: hidden; position: relative;">
+
+      <div class="container"
+        style="max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 48px;">
+
+          <!-- Column 1: Interactive 3D Dome Gallery -->
+          <div class="dome-gallery-col"
+            style="flex: 1 1 500px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; min-height: 560px;">
+            <div id="domeGalleryContainer" style="width: 100%; height: 560px;"></div>
+            
+            <!-- Mobile Brand Carousel (Shown only on mobile) -->
+            <div id="mobileBrandCarousel" class="mobile-brand-carousel" style="display: none;">
+              <!-- Row 1: Left to Right -->
+              <div class="carousel-row row-ltr">
+                <div class="carousel-track">
+                  <img src="assets/company/cmp1.png" alt="Brand 1">
+                  <img src="assets/company/cmp2.png" alt="Brand 2">
+                  <img src="assets/company/cmp3.jpg" alt="Brand 3">
+                  <img src="assets/company/cmp4.png" alt="Brand 4">
+                  <img src="assets/company/cmp5.png" alt="Brand 5">
+                  <img src="assets/company/cmp6.png" alt="Brand 6">
+                  <img src="assets/company/cmp7.png" alt="Brand 7">
+                  <img src="assets/company/cmp8.png" alt="Brand 8">
+                  <!-- Duplicated for seamless loop -->
+                  <img src="assets/company/cmp1.png" alt="Brand 1">
+                  <img src="assets/company/cmp2.png" alt="Brand 2">
+                  <img src="assets/company/cmp3.jpg" alt="Brand 3">
+                  <img src="assets/company/cmp4.png" alt="Brand 4">
+                  <img src="assets/company/cmp5.png" alt="Brand 5">
+                  <img src="assets/company/cmp6.png" alt="Brand 6">
+                  <img src="assets/company/cmp7.png" alt="Brand 7">
+                  <img src="assets/company/cmp8.png" alt="Brand 8">
+                </div>
+              </div>
+              <!-- Row 2: Right to Left -->
+              <div class="carousel-row row-rtl">
+                <div class="carousel-track">
+                  <img src="assets/company/cmp9.png" alt="Brand 9">
+                  <img src="assets/company/cmp10.png" alt="Brand 10">
+                  <img src="assets/company/cmp11.png" alt="Brand 11">
+                  <img src="assets/company/cmp12.png" alt="Brand 12">
+                  <img src="assets/company/cmp13.png" alt="Brand 13">
+                  <img src="assets/company/cmp14.png" alt="Brand 14">
+                  <img src="assets/company/cmp15.png" alt="Brand 15">
+                  <img src="assets/company/cmp16.png" alt="Brand 16">
+                  <!-- Duplicated for seamless loop -->
+                  <img src="assets/company/cmp9.png" alt="Brand 9">
+                  <img src="assets/company/cmp10.png" alt="Brand 10">
+                  <img src="assets/company/cmp11.png" alt="Brand 11">
+                  <img src="assets/company/cmp12.png" alt="Brand 12">
+                  <img src="assets/company/cmp13.png" alt="Brand 13">
+                  <img src="assets/company/cmp14.png" alt="Brand 14">
+                  <img src="assets/company/cmp15.png" alt="Brand 15">
+                  <img src="assets/company/cmp16.png" alt="Brand 16">
+                </div>
+              </div>
+              <!-- Row 3: Left to Right -->
+              <div class="carousel-row row-ltr">
+                <div class="carousel-track">
+                  <img src="assets/company/cmp17.jpg" alt="Brand 17">
+                  <img src="assets/company/cmp18.png" alt="Brand 18">
+                  <img src="assets/company/cmp19.png" alt="Brand 19">
+                  <img src="assets/company/cmp20.png" alt="Brand 20">
+                  <img src="assets/company/cmp21.png" alt="Brand 21">
+                  <img src="assets/company/cmp22.png" alt="Brand 22">
+                  <img src="assets/company/cmp23.png" alt="Brand 23">
+                  <img src="assets/company/cmp24.jpg" alt="Brand 24">
+                  <img src="assets/company/cmp25.jpg" alt="Brand 25">
+                  <!-- Duplicated for seamless loop -->
+                  <img src="assets/company/cmp17.jpg" alt="Brand 17">
+                  <img src="assets/company/cmp18.png" alt="Brand 18">
+                  <img src="assets/company/cmp19.png" alt="Brand 19">
+                  <img src="assets/company/cmp20.png" alt="Brand 20">
+                  <img src="assets/company/cmp21.png" alt="Brand 21">
+                  <img src="assets/company/cmp22.png" alt="Brand 22">
+                  <img src="assets/company/cmp23.png" alt="Brand 23">
+                  <img src="assets/company/cmp24.jpg" alt="Brand 24">
+                  <img src="assets/company/cmp25.jpg" alt="Brand 25">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 2: Compelling Copy & Stats -->
+          <div style="flex: 1 1 450px; display: flex; flex-direction: column; gap: 24px; text-align: left;">
+
+            <h2
+              style="font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 800; line-height: 1.2; letter-spacing: -1px; color: var(--text-main); margin: 0; font-family: var(--font-sans);">
+              Direct Pipelines to <span style="color: #06b6d4;">250+ Top Brands</span>
+            </h2>
+
+            <p
+              style="font-size: 1.05rem; line-height: 1.6; color: var(--text-muted); margin: 0; font-family: var(--font-sans);">
+              Skip the traditional application queue. JobSarthi's algorithmic matching maps your skills, portfolio
+              metrics, and verified test credentials directly to key hiring decision makers at leading technology,
+              banking, and creative companies.
+            </p>
+
+            <!-- Statistics Grid -->
+            <div
+              style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 24px;">
+              <div>
+                <h3
+                  style="font-size: 2.2rem; font-weight: 800; color: #06b6d4; margin: 0; font-family: var(--font-sans);">
+                  24 ms</h3>
+                <p
+                  style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; font-family: var(--font-sans);">
+                  Average Application Dispatch Time</p>
+              </div>
+              <div>
+                <h3
+                  style="font-size: 2.2rem; font-weight: 800; color: #06b6d4; margin: 0; font-family: var(--font-sans);">
+                  94%</h3>
+                <p
+                  style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; font-family: var(--font-sans);">
+                  ATS Compatibility Pass Rate</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Success Reviews Section -->
+    <section id="reviews" style="padding: 40px 0 20px 0; border-top: 1px solid var(--border-subtle);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h2 style="font-size: 2.2rem; margin-bottom: 12px; font-weight: 700;">User Success Reviews</h2>
+        <p style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">Hear from both finders
+          and recruiters who rely on JobSarthi.</p>
+      </div>
+
+      <div id="reviewsLoopContainer" style="max-width: 100%; margin: 0 auto; overflow: hidden; position: relative;">
+        <!-- Review 1 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "Sarthi AI helped me rebuild my resume and prepare for technical interviews. The skill assessment badges
+              gave me the edge I needed to land my dream job!"
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              AP
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Aisha Patel</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Full Stack Engineer</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 2 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "Hiring has never been so seamless. The skill-verified applicants saved us countless hours of screening.
+              The matchmaking scoring is incredibly accurate."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #d946ef); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              DC
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">David Chen</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Director of Talent, InnovateTech</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 3 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The conversational companion, Sarthi, guided me through career roadmap recommendations that perfectly
+              matched my portfolio. Extremely helpful!"
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #3b82f6); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              MT
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Marcus Thompson</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">UX Designer</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 4 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "JobSarthi's automated pipeline is pure gold. It matches high-intent seekers directly with our stack
+              requirements, cutting time-to-hire by 50%."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #ec4899); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              RM
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Rohan Malhotra</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Engineering Lead, FinSphere</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 5 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The mock AI interviews are extremely realistic. The constructive, real-time feedback helped me overcome
+              my interview anxiety and land my current role."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              PS
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Priya Sharma</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Product Manager</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 6 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "We hired three senior developers through JobSarthi in under two weeks. The platform's automated skills
+              verification makes it a game-changer for engineering teams."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #d946ef); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              LG
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Liam Gallagher</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Talent Acquisition Lead, CloudNexus</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 7 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The personalized job recommendations are spot on. I didn't have to scroll through hundreds of irrelevant
+              postings; JobSarthi matched me directly to fitting roles."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #3b82f6); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              AS
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Ananya Sen</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">Data Analyst</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 8 -->
+        <div class="glass-panel review-card"
+          style="display: flex; flex-direction: column; justify-content: space-between; height: 260px; width: 100%;">
+          <div>
+            <div style="display: flex; gap: 4px; margin-bottom: 12px; color: #fbbf24; font-size: 1rem;">
+              ★★★★★
+            </div>
+            <p
+              style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-style: italic; margin-bottom: 16px;">
+              "The recruiter interface is simple yet powerful. Seeing pre-assessed candidates with transparent breakdown
+              scores is exactly what modern hiring needs."
+            </p>
+          </div>
+          <div
+            style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: auto;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #10b981); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #fff;">
+              SJ
+            </div>
+            <div>
+              <h4 style="font-size: 0.88rem; font-weight: 600; margin: 0;">Sarah Jenkins</h4>
+              <p style="font-size: 0.72rem; color: var(--text-dark); margin: 0;">HR Director, CoreTech Solutions</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Live Mini Sarthi Chat Widget -->
+  <div class="glass-panel mini-chat-preview" id="miniChatWidget" style="display: none;">
+    <div class="mini-chat-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></div>
+        <span style="font-weight: 700; font-size: 0.85rem;">Sarthi AI Assistant</span>
+      </div>
+      <span style="cursor: pointer; font-size: 0.8rem; color: var(--text-muted);" onclick="toggleMiniChat()">✕</span>
+    </div>
+
+    <div class="mini-chat-messages" id="miniChatBody">
+      <div class="mini-bubble mini-bubble-ai">
+        Hi there! I am **Sarthi AI**. How can I help you explore this landing page? Choose a question below!
+      </div>
+    </div>
+
+    <div class="mini-chat-actions">
+      <button class="mini-btn" onclick="sendMiniQuestion('Why is JobSarthi unique?')">Why JobSarthi?</button>
+      <button class="mini-btn" onclick="sendMiniQuestion('Where is the Skill Test?')">Where is Skill Test?</button>
+      <button class="mini-btn" onclick="sendMiniQuestion('How to register as Recruiter?')">Recruiter Login?</button>
+      <button class="mini-btn" onclick="sendMiniQuestion('Tell me a joke!')">Tell me a joke!</button>
+    </div>
+  </div>
+
+  <!-- Floating Sarthi Pill: click scrolls to Sarthi panel -->
+  <a id="floatingSarthiBtn" href="#sarthi-scroll-section"
+    onclick="event.preventDefault(); event.stopPropagation(); var target = document.getElementById('sarthi-scroll-section'); if (target) { window.scrollTo({top: target.getBoundingClientRect().top + window.scrollY + 100, behavior: 'smooth'}); }"
+    class="gemini-pill-border"
+    style="position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; align-items: center; justify-content: center; width: 140px; height: 54px; border-radius: 27px; background: var(--sarthi-bg-minimized) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; color: var(--text-main) !important; box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important; cursor: pointer; overflow: hidden; box-sizing: border-box; font-family: var(--font-sans), sans-serif; text-decoration: none; transition: opacity 0.4s ease, transform 0.4s ease; transform-origin: bottom right;">
+    <div
+      style="position: absolute; top: 0; left: -100%; width: 60px; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 100%); transform: skewX(-25deg); pointer-events: none; transition: transform 0.6s ease; z-index: 2;"
+      class="sarthi-btn-shine"></div>
+    <span
+      style="font-weight: 600; font-size: 0.95rem; letter-spacing: 0.5px; z-index: 4; pointer-events: none;">Sarthi</span>
+  </a>
+
+  <style>
+    #floatingSarthiBtn:hover .sarthi-btn-shine {
+      transform: translateX(350px) skewX(-25deg) !important;
+      transition: transform 0.75s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    }
+
+    #floatingSarthiBtn:hover {
+      transform: scale(1.05) !important;
+    }
+
+    body.light-theme #floatingSarthiBtn {
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+    }
+  </style>
+
+  <!-- Click Expanded Content (4 Vertical Cards) - Separate Sibling -->
+  <div id="clickExpandedContent" class="gemini-pill-border"
+    style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; flex-direction: column; width: 350px; height: 460px; max-width: calc(100vw - 40px); max-height: calc(100vh - 80px); border-radius: 24px; background: var(--sarthi-bg-expanded); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); box-sizing: border-box; padding: 20px 24px; justify-content: space-between; overflow: hidden; opacity: 0; pointer-events: none; transform: scale(0.15); transform-origin: bottom right; transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); font-family: var(--font-sans); will-change: transform, opacity;">
+    <!-- Panel Header -->
+    <div
+      style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0; z-index: 10;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.15rem;">✨</span>
+        <span style="font-weight: 700; font-size: 1.05rem; letter-spacing: 0.5px;">Sarthi AI Tools</span>
+      </div>
+      <button id="clickCloseBtn" onclick="closeClickPanel(event)"
+        style="background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s; z-index: 10;">✕</button>
+    </div>
+
+    <!-- Vertical Card Stack -->
+    <div style="display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: center; z-index: 10;">
+      <!-- Card 1: Interview Mode -->
+      <a href="seeker/aiinterview.html"
+        onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') !== 'true') { event.preventDefault(); window.location.href = 'seeker/login_signup.html'; }"
+        class="sarthi-tool-card"
+        style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+        <div
+          style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(6,182,212,0.05)); border: 1px solid rgba(6,182,212,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+          🎙️</div>
+        <div style="flex: 1; text-align: left;">
+          <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Interview Mode</h4>
+          <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Real-time voice mock trials</p>
+        </div>
+        <span class="tool-arrow"
+          style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+      </a>
+
+      <!-- Card 2: Resume Analyser -->
+      <a href="seeker/resumeanalyser.html"
+        onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') !== 'true') { event.preventDefault(); window.location.href = 'seeker/login_signup.html'; }"
+        class="sarthi-tool-card"
+        style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: pointer; box-sizing: border-box;">
+        <div
+          style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(217,70,239,0.2), rgba(217,70,239,0.05)); border: 1px solid rgba(217,70,239,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+          📄</div>
+        <div style="flex: 1; text-align: left;">
+          <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Resume Analyser</h4>
+          <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Instant ATS score & tips</p>
+        </div>
+        <span class="tool-arrow"
+          style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+      </a>
+
+      <!-- Card 3: Job Tracker -->
+      <a href="javascript:void(0)"
+        onclick="event.preventDefault(); event.stopPropagation(); alert('Job Tracker is coming soon!');"
+        class="sarthi-tool-card"
+        style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: not-allowed; box-sizing: border-box; opacity: 0.6;">
+        <div
+          style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.02)); border: 1px solid rgba(245,158,11,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+          📈</div>
+        <div style="flex: 1; text-align: left;">
+          <div style="display: flex; align-items: center;">
+            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Job Tracker</h4>
+            <span style="font-size: 0.58rem; padding: 1px 6px; font-weight: 700; text-transform: uppercase; margin-left: 6px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 4px;">Coming Soon</span>
+          </div>
+          <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Visual application pipeline</p>
+        </div>
+        <span class="tool-arrow"
+          style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+      </a>
+
+      <!-- Card 4: Career Guide -->
+      <a href="javascript:void(0)"
+        onclick="event.preventDefault(); event.stopPropagation(); alert('Career Guide is coming soon!');"
+        class="sarthi-tool-card"
+        style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; text-decoration: none; color: inherit; transition: all 0.3s ease; cursor: not-allowed; box-sizing: border-box; opacity: 0.6;">
+        <div
+          style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(99,102,241,0.02)); border: 1px solid rgba(99,102,241,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+          🗺️</div>
+        <div style="flex: 1; text-align: left;">
+          <div style="display: flex; align-items: center;">
+            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff;">Career Guide</h4>
+            <span style="font-size: 0.58rem; padding: 1px 6px; font-weight: 700; text-transform: uppercase; margin-left: 6px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 4px;">Coming Soon</span>
+          </div>
+          <p style="margin: 1px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">AI roadmap recommendations</p>
+        </div>
+        <span class="tool-arrow"
+          style="font-size: 0.85rem; color: var(--text-muted); transition: transform 0.3s, color 0.3s;">➔</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Large State Content (Feature Panel) - Separate Sibling -->
+  <div id="floatingExpandedContent" class="gemini-pill-border"
+    style="position: fixed; top: 50%; left: 50%; transform: translate(calc(-50% + (50vw - 100px)), calc(-50% + (50vh - 57px))) scale(0.15); z-index: 1000; display: flex; flex-direction: column; width: 950px; height: 480px; max-width: calc(100vw - 80px); max-height: calc(100vh - 120px); border-radius: 24px; background: var(--sarthi-bg-expanded); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.4); box-sizing: border-box; overflow: hidden; opacity: 0; pointer-events: none; transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); font-family: var(--font-sans); will-change: transform, opacity;">
+
+    <!-- Panel Header -->
+    <div
+      style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 18px 24px 10px 24px; border-bottom: 1px solid var(--border-subtle); box-sizing: border-box; flex-shrink: 0; background: var(--sarthi-header-bg); z-index: 10;">
+      <div style="text-align: left;">
+        <h3
+          style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          Sarthi AI
+        </h3>
+        <p style="margin: 2px 0 0 0; font-size: 0.72rem; color: var(--text-muted);">Scroll down or up to slide through
+          features</p>
+      </div>
+      <!-- Dot Navigation Indicators inside panel -->
+      <div style="display: flex; gap: 10px; z-index: 20; align-items: center;" id="sarthiPanelDots">
+        <div class="sarthi-dot active" data-index="0"
+          style="width: 28px; height: 10px; border-radius: 5px; background: #06b6d4; box-shadow: 0 0 10px rgba(6, 182, 212, 0.8); transition: all 0.3s; cursor: pointer;">
+        </div>
+        <div class="sarthi-dot" data-index="1"
+          style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+        </div>
+        <div class="sarthi-dot" data-index="2"
+          style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+        </div>
+        <div class="sarthi-dot" data-index="3"
+          style="width: 10px; height: 10px; border-radius: 5px; background: var(--sarthi-dot-inactive); transition: all 0.3s; cursor: pointer;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Slides Container -->
+    <div style="width: 100%; flex: 1; overflow: hidden; position: relative; box-sizing: border-box;">
+      <div id="sarthiSlideTrack" style="width: 100%; height: 100%; position: relative; box-sizing: border-box;">
+
+        <!-- Slide 1: Interview Mode -->
+        <div class="sarthi-slide" data-slide-index="0"
+          style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 1; pointer-events: auto; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+          <!-- Left: Video Panel -->
+          <div
+            style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+            <video src="assets/sarthivideo1.mp4" autoplay loop muted playsinline
+              style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+            <span
+              style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(6,182,212,0.6)); pointer-events: none; z-index: 1;">🎙️</span>
+          </div>
+          <!-- Right: Details -->
+          <div
+            style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+            <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Interview Mode</h4>
+            <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+              Practice real-time mock interviews with Sarthi AI. Get verbal feedback, score assessments, and refine
+              your speaking confidence for top tech roles.
+            </p>
+            <button class="btn btn-glow"
+              onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') === 'true') { window.location.href='seeker/aiinterview.html'; } else { window.location.href='seeker/login_signup.html'; }"
+              style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: #0891b2; border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+              Launch Simulator
+            </button>
+          </div>
+        </div>
+
+        <!-- Slide 2: Resume Analyser -->
+        <div class="sarthi-slide" data-slide-index="1"
+          style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+          <!-- Left: Video Panel -->
+          <div
+            style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(217,70,239,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+            <video src="assets/sarthivideo2.mp4" autoplay loop muted playsinline
+              style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+            <span
+              style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(217,70,239,0.6)); pointer-events: none; z-index: 1;">📄</span>
+          </div>
+          <!-- Right: Details -->
+          <div
+            style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+            <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Resume Analyser</h4>
+            <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+              Get instant resume scores, structural assessments, and tailored bullet point revisions to optimize your
+              visibility for company pipelines.
+            </p>
+            <button class="btn btn-glow"
+              onclick="event.stopPropagation(); if (localStorage.getItem('seeker_logged_in') === 'true') { window.location.href='seeker/resumeanalyser.html'; } else { window.location.href='seeker/login_signup.html'; }"
+              style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: #d946ef; border: none; color: #fff; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+              Analyse Portfolio
+            </button>
+          </div>
+        </div>
+
+        <!-- Slide 3: Job Tracker -->
+        <div class="sarthi-slide" data-slide-index="2"
+          style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+          <!-- Left: Video Panel -->
+          <div
+            style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+            <video src="assets/sarthivideo3.mp4" autoplay loop muted playsinline
+              style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+            <span
+              style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(245,158,11,0.6)); pointer-events: none; z-index: 1;">📈</span>
+          </div>
+          <!-- Right: Details -->
+          <div
+            style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+            <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center;">
+              Job Tracker
+              <span style="font-size: 0.65rem; padding: 2px 8px; font-weight: 700; text-transform: uppercase; margin-left: 8px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 4px;">Coming Soon</span>
+            </h4>
+            <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+              Monitor your application stages with our interactive Kanban tracking board. Stay on top of interviews,
+              offers, and follow-ups.
+            </p>
+            <button class="btn btn-glow"
+              onclick="event.stopPropagation(); alert('Job Tracker is coming soon!');"
+              style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: var(--border-subtle); border: 1px solid var(--border-subtle); color: var(--text-muted); border-radius: var(--radius-sm); font-weight: 600; cursor: not-allowed; opacity: 0.7;">
+              Coming Soon
+            </button>
+          </div>
+        </div>
+
+        <!-- Slide 4: Career Guide -->
+        <div class="sarthi-slide" data-slide-index="3"
+          style="width: 100%; height: 100%; display: flex; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; box-sizing: border-box; padding: 20px;">
+          <!-- Left: Video Panel -->
+          <div
+            style="width: 55%; height: 100%; position: relative; border-radius: var(--radius-md); overflow: hidden; background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(0,0,0,0.7)); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+            <video src="assets/sarthivideo4.mp4" autoplay loop muted playsinline
+              style="width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2;"></video>
+            <span
+              style="font-size: 2.8rem; filter: drop-shadow(0 0 16px rgba(99,102,241,0.6)); pointer-events: none; z-index: 1;">🗺️</span>
+          </div>
+          <!-- Right: Details -->
+          <div
+            style="width: 45%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding-left: 24px; text-align: left; box-sizing: border-box;">
+            <h4 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center;">
+              Career Guide
+              <span style="font-size: 0.65rem; padding: 2px 8px; font-weight: 700; text-transform: uppercase; margin-left: 8px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 4px;">Coming Soon</span>
+            </h4>
+            <p style="margin: 8px 0 16px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+              Generate customized fullstack roadmaps, track skill acquisition milestones, and explore target learning
+              modules designed for your career progression.
+            </p>
+            <button class="btn btn-glow"
+              onclick="event.stopPropagation(); alert('Career Guide is coming soon!');"
+              style="align-self: flex-start; padding: 8px 18px; font-size: 0.78rem; background: var(--border-subtle); border: 1px solid var(--border-subtle); color: var(--text-muted); border-radius: var(--radius-sm); font-weight: 600; cursor: not-allowed; opacity: 0.7;">
+              Coming Soon
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer
+    style="border-top: 1px solid var(--glass-border); padding: 20px 0; text-align: center; color: var(--text-dark); font-size: 0.85rem; position: relative; z-index: 5; margin: 0;">
+    <p>&copy; 2026 JobSarthi Platform. Created with advanced UI animations. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // 1. Mini Chat Widget logic
+    function toggleMiniChat() {
+      const widget = document.getElementById('miniChatWidget');
+      widget.style.display = widget.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    function openDemoChat() {
+      const widget = document.getElementById('miniChatWidget');
+      widget.style.display = 'flex';
+      widget.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    const miniHistory = [];
+
+    async function sendMiniQuestion(question) {
+      const body = document.getElementById('miniChatBody');
+
+      const userBubble = document.createElement('div');
+      userBubble.className = 'mini-bubble mini-bubble-user';
+      userBubble.textContent = question;
+      body.appendChild(userBubble);
+      body.scrollTop = body.scrollHeight;
+
+      const loading = document.createElement('div');
+      loading.className = 'mini-bubble mini-bubble-ai';
+      loading.id = 'miniLoading';
+      loading.innerHTML = `<div class="typing-indicator" style="padding: 2px 4px;"><span class="dot" style="width:4px; height:4px;"></span><span class="dot" style="width:4px; height:4px;"></span><span class="dot" style="width:4px; height:4px;"></span></div>`;
+      body.appendChild(loading);
+      body.scrollTop = body.scrollHeight;
+
+      miniHistory.push({ role: 'user', content: question });
+
+      try {
+        const response = await fetch((window.API_BASE_URL || '') + '/api/sarthi/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: question, chatHistory: miniHistory })
+        });
+
+        const result = await response.json();
+        const loadingEl = document.getElementById('miniLoading');
+        if (loadingEl) loadingEl.remove();
+
+        const reply = result.reply || "I'm having trouble connecting right now.";
+        miniHistory.push({ role: 'assistant', content: reply });
+
+        const aiBubble = document.createElement('div');
+        aiBubble.className = 'mini-bubble mini-bubble-ai';
+        aiBubble.innerHTML = reply;
+        body.appendChild(aiBubble);
+        body.scrollTop = body.scrollHeight;
+      } catch (err) {
+        console.error("Mini chat error:", err);
+        const loadingEl = document.getElementById('miniLoading');
+        if (loadingEl) loadingEl.remove();
+
+        const aiBubble = document.createElement('div');
+        aiBubble.className = 'mini-bubble mini-bubble-ai';
+        aiBubble.innerHTML = "Oops! Connection error. Please verify that the backend is running.";
+        body.appendChild(aiBubble);
+        body.scrollTop = body.scrollHeight;
+      }
+    }
+
+    // 2. Shrink pill header on scroll
+    const scrollHeader = document.querySelector('.header');
+    window.addEventListener('scroll', () => {
+      if (scrollHeader) {
+        if (window.scrollY > 40) {
+          scrollHeader.classList.add('scrolled');
+        } else {
+          scrollHeader.classList.remove('scrolled');
+        }
+      }
+    }, { passive: true });
+
+    // 3. Dynamic video rotation loop
+    let currentVideoIndex = 1;
+    const videoElement = document.getElementById('introVideo');
+    if (videoElement) {
+      videoElement.addEventListener('ended', () => {
+        currentVideoIndex++;
+        loadVideoByIndex(currentVideoIndex);
+      });
+      videoElement.addEventListener('error', () => {
+        if (currentVideoIndex > 1) {
+          currentVideoIndex = 1;
+          loadVideoByIndex(currentVideoIndex);
+        }
+      });
+      function loadVideoByIndex(index) {
+        videoElement.src = `assets/video${index}.mp4`;
+        videoElement.play().catch(e => console.warn("Failed to play video:", e));
+      }
+    }
+
+    // 4. Scroll-driven expanding Sarthi AI pill interaction
+    let sarthiMode = 'minimized';
+    let lastSarthiMode = null;
+    let lastActiveIdx = null;
+
+    let cachedSlides = [];
+    let cachedDots = [];
+    let sarthiScrollSectionEl = null;
+    let floatingBtnEl = null;
+    let smallContentEl = null;
+    let expandedContentEl = null;
+    let clickContentEl = null;
+    let cachedWindowWidth = window.innerWidth;
+    let cachedWindowHeight = window.innerHeight;
+    let cachedSectionTopDoc = 0;
+    let cachedMaxScroll = 0;
+
+    function updateCachedSarthiDimensions() {
+      cachedWindowWidth = window.innerWidth;
+      cachedWindowHeight = window.innerHeight;
+      sizeChanged = true;
+      sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
+      if (sarthiScrollSectionEl) {
+        const rect = sarthiScrollSectionEl.getBoundingClientRect();
+        cachedSectionTopDoc = rect.top + window.scrollY;
+      }
+      cachedMaxScroll = document.documentElement.scrollHeight - cachedWindowHeight;
+    }
+
+    function cacheSarthiElements() {
+      cachedSlides = Array.from(document.querySelectorAll('#sarthiSlideTrack .sarthi-slide'));
+      cachedDots = Array.from(document.querySelectorAll('#sarthiPanelDots .sarthi-dot'));
+      sarthiScrollSectionEl = document.getElementById('sarthi-scroll-section');
+      smallContentEl = document.getElementById('floatingSmallContent');
+      expandedContentEl = document.getElementById('floatingExpandedContent');
+      clickContentEl = document.getElementById('clickExpandedContent');
+      if (clickContentEl) {
+        clickContentEl.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
+        clickContentEl.style.willChange = 'transform, opacity';
+      }
+      if (expandedContentEl) {
+        expandedContentEl.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
+        expandedContentEl.style.willChange = 'transform, opacity';
+      }
+    }
+
+    let sizeChanged = false;
+    function updateSarthiState(forceUpdate = false) {
+      const W = cachedWindowWidth;
+      const H = cachedWindowHeight;
+
+      let targetBtnOpacity = 0;
+      let targetClickOpacity = 0;
+      let targetScrollOpacity = 0;
+
+      let targetBtnTransform = 'scale(0.15)';
+      let targetClickTransform = 'scale(0.15)';
+      let targetScrollTransform = 'translate(calc(-50% + (50vw - 100px)), calc(-50% + (50vh - 57px))) scale(0.15)';
+
+      if (sarthiMode === 'minimized') {
+        targetBtnOpacity = 1;
+        targetBtnTransform = 'scale(1)';
+      } else if (sarthiMode === 'clickExpanded') {
+        targetClickOpacity = 1;
+        targetClickTransform = 'scale(1)';
+      } else if (sarthiMode === 'scrollExpanded') {
+        targetScrollOpacity = 1;
+        targetScrollTransform = 'translate(-50%, -43%) scale(1)';
+      }
+
+      if (sarthiMode !== lastSarthiMode || forceUpdate || sizeChanged) {
+        // Note: floatingBtnEl visibility is controlled by IntersectionObserver (set up below)
+        // No button show/hide here - it's handled separately
+        if (clickContentEl) {
+          if (sarthiMode === 'clickExpanded') {
+            clickContentEl.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
+          } else {
+            clickContentEl.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
+          }
+          clickContentEl.style.opacity = targetClickOpacity;
+          clickContentEl.style.pointerEvents = targetClickOpacity > 0.5 ? 'auto' : 'none';
+          clickContentEl.style.transform = targetClickTransform;
+        }
+        if (expandedContentEl) {
+          if (sarthiMode === 'scrollExpanded') {
+            expandedContentEl.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease';
+          } else {
+            expandedContentEl.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
+          }
+          expandedContentEl.style.opacity = targetScrollOpacity;
+          expandedContentEl.style.pointerEvents = targetScrollOpacity > 0.5 ? 'auto' : 'none';
+          expandedContentEl.style.transform = targetScrollTransform;
+        }
+        lastSarthiMode = sarthiMode;
+        sizeChanged = false;
+      }
+
+      if (sarthiMode === 'scrollExpanded' && sarthiScrollSectionEl) {
+        const startActive = cachedSectionTopDoc - 150;
+        const activeRange = sarthiScrollSectionEl.offsetHeight;
+        const pct = (window.scrollY - startActive) / activeRange;
+        const clampedPct = Math.max(0, Math.min(1, pct));
+
+        let activeIdx = 0;
+        if (clampedPct > 0.1 && clampedPct < 0.9) {
+          const midPct = (clampedPct - 0.1) / 0.8;
+          activeIdx = Math.floor(midPct * 4);
+        } else if (clampedPct >= 0.9) {
+          activeIdx = 3;
+        }
+        activeIdx = Math.max(0, Math.min(3, activeIdx));
+
+        if (activeIdx !== lastActiveIdx) {
+          cachedSlides.forEach((slide, idx) => {
+            slide.style.opacity = (idx === activeIdx) ? '1' : '0';
+            slide.style.pointerEvents = (idx === activeIdx) ? 'auto' : 'none';
+          });
+          cachedDots.forEach((dot, idx) => {
+            if (idx === activeIdx) {
+              dot.style.width = '28px'; dot.style.height = '10px'; dot.style.borderRadius = '5px'; dot.style.background = '#06b6d4'; dot.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.8)';
+            } else {
+              dot.style.width = '10px'; dot.style.height = '10px'; dot.style.borderRadius = '5px'; dot.style.background = 'var(--sarthi-dot-inactive)'; dot.style.boxShadow = 'none';
+            }
+          });
+          lastActiveIdx = activeIdx;
+        }
+      }
+    }
+
+    function updateSarthiSlideMobile(index) {
+      index = Math.max(0, Math.min(3, index));
+      cachedSlides.forEach((slide, idx) => {
+        slide.style.opacity = (idx === index) ? '1' : '0';
+        slide.style.pointerEvents = (idx === index) ? 'auto' : 'none';
+      });
+      cachedDots.forEach((dot, idx) => {
+        if (idx === index) {
+          dot.classList.add('active'); dot.style.width = '28px'; dot.style.height = '10px'; dot.style.background = '#06b6d4';
+        } else {
+          dot.classList.remove('active'); dot.style.width = '10px'; dot.style.height = '10px'; dot.style.background = 'var(--sarthi-dot-inactive)';
+        }
+      });
+    }
+
+    function closeClickPanel(event) {
+      if (event) event.stopPropagation();
+      sarthiMode = 'minimized';
+      updateSarthiState(true);
+    }
+
+    let scrollActive = false;
+    window.addEventListener('scroll', () => {
+      const isMobile = cachedWindowWidth <= 768;
+      if (isMobile) {
+        // mobile visibility also handled by IntersectionObserver
+        if (sarthiMode === 'clickExpanded') { sarthiMode = 'minimized'; }
+        return;
+      }
+
+      if (sarthiMode === 'clickExpanded') {
+        sarthiMode = 'minimized';
+        if (!scrollActive) {
+          scrollActive = true;
+          requestAnimationFrame(() => {
+            updateSarthiState();
+            scrollActive = false;
+          });
+        }
+        return;
+      }
+
+      let nextMode = 'minimized';
+      if (sarthiScrollSectionEl) {
+        // Only switch to scrollExpanded once the Sarthi section has scrolled almost to the top of the viewport
+        // and remains active until scrolling past the section.
+        const sectionEntersViewport = cachedSectionTopDoc - 150;
+        const sectionLeavesViewport = cachedSectionTopDoc + sarthiScrollSectionEl.offsetHeight - 150;
+        if (window.scrollY >= sectionEntersViewport && window.scrollY <= sectionLeavesViewport && cachedSectionTopDoc > 0) {
+          nextMode = 'scrollExpanded';
+        }
+      }
+
+      if (nextMode !== sarthiMode) {
+        sarthiMode = nextMode;
+        if (sarthiMode !== 'scrollExpanded') {
+          lastActiveIdx = null;
+        }
+        if (!scrollActive) {
+          scrollActive = true;
+          requestAnimationFrame(() => {
+            updateSarthiState();
+            scrollActive = false;
+          });
+        }
+      } else if (sarthiMode === 'scrollExpanded') {
+        if (!scrollActive) {
+          scrollActive = true;
+          requestAnimationFrame(() => {
+            updateSarthiState();
+            scrollActive = false;
+          });
+        }
+      }
+    }, { passive: true });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      cacheSarthiElements();
+      updateCachedSarthiDimensions();
+
+      const isMobile = cachedWindowWidth <= 768;
+      if (isMobile) {
+        // Move sarthi panel below review section statically
+        const panel = expandedContentEl;
+        if (sarthiScrollSectionEl && panel) {
+          panel.style.position = 'relative';
+          panel.style.width = '100%';
+          panel.style.maxWidth = '850px';
+          panel.style.height = '480px';
+          panel.style.opacity = '1';
+          panel.style.pointerEvents = 'auto';
+          panel.style.borderRadius = 'var(--radius-lg)';
+          panel.style.background = 'var(--sarthi-bg-expanded)';
+          panel.style.border = '1px solid var(--border-subtle)';
+          panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
+          panel.style.margin = '0 auto';
+          panel.style.overflow = 'hidden';
+
+          // Add Gemini border class
+          panel.classList.add('gemini-pill-border');
+
+          sarthiScrollSectionEl.innerHTML = '';
+          sarthiScrollSectionEl.appendChild(panel);
+          sarthiScrollSectionEl.style.minHeight = 'auto';
+          sarthiScrollSectionEl.style.height = 'auto';
+          sarthiScrollSectionEl.style.padding = '40px 0';
+
+          // Ensure minimized state elements on floatingSarthiBtn are visible
+          if (smallContentEl) {
+            smallContentEl.style.opacity = '1';
+            smallContentEl.style.pointerEvents = 'auto';
+          }
+        }
+      } else {
+        setTimeout(() => {
+          window.dispatchEvent(new Event('scroll'));
+        }, 100);
+      }
+
+      cachedDots.forEach(dot => {
+        dot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const targetIdx = parseInt(dot.getAttribute('data-index'));
+          if (isNaN(targetIdx)) return;
+
+          if (cachedWindowWidth <= 768) {
+            updateSarthiSlideMobile(targetIdx);
+            return;
+          }
+
+          if (sarthiScrollSectionEl) {
+            const startActive = cachedSectionTopDoc - 150;
+            const activeRange = sarthiScrollSectionEl.offsetHeight;
+
+            // Calculate target scroll position based on slide segment center inside [0.1, 0.9] range
+            const targetPct = 0.1 + (targetIdx + 0.5) * 0.2;
+            const targetScrollY = startActive + targetPct * activeRange;
+
+            window.scrollTo({
+              top: targetScrollY,
+              behavior: 'smooth'
+            });
+          }
+        });
+      });
+
+      // Swipe gestures for sarthiSlideTrack on mobile
+      const slideTrack = document.getElementById('sarthiSlideTrack');
+      if (slideTrack) {
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        slideTrack.addEventListener('touchstart', (e) => {
+          touchStartX = e.changedTouches[0].clientX;
+        }, { passive: true });
+
+        slideTrack.addEventListener('touchend', (e) => {
+          touchEndX = e.changedTouches[0].clientX;
+          const diffX = touchEndX - touchStartX;
+
+          if (Math.abs(diffX) > 50) {
+            if (cachedWindowWidth <= 768) {
+              const activeDot = document.querySelector('#sarthiPanelDots .sarthi-dot.active');
+              let currentIdx = activeDot ? parseInt(activeDot.getAttribute('data-index')) : 0;
+              if (isNaN(currentIdx)) currentIdx = 0;
+
+              let targetIdx = currentIdx;
+              if (diffX < -50) { // Swiped left -> Next slide
+                if (targetIdx < 3) targetIdx++;
+              } else if (diffX > 50) { // Swiped right -> Previous slide
+                if (targetIdx > 0) targetIdx--;
+              }
+
+              if (targetIdx !== currentIdx) {
+                updateSarthiSlideMobile(targetIdx);
+              }
+              return;
+            }
+
+            if (sarthiScrollSectionEl) {
+              const startActive = cachedSectionTopDoc - 150;
+              const activeRange = sarthiScrollSectionEl.offsetHeight;
+              const currentScroll = window.scrollY;
+              const pct = (currentScroll - startActive) / activeRange;
+              const clampedPct = Math.max(0, Math.min(1, pct));
+
+              let currentIdx = 0;
+              if (clampedPct > 0.1 && clampedPct < 0.9) {
+                const midPct = (clampedPct - 0.1) / 0.8;
+                currentIdx = Math.floor(midPct * 4);
+              } else if (clampedPct >= 0.9) {
+                currentIdx = 3;
+              }
+
+              let targetIdx = currentIdx;
+              if (diffX < -50) { // Swiped left -> Next slide
+                if (targetIdx < 3) targetIdx++;
+              } else if (diffX > 50) { // Swiped right -> Previous slide
+                if (targetIdx > 0) targetIdx--;
+              }
+
+              if (targetIdx !== currentIdx) {
+                const targetPct = 0.1 + (targetIdx + 0.5) * 0.2;
+                const targetScrollY = startActive + targetPct * activeRange;
+
+                window.scrollTo({
+                  top: targetScrollY,
+                  behavior: 'smooth'
+                });
+              }
+            }
+          }
+        }, { passive: true });
+      }
+    });
+
+    // 9. Portal Carousels Logic
+    document.addEventListener('DOMContentLoaded', () => {
+      setupCarousel('finder');
+      setupCarousel('recruiter');
+
+
+      // Smooth scroll navigation with event delegation (handles dynamic elements like Dock links)
+      document.addEventListener('click', (e) => {
+        const link = e.target.closest('a[href^="#"]');
+        if (link) {
+          const targetId = link.getAttribute('href');
+          if (targetId && targetId.startsWith('#') && targetId.length > 1) {
+            e.preventDefault();
+            const targetSection = document.querySelector(targetId);
+            if (targetSection) {
+              const headerOffset = targetId === '#hero' ? 0 : 90;
+              const elementPosition = targetSection.getBoundingClientRect().top;
+              let offsetPosition = targetId === '#hero' ? 0 : (elementPosition + window.scrollY - headerOffset);
+
+              // If target is Sarthi scroll section, scroll a bit deeper so the panel expands and shows the first card
+              if (targetId === '#sarthi-scroll-section') {
+                offsetPosition = elementPosition + window.scrollY + 100;
+              }
+
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              });
+            }
+          }
+        }
+      });
+
+      // Update active nav link on scroll using high-performance cached offsets
+      let sectionOffsets = {};
+      function updateSectionOffsets() {
+        ['hero', 'portal', 'sarthi-scroll-section', 'employer-gallery-section', 'reviews'].forEach(id => {
+          const section = document.getElementById(id);
+          if (section) {
+            const rect = section.getBoundingClientRect();
+            sectionOffsets[id] = rect.top + window.scrollY;
+          }
+        });
+        runScrollUpdate();
+      }
+      window.addEventListener('resize', updateSectionOffsets, { passive: true });
+      window.addEventListener('load', updateSectionOffsets, { passive: true });
+
+      updateSectionOffsets();
+      setTimeout(updateSectionOffsets, 250);
+
+      function runScrollUpdate() {
+        let currentSectionId = 'hero';
+        const currentScroll = window.scrollY;
+
+        ['hero', 'portal', 'sarthi-scroll-section', 'employer-gallery-section', 'reviews'].forEach(id => {
+          if (sectionOffsets[id] !== undefined) {
+            const offset = sectionOffsets[id];
+            if (currentScroll >= offset - 150) {
+              currentSectionId = id;
+            }
+          }
+        });
+
+        const activeLinks = document.querySelectorAll('.dock-item, .nav-link');
+        activeLinks.forEach(link => {
+          if (link.getAttribute('href') === `#${currentSectionId}`) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        });
+      }
+
+      let navTicking = false;
+      window.addEventListener('scroll', () => {
+        if (!navTicking) {
+          window.requestAnimationFrame(() => {
+            runScrollUpdate();
+            navTicking = false;
+          });
+          navTicking = true;
+        }
+      }, { passive: true });
+
+      function setupCarousel(type) {
+        const container = document.querySelector(`.carousel-container[data-carousel="${type}"]`);
+        if (!container) return;
+
+        const slides = container.querySelectorAll('.carousel-slide');
+        const dots = container.querySelectorAll('.carousel-dot');
+        let currentIndex = 0;
+        let intervalId = null;
+
+        function showSlide(index) {
+          slides.forEach((slide, i) => {
+            if (i === index) {
+              slide.classList.add('active');
+            } else {
+              slide.classList.remove('active');
+            }
+          });
+
+          dots.forEach((dot, i) => {
+            if (i === index) {
+              dot.classList.add('active');
+            } else {
+              dot.classList.remove('active');
+            }
+          });
+
+          currentIndex = index;
+        }
+
+        function nextSlide() {
+          let nextIndex = (currentIndex + 1) % slides.length;
+          showSlide(nextIndex);
+        }
+
+        function startAutoPlay() {
+          stopAutoPlay();
+          intervalId = setInterval(nextSlide, 5000);
+        }
+
+        function stopAutoPlay() {
+          if (intervalId) {
+            clearInterval(intervalId);
+          }
+        }
+
+        // Add click events to dots
+        dots.forEach(dot => {
+          dot.addEventListener('click', () => {
+            const index = parseInt(dot.getAttribute('data-index'));
+            showSlide(index);
+            startAutoPlay(); // Restart timer on user interaction
+          });
+        });
+
+        // Initialize
+        showSlide(0);
+        startAutoPlay();
+      }
+    });
+  </script>
+
+  <!-- Scroll-Driven Scene script removed -->
+
+  <!-- GSAP and ScrollTrigger — SRI hashes sourced from cdnjs API -->
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"
+    integrity="sha512-7eHRwcbYkK4d9g/6tD/mhkf++eoTHwpNM9woBxtPUBWm67zeAfFC+HrdoE2GanKeocly/VxeLvIqwvCdk7qScg=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"
+    integrity="sha512-onMTRKJBKz8M1TnqqDuGBlowlH0ohFzMXYRNebz+yOcc5TQr/zAKsthzhuv0hiyUKEiQEQXEynnXCvNTOk50dg=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"></script>
+
+  <!-- Custom SplitText and VariableProximity Scripts -->
+  <script src="js/SplitText.js"></script>
+  <script src="js/VariableProximity.js"></script>
+  <script src="js/LogoLoop.js"></script>
+  <script src="js/DomeGallery.js"></script>
+
+  <!-- JobSarthi Shared Header Script -->
+  <script src="js/header.js"></script>
+
+  <!-- Initialize SplitText & VariableProximity for Hero introductory text -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const headlineEl = document.getElementById('heroHeadline');
+      const subtitleEl = document.getElementById('heroSubtitle');
+
+      if (headlineEl) {
+        new SplitText(headlineEl, {
+          delay: 45,
+          duration: 0.8,
+          ease: 'power3.out',
+          from: { opacity: 0, y: 30 },
+          to: { opacity: 1, y: 0 },
+          onLetterAnimationComplete: () => {
+            new VariableProximity(headlineEl, {
+              fromFontVariationSettings: "'wght' 400, 'opsz' 9",
+              toFontVariationSettings: "'wght' 1000, 'opsz' 40",
+              container: document.querySelector('.hero-left'),
+              radius: 120,
+              falloff: 'linear'
+            });
+          }
+        });
+      }
+
+      if (subtitleEl) {
+        new SplitText(subtitleEl, {
+          delay: 12,
+          duration: 0.8,
+          ease: 'power3.out',
+          from: { opacity: 0, y: 20 },
+          to: { opacity: 1, y: 0 }
+        });
+      }
+
+      // Initialize LogoLoop for Success Reviews ticker
+      const reviewsContainer = document.getElementById('reviewsLoopContainer');
+      if (reviewsContainer && window.innerWidth > 768) {
+        new LogoLoop(reviewsContainer, {
+          speed: 45,
+          gap: 24,
+          itemWidth: 340,
+          hoverSpeed: 0,
+          scaleOnHover: true,
+          fadeOut: true
+        });
+      }
+
+      // Initialize Interactive 3D DomeGallery
+      const domeContainer = document.getElementById('domeGalleryContainer');
+      if (domeContainer && window.innerWidth > 768) {
+        const companyImages = [
+          'assets/company/cmp1.png',
+          'assets/company/cmp2.png',
+          'assets/company/cmp3.jpg',
+          'assets/company/cmp4.png',
+          'assets/company/cmp5.png',
+          'assets/company/cmp6.png',
+          'assets/company/cmp7.png',
+          'assets/company/cmp8.png',
+          'assets/company/cmp9.png',
+          'assets/company/cmp10.png',
+          'assets/company/cmp11.png',
+          'assets/company/cmp12.png',
+          'assets/company/cmp13.png',
+          'assets/company/cmp14.png',
+          'assets/company/cmp15.png',
+          'assets/company/cmp16.png',
+          'assets/company/cmp17.jpg',
+          'assets/company/cmp18.png',
+          'assets/company/cmp19.png',
+          'assets/company/cmp20.png',
+          'assets/company/cmp21.png',
+          'assets/company/cmp22.png',
+          'assets/company/cmp23.png',
+          'assets/company/cmp24.jpg',
+          'assets/company/cmp25.jpg'
+        ];
+        new DomeGallery(domeContainer, {
+          images: companyImages,
+          segments: 20,
+          radius: 380,
+          dragSensitivity: 0.18,
+          dragDampening: 0.94,
+          autoRotateSpeed: 0.04
+        });
+      }
+    });
+  </script>
+
+
+
+</body>
+
+<script>
+  // ─── Floating Sarthi Button Visibility Controller ───
+  (function () {
+    var btn = document.getElementById('floatingSarthiBtn');
+    var target = document.getElementById('sarthi-scroll-section');
+    if (!btn || !target) return;
+
+    var targetOffsetTop = 0;
+
+    function updateOffset() {
+      var rect = target.getBoundingClientRect();
+      targetOffsetTop = rect.top + window.scrollY;
+    }
+
+    function checkVisibility() {
+      var relativeTop = targetOffsetTop - window.scrollY;
+      if (relativeTop <= 150) {
+        btn.style.opacity = '0';
+        btn.style.pointerEvents = 'none';
+        btn.style.transform = 'scale(0.8)';
+      } else {
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        btn.style.transform = 'scale(1)';
+      }
+    }
+
+    window.addEventListener('scroll', checkVisibility, { passive: true });
+    window.addEventListener('resize', function () {
+      updateOffset();
+      checkVisibility();
+    }, { passive: true });
+    window.addEventListener('load', function () {
+      updateOffset();
+      checkVisibility();
+    }, { passive: true });
+
+    updateOffset();
+    checkVisibility();
+
+    // Fallback checks for settle/delayed layouts
+    setTimeout(function () {
+      updateOffset();
+      checkVisibility();
+    }, 200);
+    setTimeout(function () {
+      updateOffset();
+      checkVisibility();
+    }, 500);
+  })();
+</script>
+
+</html>

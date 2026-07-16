@@ -1,0 +1,4875 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+// GoogleGenerativeAI removed (migrating to Groq)
+import { MongoClient } from "mongodb";
+import { v2 as cloudinary } from "cloudinary";
+import { runJobCollectionPipeline, syncNextCompany, runGreenhouseSync } from "./jobCollector.js";
+import dns from "dns";
+import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
+
+// ── LangChain, RAG Cache & Universal Scoring Engine ──
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
+import { RecursiveCharacterTextSplitter } from "@langchain/classic/text_splitter";
+import {
+  getResumeCache, setResumeCache,
+  getOrBuildJDVectorStore, buildResumeJDAlignments,
+  buildJobSearchIndex, semanticJobSearch, isJobIndexReady, getJobIndexStats
+} from "./ragCache.js";
+import {
+  calculateATSScore, calculatePreciseJobMatch, scoreSearchRelevance,
+  normalizeSkillList, normalizeSkillToken
+} from "./scoringEngine.js";
+
+
+dotenv.config();
+
+// ============================================================
+// SECURITY LAYER — Rate Limiting, Auth, Headers, Validation
+// ============================================================
+
+// --- In-Memory Rate Limiter (no external dependency needed) ---
+const rateLimitStore = new Map();
+
+function createRateLimiter({ windowMs, max, message }) {
+  // Auto-clean old entries every 5 minutes to prevent memory leaks
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, record] of rateLimitStore.entries()) {
+      if (now - record.startTime > windowMs) rateLimitStore.delete(key);
+    }
+  }, 5 * 60 * 1000);
+
+  return (req, res, next) => {
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.socket.remoteAddress || "unknown";
+    const key = `${ip}:${req.path}`;
+    const now = Date.now();
+    const record = rateLimitStore.get(key);
+
+    if (!record || now - record.startTime > windowMs) {
+      rateLimitStore.set(key, { count: 1, startTime: now });
+      return next();
+    }
+
+    record.count++;
+    if (record.count > max) {
+      const retryAfter = Math.ceil((windowMs - (now - record.startTime)) / 1000);
+      res.set("Retry-After", retryAfter);
+      return res.status(429).json({ error: message || "Too many requests. Please try again later.", retryAfter });
+    }
+    next();
+  };
+}
+
+// Rate limiters for different route groups
+const authRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,                   // 10 login/signup attempts per IP per 15 min
+  message: "Too many authentication attempts. Please wait 15 minutes before trying again."
+});
+
+const forgotPasswordLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,                    // 5 password reset requests per IP per hour
+  message: "Too many password reset requests. Please wait 1 hour before trying again."
+});
+
+const aiRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,       // 1 minute
+  max: 20,                   // 20 AI calls per minute per IP
+  message: "AI rate limit reached. Please wait a moment before making more requests."
+});
+
+const uploadRateLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,  // 10 minutes
+  max: 15,                   // 15 file uploads per 10 min per IP
+  message: "Too many file uploads. Please wait before uploading again."
+});
+
+const generalRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,       // 1 minute
+  max: 100,                  // 100 general API requests per minute per IP
+  message: "Request limit exceeded. Please slow down."
+});
+
+// --- Account Lockout (brute-force login protection) ---
+const loginFailureStore = new Map();
+const MAX_LOGIN_FAILURES = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkAccountLockout(email) {
+  const record = loginFailureStore.get(email);
+  if (!record) return { locked: false };
+  if (Date.now() - record.firstFailure > LOCKOUT_DURATION_MS) {
+    loginFailureStore.delete(email);
+    return { locked: false };
+  }
+  if (record.count >= MAX_LOGIN_FAILURES) {
+    const retryAfterMs = LOCKOUT_DURATION_MS - (Date.now() - record.firstFailure);
+    return { locked: true, retryAfterSeconds: Math.ceil(retryAfterMs / 1000) };
+  }
+  return { locked: false };
+}
+
+function recordLoginFailure(email) {
+  const record = loginFailureStore.get(email);
+  if (!record || Date.now() - record.firstFailure > LOCKOUT_DURATION_MS) {
+    loginFailureStore.set(email, { count: 1, firstFailure: Date.now() });
+  } else {
+    record.count++;
+  }
+}
+
+function clearLoginFailures(email) {
+  loginFailureStore.delete(email);
+}
+
+// --- JWT-based Session Middleware ---
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
+if (!process.env.JWT_SECRET) {
+  console.warn("[SECURITY] WARNING: JWT_SECRET not set in environment. Using a random secret that changes on restart. Set JWT_SECRET in your environment variables for persistent sessions.");
+}
+
+function signJWT(payload) {
+  const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
+  const body = Buffer.from(JSON.stringify({ ...payload, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 })).toString("base64url"); // 7 days
+  const sig = crypto.createHmac("sha256", JWT_SECRET).update(`${header}.${body}`).digest("base64url");
+  return `${header}.${body}.${sig}`;
+}
+
+function verifyJWT(token) {
+  try {
+    const [header, body, sig] = token.split(".");
+    const expectedSig = crypto.createHmac("sha256", JWT_SECRET).update(`${header}.${body}`).digest("base64url");
+    if (sig !== expectedSig) return null;
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString());
+    if (payload.exp < Math.floor(Date.now() / 1000)) return null; // expired
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+// Middleware: require a valid JWT to access protected routes
+function requireAuth(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "Authentication required. Please log in." });
+  const payload = verifyJWT(token);
+  if (!payload) return res.status(401).json({ error: "Session expired or invalid. Please log in again." });
+  req.user = payload;
+  next();
+}
+
+// Middleware: require a specific role
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: "Authentication required." });
+    if (!roles.includes(req.user.role)) return res.status(403).json({ error: "Access forbidden. Insufficient permissions." });
+    next();
+  };
+}
+
+// --- Input Validation & Sanitization Helpers ---
+function sanitizeString(str, maxLength = 500) {
+  if (typeof str !== "string") return "";
+  return str.trim().slice(0, maxLength).replace(/[<>]/g, ""); // strip basic HTML injection chars
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase().trim());
+}
+
+function isStrongPassword(password) {
+  if (typeof password !== "string") return false;
+  if (password.length < 8) return false;
+  
+  // Complexity rules
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  
+  if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+    return false;
+  }
+  
+  // Ban common patterns and weak words
+  const lowerPassword = password.toLowerCase();
+  const commonWeakPasswords = [
+    "password", "qwerty", "123456", "12345678", "admin123", "welcome",
+    "welcome123", "password123", "jobsarthi", "sarthicareer", "letmein",
+    "pass123", "123456789"
+  ];
+  
+  for (const weak of commonWeakPasswords) {
+    if (lowerPassword.includes(weak)) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+console.log("[SECURITY] Security layer initialized: Rate limiting, JWT auth, account lockout, input validation.");
+
+// Override local DNS to prevent connection failure to MongoDB Atlas (only in local development)
+if (!process.env.RENDER) {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Cloudinary upload helper
+async function uploadToCloudinary(base64Data, resourceType = "auto") {
+  if (!base64Data) return "";
+  if (base64Data.startsWith("http")) return base64Data;
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    console.warn("Cloudinary not fully configured. Storing raw data in DB.");
+    return base64Data;
+  }
+  try {
+    const res = await cloudinary.uploader.upload(base64Data, {
+      resource_type: resourceType
+    });
+    return res.secure_url;
+  } catch (err) {
+    console.error("Cloudinary upload failed:", err);
+    return base64Data;
+  }
+}
+
+// Cloudinary delete helper
+async function deleteFromCloudinary(fileUrl) {
+  if (!fileUrl || !fileUrl.startsWith("http")) return;
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    return;
+  }
+  try {
+    const parts = fileUrl.split("/");
+    const uploadIndex = parts.indexOf("upload");
+    if (uploadIndex === -1) return;
+
+    // Extract public id with extension skipping 'upload' and 'v[version]'
+    let publicIdWithExtension = parts.slice(uploadIndex + 2).join("/");
+
+    // Strip file extension
+    const lastDotIndex = publicIdWithExtension.lastIndexOf(".");
+    const publicId = lastDotIndex !== -1 ? publicIdWithExtension.substring(0, lastDotIndex) : publicIdWithExtension;
+
+    const resourceType = parts[uploadIndex - 1] || "auto";
+
+    console.log(`Deleting old file from Cloudinary: ${publicId} (${resourceType})`);
+    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+  } catch (err) {
+    console.error("Cloudinary deletion failed:", err);
+  }
+}
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// --- Security Headers (Helmet-equivalent, no external package needed) ---
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");              // Prevent MIME sniffing attacks
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");                  // Prevent clickjacking
+  res.setHeader("X-XSS-Protection", "1; mode=block");              // Legacy XSS browser filter
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()"); // Allow cam/mic for self (needed by AI interview page)
+  res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload"); // Force HTTPS
+  res.setHeader("Content-Security-Policy",                         // Prevent XSS script injection
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "img-src 'self' data: blob: https://res.cloudinary.com https://logo.clearbit.com https://upload.wikimedia.org; " +
+    "media-src 'self' blob: https://res.cloudinary.com; " +
+    "connect-src 'self' https://project-jobsarthi.onrender.com https://jobsarthi.vercel.app https://res.cloudinary.com https://cdn.jsdelivr.net; " +
+    "font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "worker-src blob: 'self'; " +
+    "frame-src blob: data: https://res.cloudinary.com 'self' chrome-extension:; " +
+    "object-src blob: data: https://res.cloudinary.com chrome-extension:; " +
+    "frame-ancestors 'self';"
+  );
+  res.removeHeader("X-Powered-By");                                // Hide Express fingerprint
+  next();
+});
+
+// --- CORS Configuration (locked to known origins) ---
+const ALLOWED_ORIGINS = [
+  "https://jobsarthi.vercel.app",
+  "https://jobsarthi-git-main-pj7coders-projects.vercel.app",
+  "https://jobsarthi-pj7coders-projects.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:3000"
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman, same-origin)
+    if (!origin || ALLOWED_ORIGINS.some(o => origin.startsWith(o))) {
+      return callback(null, true);
+    }
+    console.warn(`[SECURITY] CORS blocked request from origin: ${origin}`);
+    callback(new Error("CORS policy: origin not allowed"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+}));
+
+// --- Request Body Size Limits (protect against payload flooding) ---
+app.use(express.json({ limit: "10mb" }));           // reduced from 50mb - only resumes/images should be large
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+// Large uploads (resume/photo) get a higher limit only on specific routes
+const largeBodyParser = express.json({ limit: "50mb" });
+
+// Apply general rate limiter to all /api/* routes
+app.use("/api", generalRateLimiter);
+
+// Serve static frontend assets with Cache-Control headers to prevent stale cached UI
+app.use(express.static(".", {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".html") || filePath.endsWith(".js") || filePath.endsWith(".css")) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+    }
+  }
+}));
+
+const DB_FILE = path.join(process.cwd(), "db.json");
+
+// Helper to read local database (fallback)
+async function readLocalDB() {
+  try {
+    const data = await fs.readFile(DB_FILE, "utf-8");
+    return JSON.parse(data);
+  } catch (err) {
+    return { users: [], jobs: [], applications: [], messages: [] };
+  }
+}
+
+// Helper to write local database (fallback)
+async function writeLocalDB(data) {
+  await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+}
+
+// --- Database Connection & Abstraction ---
+let mongoDb = null;
+
+async function initDB() {
+  if (process.env.MONGO_URI) {
+    try {
+      const client = new MongoClient(process.env.MONGO_URI);
+      await client.connect();
+      mongoDb = client.db("jobsarthi");
+      console.log("Connected to MongoDB Atlas!");
+      
+      // Permanently remove the 2 sample jobs if they exist in MongoDB
+      await mongoDb.collection("jobs").deleteMany({
+        $or: [
+          { company: "PixelPerfect Labs" },
+          { company: "InnovateTech", title: /frontend/i }
+        ]
+      });
+
+      // Auto-seed database collections independently from db.json if empty
+      const localData = await readLocalDB();
+      const userCount = await mongoDb.collection("users").countDocuments();
+      if (userCount === 0 && localData.users && localData.users.length > 0) {
+        console.log("MongoDB 'users' collection is empty. Seeding from db.json...");
+        await mongoDb.collection("users").insertMany(localData.users);
+      }
+      const jobCount = await mongoDb.collection("jobs").countDocuments();
+      if (jobCount === 0 && localData.jobs && localData.jobs.length > 0) {
+        console.log("MongoDB 'jobs' collection is empty. Seeding from db.json...");
+        await mongoDb.collection("jobs").insertMany(localData.jobs);
+      }
+      const appCount = await mongoDb.collection("applications").countDocuments();
+      if (appCount === 0 && localData.applications && localData.applications.length > 0) {
+        console.log("MongoDB 'applications' collection is empty. Seeding from db.json...");
+        await mongoDb.collection("applications").insertMany(localData.applications);
+      }
+    } catch (err) {
+      console.error("Failed to connect to MongoDB Atlas. Falling back to local db.json.", err);
+      mongoDb = null;
+    }
+  } else {
+    console.log("No MONGO_URI environment variable detected. Running in Local Mode with db.json.");
+  }
+}
+
+// --- Automated Live Indian Job Aggregation & Seeding ---
+async function autoAggregateJobs() {
+  try {
+    const existingJobs = await dbService.getJobs();
+    if (existingJobs && existingJobs.length > 0) {
+      console.log(`Database already has ${existingJobs.length} jobs. Skipping job seeding/aggregation.`);
+      return;
+    }
+
+    const adzunaAppId = process.env.ADZUNA_APP_ID;
+    const adzunaApiKey = process.env.ADZUNA_API_KEY;
+
+    if (adzunaAppId && adzunaApiKey) {
+      console.log("Fetching live jobs in India from Adzuna API...");
+      const url = `https://api.adzuna.com/v1/api/jobs/in/search/1?app_id=${adzunaAppId}&app_key=${adzunaApiKey}&results_per_page=30&content-type=application/json&what=developer`;
+      
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results && data.results.length > 0) {
+            console.log(`Successfully fetched ${data.results.length} jobs from Adzuna. Importing to database...`);
+            for (const item of data.results) {
+              const salaryMin = item.salary_min ? Math.round(item.salary_min) : null;
+              const salaryMax = item.salary_max ? Math.round(item.salary_max) : null;
+              let salaryStr = "Not specified";
+              if (salaryMin && salaryMax) {
+                salaryStr = `₹${salaryMin.toLocaleString('en-IN')} - ₹${salaryMax.toLocaleString('en-IN')} / year`;
+              } else if (salaryMin) {
+                salaryStr = `₹${salaryMin.toLocaleString('en-IN')} / year`;
+              }
+
+              const newJob = {
+                id: "adzuna_" + item.id,
+                title: item.title || "Software Developer",
+                company: (item.company && item.company.display_name) ? item.company.display_name : "Tech Partner",
+                logo: "💼",
+                category: "Software Engineering",
+                type: (item.contract_time === "full_time") ? "Full-time" : "Contract",
+                location: (item.location && item.location.display_name) ? item.location.display_name : "India",
+                salary: salaryStr,
+                match: Math.floor(Math.random() * 25) + 75,
+                description: item.description || "No description provided.",
+                skills: "HTML, CSS, JavaScript, React, Node.js",
+                reqs: [
+                  "Strong understanding of modern web technologies.",
+                  "Demonstrated problem-solving abilities and collaboration skills.",
+                  "Prior experience or project exposure in software engineering."
+                ],
+                applyUrl: item.redirect_url || ""
+              };
+              await dbService.createJob(newJob);
+            }
+            console.log("Adzuna job import completed successfully!");
+            return;
+          }
+        } else {
+          console.warn(`Adzuna API returned status: ${response.status}. Falling back to curated local India jobs.`);
+        }
+      } catch (fetchErr) {
+        console.error("Adzuna network request failed. Falling back to curated local India jobs:", fetchErr);
+      }
+    } else {
+      console.log("No Adzuna credentials found in environment variables. Seeding database with curated local India jobs...");
+    }
+
+    // Curated local India jobs seeding
+    const localJobs = [
+      {
+        id: "job_local_1",
+        title: "Software Engineer (Frontend)",
+        company: "Google India",
+        logo: "🌐",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹25,00,000 - ₹35,00,000 / year",
+        match: 94,
+        description: "Join Google India's Core Engineering team in building scalable frontend solutions for millions of active users. You will work on designing, developing, and deploying highly performant, accessible React applications.",
+        skills: "React, JavaScript, CSS, HTML5, Web Performance",
+        reqs: [
+          "Bachelor's degree in Computer Science, a related technical field, or equivalent practical experience.",
+          "2+ years of experience with software development in JavaScript/TypeScript.",
+          "Strong experience building single page applications (SPAs) with React/Redux.",
+          "Familiarity with modern web standards, accessibility requirements (WCAG), and responsive UI layouts."
+        ],
+        applyUrl: "https://careers.google.com/"
+      },
+      {
+        id: "job_local_2",
+        title: "Full Stack Engineer",
+        company: "Razorpay",
+        logo: "💳",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹12,00,000 - ₹18,00,000 / year",
+        match: 88,
+        description: "At Razorpay, we're building the future of payments. You will be responsible for engineering secure, robust payment workflows on our Node.js and React stack, handling high throughput transactions daily.",
+        skills: "Node.js, Express, MongoDB, React, Payment Gateways",
+        reqs: [
+          "1.5+ years of professional backend or full-stack software development experience.",
+          "Solid knowledge of Node.js, asynchronous programming paradigms, and database designs (MongoDB/MySQL).",
+          "Experience implementing RESTful API structures and securing endpoints.",
+          "Excellent communication skills and eagerness to collaborate in a high-growth environment."
+        ],
+        applyUrl: "https://razorpay.com/jobs/"
+      },
+      {
+        id: "job_local_3",
+        title: "System Engineer",
+        company: "Tata Consultancy Services (TCS)",
+        logo: "🏢",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Mumbai, Maharashtra",
+        salary: "₹4,50,000 - ₹6,50,000 / year",
+        match: 78,
+        description: "TCS is seeking talented developers to work on international enterprise projects. You will participate in development, client discussions, testing, and continuous maintenance of core software systems.",
+        skills: "Java, Spring Boot, SQL, Git, Linux",
+        reqs: [
+          "Bachelor of Engineering / Bachelor of Technology / MCA degree.",
+          "Fundamental knowledge of Java programming and database principles.",
+          "Familiarity with standard software lifecycle stages (SDLC) and version control tools like Git.",
+          "Good analytical, written, and presentation skills."
+        ],
+        applyUrl: "https://www.tcs.com/careers"
+      },
+      {
+        id: "job_local_4",
+        title: "Cloud Solutions Architect",
+        company: "Microsoft India",
+        logo: "☁️",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Hyderabad, Telangana",
+        salary: "₹28,00,000 - ₹40,00,000 / year",
+        match: 91,
+        description: "Empower partners and clients by architecting hybrid-cloud infrastructures utilizing Microsoft Azure. You will collaborate with engineering teams to guide systems migration and security designs.",
+        skills: "Azure, Cloud Architecture, DevOps, Kubernetes, Security",
+        reqs: [
+          "Degree in Computer Science or equivalent experience.",
+          "Deep technical understanding of cloud computing services, containers (Docker/Kubernetes), and infrastructure-as-code.",
+          "Experience architecting scalable, resilient, and highly secure cloud environments.",
+          "Active cloud certifications (Azure Solutions Architect or AWS Professional) are highly preferred."
+        ],
+        applyUrl: "https://careers.microsoft.com/"
+      },
+      {
+        id: "job_local_5",
+        title: "Software Associate",
+        company: "Infosys",
+        logo: "💻",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Pune, Maharashtra",
+        salary: "₹4,00,000 - ₹6,00,000 / year",
+        match: 80,
+        description: "Infosys is onboarding Software Associates to work on cloud migration and business applications. Training will be provided in advanced frameworks and full-stack methodologies.",
+        skills: "Python, SQL, HTML, JavaScript",
+        reqs: [
+          "B.E./B.Tech/M.E./M.Tech/MCA/M.Sc in computer science streams.",
+          "Academic or internship project experience in programming.",
+          "Strong logical reasoning, algorithmic design capabilities, and basic database querying.",
+          "Capable of working effectively in a fast-paced team structure."
+        ],
+        applyUrl: "https://www.infosys.com/careers.html"
+      },
+      {
+        id: "job_local_6",
+        title: "React Native Developer",
+        company: "Paytm",
+        logo: "📱",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Noida, Uttar Pradesh",
+        salary: "₹9,00,000 - ₹14,00,000 / year",
+        match: 86,
+        description: "Paytm is building advanced mobile microservices. You will construct high-fidelity iOS and Android widgets and workflows on React Native, improving page load speeds and responsiveness.",
+        skills: "React Native, Redux, Mobile Performance, JavaScript, Git",
+        reqs: [
+          "2+ years of experience delivering cross-platform mobile apps using React Native.",
+          "Strong proficiency in JavaScript, TypeScript, and state management frameworks like Redux.",
+          "Familiarity with publishing applications to Apple App Store and Google Play Store.",
+          "Basic understanding of native modules and bridges."
+        ],
+        applyUrl: "https://www.paytm.com/careers"
+      },
+      {
+        id: "job_local_7",
+        title: "DevOps Engineer",
+        company: "Zomato",
+        logo: "🛵",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Gurugram, Haryana",
+        salary: "₹14,00,000 - ₹20,00,000 / year",
+        match: 85,
+        description: "Support the deployment pipeline for one of India's largest food-delivery apps. You will maintain Kubernetes clusters, configure CI/CD automations, and manage zero-downtime microservices configurations.",
+        skills: "AWS, Docker, Kubernetes, Jenkins, Terraform",
+        reqs: [
+          "3+ years managing production deployments and containerized infrastructures.",
+          "Extensive scripting capabilities in Bash or Python.",
+          "Proficiency in setting up Jenkins pipelines and writing Terraform config files.",
+          "Solid knowledge of server diagnostics, log aggregation (ELK), and alert metrics (Prometheus)."
+        ],
+        applyUrl: "https://www.zomato.com/careers"
+      },
+      {
+        id: "job_local_8",
+        title: "Backend Engineer (Python/Django)",
+        company: "Flipkart",
+        logo: "🛒",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹15,00,000 - ₹22,00,000 / year",
+        match: 89,
+        description: "Build scalable warehouse logistics systems and catalog pipelines. You will design clean REST endpoints, write performant database queries, and integrate messaging queues for heavy background tasks.",
+        skills: "Python, Django, PostgreSQL, Redis, RabbitMQ",
+        reqs: [
+          "2.5+ years of software design experience in Python.",
+          "Strong database schema modeling, indexing optimization, and SQL performance tuning.",
+          "Experience using asynchronous workers like Celery and message brokers (RabbitMQ/Kafka).",
+          "Understanding of web application security principles."
+        ],
+        applyUrl: "https://www.flipkartcareers.com/"
+      },
+      {
+        id: "job_local_9",
+        title: "Associate Web Developer",
+        company: "Zoho Corporation",
+        logo: "⚙️",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Chennai, Tamil Nadu",
+        salary: "₹6,00,000 - ₹9,00,000 / year",
+        match: 82,
+        description: "Join Zoho's SaaS products division. Work on developing interactive dashboard widgets and building clean client interfaces using modern JavaScript frameworks.",
+        skills: "JavaScript, HTML5, CSS3, VueJS, REST APIs",
+        reqs: [
+          "Bachelor's degree in Computer Science or related fields.",
+          "Strong understanding of JS fundamentals, closures, asynchronous flows, and DOM operations.",
+          "Familiarity with Vue.js, React, or Angular.",
+          "Excellent collaboration capabilities and eye for detailed web aesthetics."
+        ],
+        applyUrl: "https://www.zoho.com/careers/"
+      },
+      {
+        id: "job_local_10",
+        title: "UI/UX Designer",
+        company: "Swiggy",
+        logo: "🎨",
+        category: "Design",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹10,00,000 - ₹16,00,000 / year",
+        match: 87,
+        description: "Design delightful experience paths for Swiggy users. You will create modern interface wireframes, build high-fidelity interactive components, and lead product discovery usability tests.",
+        skills: "Figma, Wireframing, Prototyping, Visual Design, Usability",
+        reqs: [
+          "2+ years of product design experience (Figma portfolio required).",
+          "Solid comprehension of mobile and desktop user interface aesthetics.",
+          "Experience working with design systems and engineering components handoff.",
+          "Empathy for users and database-driven design approaches."
+        ],
+        applyUrl: "https://careers.swiggy.com/"
+      },
+      {
+        id: "job_local_11",
+        title: "Data Analyst",
+        company: "Wipro",
+        logo: "📊",
+        category: "Data & Analytics",
+        type: "Full-time",
+        location: "Hyderabad, Telangana",
+        salary: "₹5,00,000 - ₹7,50,000 / year",
+        match: 80,
+        description: "Wipro is seeking a Data Analyst to compile and evaluate complex business datasets. You will write SQL queries, construct PowerBI charts, and present reports to international client stakeholders.",
+        skills: "SQL, Excel, Python, PowerBI, Data Visualization",
+        reqs: [
+          "Degree in Mathematics, Statistics, Computer Science, or similar.",
+          "Strong SQL scripting capabilities and experience with relational schemas.",
+          "Proficiency in building clear data stories with Tableau or PowerBI.",
+          "Good mathematical capabilities and communication skills."
+        ],
+        applyUrl: "https://careers.wipro.com/"
+      },
+      {
+        id: "job_local_12",
+        title: "Backend Engineer (Node.js)",
+        company: "CRED",
+        logo: "💎",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹18,00,000 - ₹26,00,000 / year",
+        match: 92,
+        description: "Work on CRED's highly secure fintech backend. You will engineer microservices using Node.js/TypeScript, optimize Redis configurations for millisecond latency, and build fail-safe event architectures.",
+        skills: "Node.js, TypeScript, Redis, gRPC, Microservices",
+        reqs: [
+          "3+ years building high-availability backends.",
+          "Advanced proficiency in TypeScript/Node.js.",
+          "Experience with microservices orchestration, Redis caching, and NoSQL databases.",
+          "Eagerness to solve complex transactional scalability issues."
+        ],
+        applyUrl: "https://careers.cred.club/"
+      },
+      {
+        id: "job_local_13",
+        title: "Frontend Engineer (React)",
+        company: "Tech Startups",
+        logo: "🚀",
+        category: "Software Engineering",
+        type: "Remote",
+        location: "Remote, India",
+        salary: "₹8,00,000 - ₹13,00,000 / year",
+        match: 85,
+        description: "Develop clean, user-friendly SaaS client dashboards. You will implement modular React UI components, integrate APIs, and maximize rendering speeds for global customers.",
+        skills: "React, CSS, JavaScript, HTML, REST APIs",
+        reqs: [
+          "1.5+ years of frontend React developer experience.",
+          "Proficiency in responsive CSS layouts (Flexbox, Grid) and modular UI designs.",
+          "Experience using REST APIs and state management libs (Redux/Zustand).",
+          "Comfortable working asynchronously in a fully remote setup."
+        ],
+        applyUrl: "https://jobsarthi.ai"
+      },
+      {
+        id: "job_local_14",
+        title: "AI Engineer",
+        company: "Tata Elxsi",
+        logo: "🧠",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹14,00,000 - ₹20,00,000 / year",
+        match: 90,
+        description: "Develop, fine-tune, and deploy custom large language models and machine learning pipelines for automated engineering solutions.",
+        skills: "Python, PyTorch, LLMs, Transformers, RAG",
+        reqs: [
+          "Bachelor's or Master's degree in AI, Data Science, or related fields.",
+          "Strong foundation in Deep Learning architectures and LLM fine-tuning.",
+          "Experience building Retrieval-Augmented Generation (RAG) applications."
+        ],
+        applyUrl: "https://tataelxsi.com/careers"
+      },
+      {
+        id: "job_local_15",
+        title: "Cybersecurity Specialist",
+        company: "Reliance Jio",
+        logo: "🛡️",
+        category: "Security",
+        type: "Full-time",
+        location: "Navi Mumbai, Maharashtra",
+        salary: "₹10,00,000 - ₹15,00,000 / year",
+        match: 87,
+        description: "Implement zero-trust security postures, perform active penetration testing, and secure core cloud infrastructure and API endpoints across telecom networks.",
+        skills: "Penetration Testing, OWASP, AWS, Linux, IAM",
+        reqs: [
+          "2+ years of cybersecurity and threat assessment experience.",
+          "Familiarity with network scanning, vulnerability assessment, and encryption protocols.",
+          "Relevant certifications (CEH, OSCP, or CISSP) are highly valued."
+        ],
+        applyUrl: "https://careers.jio.com"
+      },
+      {
+        id: "job_local_16",
+        title: "Data Scientist",
+        company: "Tata Consultancy Services (TCS)",
+        logo: "📈",
+        category: "Data & Analytics",
+        type: "Full-time",
+        location: "Chennai, Tamil Nadu",
+        salary: "₹9,00,000 - ₹14,00,000 / year",
+        match: 86,
+        description: "Analyze large-scale customer telemetry and transaction data to discover business trends and train predictive machine learning models.",
+        skills: "SQL, Python, Pandas, Scikit-learn, Tableau",
+        reqs: [
+          "Strong background in probability, statistics, and machine learning models.",
+          "Proficiency in building clean ETL pipelines and dashboard reports.",
+          "Effective communication to convey statistical insights to business leaders."
+        ],
+        applyUrl: "https://www.tcs.com/careers"
+      },
+      {
+        id: "job_local_17",
+        title: "Mobile App Engineer",
+        company: "PhonePe",
+        logo: "📱",
+        category: "Software Engineering",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹15,00,000 - ₹22,00,000 / year",
+        match: 89,
+        description: "Engineer highly performant, modular payment features inside PhonePe's mobile applications, ensuring zero packet drops and seamless offline caching.",
+        skills: "React Native, TypeScript, iOS, Android, Redux",
+        reqs: [
+          "2+ years of mobile app development with React Native or Native SDKs.",
+          "Solid understanding of offline data persistence and state management.",
+          "Experience optimizing application bundle sizes and native bridge communication."
+        ],
+        applyUrl: "https://www.phonepe.com/careers/"
+      },
+      {
+        id: "job_local_18",
+        title: "Product Manager",
+        company: "Swiggy",
+        logo: "🍔",
+        category: "Product Management",
+        type: "Full-time",
+        location: "Bengaluru, Karnataka",
+        salary: "₹18,00,000 - ₹25,00,000 / year",
+        match: 91,
+        description: "Define product requirements, lead agile sprints, and coordinate cross-functionally between engineering and UX design to launch new food delivery experience features.",
+        skills: "PRD writing, RICE framework, Agile, Product Analytics, UX",
+        reqs: [
+          "2+ years of product management experience at a consumer tech product company.",
+          "Ability to write detailed PRDs and manage feature prioritizations.",
+          "Excellent collaboration, user empathy, and data-driven decision-making."
+        ],
+        applyUrl: "https://careers.swiggy.com/"
+      }
+    ];
+
+    console.log(`Seeding ${localJobs.length} pre-curated Indian jobs...`);
+    for (const job of localJobs) {
+      await dbService.createJob(job);
+    }
+    console.log("Database job seeding completed successfully!");
+  } catch (err) {
+    console.error("Failed to seed jobs:", err);
+  }
+}
+
+let cachedSampleJobs = [];
+
+async function loadCachedSampleJobs() {
+  try {
+    const sampleJobsPath = path.join(process.cwd(), "database", "sample_jobs", "jobs.json");
+    const data = await fs.readFile(sampleJobsPath, "utf-8");
+    cachedSampleJobs = JSON.parse(data);
+    console.log(`Loaded ${cachedSampleJobs.length} sample jobs from local jobs.json directly.`);
+
+    if (mongoDb) {
+      mongoDb.collection("sample_jobs").countDocuments().then(async (count) => {
+        if (count === 0 && cachedSampleJobs.length > 0) {
+          console.log("MongoDB Atlas sample_jobs collection is empty. Seeding from local jobs.json in background...");
+          const chunkSize = 1000;
+          for (let i = 0; i < cachedSampleJobs.length; i += chunkSize) {
+            const chunk = cachedSampleJobs.slice(i, i + chunkSize);
+            await mongoDb.collection("sample_jobs").insertMany(chunk);
+          }
+          console.log("Successfully seeded sample_jobs collection in MongoDB Atlas.");
+        }
+      }).catch(err => {
+        console.warn("Background sample_jobs check/seed failed:", err);
+      });
+    }
+  } catch (err) {
+    console.error("Failed to load sample jobs into memory cache:", err);
+  }
+}
+
+let jobsCache = null;
+let jobsCacheTime = 0;
+const JOBS_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in-memory cache
+
+// Unified Database CRUD Operations
+const dbService = {
+  findUserByEmail: async (email) => {
+    if (mongoDb) {
+      return await mongoDb.collection("users").findOne({ email: email.toLowerCase() });
+    }
+    const local = await readLocalDB();
+    return local.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  },
+  findUserByCredentials: async (email, password) => {
+    const user = await dbService.findUserByEmail(email);
+    if (!user) return null;
+
+    const isHashed = typeof user.password === 'string' && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$'));
+    if (isHashed) {
+      const match = bcrypt.compareSync(password, user.password);
+      return match ? user : null;
+    } else {
+      if (user.password === password) {
+        // Upgrade plaintext password to hashed password in background
+        try {
+          const salt = bcrypt.genSaltSync(10);
+          const hashedPassword = bcrypt.hashSync(password, salt);
+          user.password = hashedPassword;
+          
+          if (mongoDb) {
+            await mongoDb.collection("users").updateOne(
+              { email: user.email.toLowerCase() },
+              { $set: { password: hashedPassword } }
+            );
+          } else {
+            const local = await readLocalDB();
+            const dbUser = local.users.find(u => u.email.toLowerCase() === user.email.toLowerCase());
+            if (dbUser) {
+              dbUser.password = hashedPassword;
+              await writeLocalDB(local);
+            }
+          }
+          console.log(`[SECURITY] Successfully migrated password hash for user: ${email}`);
+        } catch (migErr) {
+          console.error("Failed to migrate password hash:", migErr);
+        }
+        return user;
+      }
+      return null;
+    }
+  },
+  createUser: async (user) => {
+    if (mongoDb) {
+      await mongoDb.collection("users").insertOne(user);
+      return user;
+    }
+    const local = await readLocalDB();
+    local.users.push(user);
+    await writeLocalDB(local);
+    return user;
+  },
+  getJobs: async () => {
+    if (jobsCache && (Date.now() - jobsCacheTime < JOBS_CACHE_DURATION)) {
+      return jobsCache;
+    }
+    let jobs = [];
+    if (mongoDb) {
+      try {
+        // Fetch all recruiter-created jobs (id starts with 'job_')
+        const recruiterJobs = await mongoDb.collection("jobs").find({ id: /^job_/ }).toArray();
+        // Fetch latest 150 aggregated jobs to prevent network transmission lag/timeout
+        const otherJobs = await mongoDb.collection("jobs").find({ id: { $not: /^job_/ } }).sort({ _id: -1 }).limit(150).toArray();
+        jobs = [...recruiterJobs, ...otherJobs];
+      } catch (dbErr) {
+        console.error("Failed to query jobs from MongoDB. Returning empty array.", dbErr);
+        jobs = [];
+      }
+    } else {
+      const local = await readLocalDB();
+      jobs = local.jobs || [];
+    }
+    // Remove sample jobs from PixelPerfect Labs and InnovateTech
+    const filteredJobs = jobs.filter(j => 
+      !(j.company === "PixelPerfect Labs" && j.title.toLowerCase().includes("product designer")) &&
+      !(j.company === "InnovateTech" && j.title.toLowerCase().includes("frontend"))
+    );
+    jobsCache = [...filteredJobs, ...cachedSampleJobs];
+    jobsCacheTime = Date.now();
+    return jobsCache;
+  },
+  findJobById: async (id) => {
+    if (mongoDb) {
+      let job = await mongoDb.collection("jobs").findOne({ id });
+      if (!job) {
+        job = cachedSampleJobs.find(j => j.id === id);
+      }
+      return job;
+    }
+    const local = await readLocalDB();
+    let job = local.jobs.find(j => j.id === id);
+    if (!job) {
+      job = cachedSampleJobs.find(j => j.id === id);
+    }
+    return job;
+  },
+  createJob: async (job) => {
+    jobsCache = null; // Invalidate cache on new job creation
+    if (mongoDb) {
+      await mongoDb.collection("jobs").insertOne(job);
+      return job;
+    }
+    const local = await readLocalDB();
+    local.jobs.unshift(job);
+    await writeLocalDB(local);
+    return job;
+  },
+  createApplication: async (app) => {
+    if (mongoDb) {
+      await mongoDb.collection("applications").insertOne(app);
+      return app;
+    }
+    const local = await readLocalDB();
+    local.applications.unshift(app);
+    await writeLocalDB(local);
+    return app;
+  },
+  getApplications: async (companyName) => {
+    if (mongoDb) {
+      // Escape special regex chars to prevent NoSQL injection (SECURITY FIX)
+      const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const query = companyName
+        ? { companyName: { $regex: new RegExp("^" + escapeRegex(companyName.slice(0, 100)) + "$", "i") } }
+        : {};
+      return await mongoDb.collection("applications").find(query).toArray();
+    }
+    const local = await readLocalDB();
+    if (companyName) {
+      return local.applications.filter(a => a.companyName && a.companyName.toLowerCase() === companyName.toLowerCase());
+    }
+    return local.applications;
+  },
+  getMessages: async (query) => {
+    if (mongoDb) {
+      return await mongoDb.collection("messages").find(query).toArray();
+    }
+    const local = await readLocalDB();
+    let msgs = local.messages || [];
+    if (query.seekerEmail) {
+      msgs = msgs.filter(m => m.seekerEmail.toLowerCase() === query.seekerEmail.toLowerCase());
+    } else if (query.recruiterEmail) {
+      msgs = msgs.filter(m => m.recruiterEmail.toLowerCase() === query.recruiterEmail.toLowerCase());
+    }
+    return msgs;
+  },
+  createMessage: async (msg) => {
+    if (mongoDb) {
+      await mongoDb.collection("messages").insertOne(msg);
+      return msg;
+    }
+    const local = await readLocalDB();
+    if (!local.messages) local.messages = [];
+    local.messages.push(msg);
+    await writeLocalDB(local);
+    return msg;
+  },
+  createInterviewReport: async (report) => {
+    if (mongoDb) {
+      await mongoDb.collection("interviews").insertOne(report);
+      return report;
+    }
+    const local = await readLocalDB();
+    if (!local.interviews) local.interviews = [];
+    local.interviews.push(report);
+    await writeLocalDB(local);
+    return report;
+  },
+  getInterviewReports: async (email) => {
+    if (mongoDb) {
+      return await mongoDb.collection("interviews").find({ email: email.toLowerCase() }).toArray();
+    }
+    const local = await readLocalDB();
+    const reports = local.interviews || [];
+    return reports.filter(r => r.email && r.email.toLowerCase() === email.toLowerCase());
+  },
+  recordApplyClick: async (clickEvent) => {
+    if (mongoDb) {
+      await mongoDb.collection("apply_clicks").insertOne(clickEvent);
+      return clickEvent;
+    }
+    const local = await readLocalDB();
+    if (!local.apply_clicks) local.apply_clicks = [];
+    local.apply_clicks.push(clickEvent);
+    await writeLocalDB(local);
+    return clickEvent;
+  },
+  createRecruiterInterview: async (config) => {
+    if (mongoDb) {
+      await mongoDb.collection("recruiter_interviews").insertOne(config);
+      return config;
+    }
+    const local = await readLocalDB();
+    if (!local.recruiterInterviews) local.recruiterInterviews = [];
+    local.recruiterInterviews.push(config);
+    await writeLocalDB(local);
+    return config;
+  },
+  findRecruiterInterview: async (id) => {
+    if (mongoDb) {
+      return await mongoDb.collection("recruiter_interviews").findOne({ id });
+    }
+    const local = await readLocalDB();
+    if (!local.recruiterInterviews) local.recruiterInterviews = [];
+    return local.recruiterInterviews.find(c => c.id === id);
+  }
+};
+
+// Bulletproof JSON parsing helper for LLM responses
+function safeParseJSON(str) {
+  if (!str) return null;
+  if (typeof str === "object") return str;
+  const cleaned = str.trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    try {
+      const startIdx = cleaned.indexOf('{');
+      const endIdx = cleaned.lastIndexOf('}');
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        const jsonCandidate = cleaned.substring(startIdx, endIdx + 1);
+        return JSON.parse(jsonCandidate);
+      }
+    } catch (e2) {
+      console.warn("[safeParseJSON] Regexp JSON extraction failed:", e2.message);
+    }
+  }
+  return null;
+}
+
+// Groq AI Config
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+async function callGroq(messages, jsonMode = false, temperature = 0.2) {
+  if (!GROQ_API_KEY) {
+    throw new Error("GROQ_API_KEY is not configured.");
+  }
+
+  const payload = {
+    model: "llama-3.3-70b-versatile",
+    messages: messages,
+    temperature: temperature
+  };
+
+  if (jsonMode) {
+    payload.response_format = { type: "json_object" };
+  }
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Groq API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+async function callGroqVision(base64Data, promptText) {
+  if (!GROQ_API_KEY) {
+    throw new Error("GROQ_API_KEY is not configured.");
+  }
+  const base64Content = base64Data.split(",")[1] || base64Data;
+  const mimeType = base64Data.split(";")[0].split(":")[1] || "image/jpeg";
+  const dataUri = `data:${mimeType};base64,${base64Content}`;
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.2-11b-vision-preview",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: promptText
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: dataUri
+              }
+            }
+          ]
+        }
+      ],
+      temperature: 0.2
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Groq Vision API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+// Gemini Multimodal Document Parser
+async function parseDocumentWithGemini(base64Data, mimeType, prompt) {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is not configured.");
+  }
+
+  // Extract raw base64 data without schema header (e.g. data:application/pdf;base64,)
+  const base64Content = base64Data.split(",")[1] || base64Data;
+
+  // Clean and determine correct MIME type
+  let cleanMimeType = mimeType;
+  if (!cleanMimeType) {
+    if (base64Data.startsWith("data:")) {
+      cleanMimeType = base64Data.split(";")[0].split(":")[1];
+    } else {
+      cleanMimeType = "application/pdf"; // default fallback
+    }
+  }
+
+  const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  let lastError = null;
+
+  for (const model of modelsToTry) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+    
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: prompt
+            },
+            {
+              inlineData: {
+                mimeType: cleanMimeType,
+                data: base64Content
+              }
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseMimeType: "application/json"
+      }
+    };
+
+    const retries = 2;
+    let delay = 1000;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      let response = null;
+      try {
+        response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          if (response.status === 429 && attempt < retries) {
+            console.warn(`[Gemini] Rate limit hit for model ${model}. Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
+            continue;
+          }
+          const errorText = await response.text();
+          throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
+          throw new Error("Gemini returned an empty completion response.");
+        }
+        const textResponse = result.candidates[0].content.parts[0].text;
+        return safeParseJSON(textResponse);
+      } catch (err) {
+        lastError = err;
+        console.warn(`[Gemini] Model ${model} attempt ${attempt} failed: ${err.message}`);
+        
+        // If it's a quota/rate limit error (429 or RESOURCE_EXHAUSTED), don't waste retry loops, try next model directly
+        if (response?.status === 429 || err.message.includes("429") || err.message.toLowerCase().includes("quota")) {
+          break;
+        }
+
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2;
+        }
+      }
+    }
+  }
+
+  throw lastError || new Error("Failed to parse document with all available Gemini models.");
+}
+
+const SYSTEM_PROMPT = `
+You are Sarthi, an advanced AI-powered career companion and recruitment assistant on the JobSarthi platform.
+Your goal is to guide job seekers with career advice, resume analysis, mock interviews, and matched job suggestions.
+IMPORTANT: You are serving guest users on the public landing page who are NOT logged in yet. If they ask about their personal profile, resume review, matched jobs, or mock interviews, tell them that they are currently logged out/guest users, and politely guide them to click "Login" or "Register" to access these personalized features. Do not assume or hallucinate private details or state that they are logged in if they are not.
+Keep your answers brief, encouraging, professional, and directly actionable.
+`;
+
+// --- Server Wake-up API ---
+app.get("/api/ping", (req, res) => {
+  res.json({ status: "ok", time: new Date().toISOString() });
+});
+
+// --- Authentication APIs ---
+
+app.post("/api/auth/signup", authRateLimiter, async (req, res) => {
+  try {
+    const { email, password, fullName, role, company } = req.body;
+
+    // Input validation
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Please provide a valid email address." });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ error: "Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, a special character, and not be a common/easy password." });
+    }
+
+    const finalEmail = email.trim().toLowerCase();
+    const finalFullName = sanitizeString(fullName || "User", 100);
+    const finalRole = ["jobseeker", "recruiter"].includes(role) ? role : "jobseeker";
+    const finalCompany = sanitizeString(company || "InnovateTech", 100);
+
+    const existing = await dbService.findUserByEmail(finalEmail);
+    if (existing) {
+      return res.status(400).json({ error: "Email is already registered." });
+    }
+
+    const salt = bcrypt.genSaltSync(12); // increased from 10 to 12 rounds
+    const hashedPassword = bcrypt.hashSync(password, salt);
+
+    const newUser = {
+      id: Date.now().toString(),
+      email: finalEmail,
+      password: hashedPassword,
+      fullName: finalFullName,
+      role: finalRole,
+      company: finalRole === "recruiter" ? finalCompany : undefined,
+      createdAt: new Date().toISOString()
+    };
+
+    await dbService.createUser(newUser);
+
+    // Issue a JWT session token
+    const token = signJWT({ id: newUser.id, email: newUser.email, role: newUser.role, company: newUser.company });
+
+    // Send Welcome Email in background
+    sendWelcomeEmail(newUser.email, newUser.fullName, newUser.role).catch(err => {
+      console.error("Welcome email failed:", err.message);
+    });
+
+    console.log(`[AUTH] New user registered: ${finalEmail} (${finalRole})`);
+    res.json({ success: true, token, user: { id: newUser.id, email: newUser.email, fullName: newUser.fullName, role: newUser.role, company: newUser.company } });
+  } catch (err) {
+    console.error("[AUTH] Signup error:", err);
+    res.status(500).json({ error: "Server error during registration." });
+  }
+});
+
+app.post("/api/auth/login", authRateLimiter, async (req, res) => {
+  try {
+    const { email, password, role } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Invalid email format." });
+    }
+
+    const finalEmail = email.trim().toLowerCase();
+
+    // Check account lockout before attempting credential lookup
+    const lockout = checkAccountLockout(finalEmail);
+    if (lockout.locked) {
+      return res.status(429).json({
+        error: `Account temporarily locked due to too many failed login attempts. Please try again in ${Math.ceil(lockout.retryAfterSeconds / 60)} minutes.`
+      });
+    }
+
+    const user = await dbService.findUserByCredentials(finalEmail, password || "");
+    if (!user) {
+      recordLoginFailure(finalEmail);
+      const record = loginFailureStore.get(finalEmail);
+      const remaining = MAX_LOGIN_FAILURES - (record?.count || 0);
+      return res.status(401).json({
+        error: remaining > 0
+          ? `Invalid email or password. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining before account lockout.`
+          : "Invalid email or password."
+      });
+    }
+
+    // Role-portal mismatch
+    if (role && user.role !== role) {
+      recordLoginFailure(finalEmail);
+      return res.status(401).json({ error: "Invalid email or password." });
+    }
+
+    // Successful login — clear failure counter
+    clearLoginFailures(finalEmail);
+
+    // Issue JWT session token
+    const token = signJWT({ id: user.id, email: user.email, role: user.role, company: user.company });
+
+    console.log(`[AUTH] Login: ${finalEmail} (${user.role})`);
+    res.json({ success: true, token, user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role, company: user.company } });
+  } catch (err) {
+    console.error("[AUTH] Login error:", err);
+    res.status(500).json({ error: "Server error during login." });
+  }
+});
+
+// --- Forgot/Reset Password & User Account settings APIs ---
+
+// Centralized email helper - routes via Vercel SMTP proxy (bypasses Render Free Tier SMTP block)
+async function sendEmail({ to, subject, html, text }) {
+  const vercelProxyBase = process.env.EMAIL_PROXY_URL || "https://jobsarthi.vercel.app";
+  const proxyUrl = `${vercelProxyBase.replace(/\/$/, '')}/api/send-email`;
+  console.log(`[EMAIL PROXY] Sending to ${to} via: ${proxyUrl}`);
+
+  try {
+    const response = await fetch(proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to,
+        subject,
+        html,
+        text,
+        secret: process.env.EMAIL_PROXY_SECRET || "jobsarthi_secure_proxy_secret_123"
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || `Proxy error: ${response.status}`);
+    }
+    console.log(`[EMAIL SENT] to ${to}: ${data.messageId}`);
+    return data;
+  } catch (proxyErr) {
+    console.error(`[EMAIL PROXY ERROR] ${proxyErr.message}`);
+    throw proxyErr;
+  }
+}
+
+async function sendPasswordResetEmail(email, token, role, origin) {
+  const baseOrigin = origin ? origin.replace(/\/$/, '') : 'http://localhost:3000';
+  const resetLink = `${baseOrigin}/change_password.html?token=${token}&email=${encodeURIComponent(email)}`;
+  console.log(`[PASSWORD RESET LINK GENERATED]: ${resetLink}`);
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+      <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h2 style="color: #38bdf8; margin-bottom: 20px;">JobSarthi Password Reset</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1;">You requested a password reset for your JobSarthi account. Please click the button below to choose a new password.</p>
+        <div style="margin: 30px 0;">
+          <a href="${resetLink}" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Change Password</a>
+        </div>
+        <p style="font-size: 12px; color: #64748b;">If you did not request this, you can safely ignore this email.</p>
+        <p style="font-size: 11px; color: #475569; word-break: break-all; margin-top: 20px;">Or copy link: <br>${resetLink}</p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: "Reset Your JobSarthi Password",
+    text: `Reset your password by copying this link: ${resetLink}`,
+    html: htmlContent
+  });
+}
+
+async function sendWelcomeEmail(email, fullName, role) {
+  const roleDisplay = role === "recruiter" ? "Recruiter" : "Job Seeker";
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+      <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h2 style="color: #38bdf8; margin-bottom: 20px;">Welcome to JobSarthi!</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Hi ${fullName},</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Thank you for registering on JobSarthi as a <strong>${roleDisplay}</strong>! We are excited to have you on board.</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Our platform offers cutting-edge tools including:</p>
+        <ul style="font-size: 15px; color: #cbd5e1; text-align: left; line-height: 1.6;">
+          ${role === 'recruiter' 
+            ? `<li>AI-powered applicant matches and profiles</li>
+               <li>Direct candidate messaging and custom job postings</li>
+               <li>AI voice-interview analysis tools</li>`
+            : `<li>AI-powered Resume and Certifications ATS Parsing</li>
+               <li>Interactive AI Mock Voice-Interviews with Sarthi</li>
+               <li>Smart personalized job recommendations based on your skills</li>`
+          }
+        </ul>
+        <div style="margin: 30px 0;">
+          <a href="https://jobsarthi.ai" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Get Started</a>
+        </div>
+        <p style="font-size: 12px; color: #64748b;">If you did not sign up for this account, please contact support.</p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: "Welcome to JobSarthi - Your AI-Powered Career Assistant",
+    text: `Hi ${fullName}, welcome to JobSarthi! We are excited to have you on board as a ${roleDisplay}.`,
+    html: htmlContent
+  });
+}
+
+async function sendApplicationConfirmationEmail({ candidateEmail, candidateName, jobTitle, companyName }) {
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+      <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h2 style="color: #38bdf8; margin-bottom: 20px;">Application Received!</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Hi ${candidateName},</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Your application for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong> has been successfully submitted.</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">The recruiting team at ${companyName} will review your profile and match score. You can track your application status or chat directly with the recruiter in the JobSarthi Seeker portal.</p>
+        <div style="margin: 30px 0;">
+          <a href="https://jobsarthi.ai/seeker" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Seeker Dashboard</a>
+        </div>
+        <p style="font-size: 12px; color: #64748b;">Good luck with your application!</p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: candidateEmail,
+    subject: `Application Confirmation: ${jobTitle} at ${companyName}`,
+    text: `Hi ${candidateName}, your application for ${jobTitle} at ${companyName} has been successfully submitted.`,
+    html: htmlContent
+  });
+}
+
+async function sendStatusUpdateEmail({ candidateEmail, candidateName, jobTitle, companyName, status }) {
+  let statusColor = "#38bdf8";
+  let statusMessage = `Your application status has been updated to: <strong>${status}</strong>.`;
+
+  if (status === "Shortlisted") {
+    statusColor = "#10b981";
+    statusMessage = `Congratulations! You have been <strong>Shortlisted</strong> for the <strong>${jobTitle}</strong> position. The recruiting team will contact you shortly to discuss the next steps.`;
+  } else if (status === "Rejected") {
+    statusColor = "#ef4444";
+    statusMessage = `Thank you for your interest in the <strong>${jobTitle}</strong> position. Unfortunately, we have decided to move forward with other candidates at this time. We appreciate your time and effort and wish you the best in your job search.`;
+  } else if (status === "Interview Scheduled") {
+    statusColor = "#f59e0b";
+    statusMessage = `Great news! An interview has been <strong>Scheduled</strong> for your application to the <strong>${jobTitle}</strong> role. Please check your dashboard or messages to see the details.`;
+  }
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+      <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h2 style="color: ${statusColor}; margin-bottom: 20px;">Application Update</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Hi ${candidateName},</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">There is an update regarding your application for <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left; padding: 15px; background-color: #0f172a; border-left: 4px solid ${statusColor}; border-radius: 4px;">
+          ${statusMessage}
+        </p>
+        <div style="margin: 30px 0;">
+          <a href="https://jobsarthi.ai/seeker" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">View Seeker Dashboard</a>
+        </div>
+        <p style="font-size: 12px; color: #64748b;">This email was sent on behalf of ${companyName} via JobSarthi.</p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: candidateEmail,
+    subject: `Update on your application at ${companyName}: ${status}`,
+    text: `Hi ${candidateName}, there is an update on your application for ${jobTitle} at ${companyName}. Current Status: ${status}.`,
+    html: htmlContent
+  });
+}
+
+app.post("/api/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
+  try {
+    const { email, role } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(cleanEmail);
+    
+    if (!user) {
+      return res.status(404).json({ error: "No account found with this email address." });
+    }
+
+    if (role && user.role !== role) {
+      return res.status(400).json({ error: "No account found with this email and role." });
+    }
+
+    // Generate reset token
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiry = Date.now() + 3600000; // 1 hour expiry
+
+    // Save to user
+    if (mongoDb) {
+      await mongoDb.collection("users").updateOne(
+        { email: cleanEmail },
+        { $set: { resetToken: token, resetTokenExpiry: expiry } }
+      );
+    } else {
+      const local = await readLocalDB();
+      const localUser = local.users.find(u => u.email.toLowerCase() === cleanEmail);
+      if (localUser) {
+        localUser.resetToken = token;
+        localUser.resetTokenExpiry = expiry;
+        await writeLocalDB(local);
+      }
+    }
+
+    // Send the simulated / real email
+    const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || `http://localhost:${PORT || 3000}`;
+    await sendPasswordResetEmail(cleanEmail, token, user.role, origin);
+
+    res.json({ 
+      success: true, 
+      message: "Password reset link shared to your email id. Please check your inbox.", 
+      token
+    });
+  } catch (err) {
+    console.error("Forgot password API error:", err);
+    res.status(500).json({ error: err.message || "Internal server error during password reset request." });
+  }
+});
+
+app.post("/api/auth/verify-reset-token", async (req, res) => {
+  try {
+    const { email, token } = req.body;
+    if (!email || !token) {
+      return res.status(400).json({ error: "Email and token are required." });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(cleanEmail);
+
+    if (!user || user.resetToken !== token || !user.resetTokenExpiry || user.resetTokenExpiry < Date.now()) {
+      return res.status(400).json({ error: "Invalid or expired password reset token." });
+    }
+
+    res.json({ success: true, role: user.role });
+  } catch (err) {
+    console.error("Verify token error:", err);
+    res.status(500).json({ error: "Internal server error during token verification." });
+  }
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  try {
+    const { email, token, newPassword } = req.body;
+    if (!email || !token || !newPassword) {
+      return res.status(400).json({ error: "All fields are required." });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(cleanEmail);
+
+    if (!user || user.resetToken !== token || !user.resetTokenExpiry || user.resetTokenExpiry < Date.now()) {
+      return res.status(400).json({ error: "Invalid or expired password reset token." });
+    }
+
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ error: "Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, a special character, and not be a common/easy password." });
+    }
+
+    const salt = bcrypt.genSaltSync(10);
+    const hashedPassword = bcrypt.hashSync(newPassword, salt);
+
+    if (mongoDb) {
+      await mongoDb.collection("users").updateOne(
+        { email: cleanEmail },
+        { 
+          $set: { password: hashedPassword },
+          $unset: { resetToken: "", resetTokenExpiry: "" }
+        }
+      );
+    } else {
+      const local = await readLocalDB();
+      const localUser = local.users.find(u => u.email.toLowerCase() === cleanEmail);
+      if (localUser) {
+        localUser.password = hashedPassword;
+        delete localUser.resetToken;
+        delete localUser.resetTokenExpiry;
+        await writeLocalDB(local);
+      }
+    }
+
+    res.json({ success: true, message: "Password updated successfully!" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ error: "Internal server error while resetting password." });
+  }
+});
+
+app.get("/api/user/account", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(cleanEmail);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.json({
+      fullName: user.fullName || "",
+      email: user.email,
+      mobile: user.mobile || "",
+      company: user.company || "",
+      role: user.role
+    });
+  } catch (err) {
+    console.error("Get account API error:", err);
+    res.status(500).json({ error: "Internal server error fetching account details." });
+  }
+});
+
+app.post("/api/user/update-account", async (req, res) => {
+  try {
+    const { email, fullName, mobile, company } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(cleanEmail);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const updatedFields = {
+      fullName: fullName ? fullName.trim() : user.fullName,
+      mobile: mobile ? mobile.trim() : "",
+    };
+    if (user.role === "recruiter" && company) {
+      updatedFields.company = company.trim();
+    }
+
+    if (mongoDb) {
+      await mongoDb.collection("users").updateOne(
+        { email: cleanEmail },
+        { $set: updatedFields }
+      );
+    } else {
+      const local = await readLocalDB();
+      const localUser = local.users.find(u => u.email.toLowerCase() === cleanEmail);
+      if (localUser) {
+        Object.assign(localUser, updatedFields);
+        await writeLocalDB(local);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      user: { 
+        id: user.id, 
+        email: cleanEmail, 
+        fullName: updatedFields.fullName, 
+        role: user.role, 
+        mobile: updatedFields.mobile, 
+        company: updatedFields.company || user.company 
+      } 
+    });
+  } catch (err) {
+    console.error("Update account API error:", err);
+    res.status(500).json({ error: "Internal server error updating account details." });
+  }
+});
+
+// --- Job Listings APIs ---
+
+const indianStates = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
+  "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", 
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", 
+  "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi", "Chandigarh", "Puducherry", "Jammu and Kashmir"
+];
+
+const indianCities = [
+  "Bangalore", "Bengaluru", "Mumbai", "Pune", "Hyderabad", "Chennai", "Noida", "Gurgaon", "Gurugram", 
+  "New Delhi", "Delhi", "Kolkata", "Ahmedabad", "Surat", "Jaipur", "Lucknow", "Kanpur", "Nagpur", 
+  "Indore", "Thane", "Bhopal", "Visakhapatnam", "Pimpri-Chinchwad", "Patna", "Vadodara", "Ghaziabad", 
+  "Ludhiana", "Agra", "Nashik", "Faridabad", "Meerut", "Rajkot", "Kalyan-Dombivli", "Vasai-Virar", 
+  "Varanasi", "Srinagar", "Aurangabad", "Dhanbad", "Amritsar", "Navi Mumbai", "Allahabad", "Ranchi", 
+  "Howrah", "Coimbatore", "Jabalpur", "Gwalior", "Vijayawada", "Jodhpur", "Madurai", "Raipur", 
+  "Kota", "Guwahati", "Solapur", "Hubli-Dharwad", "Bareilly", "Moradabad", "Mysore", "Aligarh", 
+  "Jalandhar", "Tiruchirappalli", "Bhubaneswar", "Salem", "Mira-Bhayandar", "Thiruvananthapuram", 
+  "Bhiwandi", "Saharanpur", "Gorakhpur", "Guntur", "Bikaner", "Amravati", "Jamshedpur", "Bhilai", 
+  "Cuttack", "Firozabad", "Kochi", "Nellore", "Bhavnagar", "Dehradun", "Durgapur", "Asansol", 
+  "Rourkela", "Nanded", "Kolhapur", "Ajmer", "Akola", "Gulbarga", "Jamnagar", "Ujjain", "Loni", 
+  "Siliguri", "Jhansi", "Ulhasnagar", "Jammu", "Sangli-Miraj & Kupwad", "Belgaum", "Mangalore", 
+  "Ambattur", "Tirunelveli", "Malegaon", "Gaya", "Jalgaon", "Udaipur", "Maheshtala"
+];
+
+function extractYearsOfExperience(expStr) {
+  if (!expStr) return 0;
+  const match = expStr.match(/(\d+)\s*(year|yr)/i);
+  if (match) return parseInt(match[1]);
+  const numMatch = expStr.match(/\b(\d+)\b/);
+  if (numMatch) return parseInt(numMatch[1]);
+  return 0;
+}
+
+function getJobRequiredExperience(job) {
+  const textToSearch = `${job.title} ${job.description || ''} ${(job.reqs || []).join(' ')}`.toLowerCase();
+  const match = textToSearch.match(/(\d+)\s*(?:-|to|\+)?\s*(?:\d+)?\s*years?\s*(?:of\s*)?experience/i);
+  if (match) {
+    return parseInt(match[1]);
+  }
+  if (job.title.toLowerCase().includes("senior") || job.title.toLowerCase().includes("lead") || job.title.toLowerCase().includes("principal")) {
+    return 5;
+  }
+  if (job.title.toLowerCase().includes("junior") || job.title.toLowerCase().includes("entry") || job.title.toLowerCase().includes("associate")) {
+    return 1;
+  }
+  return 2; 
+}
+
+function parseSalaryLPA(salaryStr) {
+  if (!salaryStr) return 0;
+  const match = salaryStr.match(/(\d+)\s*(LPA|lakh)/i);
+  if (match) return parseInt(match[1]);
+  const numMatch = salaryStr.match(/\b(\d+)\b/);
+  if (numMatch) return parseInt(numMatch[1]);
+  return 0;
+}
+
+function getJobLocationsGroup(job) {
+  const loc = (job.location || "").toLowerCase();
+  if (loc.includes("remote")) {
+    return ["Remote"];
+  }
+  
+  const groups = [];
+  let foundCity = false;
+  for (const city of indianCities) {
+    if (loc.includes(city.toLowerCase())) {
+      groups.push(city);
+      foundCity = true;
+    }
+  }
+  
+  let foundState = false;
+  for (const state of indianStates) {
+    if (loc.includes(state.toLowerCase())) {
+      groups.push(state);
+      foundState = true;
+    }
+  }
+  
+  if (foundCity || foundState || loc.includes("india")) {
+    groups.push("India");
+  } else {
+    groups.push("Out of India");
+  }
+  return groups;
+}
+
+function normalizeSkill(s) {
+  if (!s) return "";
+  s = s.toLowerCase().trim();
+  if (s === 'react' || s === 'reactjs') return 'react.js';
+  if (s === 'node' || s === 'nodejs') return 'node.js';
+  if (s === 'js') return 'javascript';
+  if (s === 'ts') return 'typescript';
+  if (s === 'py') return 'python';
+  if (s === 'ml') return 'machine learning';
+  if (s === 'ai') return 'artificial intelligence';
+  if (s === 'mongo') return 'mongodb';
+  return s;
+}
+
+function preprocessProfile(profile) {
+  if (!profile) return null;
+
+  let userSkills = [];
+  if (Array.isArray(profile.skills)) {
+    userSkills = profile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+  } else if (typeof profile.skills === 'string') {
+    userSkills = profile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+  const normalizedUserSkills = userSkills.map(normalizeSkill);
+
+  let preferredLocs = [];
+  if (Array.isArray(profile.preferredLocations)) {
+    preferredLocs = profile.preferredLocations.map(s => s.trim().toLowerCase()).filter(Boolean);
+  } else if (typeof profile.preferredLocations === 'string') {
+    preferredLocs = profile.preferredLocations.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+
+  const userExp = extractYearsOfExperience(profile.experience);
+  const userSalary = parseSalaryLPA(profile.expectedCtc);
+
+  const userInIndia = preferredLocs.length === 0 || preferredLocs.some(loc => 
+    loc.includes("india") || 
+    indianStates.some(s => s.toLowerCase() === loc) || 
+    indianCities.some(c => c.toLowerCase() === loc)
+  );
+
+  const userDegreeLower = (profile.degree || "").toLowerCase();
+  const expSummaryLower = (profile.experience || "").toLowerCase();
+
+  return {
+    normalizedUserSkills,
+    preferredLocs,
+    userExp,
+    userSalary,
+    userInIndia,
+    userDegreeLower,
+    expSummaryLower
+  };
+}
+
+function calculateMatchScore(job, profile) {
+  if (!profile) {
+    return 0;
+  }
+
+  const isPreprocessed = 'normalizedUserSkills' in profile;
+  
+  const normalizedUserSkills = isPreprocessed ? profile.normalizedUserSkills : (() => {
+    let userSkills = [];
+    if (Array.isArray(profile.skills)) {
+      userSkills = profile.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+    } else if (typeof profile.skills === 'string') {
+      userSkills = profile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+    return userSkills.map(normalizeSkill);
+  })();
+
+  const preferredLocs = isPreprocessed ? profile.preferredLocs : (() => {
+    let preferredLocs = [];
+    if (Array.isArray(profile.preferredLocations)) {
+      preferredLocs = profile.preferredLocations.map(s => s.trim().toLowerCase()).filter(Boolean);
+    } else if (typeof profile.preferredLocations === 'string') {
+      preferredLocs = profile.preferredLocations.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+    return preferredLocs;
+  })();
+
+  const userExp = isPreprocessed ? profile.userExp : extractYearsOfExperience(profile.experience);
+  const userSalary = isPreprocessed ? profile.userSalary : parseSalaryLPA(profile.expectedCtc);
+  const userInIndia = isPreprocessed ? profile.userInIndia : (preferredLocs.length === 0 || preferredLocs.some(loc => loc.includes("india") || indianStates.some(s => s.toLowerCase() === loc) || indianCities.some(c => c.toLowerCase() === loc)));
+  const userDegreeLower = isPreprocessed ? profile.userDegreeLower : (profile.degree || "").toLowerCase();
+  const expSummaryLower = isPreprocessed ? profile.expSummaryLower : (profile.experience || "").toLowerCase();
+
+  const jobExp = getJobRequiredExperience(job);
+  let jobSkills = [];
+  if (Array.isArray(job.skills)) {
+    jobSkills = job.skills.map(s => s.trim().toLowerCase()).filter(Boolean);
+  } else if (typeof job.skills === 'string') {
+    jobSkills = job.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+  const normalizedJobSkills = jobSkills.map(normalizeSkill);
+
+  // STEP 1: HARD FILTERS
+  if (jobExp > userExp + 4) return 0; // Exceeds experience by more than 4 years - relaxed from 3
+
+  // Location checks
+  const isJobRemote = job.location.toLowerCase().includes("remote") || (job.type && job.type.toLowerCase().includes("remote"));
+  const isLocationMatch = preferredLocs.length === 0 || preferredLocs.some(loc => job.location.toLowerCase().includes(loc) || loc.includes(job.location.toLowerCase()));
+  const jobLocLower = job.location.toLowerCase();
+  const jobInIndia = jobLocLower.includes("india") || indianStates.some(s => jobLocLower.includes(s.toLowerCase())) || indianCities.some(c => jobLocLower.includes(c.toLowerCase()));
+
+  if (!isJobRemote && !isLocationMatch) {
+    if (!(jobInIndia && userInIndia)) {
+      return 0; // Completely different country and not remote
+    }
+  }
+
+  // Mandatory skills check (only reject if they have filled skills but match absolutely 0)
+  if (normalizedJobSkills.length > 0 && normalizedUserSkills.length > 0) {
+    const hasAnySkill = normalizedJobSkills.some(js => 
+      normalizedUserSkills.includes(js) || 
+      normalizedUserSkills.some(us => us.includes(js) || js.includes(us))
+    );
+    if (!hasAnySkill) return 0;
+  }
+
+  // === WEIGHTED SCORING (weights designed to sum to ~100 max) ===
+  let location_score = 0;   // max 20
+  let skill_score = 0;      // max 40
+  let role_score = 0;       // max 20
+  let experience_score = 0; // max 10
+  let work_mode_score = 0;  // max 5
+  let salary_score = 0;     // max 5
+
+  // STEP 2: LOCATION SCORING (max 20)
+  const hasCity = preferredLocs.some(loc => indianCities.some(c => c.toLowerCase() === loc) && jobLocLower.includes(loc));
+  const hasState = preferredLocs.some(loc => indianStates.some(s => s.toLowerCase() === loc) && jobLocLower.includes(loc));
+
+  if (isJobRemote) {
+    location_score = 18;
+  } else if (hasCity) {
+    location_score = 20;
+  } else if (hasState) {
+    location_score = 15;
+  } else if (jobInIndia && userInIndia) {
+    location_score = 10;
+  } else if (preferredLocs.length === 0) {
+    location_score = 12; // No preference = neutral
+  } else {
+    location_score = 3;
+  }
+
+  // STEP 3: SKILL MATCH SCORING — continuous via scoringEngine.preciseSkillMatchRatio
+  if (normalizedJobSkills.length > 0 && normalizedUserSkills.length > 0) {
+    // preciseSkillMatchRatio is imported at top of file from scoringEngine.js
+    const skillMatchRatio = preciseSkillMatchRatio(normalizedUserSkills, normalizedJobSkills);
+    // Continuous scale — no hard step-function buckets
+    skill_score = parseFloat((skillMatchRatio * 40).toFixed(1));
+  } else if (normalizedUserSkills.length === 0) {
+    skill_score = 15;
+  } else {
+    skill_score = 15;
+  }
+
+  // STEP 4: ROLE MATCH (max 20)
+  const jobTitleLower = job.title.toLowerCase();
+  const jobDescLower = (job.description || "").toLowerCase();
+  
+  const roleKeywords = [
+    "software engineer", "developer", "machine learning", "frontend", "backend", "fullstack", 
+    "full stack", "designer", "data scientist", "analyst", "product manager", "devops",
+    "mobile", "android", "ios", "cloud", "architect", "sre", "qa", "tester"
+  ];
+
+  let exactRole = false;
+  let relatedRole = false;
+  let sameDomain = false;
+  
+  roleKeywords.forEach(r => {
+    if (jobTitleLower.includes(r)) {
+      if (userDegreeLower.includes(r) || expSummaryLower.includes(r)) {
+        exactRole = true;
+      } else if (normalizedUserSkills.some(us => r.includes(us) || us.includes(r.split(' ')[0]))) {
+        relatedRole = true;
+      } else {
+        sameDomain = true;
+      }
+    }
+  });
+  
+  if (exactRole) role_score = 20;
+  else if (relatedRole) role_score = 15;
+  else if (sameDomain) role_score = 8;
+  else role_score = 5;
+
+  // STEP 5: EXPERIENCE MATCH (max 10)
+  const diff = userExp - jobExp;
+  if (diff === 0) {
+    experience_score = 10;
+  } else if (Math.abs(diff) <= 1) {
+    experience_score = 8;
+  } else if (Math.abs(diff) <= 2) {
+    experience_score = 6;
+  } else if (Math.abs(diff) <= 3) {
+    experience_score = 3;
+  } else {
+    experience_score = 1;
+  }
+
+  // STEP 6: WORK MODE MATCH (max 5)
+  const isUserRemotePreferred = preferredLocs.includes("remote");
+  if (isUserRemotePreferred && isJobRemote) {
+    work_mode_score = 5;
+  } else if (!isUserRemotePreferred && !isJobRemote) {
+    work_mode_score = 5;
+  } else {
+    work_mode_score = 2;
+  }
+
+  // STEP 7: SALARY MATCH (max 5)
+  const jobSalary = parseSalaryLPA(job.salary);
+  if (userSalary === 0 || jobSalary === 0) {
+    salary_score = 3; // unknown salary — neutral
+  } else if (jobSalary >= userSalary) {
+    salary_score = 5; // job pays >= expected — great
+  } else if (jobSalary >= userSalary * 0.8) {
+    salary_score = 3; // within 20% — acceptable
+  } else {
+    salary_score = 1; // too low
+  }
+
+  // Total max = 20+40+20+10+5+5 = 100
+  const finalScore = location_score + skill_score + role_score + experience_score + work_mode_score + salary_score;
+  return Math.max(0, Math.min(100, finalScore));
+}
+
+function getVerificationStatus(lastSeenAt, status) {
+  if (status === 'closed') {
+    return { score: 0, text: 'Closed' };
+  }
+  if (!lastSeenAt) {
+    return { score: 40, text: 'Verified recently' };
+  }
+  const lastSeen = new Date(lastSeenAt);
+  const now = new Date();
+  const diffTime = Math.abs(now - lastSeen);
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    return { score: 100, text: 'Verified today' };
+  } else if (diffDays === 1) {
+    return { score: 90, text: 'Verified yesterday' };
+  } else if (diffDays <= 2) {
+    return { score: 90, text: `Verified ${diffDays} days ago` };
+  } else if (diffDays <= 7) {
+    return { score: 80, text: `Verified ${diffDays} days ago` };
+  } else if (diffDays <= 14) {
+    return { score: 60, text: `Verified ${diffDays} days ago` };
+  } else {
+    return { score: 40, text: `Verified ${diffDays} days ago` };
+  }
+}
+
+app.get("/api/jobs", async (req, res) => {
+  try {
+    const { page, limit, email, search, category, location, type, sort, company, ids, includeClosed } = req.query;
+
+    const currentPage = parseInt(page) || 1;
+    const currentLimit = parseInt(limit) || 20;
+
+    let jobs = await dbService.getJobs();
+    let seekerProfile = null;
+    let hasResume = false;
+
+    if (email) {
+      const user = await dbService.findUserByEmail(email);
+      if (user && user.profile) {
+        seekerProfile = user.profile;
+        if (seekerProfile.resumeUrl || seekerProfile.resumeFileName) {
+          hasResume = true;
+        }
+      }
+    }
+
+    // Sort defaults to relevance (match-desc)
+    const isSortingByRelevance = (sort === "match-desc" || !sort);
+
+    // Block relevance-based job listings if seeker hasn't uploaded a resume
+    if (email && isSortingByRelevance && !hasResume) {
+      return res.json({
+        jobs: [],
+        total: 0,
+        profileIncomplete: true,
+        message: "Please upload your resume to see relevant jobs matching your profile."
+      });
+    }
+
+    const preprocessedProfile = seekerProfile ? preprocessProfile(seekerProfile) : null;
+
+    // Filter jobs
+    let filtered = jobs.filter(job => {
+      // Filter out closed jobs unless explicitly requested
+      if (job.status === "closed" && includeClosed !== "true") return false;
+
+      // Check specific IDs (useful for favourites / bookmarks)
+      if (ids) {
+        const idList = ids.split(',').map(id => String(id).trim());
+        if (!idList.includes(String(job.id))) return false;
+      }
+      // Company filter
+      if (company) {
+        if (company.toLowerCase() === "jobsarthi recruiter") {
+          if (job.company.toLowerCase() !== "jobsarthi recruiter" && !job.isSample) return false;
+        } else {
+          if (!job.company || job.company.toLowerCase() !== company.toLowerCase()) return false;
+        }
+      }
+
+      // Search text query filter
+      if (search) {
+        const query = search.toLowerCase();
+        const matchesSearch = (job.title && job.title.toLowerCase().includes(query)) || 
+                              (job.company && job.company.toLowerCase().includes(query)) ||
+                              (job.description && job.description.toLowerCase().includes(query)) ||
+                              (job.location && job.location.toLowerCase().includes(query)) ||
+                              (job.skills && String(job.skills).toLowerCase().includes(query));
+        if (!matchesSearch) return false;
+      }
+
+      // Category filter
+      if (category) {
+        if (job.category !== category) return false;
+      }
+
+      // Location filter
+      if (location) {
+        const jobLocs = getJobLocationsGroup(job);
+        if (!jobLocs.includes(location)) return false;
+      }
+
+      // Job Type filter
+      if (type) {
+        const checkedTypes = type.split(',').map(t => t.toLowerCase());
+        const physicalTypes = checkedTypes.filter(t => t !== "remote");
+        const isRemoteChecked = checkedTypes.includes("remote");
+
+        let matchesPhysical = physicalTypes.length === 0;
+        if (physicalTypes.length > 0) {
+          const jobType = (job.type || "Full-time").toLowerCase();
+          matchesPhysical = physicalTypes.some(t => jobType.includes(t));
+        }
+
+        let matchesRemote = true;
+        if (isRemoteChecked) {
+          const jobLoc = (job.location || "").toLowerCase();
+          const jobType = (job.type || "").toLowerCase();
+          matchesRemote = jobLoc.includes("remote") || jobType.includes("remote");
+        }
+
+        if (!(matchesPhysical && matchesRemote)) return false;
+      }
+
+      return true;
+    });
+
+    // ── PRECISION SCORING: use calculatePreciseJobMatch from scoringEngine ──
+    // Build a profile compatible with scoringEngine if preprocessedProfile exists
+    const engineProfile = preprocessedProfile ? {
+      normalizedUserSkills: preprocessedProfile.normalizedUserSkills,
+      preferredLocs: preprocessedProfile.preferredLocs,
+      userExp: preprocessedProfile.userExp,
+      userSalary: preprocessedProfile.userSalary,
+      expSummaryLower: preprocessedProfile.expSummaryLower,
+      userDegreeLower: preprocessedProfile.userDegreeLower,
+    } : null;
+
+    // Score & Enrich jobs dynamically
+    filtered = filtered.map(job => {
+      // Use precision engine score (returns float like 73.4)
+      let score = engineProfile
+        ? calculatePreciseJobMatch(job, engineProfile)
+        : 50.0;
+
+      if (search) {
+        // Use precision search relevance from scoringEngine instead of ad-hoc boosts
+        const searchBoost = scoreSearchRelevance(job, search) * 0.3;
+        score = Math.min(99, score + searchBoost);
+      }
+
+      const matchScore = parseFloat(Math.min(99, Math.max(0, score)).toFixed(1));
+      const v = getVerificationStatus(job.last_seen_at || job.updated_at || job.posted_date || job.created_at, job.status || 'active');
+
+      return {
+        ...job,
+        matchScore,
+        verification_score: v.score,
+        verification_text: v.text
+      };
+    });
+
+    // Sort jobs
+    if (sort === "match-desc" || !sort) {
+      filtered.sort((a, b) => b.matchScore - a.matchScore);
+    } else if (sort === "date-desc") {
+      filtered.sort((a, b) => new Date(b.posted_date || b.created_at || 0) - new Date(a.posted_date || a.created_at || 0));
+    } else if (sort === "title-asc") {
+      filtered.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    } else if (sort === "company-asc") {
+      filtered.sort((a, b) => (a.company || "").localeCompare(b.company || ""));
+    } else {
+      filtered.sort((a, b) => b.matchScore - a.matchScore);
+    }
+
+    const total = filtered.length;
+    let paginatedJobs = filtered;
+    if (page || limit) {
+      const startIndex = (currentPage - 1) * currentLimit;
+      paginatedJobs = filtered.slice(startIndex, startIndex + currentLimit);
+    }
+
+    const categories = [...new Set(jobs.map(j => j.category || "Software Engineering"))].filter(Boolean).sort();
+    
+    const locationsSet = new Set();
+    jobs.forEach(job => {
+      const locGroups = getJobLocationsGroup(job);
+      locGroups.forEach(g => locationsSet.add(g));
+    });
+    const locations = [...locationsSet].sort();
+
+    res.json({
+      jobs: paginatedJobs,
+      total,
+      categories,
+      locations
+    });
+  } catch (err) {
+    console.error("API /api/jobs error:", err);
+    res.status(500).json({ error: "Failed to read jobs." });
+  }
+});
+
+app.get("/api/jobs/:id", async (req, res) => {
+  try {
+    const jobs = await dbService.getJobs();
+    const job = jobs.find(j => j.id === req.params.id || j.id == req.params.id);
+    if (!job) return res.status(404).json({ error: "Job not found." });
+    
+    const v = getVerificationStatus(job.last_seen_at || job.updated_at || job.posted_date || job.created_at, job.status || 'active');
+    const enrichedJob = {
+      ...job,
+      verification_score: v.score,
+      verification_text: v.text
+    };
+    res.json(enrichedJob);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to read job." });
+  }
+});
+
+// --- Apply Redirect and Event Logging ---
+app.get("/apply/:jobId", async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { email, userId } = req.query;
+
+    const job = await dbService.findJobById(jobId);
+    if (!job) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Job Not Found - JobSarthi</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f3f4f6; text-align: center; padding: 50px; }
+            .container { max-width: 500px; margin: 0 auto; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 30px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+            h1 { color: #f43f5e; }
+            a { color: #6366f1; text-decoration: none; font-weight: 600; }
+            a:hover { text-decoration: underline; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Listing Not Found</h1>
+            <p>The job opportunity you are looking for does not exist or has been removed.</p>
+            <p><a href="/seeker/jobs.html">Return to Job Board</a></p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    if (job.status === "closed") {
+      return res.status(410).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Job Closed - JobSarthi</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f3f4f6; text-align: center; padding: 50px; }
+            .container { max-width: 500px; margin: 0 auto; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 30px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+            h1 { color: #ef4444; }
+            a { color: #6366f1; text-decoration: none; font-weight: 600; }
+            a:hover { text-decoration: underline; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Opportunity Closed</h1>
+            <p>This job listing for <strong>${job.title}</strong> at <strong>${job.company}</strong> has been marked as closed and is no longer accepting applications.</p>
+            <p><a href="/seeker/jobs.html">Browse other active jobs</a></p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    const clickEvent = {
+      id: "click_" + Date.now(),
+      job_id: jobId,
+      company: job.company,
+      title: job.title,
+      user_id: userId || email || "guest",
+      timestamp: new Date().toISOString()
+    };
+    await dbService.recordApplyClick(clickEvent);
+
+    const dest = job.apply_url || job.applyUrl || "/seeker/jobs.html";
+    res.redirect(dest);
+  } catch (err) {
+    console.error("Apply redirect error:", err);
+    res.status(500).send("An error occurred during redirection.");
+  }
+});
+
+// --- Admin Sync Trigger and Log Endpoints ---
+app.post("/api/admin/jobs/sync-greenhouse", async (req, res) => {
+  try {
+    console.log("[Admin API] Triggered Greenhouse Sync Engine...");
+    const stats = await runGreenhouseSync();
+    res.json({ success: true, message: "Greenhouse sync engine run completed successfully.", stats });
+  } catch (err) {
+    console.error("Admin Greenhouse Sync failed:", err);
+    res.status(500).json({ error: "Greenhouse sync engine run failed.", details: err.message });
+  }
+});
+
+app.get("/api/admin/sync-logs", async (req, res) => {
+  try {
+    if (mongoDb) {
+      const logs = await mongoDb.collection("sync_logs").find({}).sort({ timestamp: -1 }).limit(50).toArray();
+      return res.json(logs);
+    } else {
+      const local = await readLocalDB();
+      return res.json((local.sync_logs || []).slice(0, 50));
+    }
+  } catch (err) {
+    console.error("Failed to fetch sync logs:", err);
+    res.status(500).json({ error: "Failed to fetch sync logs." });
+  }
+});
+
+app.post("/api/jobs", async (req, res) => {
+  try {
+    const { title, category, type, salary, location, skills, description, reqs, company } = req.body;
+    const finalTitle = title || "Untitled Position";
+    const finalCategory = category || "Software Engineering";
+    const finalType = type || "Full-time";
+    const finalSalary = salary || "Not specified";
+    const finalLocation = location || "Remote";
+    const finalSkills = skills || "General Tech Skills";
+    const finalDescription = description || "No description provided.";
+
+    const newJob = {
+      id: "job_" + Date.now(),
+      title: finalTitle,
+      company: company || "InnovateTech",
+      logo: "💼",
+      category: finalCategory,
+      type: finalType,
+      location: finalLocation,
+      salary: finalSalary,
+      match: Math.floor(Math.random() * 25) + 75,
+      description: finalDescription,
+      skills: finalSkills,
+      reqs: reqs || []
+    };
+
+    await dbService.createJob(newJob);
+
+    res.json({ success: true, job: newJob });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save job listing." });
+  }
+});
+
+// --- Application APIs ---
+
+app.post("/api/jobs/:id/apply", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { candidateName, candidateEmail } = req.body;
+    const finalName = candidateName || "Anonymous Candidate";
+    const finalEmail = candidateEmail || "anonymous@jobsarthi.com";
+
+    const job = await dbService.findJobById(id);
+    if (!job) {
+      return res.status(404).json({ error: "Job not found." });
+    }
+
+    const recEmail = (job.isSample || String(job.id).startsWith("sample_"))
+      ? "recruiter@gmail.com"
+      : (job.recruiterEmail || `hr://${job.company.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 15)}.com`).toLowerCase().trim();
+
+    const newApp = {
+      id: "app_" + Date.now(),
+      jobId: id,
+      jobTitle: job.title,
+      companyName: job.company,
+      recruiterEmail: recEmail,
+      candidateName: finalName,
+      candidateEmail: finalEmail,
+      status: "Applied",
+      appliedAt: new Date().toISOString()
+    };
+
+    await dbService.createApplication(newApp);
+
+    // Send application confirmation email in background
+    sendApplicationConfirmationEmail({
+      candidateEmail: finalEmail,
+      candidateName: finalName,
+      jobTitle: job.title,
+      companyName: job.company
+    }).catch(err => {
+      console.error("Background application confirmation email failed:", err.message);
+    });
+
+    // Create welcome chat message from the recruiter
+    try {
+      const recName = `${job.company} HR`;
+      const welcomeMsgText = `Hi ${finalName}, thank you for applying to the ${job.title} position at ${job.company}. We have received your application and our recruiting team is currently analyzing your match. We will contact you shortly if we decide to move forward!`;
+      
+      const welcomeMsg = {
+        id: "msg_" + Date.now() + "_welcome",
+        seekerEmail: finalEmail.toLowerCase().trim(),
+        seekerName: finalName,
+        recruiterEmail: recEmail,
+        recruiterName: recName,
+        companyName: job.company,
+        sender: "recruiter",
+        text: welcomeMsgText,
+        timestamp: new Date().toISOString()
+      };
+      await dbService.createMessage(welcomeMsg);
+      console.log(`Created welcome message thread for ${finalEmail} with ${job.company} linked to recruiter ${recEmail}`);
+    } catch (msgErr) {
+      console.error("Failed to seed welcome message for application:", msgErr);
+    }
+
+    res.json({ success: true, application: newApp });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to apply." });
+  }
+});
+
+app.get("/api/recruiter/applicants", async (req, res) => {
+  try {
+    const { company, email } = req.query;
+    const queryEmail = email || "";
+    let applicants = [];
+    
+    if (queryEmail.toLowerCase().trim() === "recruiter@gmail.com") {
+      applicants = await dbService.getApplications(); // Returns all applications for admin recruiter
+    } else {
+      applicants = await dbService.getApplications(company);
+    }
+
+    // Enrich applicants with profile details from users collection
+    const enriched = [];
+    for (const app of applicants) {
+      const user = await dbService.findUserByEmail(app.candidateEmail);
+      const candidateProfile = user?.profile || {};
+      const candidateSkills = Array.isArray(candidateProfile.skills)
+        ? candidateProfile.skills.map(s => s.trim().toLowerCase()).filter(Boolean)
+        : (typeof candidateProfile.skills === 'string'
+          ? candidateProfile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+          : []);
+
+      // Find the job this application was for to do real skill matching
+      let calculatedMatch = 50; // sensible fallback for incomplete data
+      try {
+        const job = await dbService.findJobById(app.jobId);
+        if (job && candidateProfile) {
+          calculatedMatch = calculateMatchScore(job, candidateProfile);
+        } else if (candidateSkills.length > 0) {
+          // Fallback: base on how many skills filled
+          calculatedMatch = Math.min(80, 20 + candidateSkills.length * 5);
+        }
+      } catch (matchErr) {
+        console.warn("Match calculation failed for applicant:", app.id, matchErr.message);
+      }
+
+      enriched.push({
+        id: app.id,
+        name: app.candidateName,
+        email: app.candidateEmail,
+        role: app.jobTitle,
+        match: calculatedMatch,
+        status: app.status,
+        date: new Date(app.appliedAt).toLocaleDateString() || "Recently",
+        skills: candidateProfile.skills || ["General Skills"],
+        statement: candidateProfile.experience || "No experience summary provided yet.",
+        college: candidateProfile.college || "Not specified",
+        degree: candidateProfile.degree || "Not specified",
+        cgpa: candidateProfile.cgpa || "N/A",
+        certificates: candidateProfile.certificates || [],
+        resumeFileName: candidateProfile.resumeFileName || "",
+        resumeUrl: candidateProfile.resumeUrl || "",
+        avatarUrl: candidateProfile.avatarUrl || ""
+      });
+    }
+
+    res.json(enriched);
+  } catch (err) {
+    console.error("Enriching applicants failed:", err);
+    res.status(500).json({ error: "Failed to fetch applicants." });
+  }
+});
+
+app.post("/api/recruiter/applicants/:id/status", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!status) {
+      return res.status(400).json({ error: "Status is required." });
+    }
+
+    let appDetails = null;
+    if (mongoDb) {
+      appDetails = await mongoDb.collection("applications").findOne({ id: id });
+      if (appDetails) {
+        await mongoDb.collection("applications").updateOne(
+          { id: id },
+          { $set: { status: status } }
+        );
+        appDetails.status = status;
+      }
+    } else {
+      const local = await readLocalDB();
+      const appIdx = local.applications.findIndex(a => a.id === id);
+      if (appIdx !== -1) {
+        local.applications[appIdx].status = status;
+        appDetails = local.applications[appIdx];
+        await writeLocalDB(local);
+      }
+    }
+
+    if (appDetails) {
+      // Send application status update email in background
+      sendStatusUpdateEmail({
+        candidateEmail: appDetails.candidateEmail,
+        candidateName: appDetails.candidateName,
+        jobTitle: appDetails.jobTitle,
+        companyName: appDetails.companyName,
+        status: status
+      }).catch(err => {
+        console.error("Status update email failed to send in background:", err.message);
+      });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Updating application status failed:", err);
+    res.status(500).json({ error: "Failed to update status." });
+  }
+});
+
+app.post("/api/recruiter/interview/create", async (req, res) => {
+  try {
+    const {
+      candidateName,
+      candidateEmail,
+      role,
+      difficulty,
+      persona,
+      customQuestions,
+      recruiterEmail,
+      recruiterCompany
+    } = req.body;
+
+    if (!candidateName || !candidateEmail || !role) {
+      return res.status(400).json({ error: "Missing required candidate details." });
+    }
+
+    const configId = "rc_int_" + Math.random().toString(36).substring(2, 11);
+    const config = {
+      id: configId,
+      candidateName,
+      candidateEmail: candidateEmail.toLowerCase().trim(),
+      role,
+      difficulty: difficulty || "Intermediate",
+      persona: persona || "sarthi",
+      customQuestions: Array.isArray(customQuestions) ? customQuestions : [],
+      recruiterEmail: recruiterEmail ? recruiterEmail.toLowerCase().trim() : "",
+      recruiterCompany: recruiterCompany || "JobSarthi Partner",
+      createdAt: new Date().toISOString()
+    };
+
+    await dbService.createRecruiterInterview(config);
+
+    // Auto-update candidate status to 'Interviewing' if they are an existing applicant
+    try {
+      if (mongoDb) {
+        await mongoDb.collection("applications").updateOne(
+          { candidateEmail: config.candidateEmail, jobTitle: role },
+          { $set: { status: "Interviewing" } }
+        );
+      } else {
+        const local = await readLocalDB();
+        const appIdx = local.applications.findIndex(a => 
+          a.candidateEmail.toLowerCase() === config.candidateEmail && 
+          a.jobTitle === role
+        );
+        if (appIdx !== -1) {
+          local.applications[appIdx].status = "Interviewing";
+          await writeLocalDB(local);
+        }
+      }
+    } catch (statusErr) {
+      console.warn("Could not auto-update candidate status to Interviewing:", statusErr.message);
+    }
+
+    res.json({ success: true, configId });
+  } catch (err) {
+    console.error("Failed to create recruiter custom interview:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/api/recruiter/interview/:id", async (req, res) => {
+  try {
+    const config = await dbService.findRecruiterInterview(req.params.id);
+    if (!config) {
+      return res.status(404).json({ error: "Interview configuration not found." });
+    }
+    res.json(config);
+  } catch (err) {
+    console.error("Failed to fetch recruiter custom interview:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// --- Chat Messages and AI Recruiting Agent APIs ---
+
+app.get("/api/messages", async (req, res) => {
+  try {
+    const { email, role } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    let query = {};
+    if (role === "recruiter") {
+      query = { recruiterEmail: cleanEmail };
+    } else {
+      query = { seekerEmail: cleanEmail };
+    }
+
+    const messages = await dbService.getMessages(query);
+    
+    // Batch fetch user avatar urls to prevent database query amplification
+    const seekerEmails = [...new Set(messages.map(m => m.seekerEmail))];
+    const emailToAvatar = {};
+    for (const email of seekerEmails) {
+      const user = await dbService.findUserByEmail(email);
+      emailToAvatar[email.toLowerCase()] = user?.profile?.avatarUrl || "";
+    }
+
+    const enrichedMessages = messages.map(m => ({
+      ...m,
+      seekerAvatarUrl: emailToAvatar[m.seekerEmail.toLowerCase()] || ""
+    }));
+
+    res.json(enrichedMessages);
+  } catch (err) {
+    console.error("Failed to load messages:", err);
+    res.status(500).json({ error: "Failed to read messages." });
+  }
+});
+
+app.post("/api/messages", async (req, res) => {
+  try {
+    const { seekerEmail, seekerName, recruiterEmail, recruiterName, companyName, sender, text } = req.body;
+    if (!seekerEmail || !recruiterEmail || !sender || !text) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    const newMsg = {
+      id: "msg_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      seekerEmail: seekerEmail.toLowerCase().trim(),
+      seekerName: seekerName || "Candidate",
+      recruiterEmail: recruiterEmail.toLowerCase().trim(),
+      recruiterName: recruiterName || `${companyName} HR`,
+      companyName: companyName || "Company",
+      sender,
+      text,
+      timestamp: new Date().toISOString()
+    };
+
+    const savedMsg = await dbService.createMessage(newMsg);
+
+    // If seeker messages, auto-reply from the recruiter after 1.5 seconds!
+    if (sender === "seeker") {
+      setTimeout(async () => {
+        try {
+          const user = await dbService.findUserByEmail(seekerEmail);
+          const seekerProfileStr = user && user.profile ? JSON.stringify(user.profile) : "A candidate looking for roles";
+          
+          let responseText = `Hi ${seekerName}, thank you for reaching out. We have received your message and will review it shortly.`;
+          
+          if (process.env.GROQ_API_KEY) {
+            try {
+              const systemPrompt = `You are ${newMsg.recruiterName}, the HR / Hiring Coordinator at ${newMsg.companyName}.
+A candidate named ${seekerName} has messaged you.
+Here is the candidate's profile:
+${seekerProfileStr}
+
+Write a short, realistic, professional HR response to their message: "${text}".
+Guidelines:
+- Keep the response short (1-3 sentences).
+- Be polite, professional, and helpful.
+- Signature: ${newMsg.recruiterName}.
+- Do NOT use placeholders.`;
+
+              responseText = await callGroq([
+                { role: "system", content: systemPrompt },
+                { role: "user", content: text }
+              ], false, 0.7);
+            } catch (groqErr) {
+              console.warn("Groq failed in messaging agent:", groqErr);
+            }
+          }
+
+          const autoMsg = {
+            id: "msg_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+            seekerEmail: seekerEmail.toLowerCase().trim(),
+            seekerName: seekerName,
+            recruiterEmail: recruiterEmail.toLowerCase().trim(),
+            recruiterName: newMsg.recruiterName,
+            companyName: newMsg.companyName,
+            sender: "recruiter",
+            text: responseText.trim(),
+            timestamp: new Date().toISOString()
+          };
+          await dbService.createMessage(autoMsg);
+          console.log(`Auto-replied to candidate ${seekerEmail} from company ${newMsg.companyName}`);
+        } catch (autoErr) {
+          console.error("Auto message reply failed:", autoErr);
+        }
+      }, 1500);
+    }
+
+    res.json({ success: true, message: savedMsg });
+  } catch (err) {
+    console.error("Failed to save message:", err);
+    res.status(500).json({ error: "Failed to send message." });
+  }
+});
+
+// --- Sarthi AI Chat API ---
+
+app.post("/api/sarthi/chat", aiRateLimiter, async (req, res) => {
+  try {
+    const { message, chatHistory } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: "Message is required." });
+    }
+
+    // If Groq API Key is configured, use it!
+    if (GROQ_API_KEY) {
+      const messages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        ...(chatHistory || []).map(msg => ({
+          role: msg.role === "user" ? "user" : "assistant",
+          content: msg.content
+        })),
+        { role: "user", content: message }
+      ];
+
+      const replyText = await callGroq(messages);
+      return res.json({ reply: replyText });
+    }
+
+    // --- High-Quality Local Smart Fallback ---
+    // This allows the application to work cleanly with mock prompts even if they haven't configured a Gemini key yet.
+    const lower = message.toLowerCase();
+    let reply = "";
+
+    if (lower.includes("interview") || lower.includes("practice")) {
+      reply = `To practice live mock interviews, please log in first. Once authenticated, Sarthi will guide you through interactive voice trials!`;
+    } else if (lower.includes("resume") || lower.includes("review") || lower.includes("profile")) {
+      reply = `Please log in to upload your resume and certifications. Sarthi will then scan your credentials and provide a detailed ATS match score and analysis.`;
+    } else if (lower.includes("job") || lower.includes("suggest") || lower.includes("recommend")) {
+      reply = `Sign in to your seeker profile to get personalized job suggestions matched to your verified skillset and location preferences.`;
+    } else if (lower.includes("skill") || lower.includes("learn") || lower.includes("roadmap")) {
+      reply = `Unlock customized learning roadmaps and study recommendations by logging in to your seeker account first.`;
+    } else {
+      reply = `I'm Sarthi, your AI assistant! How can I help you today? You can ask me to:<br>• Review your resume<br>• Practice a mock interview<br>• Suggest matched jobs<br>• Build a custom learning roadmap`;
+    }
+
+    res.json({ reply });
+  } catch (err) {
+    console.error("Chat error:", err);
+    res.status(500).json({ error: "Chat service encountered an error." });
+  }
+});
+
+// --- AI Interview API ---
+const FALLBACK_QUESTIONS = {
+  "Full Stack Developer": {
+    "Beginner": [
+      "What is the difference between client-side rendering (CSR) and server-side rendering (SSR)?",
+      "Can you explain what a REST API is and what HTTP methods are commonly used?",
+      "What is the Document Object Model (DOM) and how does JavaScript interact with it?",
+      "How do relational databases (like MySQL) differ from non-relational databases (like MongoDB)?"
+    ],
+    "Intermediate": [
+      "Explain the concept of middleware in an Express application and how you've used it.",
+      "How do you handle state management across deeply nested components in a React application?",
+      "What are indexes in SQL databases, and how do they optimize query performance?",
+      "Describe the difference between JSON Web Tokens (JWT) and Session-based authentication."
+    ],
+    "Expert": [
+      "How would you design a scalable microservices architecture for a real-time messaging application?",
+      "Explain React Server Components and how they differ from client-side hydration.",
+      "How do you profile, identify bottlenecks, and optimize SQL queries that take several seconds to run?",
+      "What is event loop lag in Node.js, and how would you debug and mitigate it under high load?"
+    ]
+  },
+  "Frontend Developer": {
+    "Beginner": [
+      "What is CSS Flexbox and how does it differ from CSS Grid?",
+      "What is the difference between 'let', 'const', and 'var' in JavaScript?",
+      "How do you make a webpage responsive to different screen sizes using CSS?"
+    ],
+    "Intermediate": [
+      "Explain React hooks. How does useEffect's dependency array work?",
+      "What is the Critical Rendering Path and how can you optimize it for faster page loads?",
+      "Explain the difference between the Virtual DOM and the real DOM."
+    ],
+    "Expert": [
+      "How would you optimize a large React application experiencing performance issues and excessive re-renders?",
+      "Explain how micro-frontend architectures work and how they share state securely.",
+      "How would you design an offline-first web application using service workers and IndexedDB?"
+    ]
+  },
+  "Backend Developer": {
+    "Beginner": [
+      "What is the purpose of an API gateway in a backend system?",
+      "How does HTTP differ from HTTPS, and how does SSL/TLS work at a high level?",
+      "What is the difference between GET and POST requests in RESTful design?"
+    ],
+    "Intermediate": [
+      "What is database normalization, and when would you deliberately de-normalize a schema?",
+      "Explain the differences between horizontal scaling and vertical scaling for a web application.",
+      "How do you secure backend endpoints against common vulnerabilities like SQL Injection and XSS?"
+    ],
+    "Expert": [
+      "Explain the CAP theorem and how it guides your choice of databases in distributed systems.",
+      "How do you design a high-throughput distributed task queue system using Redis or RabbitMQ?",
+      "How would you handle distributed database transactions across multiple microservices?"
+    ]
+  },
+  "Data Scientist": {
+    "Beginner": [
+      "What is the difference between supervised and unsupervised learning?",
+      "What is overfitting and how can it be prevented?",
+      "What is the difference between a list and a tuple in Python?"
+    ],
+    "Intermediate": [
+      "Explain the difference between L1 and L2 regularization.",
+      "How does a Random Forest classifier work and what are its advantages?",
+      "How do you handle imbalanced datasets when training a model?"
+    ],
+    "Expert": [
+      "How would you design a distributed machine learning pipeline to process terabytes of data daily?",
+      "Can you explain the mathematical derivation or intuition behind Gradient Boosting?",
+      "Explain how transformer self-attention mechanisms work and why they scale better than LSTMs."
+    ]
+  },
+  "DevOps Engineer": {
+    "Beginner": [
+      "What is Continuous Integration and Continuous Deployment (CI/CD)?",
+      "What is Docker and how does it differ from a Virtual Machine?",
+      "What is the purpose of version control systems like Git?"
+    ],
+    "Intermediate": [
+      "Explain the difference between a rolling update and a blue-green deployment strategy.",
+      "What is Infrastructure as Code (IaC) and how does Terraform manage state?",
+      "How would you secure a Kubernetes cluster in a production environment?"
+    ],
+    "Expert": [
+      "How would you design a multi-region, highly available, active-active cloud infrastructure on AWS/Azure?",
+      "Explain how you would debug high latency or packet loss in a Kubernetes service mesh like Istio.",
+      "Describe a custom GitOps pipeline you built to manage stateful sets in microservices."
+    ]
+  },
+  "Product Manager": {
+    "Beginner": [
+      "What is a Product Requirement Document (PRD) and what are its key components?",
+      "How do you prioritize features using the RICE framework?",
+      "What is the difference between an MVP and a prototype?"
+    ],
+    "Intermediate": [
+      "How do you handle conflicting feedback from engineering, design, and business stakeholders?",
+      "Describe how you would measure the success of a newly launched notifications feature.",
+      "What key product metrics would you track for a subscription-based SaaS app?"
+    ],
+    "Expert": [
+      "How would you design a product strategy to launch JobSarthi in a highly competitive market like India?",
+      "Explain a time you made a high-stakes pivot based on negative user telemetry data.",
+      "How do you balance tech debt reduction with new feature development on a core platform team?"
+    ]
+  },
+  "Mobile Developer": {
+    "Beginner": [
+      "What is the difference between native and cross-platform mobile development?",
+      "What is the lifecycle of an Activity in Android or a View Controller in iOS?",
+      "What is the purpose of state management in mobile applications?"
+    ],
+    "Intermediate": [
+      "How do you optimize mobile app startup time and minimize battery consumption?",
+      "Describe how you've handled offline synchronization and local caching in React Native or Native iOS.",
+      "How do you secure API tokens and sensitive credentials stored on mobile devices?"
+    ],
+    "Expert": [
+      "How would you design a modular, scalable architecture for a mobile super-app containing multiple sub-services?",
+      "Explain how react-native's new architecture (Fabric and TurboModules) improves performance over the bridge.",
+      "How do you debug memory leaks and profile frame rates (FPS) in an iOS/Android production build?"
+    ]
+  },
+  "UI/UX Designer": {
+    "Beginner": [
+      "What is the difference between UI and UX design?",
+      "What are the core principles of visual hierarchy and contrast?",
+      "How do you use Figma components and auto-layout to build reusable designs?"
+    ],
+    "Intermediate": [
+      "Explain how you conduct a usability test and translate insights into design revisions.",
+      "How do you design for accessibility (WCAG AA/AAA standards) in a complex web dashboard?",
+      "Describe your process for handing off assets and design systems to developers."
+    ],
+    "Expert": [
+      "How would you design a design system that scales across multiple web, mobile, and desktop portals?",
+      "Describe a time you used A/B testing data to completely redesign a core checkout or onboarding flow.",
+      "How do you maintain design consistency when designing for dark mode and light mode across diverse screens?"
+    ]
+  },
+  "AI / ML Engineer": {
+    "Beginner": [
+      "What is a neural network and what is the role of an activation function?",
+      "What is the difference between training, validation, and test datasets?",
+      "What are common evaluation metrics for regression and classification tasks?"
+    ],
+    "Intermediate": [
+      "How do you fine-tune a pre-trained LLM like Llama or GPT on a custom domain-specific dataset?",
+      "Explain how optimization algorithms like Adam and SGD adjust model weights during backpropagation.",
+      "How do you handle prompt injection vulnerabilities in a production LLM application?"
+    ],
+    "Expert": [
+      "How would you design a low-latency RAG (Retrieval-Augmented Generation) pipeline handling millions of document chunks?",
+      "Explain how you would optimize LLM inference speed using quantization, speculative decoding, and vLLM.",
+      "How would you design a real-time anomaly detection system for fraud detection with strict latency limits (<10ms)?"
+    ]
+  },
+  "Economics / Financial Analyst": {
+    "Beginner": [
+      "Can you explain the difference between microeconomics and macroeconomics?",
+      "What is supply and demand, and how does market equilibrium work?",
+      "How do inflation and interest rates relate to each other?"
+    ],
+    "Intermediate": [
+      "Explain the concept of Opportunity Cost and how it applies to business decision-making.",
+      "How do you perform a cost-benefit analysis for a new project or investment?",
+      "Describe the difference between fiscal policy and monetary policy and their impacts on business."
+    ],
+    "Expert": [
+      "How would you model the economic impact of a sudden commodity price shock on a retail supply chain?",
+      "Can you explain game theory and how Nash equilibrium can be applied to competitive market pricing?",
+      "How do you evaluate currency exchange risk and hedge against it in international trade?"
+    ]
+  }
+};
+
+// --- ElevenLabs Text-to-Speech Helper ---
+async function callElevenLabs(text, interviewer) {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    console.log("[ElevenLabs] No API key configured. Skipping TTS generation.");
+    return null;
+  }
+  
+  let voiceId = "ErXwobaYiN019PkySvjV"; // Antoni (Sarthi default)
+  if (interviewer === "vikram") {
+    voiceId = "pNInz6obpgqjVWtJ45xs"; // Adam
+  } else if (interviewer === "ananya") {
+    voiceId = "21m00Tcm4TlvDq8ikWAM"; // Rachel
+  }
+
+  try {
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: "POST",
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: "eleven_multilingual_v2", // Supports English, Hindi, Hinglish
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.warn(`ElevenLabs API error: ${response.status} - ${errText}`);
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return buffer.toString("base64");
+  } catch (err) {
+    console.error("ElevenLabs speech synthesis failed:", err);
+    return null;
+  }
+}
+
+// Rate limiting store for AI interviews and resume analysis (resets after 1 hour)
+const sarthiRateLimits = {
+  interviews: {}, // email/ip -> array of timestamps
+  resumeAnalysis: {} // email/ip -> array of timestamps
+};
+
+function checkAndTrackLimit(key, emailOrIp, maxLimit) {
+  const now = Date.now();
+  const threeHoursAgo = now - 3 * 60 * 60 * 1000;
+  
+  if (!sarthiRateLimits[key][emailOrIp]) {
+    sarthiRateLimits[key][emailOrIp] = [];
+  }
+  
+  // Filter out timestamps older than 3 hours
+  sarthiRateLimits[key][emailOrIp] = sarthiRateLimits[key][emailOrIp].filter(ts => ts > threeHoursAgo);
+  
+  const count = sarthiRateLimits[key][emailOrIp].length;
+  if (count >= maxLimit) {
+    return { allowed: false, remaining: 0, resetTime: Math.min(...sarthiRateLimits[key][emailOrIp]) + 3 * 60 * 60 * 1000 };
+  }
+  
+  // Track this request
+  sarthiRateLimits[key][emailOrIp].push(now);
+  return { allowed: true, remaining: maxLimit - (count + 1) };
+}
+
+function getLimitStatus(key, emailOrIp, maxLimit) {
+  const now = Date.now();
+  const threeHoursAgo = now - 3 * 60 * 60 * 1000;
+  
+  if (!sarthiRateLimits[key][emailOrIp]) {
+    sarthiRateLimits[key][emailOrIp] = [];
+  }
+  
+  sarthiRateLimits[key][emailOrIp] = sarthiRateLimits[key][emailOrIp].filter(ts => ts > threeHoursAgo);
+  const count = sarthiRateLimits[key][emailOrIp].length;
+  return { remaining: Math.max(0, maxLimit - count), count, max: maxLimit };
+}
+
+app.get("/api/seeker/sarthi-limits", async (req, res) => {
+  try {
+    const emailOrIp = req.query.email || req.ip || 'anonymous';
+    const interviewsLeft = getLimitStatus('interviews', emailOrIp, 5).remaining;
+    const resumeAnalysisLeft = getLimitStatus('resumeAnalysis', emailOrIp, 10).remaining;
+    res.json({ interviewsLeft, resumeAnalysisLeft });
+  } catch (err) {
+    console.error("Failed to get Sarthi limits:", err);
+    res.status(500).json({ error: "Failed to fetch Sarthi limits." });
+  }
+});
+
+app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
+  try {
+    const { role, difficulty, history, currentQuestion, userAnswer, timerExpired, candidateProfile, candidateName, interviewerAbility, language, jobSkills, jobId, interviewState, email, recruiterConfigId } = req.body;
+    const isFirstQuestion = !currentQuestion;
+
+    if (isFirstQuestion) {
+      const emailOrIp = email || req.ip || 'anonymous';
+      const check = checkAndTrackLimit('interviews', emailOrIp, 5);
+      if (!check.allowed) {
+        return res.status(429).json({
+          error: "Limit reached. You have 0 out of 5 interviews left. Please try again later.",
+          limitExceeded: true,
+          type: "interview"
+        });
+      }
+    }
+
+    let finalRole = role || "Full Stack Developer";
+    let finalDifficulty = difficulty || "Intermediate";
+    let finalInterviewerAbility = interviewerAbility || "sarthi";
+    let finalCandidateName = candidateName || "Candidate";
+    let customQuestionsText = "";
+    let customQuestionsList = [];
+
+    if (recruiterConfigId) {
+      try {
+        const rConfig = await dbService.findRecruiterInterview(recruiterConfigId);
+        if (rConfig) {
+          finalRole = rConfig.role;
+          finalDifficulty = rConfig.difficulty;
+          finalInterviewerAbility = rConfig.persona;
+          if (rConfig.candidateName) {
+            finalCandidateName = rConfig.candidateName;
+          }
+          customQuestionsList = rConfig.customQuestions || [];
+          if (customQuestionsList.length > 0) {
+            customQuestionsText = `\n===== RECRUITER CUSTOM QUESTIONS (MANDATORY) =====\nThe recruiter has specified these custom questions that you MUST ask the candidate. Weave them in during the Technical/Behavioral phases:\n` + 
+              customQuestionsList.map((q, idx) => `- Question ${idx + 1}: "${q}"`).join("\n") + "\n";
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load recruiter config for interview:", e);
+      }
+    }
+
+    const currentRole = finalRole;
+    const currentDiff = finalDifficulty;
+
+    let resolvedRole = currentRole;
+    if (currentRole === "From your resume") {
+      if (candidateProfile) {
+        const skillsStr = Array.isArray(candidateProfile.skills) ? candidateProfile.skills.join(" ").toLowerCase() : (candidateProfile.skills || "").toLowerCase();
+        const expStr = (candidateProfile.experience || "").toLowerCase();
+        const degStr = (candidateProfile.degree || "").toLowerCase();
+
+        if (degStr.includes("economics") || expStr.includes("economics") || skillsStr.includes("economics") ||
+            degStr.includes("finance") || expStr.includes("finance") || skillsStr.includes("finance") ||
+            degStr.includes("commerce") || expStr.includes("commerce") || skillsStr.includes("commerce")) {
+          resolvedRole = "Economics / Financial Analyst";
+        } else if (skillsStr.includes("react") || skillsStr.includes("javascript") || skillsStr.includes("frontend") || expStr.includes("frontend") || expStr.includes("web developer")) {
+          resolvedRole = "Frontend Developer";
+        } else if (skillsStr.includes("node") || skillsStr.includes("backend") || expStr.includes("backend") || skillsStr.includes("python")) {
+          resolvedRole = "Backend Developer";
+        } else {
+          if (expStr.includes("design") || skillsStr.includes("figma") || skillsStr.includes("ui") || skillsStr.includes("ux")) {
+            resolvedRole = "UI/UX Designer";
+          } else if (expStr.includes("product") || skillsStr.includes("pm") || skillsStr.includes("agile")) {
+            resolvedRole = "Product Manager";
+          } else if (expStr.includes("data scientist") || skillsStr.includes("machine learning")) {
+            resolvedRole = "Data Scientist";
+          } else {
+            resolvedRole = "Candidate's Profile Role";
+          }
+        }
+      }
+      if (resolvedRole === "From your resume") {
+        resolvedRole = "Full Stack Developer";
+      }
+    }
+
+    // Fetch target job details from DB if jobId is provided
+    let jobDetails = null;
+    if (jobId) {
+      try {
+        jobDetails = await dbService.findJobById(jobId);
+      } catch (e) {
+        console.warn("Failed to fetch job details for interview context:", e);
+      }
+    }
+
+    // Parse candidate profile details
+    let profileContext = `Candidate Name: ${candidateName || "Candidate"}\n`;
+    if (candidateProfile) {
+      if (candidateProfile.skills) {
+        profileContext += `Skills: ${Array.isArray(candidateProfile.skills) ? candidateProfile.skills.join(", ") : candidateProfile.skills}\n`;
+      }
+      if (candidateProfile.college) {
+        profileContext += `College: ${candidateProfile.college}\n`;
+      }
+      if (candidateProfile.degree) {
+        profileContext += `Degree: ${candidateProfile.degree}\n`;
+      }
+      if (candidateProfile.experience) {
+        profileContext += `Experience: ${candidateProfile.experience}\n`;
+      }
+    }
+
+    // Initialize/clean interviewState
+    let state = interviewState;
+    if (!state) {
+      state = {
+        stage: "introduction",
+        currentTopic: "Introduction",
+        topicGraph: {
+          nodes: ["Introduction", "Project & Experience Discussion", "Claim Verification", "Technical Assessment", "Behavioral Assessment", "Candidate Questions", "Wrap-up"],
+          currentIndex: 0,
+          completed: []
+        },
+        claims: [],
+        satisfaction: {
+          technicalKnowledge: 50,
+          communication: 50,
+          confidence: 50,
+          authenticity: 50,
+          problemSolving: 50,
+          learningAbility: 50,
+          ownership: 50,
+          depth: 50,
+          overall: 50
+        },
+        evidence: [],
+        dontKnowCount: 0,
+        earlyExitTriggered: false,
+        earlyExitReason: ""
+      };
+    }
+
+    // Analyze response for exit requests or repeated "I don't know" statements
+    if (userAnswer) {
+      const answerLower = userAnswer.toLowerCase().trim();
+      const dontKnowPhrases = ["don't know", "dont know", "not sure", "no idea", "don't remember", "dont remember", "can't remember", "cant remember", "no clue", "i do not know", "i am not sure", "mujhe nahi pata", "pata nahi"];
+      const matchedDontKnow = dontKnowPhrases.some(phrase => answerLower.includes(phrase)) || answerLower.length < 5;
+      if (matchedDontKnow) {
+        state.dontKnowCount = (state.dontKnowCount || 0) + 1;
+      }
+
+      const exitPhrases = ["stop the interview", "exit the interview", "i refuse", "i want to stop", "end this", "quit", "refuse participation", "stop now"];
+      if (exitPhrases.some(phrase => answerLower.includes(phrase))) {
+        state.earlyExitTriggered = true;
+        state.earlyExitReason = "Candidate refused participation or requested an exit.";
+      }
+
+      if (state.dontKnowCount >= 3) {
+        state.earlyExitTriggered = true;
+        state.earlyExitReason = "Candidate repeatedly answered that they don't know (3 or more times).";
+      }
+    }
+
+    // Build the system prompt
+    const questionCount = history ? history.length : 0;
+
+    // ─── ADAPTIVE LENGTH ENGINE ───────────────────────────────────────────────
+    // Replaces the flat cap with a performance-driven wrap-up signal.
+    // Signals: rolling 3-answer avg score, dontKnowCount, satisfaction scores.
+    function computeAdaptiveWrapUp() {
+      // 1. Explicit exit request or repeated refusal
+      if (state.earlyExitTriggered) return { wrap: true, reason: 'early_exit' };
+
+      // 2. Too many "I don't know" answers (>= 3)
+      if ((state.dontKnowCount || 0) >= 3) return { wrap: true, reason: 'repeated_dont_know' };
+
+      // 3. Rolling average from the last 3 answers
+      let rollingAvg = 5;
+      if (history && history.length >= 1) {
+        const recent = history.slice(-3);
+        rollingAvg = recent.reduce((s, h) => s + (h.score ?? 5), 0) / recent.length;
+      }
+
+      // 4. Consistently poor: every answer in last 3 scored <= 3
+      if (history && history.length >= 3) {
+        const allPoor = history.slice(-3).every(h => (h.score ?? 5) <= 3);
+        if (allPoor) return { wrap: true, reason: 'consistently_poor' };
+      }
+
+      // 5. Very poor and at least 2 answers in: avg <= 2.5 means wrap immediately
+      if (history && history.length >= 2 && rollingAvg <= 2.5) {
+        return { wrap: true, reason: 'very_poor_early' };
+      }
+
+      // 6. Absolute hard cap — never exceed 18 questions
+      if (questionCount >= 18) return { wrap: true, reason: 'max_cap' };
+
+      // 7. Performance-based natural exit after minimum 6 questions:
+      //    Strong (avg >= 7.5): push to 14 questions
+      //    Average (avg >= 5):  wrap at 10 questions
+      //    Below avg (avg < 5): wrap at 7 questions
+      if (questionCount >= 6) {
+        if (rollingAvg >= 7.5 && questionCount >= 14) return { wrap: true, reason: 'strong_performer_full' };
+        if (rollingAvg >= 5.0 && questionCount >= 10) return { wrap: true, reason: 'average_performer_done' };
+        if (rollingAvg <  5.0 && questionCount >=  7) return { wrap: true, reason: 'below_avg_short_session' };
+      }
+
+      return { wrap: false, reason: 'continue' };
+    }
+
+    const wrapDecision = computeAdaptiveWrapUp();
+    const isNearEnd    = wrapDecision.wrap;
+    const wrapReason   = wrapDecision.reason;
+
+    let rollingScoreAvg = 5;
+    if (history && history.length >= 1) {
+      const recent = history.slice(-3);
+      rollingScoreAvg = recent.reduce((s, h) => s + (h.score ?? 5), 0) / recent.length;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    let systemPrompt = `You are an experienced, highly skilled human interviewer named ${finalInterviewerAbility === "vikram" ? "Prof. Vikram" : finalInterviewerAbility === "ananya" ? "Dr. Ananya" : "Sarthi"} conducting a live technical interview on the JobSarthi platform.
+
+YOUR PERSONA:
+${finalInterviewerAbility === "vikram" ? "You are Prof. Vikram — a seasoned senior engineering manager with 25+ years of experience at companies like Google and Microsoft. You speak deliberately, ask extremely deep low-level questions about runtime internals, memory models, concurrency primitives, and system bottlenecks. You never accept surface-level buzzword answers. You dig until you find the candidate's true depth. You are respectful but absolutely firm." : finalInterviewerAbility === "ananya" ? "You are Dr. Ananya — a rigorous engineering director who has conducted 2000+ interviews. You are known for your sharp, methodical questioning style. You focus heavily on edge cases, failure modes, production incidents, and quantitative metrics. You probe for specific numbers (latency, throughput, error rates). You are professionally encouraging but never let vague or hand-wavy answers pass." : "You are Sarthi — a friendly, encouraging, and highly professional senior engineer. You create a comfortable interview atmosphere while still maintaining rigor. You guide candidates through difficult questions with subtle hints when they genuinely struggle, but you probe deeper when answers seem rehearsed or surface-level. You celebrate good answers with specific praise."}
+
+LANGUAGE: ${language === "hi" ? "Respond ONLY in Hindi (Devanagari script). All questions, feedback, and spoken text must be in Hindi." : language === "hinglish" ? "Respond in Hinglish (Hindi/English blend written in English alphabet, e.g., 'Aap scalability ko kaise handle karenge?'). Mix naturally like how Indian engineers actually speak in interviews." : "Respond in clear, professional English."}
+
+===== CANDIDATE DOSSIER =====
+Name: ${finalCandidateName}
+Target Role: ${jobDetails ? `${jobDetails.title} at ${jobDetails.company}` : resolvedRole}
+Difficulty Level: ${currentDiff}
+${jobDetails ? `Job Description: ${jobDetails.description}\nJob Requirements: ${JSON.stringify(jobDetails.reqs)}` : ""}
+Resume/Profile:
+${profileContext || "No resume provided"}
+${jobSkills ? `Key Job Skills to Evaluate: ${jobSkills}` : ""}
+${customQuestionsText}
+
+===== INTERVIEW STATE =====
+${JSON.stringify(state, null, 2)}
+Questions completed: ${questionCount}
+Rolling score avg (last 3 answers): ${rollingScoreAvg.toFixed(1)} / 10
+Adaptive wrap-up signal: ${isNearEnd ? `WRAP UP NOW — Reason: ${wrapReason}` : `CONTINUE — keep going`}
+
+===== ADAPTIVE LENGTH RULES (CRITICAL) =====
+The interview length is NOT fixed. You decide dynamically based on performance:
+- POOR PERFORMER (avg <= 3, 3 consecutive poor answers, or dontKnowCount >= 3): End immediately. Be warm and professional.
+- BELOW AVERAGE  (avg < 5, >= 7 questions asked): Wrap up. Don't drag out a struggling session.
+- AVERAGE        (avg 5-7, >= 10 questions asked): Conclude naturally.
+- STRONG         (avg >= 7.5, up to 14 questions): Keep pushing — ask deeper, harder, edge-case questions.
+- EXCEPTIONAL    (consistent >= 9): May go up to 18 targeted questions to fully map expertise.
+${isNearEnd ? `
+⚠️ WRAP-UP MODE ACTIVE (${wrapReason}):
+- Do NOT ask any new technical questions.
+- Transition to a warm, personalised closing statement.
+- If candidate performed well: cite 1-2 specific observed strengths.
+- If candidate struggled: be encouraging — suggest 1 improvement area gently.
+- Set "isInterviewCompleted": true.
+` : `
+CONTINUE INTERVIEWING:
+- Rolling avg: ${rollingScoreAvg.toFixed(1)}/10
+- If trending UP (>= 7): Increase difficulty. Ask about architecture, tradeoffs, system design, edge cases.
+- If trending DOWN (< 5): Stay at current level. Try a different topic angle — give them a chance to recover.
+- If score very low (< 3) this turn: Record in evidence. Three in a row triggers auto-wrap next turn.
+`}
+
+===== INTERVIEW PIPELINE FLOW =====
+You must strictly follow this progression:
+1. **Introduction** (1-2 Questions): Welcome the candidate. Break the ice. Ask them to briefly introduce themselves or discuss their primary focus.
+2. **Project / Experience Discussion**: Discuss a project or experience listed on their resume. Ask about their role, structural decisions, and tech choices.
+3. **Claim Verification**: 
+   - Analyze every candidate answer for specific claims (e.g. "I built X", "I optimized Y by Z%").
+   - If a claim is made, or you are verifying an existing claim, probe it with:
+     - **How?** (How did they build it? Detail the logic/architecture)
+     - **Why?** (Why that tool/approach over others?)
+     - **Challenges?** (What roadblocks did they face?)
+     - **Results?** (What were the metrics, outcomes, or feedback?)
+   - If the candidate answers vaguely or shows signs of a bluff, update the claim status to "partial" or "bluff_detected" and record it in evidence.
+4. **Technical Assessment**: Ask specific technical questions based on the candidate's skills, projects, and target job description requirements. Focus on edge cases and system internals.
+5. **Behavioral Assessment**: Ask scenario-based questions to evaluate: **Teamwork**, **Ownership**, **Problem Solving**, and **Learning Ability**.
+6. **Candidate Questions**: Ask: "Now, before we conclude, do you have any questions for me or about the role/company?"
+7. **Wrap-up**: Make a warm closing statement. Thank them by name, summarize 1-2 strengths, and set "isInterviewCompleted": true.
+
+===== DECISION ENGINE & CONTROL RULES =====
+- On every turn, look at the candidate's response and extract: Claims, Skills, Technologies, and Experience.
+- Check if verification is needed:
+  - If a claim is newly introduced or unverified -> Ask a Targeted Follow-up to verify it (explore How? Why? Challenges? Results?).
+  - If no verification is needed or claim verification is complete -> Move to the Next Topic in the graph progression.
+- **Dynamic Exit Criteria** (You may end the interview early if any of the following are met):
+  - *Enough evidence collected*: You have asked at least 5-6 questions and have high confidence in the candidate's skills/scores.
+  - *Candidate repeatedly says "I don't know"*: If the candidate has dontKnowCount >= 3, trigger an early exit.
+  - *Refusal of participation*: Candidate refuses to answer or requests to end.
+  - If early exit is triggered: set interviewState.earlyExitTriggered = true, transition to Wrap-up, and conclude.
+
+===== OUTPUT FORMAT =====
+Return ONLY a valid JSON object. No markdown, no code blocks, no extra text outside the JSON.
+{
+  "feedback": "1-2 sentence constructive critique of the previous response, acknowledging specific points they made. (null for first question)",
+  "score": 7, // Strict score (0 to 10) for the last response
+  "difficultyChange": "increase" | "decrease" | "maintain",
+  "controllerAction": "explore_deeper" | "verify_claim" | "clarify" | "change_topic" | "end_interview",
+  "controllerReason": "Brief explanation of your controller choice",
+  "isInterviewCompleted": false, // Set to true ONLY when wrapping up the final turn
+  "memory": {
+    "statedSkills": ["cumulative list of all skills mentioned so far"],
+    "projects": ["cumulative list of all projects mentioned"],
+    "weaknesses": ["specific technical or soft skills they struggled with"],
+    "strengths": ["specific technical or soft skills they excelled in"]
+  },
+  "nextQuestion": "Next question text (with conversational bridge)",
+  "spokenQuestion": "Natural spoken version of the question, using conversational tone",
+  "interviewState": {
+    "stage": "current stage (introduction / project_experience / claim_verification / technical_assessment / behavioral_assessment / candidate_questions / wrap_up)",
+    "currentTopic": "Topic Name",
+    "topicGraph": {
+      "nodes": ["Introduction", "Project & Experience Discussion", "Claim Verification", "Technical Assessment", "Behavioral Assessment", "Candidate Questions", "Wrap-up"],
+      "currentIndex": 0, // Current index based on pipeline flow
+      "completed": ["list of completed stages"]
+    },
+    "claims": [
+      { "topic": "Short label", "description": "Details of the claim", "status": "unverified" | "verified" | "partial" | "bluff_detected" }
+    ],
+    "satisfaction": {
+      "technicalKnowledge": 50, // 0-100 score based on cumulative answers
+      "communication": 50,
+      "confidence": 50,
+      "authenticity": 50,
+      "problemSolving": 50,
+      "learningAbility": 50,
+      "ownership": 50,
+      "depth": 50,
+      "overall": 50
+    },
+    "evidence": [
+      { "type": "claim_verified" | "bluff_detected" | "strong_depth" | "no_knowledge" | "communication_praise" | "vague_answer" | "general", "text": "Specific observation text", "questionIndex": 0 }
+    ],
+    "dontKnowCount": 0,
+    "earlyExitTriggered": false,
+    "earlyExitReason": ""
+  }
+}`;
+
+    // Reconstruct message history as natural conversation (not raw JSON)
+    const messages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `Hi, I'm ${candidateName || "the candidate"} and I'm ready for my ${resolvedRole} interview. Here's my background:\n${profileContext}` }
+    ];
+
+    if (!isFirstQuestion && history && history.length > 0) {
+      for (let i = 0; i < history.length; i++) {
+        const item = history[i];
+        let interviewerTurn = "";
+        if (i > 0 && history[i - 1].feedback) {
+          interviewerTurn += history[i - 1].feedback + " ";
+        }
+        interviewerTurn += item.question;
+        messages.push({ role: "assistant", content: interviewerTurn });
+        messages.push({ role: "user", content: item.answer || "[No answer given]" });
+      }
+    }
+
+    if (!isFirstQuestion) {
+      let currentTurn = "";
+      if (history && history.length > 0) {
+        const lastItem = history[history.length - 1];
+        if (lastItem.feedback) currentTurn += lastItem.feedback + " ";
+      }
+      currentTurn += currentQuestion;
+      messages.push({ role: "assistant", content: currentTurn });
+
+      const answerContent = userAnswer
+        ? userAnswer
+        : (timerExpired ? "[Candidate ran out of time and didn't answer]" : "[No answer provided]");
+      messages.push({ role: "user", content: answerContent });
+    }
+
+    // Call LLM
+    let responseJSON = null;
+    try {
+      if (GROQ_API_KEY) {
+        console.log(`[Sarthi AI] Generating question using Groq... isFirstQuestion: ${isFirstQuestion}`);
+        const responseText = await callGroq(messages, true, 0.65);
+        let cleanText = responseText.trim();
+        if (cleanText.startsWith("```")) {
+          const lines = cleanText.split("\n");
+          if (lines[0].startsWith("```")) lines.shift();
+          if (lines[lines.length - 1].startsWith("```")) lines.pop();
+          cleanText = lines.join("\n").trim();
+        }
+        responseJSON = JSON.parse(cleanText);
+      } else if (process.env.GEMINI_API_KEY) {
+        console.log(`[Sarthi AI] Generating question using Gemini... isFirstQuestion: ${isFirstQuestion}`);
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+        
+        const geminiContents = messages.map(msg => {
+          let roleName = "user";
+          if (msg.role === "system") roleName = "user";
+          else if (msg.role === "assistant") roleName = "model";
+          return {
+            role: roleName,
+            parts: [{ text: msg.content }]
+          };
+        });
+
+        const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+        let lastError = null;
+
+        for (const model of models) {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+          const payload = {
+            contents: geminiContents,
+            systemInstruction: {
+              parts: [{ text: systemPrompt }]
+            },
+            generationConfig: { 
+              responseMimeType: "application/json",
+              temperature: 0.65
+            }
+          };
+
+          try {
+            const response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Gemini API error for model ${model}: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            let responseText = result.candidates[0].content.parts[0].text.trim();
+            if (responseText.startsWith("```")) {
+              const lines = responseText.split("\n");
+              if (lines[0].startsWith("```")) lines.shift();
+              if (lines[lines.length - 1].startsWith("```")) lines.pop();
+              responseText = lines.join("\n").trim();
+            }
+            responseJSON = JSON.parse(responseText);
+            break; // Break on success!
+          } catch (err) {
+            console.warn(`[Sarthi AI] Model ${model} failed: ${err.message}`);
+            lastError = err;
+            if (err.message.includes("429") || err.message.toLowerCase().includes("quota")) {
+              continue; // Try next model immediately
+            }
+          }
+        }
+
+        if (!responseJSON && lastError) {
+          throw lastError;
+        }
+      }
+    } catch (llmErr) {
+      console.warn("[Sarthi AI] LLM call or JSON parsing failed. Falling back to local questions.", llmErr);
+      responseJSON = null;
+    }
+
+    if (!responseJSON) {
+      // High-Quality Local Fallback Mode
+      console.log("[Sarthi AI] Fallback mode triggered.");
+      
+      let fallbackRole = resolvedRole;
+      if (!FALLBACK_QUESTIONS[fallbackRole]) {
+        const lowerRole = fallbackRole.toLowerCase();
+        if (lowerRole.includes("economics") || lowerRole.includes("finance") || lowerRole.includes("business")) {
+          fallbackRole = "Economics / Financial Analyst";
+        } else {
+          fallbackRole = "Full Stack Developer";
+        }
+      }
+      
+      const roleQuestions = FALLBACK_QUESTIONS[fallbackRole] || FALLBACK_QUESTIONS["Full Stack Developer"];
+      let diffQuestions = roleQuestions[currentDiff] || roleQuestions["Intermediate"];
+      if (customQuestionsList && customQuestionsList.length > 0) {
+        diffQuestions = [...customQuestionsList, ...diffQuestions];
+      }
+
+      // Setup stage and currentTopic based on history index
+      const steps = history ? history.length : 0;
+      let targetStage = "introduction";
+      let targetTopic = "Introduction";
+      let isCompleted = false;
+      let nextQ = "";
+
+      if (state.earlyExitTriggered || state.dontKnowCount >= 3) {
+        isCompleted = true;
+        nextQ = `Thank you, ${candidateName || "Candidate"}. I've noticed you had difficulty with the topics — that's completely fine. We'll wrap up here and compile your evaluation. Have a great day!`;
+        targetStage = "wrap_up";
+        targetTopic = "Wrap-up";
+      } else if (steps === 0) {
+        targetStage = "introduction";
+        targetTopic = "Introduction";
+        nextQ = `Hi ${candidateName || "Candidate"}, welcome to your mock interview session for the ${resolvedRole} position. To start, could you please introduce yourself and walk me through the most significant project you have worked on recently?`;
+      } else if (steps === 1) {
+        targetStage = "project_experience";
+        targetTopic = "Project & Experience Discussion";
+        nextQ = `That sounds interesting. In that project, what were your specific responsibilities, and how did you decide on the technologies or frameworks you used?`;
+      } else if (steps === 2) {
+        targetStage = "claim_verification";
+        targetTopic = "Claim Verification";
+        nextQ = `You mentioned implementing key features in that project. Can you explain HOW you built the core logic, WHY you chose that approach, what CHALLENGES you faced, and the actual RESULTS or performance metrics?`;
+      } else if (steps === 3) {
+        targetStage = "technical_assessment";
+        targetTopic = "Technical Assessment";
+        nextQ = diffQuestions[0] || "Can you explain how state and lifecycle methods or component rendering works in this tech stack?";
+      } else if (steps === 4) {
+        targetStage = "technical_assessment";
+        targetTopic = "Technical Assessment";
+        nextQ = diffQuestions[1] || "How do you typically optimize database query performance and cache resources under heavy load?";
+      } else if (steps === 5) {
+        // Adaptive branch: wrap poor performers early, continue for average+
+        if (rollingScoreAvg < 4) {
+          isCompleted = true;
+          nextQ = `Thank you for your time today, ${candidateName || "Candidate"}. Based on today's session, I'd recommend revisiting some fundamentals before your next interview. I'll compile your report now. Keep learning!`;
+          targetStage = "wrap_up";
+          targetTopic = "Wrap-up";
+        } else {
+          targetStage = "behavioral_assessment";
+          targetTopic = "Behavioral Assessment";
+          nextQ = "Tell me about a time you had a technical disagreement with a team member. How did you handle it and what was the outcome?";
+        }
+      } else if (steps === 6) {
+        targetStage = "behavioral_assessment";
+        targetTopic = "Behavioral Assessment";
+        nextQ = "Describe a situation where you had to quickly learn a new technology to solve a problem. How did you approach it?";
+      } else if (steps === 7) {
+        // Wrap below-average performers here
+        if (rollingScoreAvg < 5) {
+          targetStage = "candidate_questions";
+          targetTopic = "Candidate Questions";
+          nextQ = `We've covered the core areas. Do you have any questions for me before we finish?`;
+        } else {
+          targetStage = "technical_assessment";
+          targetTopic = "Technical Assessment (Advanced)";
+          nextQ = diffQuestions[2] || "Walk me through a system design scenario: how would you design a scalable notification service?";
+        }
+      } else if (steps === 8) {
+        if (rollingScoreAvg >= 7) {
+          targetStage = "technical_assessment";
+          targetTopic = "Technical Assessment (Expert)";
+          nextQ = diffQuestions[3] || "What tradeoffs would you consider when choosing between a microservices and monolithic architecture for a high-traffic product?";
+        } else {
+          targetStage = "candidate_questions";
+          targetTopic = "Candidate Questions";
+          nextQ = `I have gathered enough data for the assessment. Before we finish, do you have any questions for me about the role or the company?`;
+        }
+      } else if (steps === 9 && rollingScoreAvg >= 7) {
+        targetStage = "technical_assessment";
+        targetTopic = "Technical Assessment (Expert)";
+        nextQ = diffQuestions[4] || "How would you approach debugging a production memory leak in a Node.js service under live traffic?";
+      } else if ((steps === 9 && rollingScoreAvg < 7) || steps === 10) {
+        targetStage = "candidate_questions";
+        targetTopic = "Candidate Questions";
+        nextQ = `Excellent. I have a comprehensive picture now. Before we wrap up — do you have any questions for me about the role, the team, or the company?`;
+      } else {
+        isCompleted = true;
+        nextQ = `Thank you so much for your time today, ${candidateName || "Candidate"}. That concludes our interview session. I'm now compiling your performance metrics and generating your final report. Well done — good luck!`;
+        targetStage = "wrap_up";
+        targetTopic = "Wrap-up";
+      }
+
+      let score = 5;
+      let feedback = "Noted.";
+      let difficultyChange = "maintain";
+
+      if (!isFirstQuestion) {
+        if (timerExpired || !userAnswer || userAnswer.trim().length < 5) {
+          score = 0;
+          feedback = "No response provided or timer expired. Let's move to the next topic.";
+          difficultyChange = "decrease";
+        } else {
+          const answerLower = userAnswer.toLowerCase();
+          let keywordCount = 0;
+          const keyTerms = ["rendering", "server", "client", "state", "components", "index", "query", "database", "middleware", "token", "auth", "flexbox", "grid", "hooks", "dom", "scaling", "api", "load", "team", "conflict", "metrics", "challenge", "cache"];
+          keyTerms.forEach(t => { if (answerLower.includes(t)) keywordCount++; });
+          
+          if (keywordCount >= 3) {
+            score = 8;
+            feedback = "Excellent response! You showed good practical understanding.";
+            difficultyChange = "increase";
+          } else if (keywordCount >= 1) {
+            score = 6;
+            feedback = "A reasonable answer. Try to provide more technical detail or metrics.";
+            difficultyChange = "maintain";
+          } else {
+            score = 4;
+            feedback = "A basic overview. Make sure to review the core architecture of these features.";
+            difficultyChange = "decrease";
+          }
+        }
+      }
+
+      state.stage = targetStage;
+      state.currentTopic = targetTopic;
+      const tNodes = state.topicGraph.nodes;
+      const nodeIdx = tNodes.indexOf(targetTopic);
+      if (nodeIdx !== -1) {
+        state.topicGraph.currentIndex = nodeIdx;
+        state.topicGraph.completed = tNodes.slice(0, nodeIdx);
+      }
+
+      if (userAnswer && !isFirstQuestion) {
+        if (score >= 8) {
+          state.evidence.push({ type: "strong_depth", text: `Demonstrated strong depth in ${targetTopic}.`, questionIndex: steps - 1 });
+        } else if (score <= 3) {
+          state.evidence.push({ type: "no_knowledge", text: `Had difficulty answering questions about ${targetTopic}.`, questionIndex: steps - 1 });
+        }
+      }
+
+      responseJSON = {
+        feedback: isFirstQuestion ? null : feedback,
+        score,
+        difficultyChange,
+        isInterviewCompleted: isCompleted,
+        nextQuestion: nextQ,
+        spokenQuestion: nextQ,
+        memory: {
+          statedSkills: Array.isArray(candidateProfile?.skills) ? candidateProfile.skills : [],
+          projects: [],
+          weaknesses: score <= 4 ? [targetTopic] : [],
+          strengths: score >= 8 ? [targetTopic] : []
+        },
+        interviewState: state
+      };
+    }
+
+    // Attach/Update interviewState in responseJSON
+    if (responseJSON) {
+      if (responseJSON.next_question && !responseJSON.nextQuestion) {
+        responseJSON.nextQuestion = responseJSON.next_question;
+      }
+      if (responseJSON.spoken_question && !responseJSON.spokenQuestion) {
+        responseJSON.spokenQuestion = responseJSON.spoken_question;
+      }
+      if (responseJSON.is_interview_completed !== undefined && responseJSON.isInterviewCompleted === undefined) {
+        responseJSON.isInterviewCompleted = responseJSON.is_interview_completed;
+      }
+      if (responseJSON.difficulty_change && !responseJSON.difficultyChange) {
+        responseJSON.difficultyChange = responseJSON.difficulty_change;
+      }
+      if (responseJSON.controller_action && !responseJSON.controllerAction) {
+        responseJSON.controllerAction = responseJSON.controller_action;
+      }
+      if (responseJSON.controller_reason && !responseJSON.controllerReason) {
+        responseJSON.controllerReason = responseJSON.controller_reason;
+      }
+
+      if (!responseJSON.nextQuestion) {
+        responseJSON.nextQuestion = responseJSON.spokenQuestion || "Can you explain the next challenge or project you solved?";
+      }
+      if (!responseJSON.spokenQuestion) {
+        responseJSON.spokenQuestion = responseJSON.nextQuestion;
+      }
+      if (responseJSON.isInterviewCompleted === undefined) {
+        responseJSON.isInterviewCompleted = false;
+      }
+      if (responseJSON.score === undefined) {
+        responseJSON.score = 5;
+      } else {
+        responseJSON.score = Number(responseJSON.score) || 5;
+      }
+      if (!responseJSON.difficultyChange) {
+        responseJSON.difficultyChange = "maintain";
+      }
+      if (!responseJSON.feedback) {
+        responseJSON.feedback = "Response noted.";
+      }
+
+      if (!responseJSON.interviewState) {
+        const topics = ["Introduction", "Project & Experience Discussion", "Claim Verification", "Technical Assessment", "Behavioral Assessment", "Candidate Questions", "Wrap-up"];
+        const step = history ? history.length : 0;
+        const topicIndex = Math.min(topics.length - 1, Math.floor(step / 1.5));
+        state.stage = topics[topicIndex].toLowerCase().replace(/\s+/g, '_');
+        state.currentTopic = topics[topicIndex];
+        state.topicGraph.currentIndex = topicIndex;
+        state.topicGraph.completed = topics.slice(0, topicIndex);
+
+        if (responseJSON.score !== undefined) {
+          const s = responseJSON.score * 10;
+          state.satisfaction.overall = Math.round(state.satisfaction.overall * 0.7 + s * 0.3);
+          state.satisfaction.technicalKnowledge = Math.round(state.satisfaction.technicalKnowledge * 0.75 + s * 0.25);
+          state.satisfaction.communication = Math.round(state.satisfaction.communication * 0.75 + s * 0.25);
+          state.satisfaction.confidence = Math.round(state.satisfaction.confidence * 0.8 + s * 0.2);
+          state.satisfaction.problemSolving = Math.round(state.satisfaction.problemSolving * 0.8 + s * 0.2);
+          state.satisfaction.depth = Math.round(state.satisfaction.depth * 0.8 + s * 0.2);
+          state.satisfaction.ownership = Math.round(state.satisfaction.ownership * 0.85 + s * 0.15);
+        }
+
+        if (userAnswer) {
+          if (responseJSON.score >= 8) {
+            state.evidence.push({
+              type: "strong_depth",
+              text: `Demonstrated strong technical depth in ${state.currentTopic} with specific details.`,
+              questionIndex: step
+            });
+          } else if (responseJSON.score >= 6) {
+            state.evidence.push({
+              type: "claim_verified",
+              text: `Showed solid understanding of key concepts in ${state.currentTopic}.`,
+              questionIndex: step
+            });
+          } else if (responseJSON.score <= 3) {
+            state.evidence.push({
+              type: "no_knowledge",
+              text: `Struggled to provide clear explanations in ${state.currentTopic}.`,
+              questionIndex: step
+            });
+          }
+        }
+        responseJSON.interviewState = state;
+      } else {
+        const st = responseJSON.interviewState;
+        if (st.claims && Array.isArray(st.claims)) {
+          st.claims = st.claims.map(c => ({
+            topic: c.topic || c.text || "Unnamed claim",
+            description: c.description || c.text || "",
+            status: (c.status || "unverified").toLowerCase()
+          }));
+        }
+      }
+    }
+
+    // Call ElevenLabs to generate spoken audio if ELEVENLABS_API_KEY is configured
+    let audioBase64 = null;
+    if (process.env.ELEVENLABS_API_KEY) {
+      try {
+        const textToSpeak = responseJSON.spokenQuestion || responseJSON.nextQuestion;
+        if (textToSpeak) {
+          console.log(`[ElevenLabs] Generating speech audio for: "${textToSpeak.substring(0, 40)}..."`);
+          audioBase64 = await callElevenLabs(textToSpeak, interviewerAbility);
+        }
+      } catch (audioErr) {
+        console.warn("ElevenLabs audio generation failed:", audioErr);
+      }
+    }
+
+    responseJSON.audioBase64 = audioBase64;
+    res.json(responseJSON);
+  } catch (err) {
+    console.error("Interview API error:", err);
+    res.json({
+      feedback: "Technical error, but let's continue with the next concept.",
+      score: 5,
+      difficultyChange: "maintain",
+      nextQuestion: "Can you explain the main lifecycle methods or stages in web application performance optimization?",
+      spokenQuestion: "Can you explain the main lifecycle methods or stages in web application performance optimization?",
+      audioBase64: null,
+      interviewState: {
+        stage: "technical_deep_dive",
+        currentTopic: "Technical Deep Dive",
+        topicGraph: {
+          nodes: ["Introduction", "Resume & Projects Verification", "Technical Deep Dive", "System Design & Tradeoffs", "Behavioral & Wrap-up"],
+          currentIndex: 2,
+          completed: ["Introduction", "Resume & Projects Verification"]
+        },
+        claims: [],
+        satisfaction: {
+          technicalKnowledge: 50,
+          communication: 50,
+          confidence: 50,
+          authenticity: 50,
+          problemSolving: 50,
+          learningAbility: 50,
+          ownership: 50,
+          depth: 50,
+          overall: 50
+        },
+        evidence: [],
+        earlyExitTriggered: false,
+        earlyExitReason: ""
+      }
+    });
+  }
+});
+
+
+
+app.post("/api/sarthi/interviews", async (req, res) => {
+  try {
+    const { email, role, difficulty, score, suspicionScore, history, interviewState } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const report = {
+      email: email.toLowerCase(),
+      role: role || "Software Developer",
+      difficulty: difficulty || "Intermediate",
+      score: score !== undefined ? score : 0,
+      suspicionScore: suspicionScore !== undefined ? suspicionScore : 0,
+      history: history || [],
+      interviewState: interviewState || null,
+      timestamp: new Date().toISOString()
+    };
+    const saved = await dbService.createInterviewReport(report);
+    res.status(201).json(saved);
+  } catch (err) {
+    console.error("Failed to save interview report:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/api/sarthi/interviews", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const reports = await dbService.getInterviewReports(email);
+    res.json(reports);
+  } catch (err) {
+    console.error("Failed to get interview reports:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// --- Seeker Profile APIs ---
+
+app.get("/api/seeker/profile", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email query param is required." });
+    }
+    const user = await dbService.findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.json(user.profile || { college: "", degree: "", cgpa: "", skills: [], experience: "", resumeUrl: "", resumeFileName: "", linkedinId: "", certificates: [] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch profile." });
+  }
+});
+
+app.post("/api/seeker/profile", async (req, res) => {
+  try {
+    const { email, profile } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+
+    // Fetch existing user to clean up old resume/files from Cloudinary if overwritten
+    const existingUser = await dbService.findUserByEmail(email);
+    const oldResumeUrl = existingUser?.profile?.resumeUrl;
+    const oldAvatarUrl = existingUser?.profile?.avatarUrl;
+
+    // Intercept Base64 strings and upload to Cloudinary
+    if (profile) {
+      // 1. Handle resumeBase64
+      if (profile.resumeBase64 && profile.resumeBase64.startsWith("data:")) {
+        if (oldResumeUrl) {
+          await deleteFromCloudinary(oldResumeUrl);
+        }
+        console.log("Uploading resume to Cloudinary...");
+        // Resumes (PDF, DOCX) should be uploaded as raw/auto
+        const secureUrl = await uploadToCloudinary(profile.resumeBase64, "raw");
+        profile.resumeUrl = secureUrl;
+        delete profile.resumeBase64; // Remove heavy raw base64 so we don't store it in DB
+      }
+
+      // Handle avatarBase64 (Profile Picture)
+      if (profile.avatarBase64 && profile.avatarBase64.startsWith("data:")) {
+        if (oldAvatarUrl) {
+          await deleteFromCloudinary(oldAvatarUrl);
+        }
+        console.log("Uploading profile picture to Cloudinary...");
+        const secureUrl = await uploadToCloudinary(profile.avatarBase64, "image");
+        profile.avatarUrl = secureUrl;
+        delete profile.avatarBase64;
+      }
+
+      // 2. Handle certificates fileUrl base64
+      if (profile.certificates && Array.isArray(profile.certificates)) {
+        for (let i = 0; i < profile.certificates.length; i++) {
+          const cert = profile.certificates[i];
+          if (cert.fileUrl && cert.fileUrl.startsWith("data:")) {
+            console.log(`Uploading certificate "${cert.title}" to Cloudinary...`);
+            const secureUrl = await uploadToCloudinary(cert.fileUrl, "raw");
+            cert.fileUrl = secureUrl;
+          }
+        }
+      }
+    }
+
+    if (mongoDb) {
+      await mongoDb.collection("users").updateOne(
+        { email: email.toLowerCase() },
+        { $set: { profile: profile } }
+      );
+    } else {
+      const local = await readLocalDB();
+      const user = local.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (user) {
+        user.profile = profile;
+        await writeLocalDB(local);
+      }
+    }
+    res.json({ success: true, profile });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save profile." });
+  }
+});
+
+app.post("/api/seeker/parse-resume", uploadRateLimiter, largeBodyParser, async (req, res) => {
+  try {
+    const { base64Data, mimeType } = req.body;
+    if (!base64Data) {
+      return res.status(400).json({ error: "Base64 data is required." });
+    }
+
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (GEMINI_API_KEY) {
+      try {
+        console.log("Parsing resume via Gemini 2.5 Flash...");
+        const prompt = `Extract the candidate's education (college, degree, CGPA), skills (comma-separated list of tags), work experience, class 10th marks, class 12th marks, hobbies (list), preferred locations (list), expected CTC, and languages known. Return ONLY a raw JSON object matching this schema:\n{\n  "college": "College name",\n  "degree": "Degree name",\n  "cgpa": "CGPA (e.g. 8.5/10 or 3.8/4.0)",\n  "skills": ["Skill1", "Skill2"],\n  "experience": "Brief experience summary",\n  "class10th": "Class 10th marks (e.g. 92% or 9.5 CGPA) if found, else empty",\n  "class12th": "Class 12th marks (e.g. 88% or 85%) if found, else empty",\n  "hobbies": ["Hobby1", "Hobby2"] if found, else empty array,\n  "preferredLocations": ["Location1", "Location2"] if found, else empty array,\n  "expectedCtc": "Expected CTC if found, else empty",\n  "languages": ["Lang1", "Lang2"] if found, else empty array\n}`;
+        const parsed = await parseDocumentWithGemini(base64Data, mimeType, prompt);
+        return res.json(parsed);
+      } catch (geminiErr) {
+        console.warn("Gemini parsing failed, falling back to mock:", geminiErr);
+      }
+    }
+
+    // --- Mock Fallback OCR Parsing ---
+    console.log("Emulating Resume OCR...");
+    res.json({
+      college: "BITS Pilani",
+      degree: "B.E. in Computer Science",
+      cgpa: "9.1/10",
+      skills: ["HTML", "CSS", "JavaScript", "React.js", "Node.js", "MongoDB", "SQL"],
+      experience: "Web Developer Intern at InnovateTech Solutions (4 months), optimized UI performance and built interactive dashboard features.",
+      class10th: "94%",
+      class12th: "92%",
+      hobbies: ["Coding", "Chess", "Gaming"],
+      preferredLocations: ["Mumbai", "Remote"],
+      expectedCtc: "12 LPA",
+      languages: ["English", "Hindi"]
+    });
+
+  } catch (err) {
+    console.error("Resume parsing error:", err);
+    res.status(500).json({ error: "Failed to parse resume." });
+  }
+});
+
+app.post("/api/seeker/analyse-resume", uploadRateLimiter, largeBodyParser, async (req, res) => {
+  try {
+    const { base64Data, mimeType, email, targetRole, jdText } = req.body;
+    const clientKey = email || req.ip || 'anonymous';
+    const check = checkAndTrackLimit('resumeAnalysis', clientKey, 10);
+    if (!check.allowed) {
+      return res.status(429).json({
+        error: "Limit reached. You have 0 out of 10 analyses left. Please try again later.",
+        limitExceeded: true,
+        type: "resume"
+      });
+    }
+
+    if (!base64Data) {
+      return res.status(400).json({ error: "Base64 data is required." });
+    }
+
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+    // ── RAG CACHE CHECK: Skip LLM entirely if same resume was analysed before ──
+    // We will populate cacheKey after Gemini extraction gives us rawText
+    let _cachedResult = null;
+
+    // ── Step 1: Use Gemini to PARSE the document and extract structured resume text ──
+    let extractedText = null;
+    if (GEMINI_API_KEY) {
+      try {
+        console.log("[ResumeAnalyser] Step 1 — Extracting resume content via Gemini...");
+        const extractPrompt = `Analyze the provided document. First, check if this document is actually a professional resume, curriculum vitae (CV), academic profile, or career background document. If the document is completely unrelated, set "isResume" to false and provide a helpful, polite error message in "errorMessage".
+If it IS a valid resume/CV, set "isResume" to true and extract the details.
+Return a valid JSON object matching this structure:
+{
+  "isResume": true,
+  "errorMessage": "",
+  "fullName": "Candidate name",
+  "contact": "Email / Phone / LinkedIn if present",
+  "education": "All education entries as a string",
+  "experience": "All work experience entries as a string",
+  "skills": ["skill1", "skill2"],
+  "projects": "Project descriptions as a string",
+  "certifications": "Any certifications listed",
+  "rawText": "The complete raw text content of the resume"
+}`;
+        extractedText = await parseDocumentWithGemini(base64Data, mimeType, extractPrompt);
+        console.log("[ResumeAnalyser] Gemini extraction complete. isResume:", extractedText?.isResume);
+
+        // ── Check resume cache after extraction (we now have rawText for hashing) ──
+        if (extractedText && extractedText.rawText) {
+          _cachedResult = getResumeCache(extractedText.rawText, targetRole || "");
+          if (_cachedResult) {
+            console.log("[ResumeCache] Returning cached analysis — no LLM call needed.");
+            return res.json(_cachedResult);
+          }
+        }
+        
+        if (extractedText && extractedText.isResume === false) {
+          console.log("[ResumeAnalyser] Uploaded file rejected: not a valid resume.");
+          return res.status(400).json({
+            error: extractedText.errorMessage || "This doesn't seem to be a resume. Please upload a valid resume in PDF or Word format.",
+            invalidResume: true
+          });
+        }
+      } catch (geminiErr) {
+        console.error("[ResumeAnalyser] Gemini extraction failed (Step 1):", geminiErr);
+      }
+    }
+
+    const systemAnalysisPrompt = `You are a strict, world-class talent acquisition analyst and recruiter. Your task is to analyze the candidate's resume text and perform a rigorous, honest, and highly accurate evaluation.
+You MUST output a single valid JSON object following this EXACT schema (do not wrap in markdown or include extra text):
+{
+  "isResume": true,
+  "errorMessage": "",
+  "fullName": "Candidate Name",
+  "contact": "Candidate Contact Info",
+  "atsScore": 55,
+  "overview": "A detailed, constructive, and accurate summary of the candidate's background, identifying specific strengths and prominent gaps based on their career domain.",
+  "grammarRating": "Needs Improvement",
+  "structureRating": "Good",
+  "readabilityRating": "Good",
+  "keywordDensity": "12%",
+  "matchedSkills": [],
+  "missingSkills": [],
+  "strengths": [],
+  "quickWins": [],
+  "recommendations": [],
+  "suggestedRoles": [],
+  "extractedInfo": {
+    "education": "",
+    "experience": "",
+    "projects": "",
+    "skills": [],
+    "certifications": ""
+  },
+  "keyData": {
+    "technologies": [],
+    "tools": [],
+    "projects": [],
+    "achievements": [],
+    "claims": []
+  },
+  "importantClaims": [],
+  "topicMap": {
+    "projectName": "Primary project name or key professional achievement",
+    "topics": {}
+  },
+  "jdComparison": {
+    "requiredSkills": [],
+    "skillMatchScore": 55,
+    "missingSkills": [],
+    "strongSkills": []
+  },
+  "interviewPlan": {
+    "priority1": "Key focus area 1",
+    "priority2": "Key focus area 2",
+    "priority3": "Key focus area 3",
+    "priority4": "Key focus area 4"
+  },
+  "verificationQueue": [],
+  "sectionScores": {
+    "contactInfo": 60,
+    "summary": 50,
+    "experience": 45,
+    "education": 70,
+    "skills": 55,
+    "projects": 50
+  }
+}
+
+Crucial Rules:
+1. NO PLACEHOLDERS: Do NOT output placeholder text, example names, or dummy items (like "skill1", "proj1", "JobSarthi", "Built authentication"). If a field has no corresponding data in the resume, leave it empty (e.g., empty array [], empty object {}, or empty string "").
+2. DYNAMIC FIELD/DOMAIN ANALYSIS: Do NOT default to Computer Science, Software Engineering, or IT unless the resume explicitly shows the candidate is in that field. Carefully identify their actual career field/industry (e.g. Marketing, Sales, Civil Engineering, Nursing, Finance, Education, Hospitality, Design, etc.) and perform a precise, strict evaluation customized to that specific industry.
+3. ATS SCORE & SECTION SCORES: Scores must be strict and realistic. Do NOT inflate scores. An average resume should score between 40 and 60.
+4. DEDUCT POINTS STRICTOR:
+   - Deduct 15-20 points if the resume lacks quantifiable achievements/impact (e.g. metrics, percentages, money saved, volume handled).
+   - Deduct 10 points if contact details are missing links like LinkedIn or Portfolio.
+   - Deduct 10 points if there is no professional summary.
+   - Deduct 15 points if projects/experience are thin or described vaguely.
+5. Ratings (grammarRating, structureRating, readabilityRating) must be chosen strictly. "Needs Improvement" if there are formatting flaws or unreadable density; "Good" for average standard resumes; "Excellent" only for exceptional layouts with bulleted impact statements.
+6. topicMap: The 'topics' object should list key professional domains or elements of their primary project/achievement (e.g., for Marketing, this could be {"Campaign Strategy": [...], "Client Metrics": [...]}; for Finance: {"Risk Assessment": [...], "Financial Modeling": [...]}; for Civil Engineering: {"Structural Design": [...], "Quality Assurance": [...]}).`;
+
+    // ── RAG Pipeline: Uses JD Vector CACHE (avoids re-embedding same JD) ──
+    let retrievedMatchesText = "";
+    if (jdText && extractedText && extractedText.rawText && GEMINI_API_KEY) {
+      try {
+        const alignments = await buildResumeJDAlignments(
+          extractedText.rawText, jdText, GEMINI_API_KEY
+        );
+        if (alignments.length > 0) {
+          retrievedMatchesText = `\n===== RETRIEVED SEMANTIC ALIGNMENTS (LANGCHAIN RAG VECTOR STORE) =====\n` +
+            `Confidence-ranked semantic matches between candidate resume and job requirements:\n` +
+            alignments.map((a, i) =>
+              `Alignment ${i+1} [Confidence: ${a.confidence}%]:\n` +
+              `  Resume: "${a.resumeSegment}"\n` +
+              `  JD Requirement: "${a.jdRequirement}"`
+            ).join("\n\n") + "\n";
+          console.log(`[RAG] Mapped ${alignments.length} semantic alignments (cached JD store used if available).`);
+        }
+      } catch (ragErr) {
+        console.error("[RAG] Failed to perform LangChain RAG comparison:", ragErr);
+      }
+    }
+
+    const userAnalysisPrompt = `Perform the resume analysis for this candidate.
+${targetRole ? `Target Role: ${targetRole}` : `Target Role: (Not provided - dynamically determine the candidate's target field/role from their resume content)`}
+${jdText ? `Target Job Description: ${jdText}` : `Target Job Description: (Not provided - dynamically evaluate alignment based on standard professional requirements for the detected field)`}
+
+${retrievedMatchesText}
+
+Resume Content:
+${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
+
+    // ── Step 2: Use Groq to ANALYSE and generate the pipeline outputs ──
+    const _rawTextForCache = extractedText?.rawText || "";
+    if (extractedText && GROQ_API_KEY) {
+      try {
+        console.log("[ResumeAnalyser] Step 2 — Generating pipeline analysis via Groq...");
+        const groqMessages = [
+          { role: "system", content: systemAnalysisPrompt },
+          { role: "user", content: userAnalysisPrompt }
+        ];
+
+        const groqResponse = await callGroq(groqMessages, true, 0.1);
+        const analysisResult = safeParseJSON(groqResponse);
+        console.log("[ResumeAnalyser] Groq analysis complete. Score:", analysisResult?.atsScore);
+        if (analysisResult && typeof analysisResult === "object") {
+          const normalized = normalizeAnalysisResult(analysisResult, extractedText);
+          if (normalized) return cacheAndSend(normalized, _rawTextForCache, targetRole);
+        }
+      } catch (groqErr) {
+        console.error("[ResumeAnalyser] Groq analysis failed (Step 2):", groqErr);
+      }
+    }
+
+    // ── Fallback 1: Use Gemini for the detailed analysis if Groq fails or is unavailable ──
+    if (GEMINI_API_KEY) {
+      try {
+        console.log("[ResumeAnalyser] Step 2 Fallback — Generating analysis via Gemini...");
+        const fullPrompt = `${systemAnalysisPrompt}\n\nCandidate Resume Context:\n${userAnalysisPrompt}`;
+        const geminiAnalysis = await parseDocumentWithGemini(base64Data, mimeType, fullPrompt);
+        const parsedGemini = safeParseJSON(geminiAnalysis);
+        if (parsedGemini && typeof parsedGemini === "object") {
+          const normalized = normalizeAnalysisResult(parsedGemini, extractedText);
+          if (normalized) return cacheAndSend(normalized, _rawTextForCache, targetRole);
+        }
+      } catch (geminiErr2) {
+        console.error("[ResumeAnalyser] Gemini analysis fallback failed (Step 2 Fallback):", geminiErr2);
+      }
+    }
+
+    // ── Final Fallback: Generate dynamic clean data based on actual extracted resume content, NO static VIT/TCS mock data ──
+    console.log("[ResumeAnalyser] Using dynamic fallback based on extracted resume content.");
+    const namePrefix = email ? email.split('@')[0] : "Candidate";
+    const cleanName = extractedText?.fullName || (namePrefix.charAt(0).toUpperCase() + namePrefix.slice(1));
+    const skillsArray = Array.isArray(extractedText?.skills) ? extractedText.skills : [];
+    
+    return res.json({
+      isResume: true,
+      errorMessage: "",
+      fullName: cleanName,
+      contact: extractedText?.contact || email || "",
+      atsScore: skillsArray.length > 5 ? 65 : 50,
+      overview: `Resume analysis for ${cleanName}. The candidate demonstrates background in their specified domain, featuring skills such as ${skillsArray.slice(0, 6).join(", ") || "various professional competencies"}. Review includes education and experience details parsed directly from the uploaded file.`,
+      grammarRating: "Good",
+      structureRating: "Good",
+      readabilityRating: "Good",
+      keywordDensity: "7%",
+      matchedSkills: skillsArray,
+      missingSkills: ["Domain specific metrics", "Quantifiable achievements"],
+      strengths: ["Clear section layout", `Stated ${skillsArray.length} key skills`],
+      quickWins: ["Incorporate specific percentages, numbers, or volumes in experience description", "Ensure contact links like LinkedIn are present"],
+      recommendations: ["Highlight direct technical challenges faced and how they were resolved", "Tailor achievements closely to candidate domain"],
+      suggestedRoles: targetRole ? [targetRole] : ["Professional Associate"],
+      extractedInfo: {
+        education: extractedText?.education || "Parsed education records",
+        experience: extractedText?.experience || "Parsed professional experience",
+        projects: extractedText?.projects || "Parsed projects",
+        skills: skillsArray,
+        certifications: extractedText?.certifications || "Certifications details"
+      },
+      keyData: {
+        technologies: skillsArray,
+        tools: [],
+        projects: [extractedText?.projects || "Resume Project"],
+        achievements: ["Successfully completed domain tasks"],
+        claims: ["Demonstrated professional work responsibilities"]
+      },
+      importantClaims: ["Demonstrated professional work responsibilities"],
+      topicMap: {
+        projectName: "Resume Project",
+        topics: {
+          "Core Competencies": skillsArray.slice(0, 6)
+        }
+      },
+      jdComparison: {
+        requiredSkills: skillsArray,
+        skillMatchScore: 50,
+        missingSkills: ["Leadership"],
+        strongSkills: skillsArray.slice(0, 4)
+      },
+      interviewPlan: {
+        "priority1": "Review work responsibility details",
+        "priority2": "Evaluate stated skills application",
+        "priority3": "Discuss project challenge resolutions",
+        "priority4": "Assess target alignment and soft skills"
+      },
+      verificationQueue: [
+        {
+          claim: "Demonstrated professional work responsibilities",
+          steps: ["Ask details about tasks", "Verify metrics", "Evaluate role challenges"]
+        }
+      ],
+      sectionScores: {
+        contactInfo: extractedText?.contact ? 85 : 45,
+        summary: 60,
+        experience: extractedText?.experience ? 70 : 45,
+        education: extractedText?.education ? 80 : 45,
+        skills: skillsArray.length ? 75 : 45,
+        projects: extractedText?.projects ? 65 : 45
+      }
+    });
+
+    // Helper function to normalize parsed results
+    function normalizeAnalysisResult(result, textData) {
+      if (!result || typeof result !== 'object') return null;
+      
+      const res = { ...result };
+      if (!res.fullName && textData?.fullName) res.fullName = textData.fullName;
+      if (!res.contact && textData?.contact) res.contact = textData.contact;
+      
+      if (!res.atsScore) {
+        res.atsScore = res.ats_score || res.score || 55;
+      }
+      res.atsScore = Number(res.atsScore) || 55;
+      
+      if (!res.extractedInfo) {
+        res.extractedInfo = result.extracted_info || {
+          education: textData?.education || result.education || "",
+          experience: textData?.experience || result.experience || "",
+          projects: textData?.projects || result.projects || "",
+          skills: textData?.skills || result.skills || [],
+          certifications: textData?.certifications || result.certifications || ""
+        };
+      }
+      
+      if (!res.keyData) {
+        res.keyData = result.key_data || {
+          technologies: res.extractedInfo.skills || [],
+          tools: [],
+          projects: res.extractedInfo.projects ? [res.extractedInfo.projects.substring(0, 100)] : [],
+          achievements: [],
+          claims: []
+        };
+      }
+      
+      if (!res.matchedSkills || !res.matchedSkills.length) {
+        res.matchedSkills = res.matched_skills || res.extractedInfo.skills || [];
+      }
+      if (!res.missingSkills) res.missingSkills = res.missing_skills || [];
+      if (!res.strengths) res.strengths = [];
+      if (!res.quickWins) res.quickWins = [];
+      if (!res.recommendations) res.recommendations = [];
+      if (!res.suggestedRoles) res.suggestedRoles = [];
+      if (!res.importantClaims) res.importantClaims = res.keyData.claims || [];
+      
+      if (!res.topicMap) {
+        res.topicMap = {
+          projectName: "Resume Project",
+          topics: {
+            "Key Focus": res.extractedInfo.skills || ["General Skills"]
+          }
+        };
+      }
+      
+      // ── PRECISION SECTION SCORES via scoringEngine (overrides LLM guesses) ──
+      // scoringEngine produces floats like 63.7 rather than round integers
+      const atsResult = calculateATSScore({
+        experience: res.extractedInfo?.experience || textData?.experience || "",
+        skills: res.extractedInfo?.skills || textData?.skills || [],
+        projects: res.extractedInfo?.projects || textData?.projects || "",
+        education: res.extractedInfo?.education || textData?.education || "",
+        overview: res.overview || "",
+        contact: res.contact || textData?.contact || "",
+      });
+      // Blend LLM ATS score (60%) + engine-computed (40%) for best accuracy
+      const llmAts = Number(res.atsScore) || 55;
+      res.atsScore = parseFloat((llmAts * 0.6 + atsResult.total * 0.4).toFixed(1));
+
+      // Always replace section scores with precise computed values
+      res.sectionScores = res.section_scores || {};
+      res.sectionScores.contactInfo  = atsResult.sections.contact;
+      res.sectionScores.summary      = atsResult.sections.summary;
+      res.sectionScores.experience   = atsResult.sections.experience;
+      res.sectionScores.education    = atsResult.sections.education;
+      res.sectionScores.skills       = atsResult.sections.skills;
+      res.sectionScores.projects     = atsResult.sections.projects;
+
+      return res;
+    }
+
+    // ── Helper: store analysis in resume cache after successful response ──
+    function cacheAndSend(result, rawText, role) {
+      try { setResumeCache(rawText || "", role || "", result); } catch (_) {}
+      return res.json(result);
+    }
+
+  } catch (err) {
+    console.error("Resume analysis error:", err);
+    res.status(500).json({ error: "Failed to analyze resume." });
+  }
+});
+
+// ── Save a resume slot to Cloudinary and persist URL in profile ──
+app.post("/api/seeker/save-analysis-resume", uploadRateLimiter, largeBodyParser, async (req, res) => {
+  try {
+    const { email, base64Data, mimeType, fileName, slotIndex, analysisResult } = req.body;
+    if (!email || slotIndex === undefined) {
+      return res.status(400).json({ error: "email and slotIndex are required." });
+    }
+    const idx = parseInt(slotIndex, 10);
+    if (isNaN(idx) || idx < 0 || idx > 2) {
+      return res.status(400).json({ error: "slotIndex must be 0, 1, or 2." });
+    }
+
+    let secureUrl = null;
+    if (base64Data) {
+      if (base64Data.startsWith("http")) {
+        secureUrl = base64Data;
+      } else {
+        const resourceType = (mimeType === "application/pdf") ? "raw" : "image";
+        console.log(`[AnalysisResume] Uploading slot ${idx} to Cloudinary (${resourceType})...`);
+        secureUrl = await uploadToCloudinary(base64Data, resourceType);
+      }
+    }
+
+    // Fetch the user using dbService (handles MongoDB vs db.json transparently)
+    const user = await dbService.findUserByEmail(email);
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    if (!user.profile) user.profile = {};
+    if (!Array.isArray(user.profile.analysisResumes)) {
+      user.profile.analysisResumes = [null, null, null];
+    }
+
+    if (!user.profile.analysisResumes[idx]) {
+      user.profile.analysisResumes[idx] = { url: "", fileName: fileName || `Resume ${idx + 1}`, uploadedAt: new Date().toISOString() };
+    }
+
+    const targetSlot = user.profile.analysisResumes[idx];
+
+    if (secureUrl) {
+      // Delete old Cloudinary file if replacing
+      if (targetSlot.url && targetSlot.url.startsWith("http") && targetSlot.url !== secureUrl) {
+        await deleteFromCloudinary(targetSlot.url);
+      }
+      targetSlot.url = secureUrl;
+      targetSlot.uploadedAt = new Date().toISOString();
+    }
+    if (fileName) {
+      targetSlot.fileName = fileName;
+    }
+    if (analysisResult !== undefined) {
+      targetSlot.analysisResult = analysisResult;
+    }
+
+    // Update in Database (handles MongoDB vs db.json)
+    if (mongoDb) {
+      await mongoDb.collection("users").updateOne(
+        { email: email.toLowerCase() },
+        { $set: { "profile.analysisResumes": user.profile.analysisResumes } }
+      );
+    } else {
+      const db = await readLocalDB();
+      const dbUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (dbUser) {
+        if (!dbUser.profile) dbUser.profile = {};
+        dbUser.profile.analysisResumes = user.profile.analysisResumes;
+        await writeLocalDB(db);
+      }
+    }
+
+    res.json({ success: true, url: targetSlot.url, fileName: targetSlot.fileName, analysisResult: targetSlot.analysisResult });
+  } catch (err) {
+    console.error("[AnalysisResume] Save error:", err);
+    res.status(500).json({ error: "Failed to save resume." });
+  }
+});
+
+// ── Remove a resume slot (delete from Cloudinary + clear in profile) ──
+app.post("/api/seeker/remove-analysis-resume", async (req, res) => {
+  try {
+    const { email, slotIndex } = req.body;
+    if (!email || slotIndex === undefined) {
+      return res.status(400).json({ error: "email and slotIndex are required." });
+    }
+    const idx = parseInt(slotIndex, 10);
+    if (isNaN(idx) || idx < 0 || idx > 2) {
+      return res.status(400).json({ error: "slotIndex must be 0, 1, or 2." });
+    }
+
+    const user = await dbService.findUserByEmail(email);
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    if (user.profile && Array.isArray(user.profile.analysisResumes)) {
+      const slot = user.profile.analysisResumes[idx];
+      if (slot?.url && slot.url.startsWith("http")) {
+        await deleteFromCloudinary(slot.url);
+      }
+      user.profile.analysisResumes[idx] = null;
+
+      // Update in Database (handles MongoDB vs db.json)
+      if (mongoDb) {
+        await mongoDb.collection("users").updateOne(
+          { email: email.toLowerCase() },
+          { $set: { "profile.analysisResumes": user.profile.analysisResumes } }
+        );
+      } else {
+        const db = await readLocalDB();
+        const dbUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+        if (dbUser) {
+          if (dbUser.profile && Array.isArray(dbUser.profile.analysisResumes)) {
+            dbUser.profile.analysisResumes[idx] = null;
+            await writeLocalDB(db);
+          }
+        }
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[AnalysisResume] Remove error:", err);
+    res.status(500).json({ error: "Failed to remove resume." });
+  }
+});
+
+app.post("/api/seeker/parse-certificate", uploadRateLimiter, largeBodyParser, async (req, res) => {
+  try {
+    const { base64Data, mimeType } = req.body;
+    if (!base64Data) {
+      return res.status(400).json({ error: "Base64 data is required." });
+    }
+
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (GEMINI_API_KEY) {
+      try {
+        console.log("Parsing certificate via Gemini 2.5 Flash...");
+        const prompt = `Identify the title of this certificate. Return ONLY a raw JSON object matching this schema:\n{\n  "title": "Certificate Title / Course Name"\n}`;
+        const parsed = await parseDocumentWithGemini(base64Data, mimeType, prompt);
+        return res.json(parsed);
+      } catch (geminiErr) {
+        console.warn("Gemini certificate parsing failed, falling back to mock:", geminiErr);
+      }
+    }
+
+    // --- Mock Fallback OCR Parsing ---
+    console.log("Emulating Certificate OCR...");
+    res.json({
+      title: "Google Advanced Project Management Certificate"
+    });
+
+  } catch (err) {
+    console.error("Certificate parsing error:", err);
+    res.status(500).json({ error: "Failed to parse certificate." });
+  }
+});
+
+// --- Job Aggregator Admin endpoints ---
+app.all("/api/admin/jobs/collect", async (req, res) => {
+  try {
+    const { companies } = req.body || {};
+    let stats = { inserted: 0, updated: 0 };
+
+    if (companies && companies.length > 0) {
+      console.log("[JobCollector API] Triggered job aggregation sync for custom companies...");
+      stats = await runJobCollectionPipeline(companies);
+    } else {
+      console.log("[JobCollector API] Triggered round-robin batch sync (5 companies)...");
+      for (let i = 0; i < 5; i++) {
+        try {
+          const runStats = await syncNextCompany();
+          stats.inserted += runStats.inserted || 0;
+          stats.updated += runStats.updated || 0;
+        } catch (singleErr) {
+          console.error(`[JobCollector API] Error in batch sync round ${i}:`, singleErr);
+        }
+      }
+    }
+
+    res.json({ success: true, message: "Job collection pipeline completed.", stats });
+  } catch (err) {
+    console.error("Job collection endpoint error:", err);
+    res.status(500).json({ error: "Job collection pipeline failed." });
+  }
+});
+
+app.post("/api/admin/test-email", async (req, res) => {
+  try {
+    const { toEmail } = req.body;
+    if (!toEmail) {
+      return res.status(400).json({ error: "Recipient email (toEmail) is required." });
+    }
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 40px; text-align: center;">
+        <div style="max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+          <h2 style="color: #10b981; margin-bottom: 20px;">Nodemailer Test Email</h2>
+          <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">Hello,</p>
+          <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">This is a test email sent from <strong>JobSarthi</strong> using <strong>Nodemailer</strong>.</p>
+          <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1; text-align: left;">If you received this email, your Nodemailer integration is configured correctly!</p>
+          <p style="font-size: 12px; color: #64748b; margin-top: 30px;">Sent at: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail({
+      to: toEmail,
+      subject: "JobSarthi - Nodemailer Integration Test Success!",
+      text: "Hello! This is a test email sent from JobSarthi using Nodemailer.",
+      html: htmlContent
+    });
+
+    res.json({ success: true, message: `Test email sent successfully to ${toEmail}.` });
+  } catch (err) {
+    console.error("Test email API error:", err);
+    res.status(500).json({ error: `Failed to send test email: ${err.message}` });
+  }
+});
+
+app.get("/api/resume/view", async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) {
+      return res.status(400).send("URL parameter is required");
+    }
+
+    if (!url.includes("cloudinary.com") && !url.startsWith("http")) {
+      return res.status(400).send("Invalid resource URL");
+    }
+
+    console.log("Proxying file view for:", url);
+    const response = await fetch(url);
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("401 (PDF delivery is restricted in your Cloudinary Security settings. Please log in to your Cloudinary Console, click the Settings gear icon, go to Security, and uncheck 'Restrict PDF and ZIP files delivery' to allow delivery of already-uploaded PDF files, or simply re-upload the resume to save it as an unrestricted raw asset.)");
+      }
+      throw new Error(`Failed to fetch file from storage: ${response.status}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+    const fileBuffer = Buffer.from(buffer);
+    
+    let contentType = "application/pdf";
+    const magic = fileBuffer.slice(0, 4).toString();
+    if (magic === "%PDF") {
+      contentType = "application/pdf";
+    } else if (url.toLowerCase().endsWith(".docx")) {
+      contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    } else if (url.toLowerCase().endsWith(".doc")) {
+      contentType = "application/msword";
+    } else if (url.toLowerCase().endsWith(".png")) {
+      contentType = "image/png";
+    } else if (url.toLowerCase().endsWith(".jpg") || url.toLowerCase().endsWith(".jpeg")) {
+      contentType = "image/jpeg";
+    } else {
+      const responseContentType = response.headers.get("content-type");
+      if (responseContentType && responseContentType !== "application/octet-stream") {
+        contentType = responseContentType;
+      }
+    }
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", "inline");
+    res.send(fileBuffer);
+  } catch (err) {
+    console.error("Error displaying file:", err);
+    res.status(500).send("Error loading file: " + err.message);
+  }
+});
+
+app.get("/", (req, res) => {
+  const publicDir = process.env.NEXT_JS === "true" ? path.join(process.cwd(), "public") : process.cwd();
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
+// Fallback to index.html for undefined frontend routes (but NOT for API routes)
+app.get("*", (req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: "API endpoint not found." });
+  }
+  const publicDir = process.env.NEXT_JS === "true" ? path.join(process.cwd(), "public") : process.cwd();
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
+async function ensureAdminRecruiter() {
+  try {
+    const adminEmail = "recruiter@gmail.com";
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    // [SECURITY] ADMIN_PASSWORD must be set in environment — never hardcode it
+    if (!adminPassword) {
+      console.warn("[SECURITY] ADMIN_PASSWORD env var not set. Skipping admin account setup. Set ADMIN_PASSWORD in your environment variables.");
+      return;
+    }
+
+    const adminUser = await dbService.findUserByEmail(adminEmail);
+    if (!adminUser) {
+      console.log("[AUTH] Creating admin recruiter account...");
+      const salt = bcrypt.genSaltSync(12);
+      const hashedPassword = bcrypt.hashSync(adminPassword, salt);
+      const newAdmin = {
+        fullName: "Sarthi Admin HR",
+        email: adminEmail,
+        password: hashedPassword,   // [SECURITY] bcrypt-hashed, never plaintext
+        role: "recruiter",
+        company: "JobSarthi Recruiter",
+        createdAt: new Date().toISOString()
+      };
+      if (mongoDb) {
+        await mongoDb.collection("users").insertOne(newAdmin);
+      } else {
+        const local = await readLocalDB();
+        local.users.push(newAdmin);
+        await writeLocalDB(local);
+      }
+      console.log("[AUTH] Admin recruiter account created with hashed password.");
+    } else {
+      // [SECURITY] Do NOT reset the admin password on every boot.
+      // Only ensure the role is correct if the account already exists.
+      if (mongoDb && adminUser.role !== "recruiter") {
+        await mongoDb.collection("users").updateOne(
+          { email: adminEmail },
+          { $set: { role: "recruiter" } }
+        );
+      }
+      console.log("[AUTH] Admin recruiter account verified.");
+    }
+  } catch (err) {
+    console.error("Failed to ensure admin recruiter:", err);
+  }
+}
+
+export { app };
+
+let dbInitPromise = null;
+const initDatabase = async () => {
+  if (!dbInitPromise) {
+    dbInitPromise = (async () => {
+      await initDB();
+      await ensureAdminRecruiter();
+    })();
+  }
+  return dbInitPromise;
+};
+
+if (process.env.NEXT_JS === "true") {
+  // Lazily connect to the database on the first request in Next.js Serverless environment
+  app.use(async (req, res, next) => {
+    try {
+      await initDatabase();
+      next();
+    } catch (err) {
+      console.error("Next.js lazy database initialization failed:", err);
+      next(err);
+    }
+  });
+} else {
+  // Standalone Node environment startup
+  initDatabase().then(async () => {
+    app.listen(PORT, () => {
+      console.log(`JobSarthi server running at http://localhost:${PORT}`);
+    });
+
+    // Load sample jobs and aggregate in background to prevent server boot hang
+    loadCachedSampleJobs().then(async () => {
+      await autoAggregateJobs();
+
+      // ── Build semantic job search index after jobs are loaded ──
+      if (process.env.GEMINI_API_KEY) {
+        dbService.getJobs().then(allJobs => {
+          buildJobSearchIndex(allJobs, process.env.GEMINI_API_KEY)
+            .then(() => console.log("[JobIndex] Semantic job search index built successfully."))
+            .catch(err => console.warn("[JobIndex] Index build failed (non-critical):", err.message));
+        }).catch(() => {});
+      }
+
+      // Trigger a background run of job aggregation on boot
+      syncNextCompany()
+        .then(stats => console.log("[Background JobCollector] Initial boot round-robin sync completed:", stats))
+        .catch(err => console.error("[Background JobCollector] Initial boot round-robin sync failed:", err));
+
+      // Trigger a background run of full Greenhouse sync on boot
+      runGreenhouseSync()
+        .then(stats => console.log("[Background JobCollector] Initial boot Greenhouse sync completed:", stats))
+        .catch(err => console.error("[Background JobCollector] Initial boot Greenhouse sync failed:", err));
+    }).catch(err => {
+      console.error("Error in background seeding/loading:", err);
+    });
+
+    // Run scheduler every 10 minutes (600000ms)
+    setInterval(() => {
+      console.log("[Background JobCollector] Scheduled 10m round-robin sync started...");
+      syncNextCompany()
+        .then(stats => console.log("[Background JobCollector] Scheduled 10m sync completed:", stats))
+        .catch(err => console.error("[Background JobCollector] Scheduled 10m sync failed:", err));
+    }, 10 * 60 * 1000);
+
+    // Run full Greenhouse sync every 12 hours (12 * 60 * 60 * 1000 ms)
+    setInterval(() => {
+      console.log("[Background JobCollector] Scheduled 12h full Greenhouse sync started...");
+      runGreenhouseSync()
+        .then(stats => console.log("[Background JobCollector] Scheduled 12h full Greenhouse sync completed:", stats))
+        .catch(err => console.error("[Background JobCollector] Scheduled 12h full Greenhouse sync failed:", err));
+    }, 12 * 60 * 60 * 1000);
+  });
+}
+
