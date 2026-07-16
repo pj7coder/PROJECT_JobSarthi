@@ -16,12 +16,14 @@ import crypto from "crypto";
 import {
   getResumeCache, setResumeCache,
   buildResumeJDAlignments,
-  buildJobSearchIndex, isJobIndexReady
+  buildJobSearchIndex, semanticJobSearch, isJobIndexReady, getJobIndexStats,
+  getInterviewContext, setInterviewContext,
 } from "./ragCache.js";
 import {
   calculateATSScore, calculatePreciseJobMatch, scoreSearchRelevance,
   preciseSkillMatchRatio
 } from "./scoringEngine.js";
+
 
 
 
@@ -1308,6 +1310,16 @@ Keep your answers brief, encouraging, professional, and directly actionable.
 // --- Server Wake-up API ---
 app.get("/api/ping", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
+});
+
+// --- RAG System Health Stats ---
+app.get("/api/rag-stats", (req, res) => {
+  res.json({
+    jobSearchIndex: getJobIndexStats(),
+    resumeCache:    getResumeCacheStats(),
+    embeddingModel: "gemini-embedding-001",
+    timestamp:      new Date().toISOString(),
+  });
 });
 
 // --- Authentication APIs ---
@@ -3241,6 +3253,16 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
       }
     }
 
+    // ── INTERVIEW CONTEXT CACHE: Check if we already have role+difficulty context ──
+    // On first question only — subsequent questions use the running state instead.
+    let cachedInterviewCtx = null;
+    if (isFirstQuestion) {
+      cachedInterviewCtx = getInterviewContext(resolvedRole, finalDifficulty);
+      if (cachedInterviewCtx) {
+        console.log(`[InterviewCache] Using cached context for "${resolvedRole}" / "${finalDifficulty}"`);
+      }
+    }
+
     // Parse candidate profile details
     let profileContext = `Candidate Name: ${candidateName || "Candidate"}\n`;
     if (candidateProfile) {
@@ -3257,6 +3279,7 @@ app.post("/api/sarthi/interview/next", aiRateLimiter, async (req, res) => {
         profileContext += `Experience: ${candidateProfile.experience}\n`;
       }
     }
+
 
     // Initialize/clean interviewState
     let state = interviewState;
