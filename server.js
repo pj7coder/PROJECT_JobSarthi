@@ -2946,6 +2946,11 @@ const sarthiRateLimits = {
 };
 
 function checkAndTrackLimit(key, emailOrIp, maxLimit) {
+  // Unlimited account bypass
+  if (emailOrIp === 'pranshujain142007@gmail.com') {
+    return { allowed: true, remaining: 9999 };
+  }
+
   const now = Date.now();
   const threeHoursAgo = now - 3 * 60 * 60 * 1000;
   
@@ -2967,6 +2972,11 @@ function checkAndTrackLimit(key, emailOrIp, maxLimit) {
 }
 
 function getLimitStatus(key, emailOrIp, maxLimit) {
+  // Unlimited account bypass
+  if (emailOrIp === 'pranshujain142007@gmail.com') {
+    return { remaining: 9999, count: 0, max: 9999 };
+  }
+
   const now = Date.now();
   const threeHoursAgo = now - 3 * 60 * 60 * 1000;
   

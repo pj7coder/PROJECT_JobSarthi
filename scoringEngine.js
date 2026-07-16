@@ -917,29 +917,29 @@ function scoreStructure(text, allText) {
   let score = 100;
   let conf = 70;
 
-  const sectionHeaders = ["education","experience","skills","projects","certifications","summary","objective","achievements","contact","profile","interests","languages"];
+  const sectionHeaders = ["education","experience","skills","projects","certifications","summary","objective","achievements","contact","profile","interests","languages","work","employment","qualifications","awards","publications"];
   const foundHeaders = sectionHeaders.filter(h => new RegExp(`\\b${h}\\b`, 'i').test(t));
 
-  // Structural sections present
-  if (foundHeaders.length < 3) score -= deduce(deductions, "Fewer than 3 standard resume sections detected", 25, `Only found: ${foundHeaders.join(', ') || 'none'}`);
-  else if (foundHeaders.length < 5) score -= deduce(deductions, "Missing some key resume sections", 10, `Found: ${foundHeaders.join(', ')}`);
+  // Structural sections present — lower penalty since PDF parsers often strip headers
+  if (foundHeaders.length < 2) score -= deduce(deductions, "Fewer than 2 standard resume sections detected", 15, `Only found: ${foundHeaders.join(', ') || 'none'}`);
+  else if (foundHeaders.length < 4) score -= deduce(deductions, "Missing some key resume sections", 8, `Found: ${foundHeaders.join(', ')}`);
 
   // Length suitability
   const wordCount = t.split(/\s+/).length;
-  if (wordCount < 150) score -= deduce(deductions, "Resume appears too thin (< 150 words)", 20, `Word count: ~${wordCount}`);
-  else if (wordCount < 300) score -= deduce(deductions, "Resume content is sparse (< 300 words)", 10, `Word count: ~${wordCount}`);
-  else if (wordCount > 1200) score -= deduce(deductions, "Resume may be too long (> ~2 pages equivalent)", 8, `Word count: ~${wordCount}`);
+  if (wordCount < 100) score -= deduce(deductions, "Resume appears too thin (< 100 words)", 20, `Word count: ~${wordCount}`);
+  else if (wordCount < 250) score -= deduce(deductions, "Resume content is sparse (< 250 words)", 8, `Word count: ~${wordCount}`);
+  else if (wordCount > 1500) score -= deduce(deductions, "Resume may be too long (> ~3 pages equivalent)", 5, `Word count: ~${wordCount}`);
 
   // ATS-safe: no table indicators
-  if (/\|\s*\w+\s*\|/.test(t)) score -= deduce(deductions, "Table-like formatting detected (may break ATS parsers)", 8, "Pipe-delimited content found");
+  if (/\|\s*\w+\s*\|/.test(t)) score -= deduce(deductions, "Table-like formatting detected (may break ATS parsers)", 5, "Pipe-delimited content found");
 
-  // Bullet consistency
+  // Bullet consistency — relaxed: many resumes use plain text paragraphs
   const bulletLines = (t.match(/^[\-•▪◦➤*]\s/gm) || []).length;
-  if (bulletLines < 3 && wordCount > 200) score -= deduce(deductions, "Low use of bullet points for structured content", 7, `Only ${bulletLines} bullets found`);
+  if (bulletLines < 2 && wordCount > 300) score -= deduce(deductions, "Very few bullet points found; consider structured formatting", 5, `Only ${bulletLines} bullets found`);
 
-  // Page count heuristic
+  // Page count heuristic — only penalise very long resumes
   const lines = t.split('\n').length;
-  if (lines > 120) score -= deduce(deductions, "Resume likely exceeds 2 pages", 5, `~${lines} parsed lines`);
+  if (lines > 150) score -= deduce(deductions, "Resume likely exceeds 3 pages", 4, `~${lines} parsed lines`);
 
   conf = Math.min(95, 60 + foundHeaders.length * 5);
   return { score: ri(score), confidence: ri(conf), deductions };
@@ -950,15 +950,15 @@ function scoreContact(contactText, fullText) {
   const deductions = [];
   const t = (contactText || fullText || "").toLowerCase();
   let score = 100;
-  let conf = 90;
 
-  if (!EMAIL_REGEX.test(t)) score -= deduce(deductions, "Email address missing or undetected", 30, "No valid email pattern found");
-  if (!PHONE_REGEX.test(t)) score -= deduce(deductions, "Phone number missing or undetected", 25, "No valid phone pattern found");
+  if (!EMAIL_REGEX.test(t)) score -= deduce(deductions, "Email address missing or undetected", 35, "No valid email pattern found");
+  if (!PHONE_REGEX.test(t)) score -= deduce(deductions, "Phone number missing or undetected", 30, "No valid phone pattern found");
   if (!t.includes("linkedin")) score -= deduce(deductions, "LinkedIn profile link absent", 20, "Keyword 'linkedin' not found in contact");
-  if (!t.includes("github") && !t.includes("portfolio") && !t.includes("behance") && !t.includes("dribbble"))
-    score -= deduce(deductions, "No GitHub or portfolio link found", 15, "Keyword 'github/portfolio' not found");
+  // GitHub/portfolio is optional for experienced professionals — smaller penalty
+  if (!t.includes("github") && !t.includes("portfolio") && !t.includes("behance") && !t.includes("dribbble") && !t.includes("leetcode") && !t.includes("website"))
+    score -= deduce(deductions, "No GitHub, portfolio or personal website found", 10, "Optional for experienced professionals but recommended");
   if (!/(bangalore|mumbai|delhi|pune|hyderabad|chennai|kolkata|remote|india|usa|uk|\d{6})/i.test(t))
-    score -= deduce(deductions, "Location not clearly stated", 10, "No city/pin/country detected");
+    score -= deduce(deductions, "Location not clearly stated", 5, "No city/pin/country detected");
 
   return { score: ri(score), confidence: 90, deductions };
 }
@@ -972,30 +972,39 @@ function scoreSkillsQuality(skillsArr, experienceText) {
   let conf = 80;
 
   if (skills.length === 0) return { score: 0, confidence: 85, deductions: [{ issue: "No skills listed", points_lost: 100, evidence: "Empty skills array" }] };
-  if (skills.length < 5)   score -= deduce(deductions, "Very few skills listed (< 5)", 25, `Only ${skills.length} skills`);
-  else if (skills.length < 10) score -= deduce(deductions, "Limited skill count (< 10)", 12, `${skills.length} skills listed`);
+  if (skills.length < 4)   score -= deduce(deductions, "Very few skills listed (< 4)", 20, `Only ${skills.length} skills`);
+  else if (skills.length < 8) score -= deduce(deductions, "Limited skill count (< 8)", 8, `${skills.length} skills listed`);
 
   const normalized = skills.map(s => s.toLowerCase().trim());
 
   // Check for duplicates
   const unique = new Set(normalized);
-  if (unique.size < normalized.length) score -= deduce(deductions, "Duplicate or near-duplicate skills found", 8, `${normalized.length - unique.size} duplicates detected`);
+  if (unique.size < normalized.length) score -= deduce(deductions, "Duplicate or near-duplicate skills found", 5, `${normalized.length - unique.size} duplicates detected`);
 
   // Check cluster diversity
   let clustersRepresented = 0;
   for (const cluster of SKILL_CLUSTERS) {
     if (cluster.skills.some(cs => normalized.some(ns => ns.includes(cs) || cs.includes(ns)))) clustersRepresented++;
   }
-  if (clustersRepresented < 2) score -= deduce(deductions, "Low technology diversity across skill clusters", 15, `Only ${clustersRepresented} skill domains covered`);
+  if (clustersRepresented < 1) score -= deduce(deductions, "No recognisable technology skill clusters found", 12, `0 skill domains covered`);
 
-  // Check relevance to experience
+  // Check relevance to experience — only flag if skills are completely absent from experience
   const skillsFoundInExp = normalized.filter(s => expLower.includes(s)).length;
-  if (skills.length > 5 && skillsFoundInExp === 0) score -= deduce(deductions, "Skills not mentioned in experience descriptions (possible inflation)", 10, "No skill keywords found in experience text");
+  if (skills.length > 8 && skillsFoundInExp === 0) score -= deduce(deductions, "Skills may not align with described experience", 8, "No skill keywords found in experience text");
 
-  // Modern tech check
-  const modernTech = ["react","python","node","docker","kubernetes","typescript","aws","llm","langchain","fastapi","nextjs","flutter","go","rust","terraform"];
-  const hasModern = normalized.some(s => modernTech.some(m => s.includes(m)));
-  if (!hasModern) score -= deduce(deductions, "No modern/trending technologies listed", 10, "None of the top in-demand tech keywords detected");
+  // Professional tech check — expanded to include enterprise tech used by experienced professionals
+  const professionalTech = [
+    // Modern web/cloud
+    "react","python","node","docker","kubernetes","typescript","aws","azure","gcp","terraform",
+    "llm","langchain","fastapi","nextjs","flutter","go","rust",
+    // Enterprise & traditional
+    "java","spring",".net","c#","c++","sap","oracle","sql server","sharepoint","salesforce",
+    "hadoop","spark","kafka","elasticsearch","jenkins","ansible","linux","bash",
+    // Data & ML
+    "tensorflow","pytorch","sklearn","tableau","power bi","r ","matlab",
+  ];
+  const hasProfessionalTech = normalized.some(s => professionalTech.some(m => s.includes(m)));
+  if (!hasProfessionalTech) score -= deduce(deductions, "No recognisable professional/enterprise technologies listed", 7, "No standard professional tech keywords detected");
 
   conf = Math.min(95, 70 + skills.length * 2);
   return { score: ri(score), confidence: ri(conf), deductions };
@@ -1016,17 +1025,31 @@ function scoreExperienceQuality(expText) {
   const isIntern = /intern|trainee|apprentice/i.test(t);
   const monthBased = /\d+\s*(months?|weeks?)/i.test(t);
 
-  if (metrics === 0) score -= deduce(deductions, "No quantified achievements (%, numbers, volume) found", 20, "Zero metric patterns like '30%', '10k users', '2x' detected");
-  else if (metrics < 3) score -= deduce(deductions, "Very few quantified achievements", 10, `Only ${metrics} metric found`);
+  // Detect experience level signals for calibrating expectations
+  const isExperienced = /\b(manager|senior|lead|principal|architect|director|head of|vp|vice president|consultant|specialist|engineer ii|engineer iii|sr\.|sr )/i.test(t)
+    || years.length >= 4; // 4+ year mentions suggest a long career
+  const hasYearsOfExp = /\b(\d+)\s*\+?\s*(years?|yrs?)\s*(of\s*)?(experience|exp|work)/i.test(t);
 
-  if (verbs < 3) score -= deduce(deductions, "Insufficient action verbs to describe responsibilities", 15, `Only ${verbs} action verbs found`);
-  else if (verbs < 6) score -= deduce(deductions, "Action verbs used but could be stronger", 5, `${verbs} action verbs`);
-  if (strongVerbs > 0) score += Math.min(5, strongVerbs * 2); // bonus
+  // Metrics — be lenient for experienced professionals who list responsibilities not just metrics
+  if (metrics === 0) {
+    if (isExperienced) score -= deduce(deductions, "No quantified achievements found — add metrics for higher-level impact", 10, "Zero metric patterns detected — expected for senior roles");
+    else score -= deduce(deductions, "No quantified achievements (%, numbers, volume) found", 18, "Zero metric patterns like '30%', '10k users', '2x' detected");
+  } else if (metrics < 2) score -= deduce(deductions, "Very few quantified achievements", 6, `Only ${metrics} metric found`);
 
-  if (years.length === 0 && !isIntern && !monthBased) score -= deduce(deductions, "No employment dates found", 15, "No year ranges or duration mentioned");
+  // Action verbs
+  if (verbs < 2) score -= deduce(deductions, "Insufficient action verbs to describe responsibilities", 12, `Only ${verbs} action verbs found`);
+  else if (verbs < 5) score -= deduce(deductions, "More action verbs recommended", 4, `${verbs} action verbs`);
+  if (strongVerbs > 0) score += Math.min(6, strongVerbs * 2); // bonus for strong power verbs
 
-  if (isIntern || monthBased) {
-    score = Math.max(score, 40); // floor for interns — don't penalise for short duration
+  // Date / duration
+  if (years.length === 0 && !isIntern && !monthBased && !hasYearsOfExp)
+    score -= deduce(deductions, "No employment dates or duration found", 12, "No year ranges or duration mentioned");
+
+  // Experienced-professional floor — ensure fair minimum baseline
+  if (isExperienced || hasYearsOfExp) {
+    score = Math.max(score, 55); // experienced professionals should never score below 55
+  } else if (isIntern || monthBased) {
+    score = Math.max(score, 40); // fresher/intern floor
   }
 
   const conf = t.length > 200 ? 88 : 65;

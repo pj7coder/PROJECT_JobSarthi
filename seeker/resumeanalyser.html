@@ -1449,7 +1449,7 @@ function renderComparison() {
     const col = sc>=75?'#10b981':sc>=50?'#f59e0b':'#ef4444';
     html += `<div class="compare-card">
       <div style="font-size:.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px">${resumes[i]?.name||'Resume '+(i+1)}</div>
-      <div style="font-size:2.2rem;font-weight:800;color:${col};margin-bottom:6px">${sc}<span style="font-size:1rem">%</span></div>
+      <div style="font-size:2.2rem;font-weight:800;color:${col};margin-bottom:6px">${sc}</div>
       <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:10px">ATS Score</div>
       <div style="display:flex;flex-direction:column;gap:5px">
         ${Object.entries(r.sectionScores||{}).map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--text-muted);text-transform:capitalize">${k.replace(/([A-Z])/g,' $1')}</span><span style="font-weight:600;color:${v>=70?'#10b981':v>=50?'#f59e0b':'#ef4444'}">${v}</span></div>`).join('')}
