@@ -333,7 +333,7 @@ function countActionVerbs(text) {
 }
 
 export function scoreExperienceSection(text) {
-  if (!text || text.trim().length < 10) return 45; // baseline floor for partial experience info
+  if (!text || text.trim().length < 8) return 0; // return 0 if experience is missing or empty
   
   // Extract years of experience
   let years = 0;
@@ -353,19 +353,19 @@ export function scoreExperienceSection(text) {
   }
 
   // Base score based on years of experience
-  let baseScore = 60;
-  if (years >= 15) baseScore = 88;
-  else if (years >= 10) baseScore = 82;
-  else if (years >= 5) baseScore = 75;
-  else if (years >= 2) baseScore = 65;
+  let baseScore = 30;
+  if (years >= 15) baseScore = 78;
+  else if (years >= 10) baseScore = 70;
+  else if (years >= 5) baseScore = 60;
+  else if (years >= 2) baseScore = 45;
 
   const words = text.trim().split(/\s+/).length;
   const metrics = countMetrics(text);
   const verbs = countActionVerbs(text);
 
   let score = baseScore;
-  score += Math.min(15, (words / 150) * 15);
-  score += Math.min(15, metrics * 5);
+  score += Math.min(25, (words / 150) * 25);
+  score += Math.min(20, metrics * 5);
   score += Math.min(10, verbs * 2);
 
   return Math.round(Math.min(100, score));
@@ -373,63 +373,65 @@ export function scoreExperienceSection(text) {
 
 export function scoreSkillsSection(skills) {
   const list = normalizeSkillList(skills);
-  if (!list.length) return 45; // baseline floor
+  if (!list.length) return 0; // return 0 if skills are missing or empty
   
-  let score = 55 + Math.min(25, list.length * 4); // 5 skills = 75 points baseline
+  let score = Math.min(50, list.length * 5); // 10 skills = 50 points base
   let domainsCovered = 0;
   for (const cluster of SKILL_CLUSTERS) {
     if (cluster.skills.some(ds => list.includes(ds))) domainsCovered++;
   }
-  score += Math.min(20, domainsCovered * 5);
+  score += Math.min(30, domainsCovered * 10); // cluster/domain variety bonus
+  score += 20; // baseline presentation score
   return Math.round(Math.min(100, score));
 }
 
 export function scoreEducationSection(text) {
-  if (!text || text.trim().length < 5) return 50; // standard floor
+  if (!text || text.trim().length < 5) return 0; // return 0 if education is missing or empty
   const lower = text.toLowerCase();
-  let score = 65; // Standard base score for listing education
+  let score = 40; // baseline presence of education
   
-  if (lower.match(/bachelor|master|degree|b\.s|b\.c|b\.tech|m\.tech|mba|phd|bsc|msc|university|college/i)) score += 15;
-  if (lower.includes("gpa") || lower.includes("cgpa") || lower.match(/\d+\.\d+/)) score += 10;
+  if (lower.match(/bachelor|master|degree|b\.s|b\.c|b\.tech|m\.tech|mba|phd|bsc|msc|university|college/i)) score += 25;
+  if (lower.includes("gpa") || lower.includes("cgpa") || lower.match(/\d+\.\d+/)) score += 15;
   if (lower.includes("first class") || lower.match(/[89]\d%/) || lower.match(/[89]\.\d cgpa/i)) score += 10;
-  if (lower.includes("honours") || lower.includes("distinction") || lower.includes("gold")) score += 5;
+  if (lower.includes("honours") || lower.includes("distinction") || lower.includes("gold")) score += 10;
   
   return Math.round(Math.min(100, score));
 }
 
 export function scoreProjectsSection(text) {
-  if (!text || text.trim().length < 10) return 45; // baseline projects floor
+  if (!text || text.trim().length < 8) return 0; // return 0 if projects are missing or empty
   const words = text.trim().split(/\s+/).length;
   const metrics = countMetrics(text);
   const verbs = countActionVerbs(text);
   
-  let score = 55; // baseline for listing projects
-  score += Math.min(25, (words / 120) * 25);
-  score += Math.min(10, metrics * 5);
-  score += Math.min(10, verbs * 2.5);
+  let score = 30; // baseline presence of projects
+  score += Math.min(40, (words / 120) * 40);
+  score += Math.min(15, metrics * 5);
+  score += Math.min(15, verbs * 3);
   return Math.round(Math.min(100, score));
 }
 
 export function scoreSummarySection(text) {
-  if (!text || text.trim().length < 10) return 50; // baseline summary floor
+  if (!text || text.trim().length < 8) return 0; // return 0 if summary is missing or empty
   const words = text.trim().split(/\s+/).length;
   
-  let score = 60; // baseline summary
-  score += Math.min(20, (words / 50) * 20);
-  if (text.match(/seeking|passionate|motivated|driven|results/i)) score += 10;
-  if (text.match(/\d+\s*\+?\s*years?/i)) score += 10;
+  let score = 40; // baseline summary presence
+  score += Math.min(30, (words / 50) * 30);
+  if (text.match(/seeking|passionate|motivated|driven|results/i)) score += 15;
+  if (text.match(/\d+\s*\+?\s*years?/i)) score += 15;
   
   return Math.round(Math.min(100, score));
 }
 
 export function scoreContactSection(contact) {
-  if (!contact) return 45; // baseline contact floor
-  let score = 55; // baseline contact details presence
+  if (!contact || contact.trim().length < 5) return 0; // return 0 if contact is missing or empty
+  let score = 0;
   
-  if (contact.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/)) score += 15;
-  if (contact.match(/\+?[\d\s\-()]{8,}/)) score += 15;
-  if (contact.match(/linkedin\.com/i)) score += 10;
-  if (contact.match(/github\.com/i)) score += 5;
+  if (contact.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/)) score += 30;
+  if (contact.match(/\+?[\d\s\-()]{8,}/)) score += 25;
+  if (contact.match(/linkedin\.com/i)) score += 25;
+  if (contact.match(/github\.com/i)) score += 15;
+  if (contact.match(/portfolio|behance|dribbble/i)) score += 5;
   
   return Math.round(Math.min(100, score));
 }
