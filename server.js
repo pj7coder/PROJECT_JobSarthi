@@ -4162,9 +4162,19 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
     
     // Parse keywords directly from the base64 content in case LLM parsing failed
     let fallbackSkills = [];
+    let hasProjectsInText = false;
+    let hasExperienceInText = false;
+    let hasEducationInText = false;
+
     try {
       const base64Content = base64Data.split(",")[1] || base64Data;
       const docText = Buffer.from(base64Content, 'base64').toString('utf8');
+      
+      // Strict regex matching to check if these sections actually exist
+      hasProjectsInText = /project|portfolio|hackathon|selected work/i.test(docText);
+      hasExperienceInText = /experience|work history|employment|internship|job|position/i.test(docText);
+      hasEducationInText = /education|degree|school|college|university|btech|b\.tech|bachelor|master|ssc|hsc/i.test(docText);
+
       const commonSkills = [
         "javascript", "typescript", "python", "java", "c++", "csharp", "ruby", "golang", "php",
         "react", "angular", "vue", "node", "express", "django", "flask", "spring",
@@ -4196,6 +4206,11 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       return Math.abs(hash % (maxVal - minVal + 1)) + minVal;
     }
 
+    // Determine presence dynamically
+    const hasProjects = extractedText ? (!!extractedText.projects && extractedText.projects.trim().length > 5) : hasProjectsInText;
+    const hasExperience = extractedText ? (!!extractedText.experience && extractedText.experience.trim().length > 5) : hasExperienceInText;
+    const hasEducation = extractedText ? (!!extractedText.education && extractedText.education.trim().length > 5) : hasEducationInText;
+
     let contactScore, summaryScore, expScore, eduScore, skillsScore, projScore;
     
     if (extractedText) {
@@ -4219,10 +4234,10 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       const seed = crypto.createHash('md5').update(base64Data || clientKey).digest('hex');
       contactScore = getDeterministicScore(seed, 'contact', 70, 95);
       summaryScore = getDeterministicScore(seed, 'summary', 45, 80);
-      expScore     = getDeterministicScore(seed, 'experience', 40, 85);
-      eduScore     = getDeterministicScore(seed, 'education', 65, 95);
-      skillsScore  = getDeterministicScore(seed, 'skills', 45, 85);
-      projScore    = getDeterministicScore(seed, 'projects', 40, 80);
+      expScore     = hasExperience ? getDeterministicScore(seed, 'experience', 40, 85) : 0;
+      eduScore     = hasEducation ? getDeterministicScore(seed, 'education', 65, 95) : 0;
+      skillsScore  = skillsArray.length ? getDeterministicScore(seed, 'skills', 45, 85) : 0;
+      projScore    = hasProjects ? getDeterministicScore(seed, 'projects', 40, 80) : 0;
     }
 
     const calculatedTotalAts = Math.round(
@@ -4252,22 +4267,22 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       recommendations: ["Highlight direct technical challenges faced and how they were resolved", "Tailor achievements closely to candidate domain"],
       suggestedRoles: targetRole ? [targetRole] : ["Professional Associate"],
       extractedInfo: {
-        education: extractedText?.education || "Parsed education records",
-        experience: extractedText?.experience || "Parsed professional experience",
-        projects: extractedText?.projects || "Parsed projects",
+        education: hasEducation ? (extractedText?.education || "Parsed education records") : "",
+        experience: hasExperience ? (extractedText?.experience || "Parsed professional experience") : "",
+        projects: hasProjects ? (extractedText?.projects || "Parsed projects") : "",
         skills: skillsArray,
         certifications: extractedText?.certifications || "Certifications details"
       },
       keyData: {
         technologies: skillsArray,
         tools: [],
-        projects: [extractedText?.projects || "Resume Project"],
+        projects: hasProjects ? [extractedText?.projects || "Resume Project"] : [],
         achievements: ["Successfully completed domain tasks"],
-        claims: ["Demonstrated professional work responsibilities"]
+        claims: hasExperience ? ["Demonstrated professional work responsibilities"] : []
       },
-      importantClaims: ["Demonstrated professional work responsibilities"],
+      importantClaims: hasExperience ? ["Demonstrated professional work responsibilities"] : [],
       topicMap: {
-        projectName: "Resume Project",
+        projectName: hasProjects ? "Resume Project" : "Skills Profile",
         topics: {
           "Core Competencies": skillsArray.slice(0, 6)
         }
@@ -4284,12 +4299,12 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         "priority3": `Problem solving & output: Walk through the optimization, troubleshooting, or measurement workflows for ${skillsArray[3] || "key initiatives"}.`,
         "priority4": `Situational scenarios: Review case studies or past challenges where you successfully applied ${skillsArray.slice(0, 3).join(", ") || "your professional skill set"}.`
       },
-      verificationQueue: [
+      verificationQueue: hasExperience ? [
         {
           claim: "Demonstrated professional work responsibilities",
           steps: ["Ask details about tasks", "Verify metrics", "Evaluate role challenges"]
         }
-      ],
+      ] : [],
       sectionScores: {
         contactInfo: contactScore,
         summary: summaryScore,
