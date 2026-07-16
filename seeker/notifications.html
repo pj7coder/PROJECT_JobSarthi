@@ -180,8 +180,112 @@
   </main>
 
   <script>
-    // Initial mock list if storage is clear
-    const defaultNotifications = [
+    const API_BASE = window.API_BASE_URL || '';
+    let currentFilter = 'all';
+    let allNotifs = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (localStorage.getItem('seeker_logged_in') !== 'true') {
+        window.location.href = 'login_signup.html'; return;
+      }
+      loadNotifications();
+    });
+
+    async function loadNotifications() {
+      const email = localStorage.getItem('seeker_email');
+      if (!email) return;
+      try {
+        const res = await fetch(API_BASE + '/api/notifications?email=' + encodeURIComponent(email) + '&role=seeker');
+        if (!res.ok) throw new Error('fetch failed');
+        allNotifs = await res.json();
+      } catch(e) {
+        // fallback: show empty
+        allNotifs = [];
+      }
+      renderNotifications();
+    }
+
+    function timeAgo(isoStr) {
+      if (!isoStr) return '';
+      const diff = Date.now() - new Date(isoStr).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return m + 'm ago';
+      const h = Math.floor(m / 60);
+      if (h < 24) return h + 'h ago';
+      return Math.floor(h / 24) + 'd ago';
+    }
+
+    function switchFilter(btn, filter) {
+      document.querySelectorAll('.notif-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = filter;
+      renderNotifications();
+    }
+
+    function renderNotifications() {
+      const container = document.getElementById('notifListContainer');
+      container.innerHTML = '';
+      const unreadCount = allNotifs.filter(n => !n.read).length;
+      document.getElementById('unreadCounter').textContent = `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}`;
+
+      const filtered = allNotifs.filter(n => {
+        if (currentFilter === 'all') return true;
+        if (currentFilter === 'unread') return !n.read;
+        if (currentFilter === 'jobs') return n.type === 'application_status' || n.type === 'jobs';
+        if (currentFilter === 'sarthi') return n.type === 'sarthi' || n.type === 'interview_scheduled';
+        return true;
+      });
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="glass-panel" style="padding:40px;text-align:center;color:var(--text-dark);">No notifications in this category.</div>`;
+        return;
+      }
+
+      const iconMap = { star:'⭐', calendar:'📅', 'x-circle':'❌', 'check-circle':'✅', eye:'👁️', bell:'🔔', message:'💬' };
+
+      filtered.forEach(n => {
+        const card = document.createElement('div');
+        card.className = `glass-card notif-card ${!n.read ? 'unread' : ''}`;
+        const icon = iconMap[n.icon] || '🔔';
+        card.innerHTML = `
+          <div class="notif-icon">${icon}</div>
+          <div class="notif-info">
+            <h3>${n.title}</h3>
+            <p>${n.desc}</p>
+            <div class="notif-time">${timeAgo(n.createdAt)}</div>
+          </div>
+          <div class="notif-actions">
+            ${!n.read ? `<button class="action-check" title="Mark as Read" onclick="markAsRead('${n.id}')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </button>` : `<span style="color:var(--text-dark);font-size:0.8rem;">Read</span>`}
+          </div>`;
+        container.appendChild(card);
+      });
+    }
+
+    async function markAsRead(id) {
+      const email = localStorage.getItem('seeker_email');
+      if (!email) return;
+      await fetch(API_BASE + '/api/notifications/read', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, role: 'seeker', id })
+      });
+      await loadNotifications();
+    }
+
+    async function clearAllNotifications() {
+      const email = localStorage.getItem('seeker_email');
+      if (!email) return;
+      await fetch(API_BASE + '/api/notifications/clear?email=' + encodeURIComponent(email) + '&role=seeker', { method: 'DELETE' });
+      await loadNotifications();
+    }
+  </script>
+  <script src="../js/header.js"></script>
+</body>
+</html>
+
       {
         id: 101,
         title: "Interview Schedule Request",

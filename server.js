@@ -1095,6 +1095,63 @@ const dbService = {
     const local = await readLocalDB();
     if (!local.recruiterInterviews) local.recruiterInterviews = [];
     return local.recruiterInterviews.find(c => c.id === id);
+  },
+
+  // ─── NOTIFICATIONS ───────────────────────────────────────
+  createNotification: async (notif) => {
+    if (mongoDb) {
+      await mongoDb.collection("notifications").insertOne(notif);
+      return notif;
+    }
+    const local = await readLocalDB();
+    if (!local.notifications) local.notifications = [];
+    local.notifications.unshift(notif);
+    await writeLocalDB(local);
+    return notif;
+  },
+  getNotifications: async (email, role) => {
+    const cleanEmail = email.toLowerCase().trim();
+    if (mongoDb) {
+      return await mongoDb.collection("notifications")
+        .find({ recipientEmail: cleanEmail, recipientRole: role })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .toArray();
+    }
+    const local = await readLocalDB();
+    const all = local.notifications || [];
+    return all
+      .filter(n => n.recipientEmail === cleanEmail && n.recipientRole === role)
+      .slice(0, 50);
+  },
+  markNotificationsRead: async (email, role, id) => {
+    const cleanEmail = email.toLowerCase().trim();
+    if (mongoDb) {
+      const filter = id
+        ? { recipientEmail: cleanEmail, id }
+        : { recipientEmail: cleanEmail, recipientRole: role };
+      await mongoDb.collection("notifications").updateMany(filter, { $set: { read: true } });
+      return;
+    }
+    const local = await readLocalDB();
+    if (!local.notifications) local.notifications = [];
+    local.notifications.forEach(n => {
+      if (n.recipientEmail === cleanEmail && (!id || n.id === id)) n.read = true;
+    });
+    await writeLocalDB(local);
+  },
+  clearNotifications: async (email, role) => {
+    const cleanEmail = email.toLowerCase().trim();
+    if (mongoDb) {
+      await mongoDb.collection("notifications").deleteMany({ recipientEmail: cleanEmail, recipientRole: role });
+      return;
+    }
+    const local = await readLocalDB();
+    if (!local.notifications) local.notifications = [];
+    local.notifications = local.notifications.filter(
+      n => !(n.recipientEmail === cleanEmail && n.recipientRole === role)
+    );
+    await writeLocalDB(local);
   }
 };
 
@@ -2430,7 +2487,7 @@ app.get("/api/recruiter/applicants", async (req, res) => {
 app.post("/api/recruiter/applicants/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, interviewDate, interviewTime, interviewLink, interviewNotes } = req.body;
     if (!status) {
       return res.status(400).json({ error: "Status is required." });
     }
@@ -2456,7 +2513,7 @@ app.post("/api/recruiter/applicants/:id/status", async (req, res) => {
     }
 
     if (appDetails) {
-      // Send application status update email in background
+      // ── Send status-update email ──────────────────────────────
       sendStatusUpdateEmail({
         candidateEmail: appDetails.candidateEmail,
         candidateName: appDetails.candidateName,
@@ -2466,6 +2523,78 @@ app.post("/api/recruiter/applicants/:id/status", async (req, res) => {
       }).catch(err => {
         console.error("Status update email failed to send in background:", err.message);
       });
+
+      // ── Create in-app notification for the SEEKER ──────────────
+      const statusIcons = {
+        Shortlisted: 'star',
+        Rejected: 'x-circle',
+        'Interview Scheduled': 'calendar',
+        Applied: 'check-circle',
+        Reviewing: 'eye'
+      };
+      const statusDescs = {
+        Shortlisted: `Congratulations! You've been shortlisted for ${appDetails.jobTitle} at ${appDetails.companyName}. The team will contact you shortly.`,
+        Rejected: `Your application for ${appDetails.jobTitle} at ${appDetails.companyName} was not selected. Keep applying!`,
+        'Interview Scheduled': `Interview confirmed for ${appDetails.jobTitle} at ${appDetails.companyName}.${ interviewDate ? ` Date: ${interviewDate}${interviewTime ? ' at ' + interviewTime : ''}.` : ' Check your messages for details.'}`,
+        Reviewing: `Your application for ${appDetails.jobTitle} at ${appDetails.companyName} is now under review.`,
+        Applied: `Your application for ${appDetails.jobTitle} at ${appDetails.companyName} has been received.`
+      };
+
+      const notif = {
+        id: 'notif_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
+        recipientEmail: appDetails.candidateEmail.toLowerCase(),
+        recipientRole: 'seeker',
+        type: 'application_status',
+        icon: statusIcons[status] || 'bell',
+        title: `Application ${status}: ${appDetails.jobTitle}`,
+        desc: statusDescs[status] || `Your application status was updated to ${status}.`,
+        read: false,
+        createdAt: new Date().toISOString(),
+        meta: { jobTitle: appDetails.jobTitle, companyName: appDetails.companyName, applicationId: id, status }
+      };
+      dbService.createNotification(notif).catch(e => console.warn('Notification create failed:', e));
+
+      // ── If Interview Scheduled, also create a RECRUITER notification and
+      //    send a system message to the chat thread ──────────────────────────
+      if (status === 'Interview Scheduled') {
+        const recruiterEmail = appDetails.recruiterEmail || appDetails.companyEmail || '';
+        if (recruiterEmail) {
+          dbService.createNotification({
+            id: 'notif_' + (Date.now()+1) + '_' + Math.floor(Math.random() * 9999),
+            recipientEmail: recruiterEmail.toLowerCase(),
+            recipientRole: 'recruiter',
+            type: 'interview_scheduled',
+            icon: 'calendar',
+            title: `Interview Scheduled with ${appDetails.candidateName}`,
+            desc: `Interview for ${appDetails.jobTitle}${interviewDate ? ' on ' + interviewDate : ''} has been confirmed.`,
+            read: false,
+            createdAt: new Date().toISOString(),
+            meta: { candidateName: appDetails.candidateName, jobTitle: appDetails.jobTitle, applicationId: id }
+          }).catch(() => {});
+        }
+
+        // Post a system message in the chat thread
+        const interviewDetails = [
+          interviewDate ? `Date: ${interviewDate}` : null,
+          interviewTime ? `Time: ${interviewTime}` : null,
+          interviewLink ? `Link: ${interviewLink}` : null,
+          interviewNotes ? `Notes: ${interviewNotes}` : null
+        ].filter(Boolean).join(' | ');
+
+        const systemMsg = {
+          id: 'msg_sys_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
+          seekerEmail: appDetails.candidateEmail.toLowerCase(),
+          seekerName: appDetails.candidateName,
+          recruiterEmail: (recruiterEmail || appDetails.companyName + '@company.com').toLowerCase(),
+          recruiterName: appDetails.companyName + ' HR',
+          companyName: appDetails.companyName,
+          sender: 'recruiter',
+          isSystemMessage: true,
+          text: `🗓️ Interview Scheduled — ${appDetails.jobTitle} at ${appDetails.companyName}.${interviewDetails ? ' ' + interviewDetails : ' Please check your dashboard for more details.'}`,
+          timestamp: new Date().toISOString()
+        };
+        dbService.createMessage(systemMsg).catch(() => {});
+      }
     }
 
     res.json({ success: true });
@@ -2664,6 +2793,75 @@ Guidelines:
   } catch (err) {
     console.error("Failed to save message:", err);
     res.status(500).json({ error: "Failed to send message." });
+  }
+});
+
+// --- Notifications API ---
+
+// GET /api/notifications?email=...&role=seeker|recruiter
+app.get("/api/notifications", async (req, res) => {
+  try {
+    const { email, role } = req.query;
+    if (!email || !role) return res.status(400).json({ error: "email and role are required." });
+    const notifications = await dbService.getNotifications(email, role);
+    res.json(notifications);
+  } catch (err) {
+    console.error("Failed to get notifications:", err);
+    res.status(500).json({ error: "Failed to fetch notifications." });
+  }
+});
+
+// POST /api/notifications — create a notification (can be used by frontend actions)
+app.post("/api/notifications", async (req, res) => {
+  try {
+    const { recipientEmail, recipientRole, type, icon, title, desc, meta } = req.body;
+    if (!recipientEmail || !recipientRole || !title) {
+      return res.status(400).json({ error: "recipientEmail, recipientRole, and title are required." });
+    }
+    const notif = {
+      id: 'notif_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
+      recipientEmail: recipientEmail.toLowerCase().trim(),
+      recipientRole,
+      type: type || 'general',
+      icon: icon || 'bell',
+      title,
+      desc: desc || '',
+      read: false,
+      createdAt: new Date().toISOString(),
+      meta: meta || {}
+    };
+    await dbService.createNotification(notif);
+    res.json({ success: true, notification: notif });
+  } catch (err) {
+    console.error("Failed to create notification:", err);
+    res.status(500).json({ error: "Failed to create notification." });
+  }
+});
+
+// PATCH /api/notifications/read — mark notifications as read
+// Body: { email, role, id? } — if id omitted, marks ALL as read
+app.patch("/api/notifications/read", async (req, res) => {
+  try {
+    const { email, role, id } = req.body;
+    if (!email || !role) return res.status(400).json({ error: "email and role are required." });
+    await dbService.markNotificationsRead(email, role, id || null);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Failed to mark notifications as read:", err);
+    res.status(500).json({ error: "Failed to mark notifications." });
+  }
+});
+
+// DELETE /api/notifications/clear — clear all notifications for a user
+app.delete("/api/notifications/clear", async (req, res) => {
+  try {
+    const { email, role } = req.query;
+    if (!email || !role) return res.status(400).json({ error: "email and role are required." });
+    await dbService.clearNotifications(email, role);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Failed to clear notifications:", err);
+    res.status(500).json({ error: "Failed to clear notifications." });
   }
 });
 
