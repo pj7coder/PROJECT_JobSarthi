@@ -1344,6 +1344,30 @@ function renderDashboard(d) {
     </div>
   </div>
 
+  <!-- 5 Priority Section Bars (Experience > Education > Skills > Summary > Contact) -->
+  <div class="acard" style="margin-bottom:16px;padding:16px 18px">
+    <div class="acard-title" style="margin-bottom:12px">📋 Section Score Breakdown</div>
+    ${(() => {
+      const top5 = det.top5 || [];
+      if (!top5.length) return '<p style="color:var(--text-muted);font-size:.8rem">Section data unavailable.</p>';
+      const barCol = v => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
+      const icons = { Experience: '💼', Education: '🎓', Skills: '⚡', Summary: '📄', Contact: '📬' };
+      return top5.map(s => {
+        const earned = Math.round(s.weight * s.score / 100);
+        return `
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:0.82rem;font-weight:700;color:var(--text-main)">${icons[s.label]||''} ${s.label}</span>
+            <span style="font-size:0.76rem;font-weight:700;color:${barCol(s.score)}">${s.score}/100 &nbsp;<span style="color:var(--text-muted);font-weight:500">(${earned}/${s.weight} pts)</span></span>
+          </div>
+          <div style="height:7px;background:var(--border-subtle);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${s.score}%;background:${barCol(s.score)};border-radius:4px;transition:width 1.2s ease"></div>
+          </div>
+        </div>`;
+      }).join('');
+    })()}
+  </div>
+
   <!-- Dashboard Tabs -->
   <div class="dash-tabs">
     <button class="dash-tab active" data-tab="categories" onclick="switchDashTab('categories')">${SVG_ICONS.breakdown} Categories</button>
@@ -1355,6 +1379,7 @@ function renderDashboard(d) {
   </div>
   <div id="dash-tab-content"></div>
   `;
+
 
   switchDashTab('categories');
 }

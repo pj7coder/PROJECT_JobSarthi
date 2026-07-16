@@ -4662,18 +4662,18 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       // Override LLM atsScore with the deterministic engine score
       res.atsScore = explainableResult.overall_score;
 
-      // Attach full explainable payload — the UI will render this
+      // Attach full explainable payload (includes top5 bars) — UI renders this
       res.atsDetail = explainableResult;
 
-      // Backward-compatible sectionScores from category keys
+      // Backward-compatible sectionScores (all 5 priority sections + projects)
       const catMap = {};
       for (const c of explainableResult.categories) catMap[c.key] = c.score;
       res.sectionScores = {
-        contactInfo: catMap.contact     || 0,
-        summary:     catMap.structure   || 0,
         experience:  catMap.experience  || 0,
         education:   catMap.education   || 0,
         skills:      catMap.skills      || 0,
+        summary:     catMap.structure   || 0,
+        contactInfo: catMap.contact     || 0,
         projects:    catMap.projects    || 0,
       };
 

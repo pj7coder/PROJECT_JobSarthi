@@ -1239,17 +1239,19 @@ export function calculateExplainableATSScore(resumeData) {
   const languageResult      = scoreLanguageQuality(fullText);
   const consistencyResult   = scoreConsistency(fullText);
 
+  // Weights in strict descending priority: Experience > Education > Skills > Summary > Contact
+  // Remaining 12pts allocated to secondary categories
   const categories = [
-    { name: "Resume Structure & ATS Compatibility", weight: 15, key: "structure",   ...structureResult },
-    { name: "Contact Information",                   weight: 5,  key: "contact",    ...contactResult },
-    { name: "Skills Quality",                        weight: 15, key: "skills",     ...skillsResult },
-    { name: "Experience Quality",                    weight: 20, key: "experience", ...experienceResult },
-    { name: "Projects",                              weight: 15, key: "projects",   ...projectsResult },
-    { name: "Education",                             weight: 10, key: "education",  ...educationResult },
-    { name: "Keyword Coverage",                      weight: 10, key: "keywords",   ...keywordsResult },
-    { name: "Achievements & Impact",                 weight: 5,  key: "achievements",...achievementsResult },
-    { name: "Language Quality",                      weight: 3,  key: "language",   ...languageResult },
-    { name: "Professional Consistency",              weight: 2,  key: "consistency",...consistencyResult },
+    { name: "Experience Quality",                    weight: 30, key: "experience", ...experienceResult },
+    { name: "Education",                             weight: 20, key: "education",  ...educationResult },
+    { name: "Skills Quality",                        weight: 18, key: "skills",     ...skillsResult },
+    { name: "Resume Structure & ATS Compatibility", weight: 12, key: "structure",  ...structureResult },
+    { name: "Contact Information",                   weight: 8,  key: "contact",    ...contactResult },
+    { name: "Projects",                              weight: 5,  key: "projects",   ...projectsResult },
+    { name: "Keyword Coverage",                      weight: 3,  key: "keywords",   ...keywordsResult },
+    { name: "Achievements & Impact",                 weight: 2,  key: "achievements",...achievementsResult },
+    { name: "Language Quality",                      weight: 1,  key: "language",   ...languageResult },
+    { name: "Professional Consistency",              weight: 1,  key: "consistency",...consistencyResult },
   ];
 
   let weightedTotal = 0;
@@ -1259,10 +1261,20 @@ export function calculateExplainableATSScore(resumeData) {
   const overallScore = Math.min(100, Math.round(weightedTotal + bonusPoints));
   const overallConfidence = Math.round(categories.reduce((s, c) => s + c.confidence, 0) / categories.length);
 
+  // Top-5 priority bars (Experience, Education, Skills, Summary, Contact)
+  const top5 = [
+    { label: "Experience", key: "experience", weight: 30, score: Math.round(experienceResult.score), maxPts: 30 },
+    { label: "Education",  key: "education",  weight: 20, score: Math.round(educationResult.score),  maxPts: 20 },
+    { label: "Skills",     key: "skills",     weight: 18, score: Math.round(skillsResult.score),     maxPts: 18 },
+    { label: "Summary",    key: "structure",  weight: 12, score: Math.round(structureResult.score),  maxPts: 12 },
+    { label: "Contact",    key: "contact",    weight: 8,  score: Math.round(contactResult.score),    maxPts: 8 },
+  ];
+
   return {
     overall_score:      overallScore,
     overall_confidence: overallConfidence,
     bonus_points:       bonusPoints,
+    top5,
     categories:         categories.map(c => ({ ...c, score: Math.round(c.score) })),
     improvement_priority: getImprovementPriority(categories),
     deduction_summary:  categories.flatMap(c => (c.deductions || []).map(d => ({ ...d, category: c.name }))),
