@@ -4500,11 +4500,144 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         res.matchedSkills = res.matched_skills || res.extractedInfo.skills || [];
       }
       if (!res.missingSkills)   res.missingSkills   = res.missing_skills || [];
-      if (!res.strengths)       res.strengths       = [];
-      if (!res.quickWins)       res.quickWins       = [];
-      if (!res.recommendations) res.recommendations = [];
-      if (!res.suggestedRoles)  res.suggestedRoles  = [];
+      if (!res.suggestedRoles)  res.suggestedRoles  = res.suggested_roles || [];
       if (!res.importantClaims) res.importantClaims = res.keyData.claims || [];
+
+      const skillsArray = res.extractedInfo.skills || [];
+      const hasExperience = !!res.extractedInfo.experience && res.extractedInfo.experience.trim().length > 5;
+      const hasProjects = !!res.extractedInfo.projects && res.extractedInfo.projects.trim().length > 5;
+
+      const lowerSkills = skillsArray.map(s => s.toLowerCase());
+      const hasPython    = lowerSkills.some(s => s.includes("python"));
+      const hasJs        = lowerSkills.some(s => s.includes("javascript") || s.includes("typescript") || s.includes("react") || s.includes("node"));
+      const hasAi        = lowerSkills.some(s => s.includes("ai") || s.includes("artificial intelligence") || s.includes("machine learning") || s.includes("deep learning"));
+      const hasCyber     = lowerSkills.some(s => s.includes("cybersecurity") || s.includes("hacking") || s.includes("security"));
+
+      // Strengths normalization & dynamic generation
+      if (!res.strengths || !Array.isArray(res.strengths) || res.strengths.length === 0) {
+        res.strengths = result.strengths || [];
+      }
+      if (!Array.isArray(res.strengths) || res.strengths.length === 0) {
+        res.strengths = [];
+        if (skillsArray.length > 0) {
+          res.strengths.push(`Stated key professional skills: ${skillsArray.slice(0, 3).join(", ")}`);
+        }
+        if (hasExperience) {
+          res.strengths.push("Hands-on exposure to development/roles in target domain");
+        }
+        if (res.extractedInfo.certifications) {
+          res.strengths.push("Possesses domain certifications or structured training");
+        }
+        if (res.strengths.length === 0) {
+          res.strengths.push("Clear document structure with contact and education details");
+        }
+      }
+
+      // Quick Wins normalization & dynamic generation
+      if (!res.quickWins || !Array.isArray(res.quickWins) || res.quickWins.length === 0) {
+        res.quickWins = result.quick_wins || [];
+      }
+      if (!Array.isArray(res.quickWins) || res.quickWins.length === 0) {
+        res.quickWins = [];
+        const contactClean = (res.contact || textData?.contact || "").toLowerCase();
+        if (!contactClean.includes("linkedin.com") && !contactClean.includes("linkedin")) {
+          res.quickWins.push("Add your active LinkedIn profile link to the contact details");
+        }
+        if (!hasProjects) {
+          res.quickWins.push("Create a projects section to demonstrate your coding capabilities");
+        } else if (!contactClean.includes("github.com") && !contactClean.includes("github")) {
+          res.quickWins.push("Add a GitHub link to show source code repository for your projects");
+        }
+        if (hasExperience && !res.extractedInfo.experience.includes("%") && !res.extractedInfo.experience.includes("0")) {
+          res.quickWins.push("Quantify achievements by adding numbers/percentages to experience points");
+        }
+        if (res.quickWins.length < 2) {
+          res.quickWins.push("Add a short professional summary to define your target roles");
+        }
+      }
+
+      // Recommendations normalization & dynamic generation
+      if (!res.recommendations || !Array.isArray(res.recommendations) || res.recommendations.length === 0) {
+        res.recommendations = result.recommendations || [];
+      }
+      if (!Array.isArray(res.recommendations) || res.recommendations.length === 0) {
+        res.recommendations = [];
+        if (hasPython && !hasJs) {
+          res.recommendations.push("Learn JavaScript and build simple web apps to become a full-stack engineer");
+        } else if (hasJs && !lowerSkills.some(s => s.includes("react") || s.includes("angular"))) {
+          res.recommendations.push("Learn React.js or Vue.js to build modern interactive frontends");
+        }
+        if (hasAi) {
+          res.recommendations.push("Build a portfolio project utilizing LLMs or LangChain to showcase AI applications");
+        }
+        if (hasCyber) {
+          res.recommendations.push("Work toward getting a security certification like CompTIA Security+");
+        }
+        res.recommendations.push("Use strong action verbs like 'Led', 'Architected', or 'Optimized' at the beginning of bullet points");
+        res.recommendations.push("Tailor details to target roles, explicitly mapping skills to target job descriptions");
+      }
+
+      // Suggested roles dynamic generation
+      if (res.suggestedRoles.length === 0) {
+        const roles = [];
+        if (hasAi) roles.push("AI Developer Intern", "Data Science Trainee");
+        if (hasJs) roles.push("Frontend Developer Intern", "Junior Web Developer");
+        if (hasPython) roles.push("Python Developer Trainee");
+        if (hasCyber) roles.push("Cybersecurity Trainee");
+        if (roles.length === 0) roles.push("Graduate Engineering Trainee", "Technical Associate");
+        res.suggestedRoles = roles;
+      }
+
+      // Interview Plan normalization & dynamic generation
+      const ip = res.interviewPlan || result.interview_plan || {};
+      res.interviewPlan = {
+        priority1: ip.priority1 || ip.priority_1 || "",
+        priority2: ip.priority2 || ip.priority_2 || "",
+        priority3: ip.priority3 || ip.priority_3 || "",
+        priority4: ip.priority4 || ip.priority_4 || ""
+      };
+
+      if (!res.interviewPlan.priority1) {
+        res.interviewPlan.priority1 = `Mastery of core technical skills: Be prepared to walk through your experience implementing ${skillsArray[0] || "core development methodologies"} and related tools.`;
+      }
+      if (!res.interviewPlan.priority2) {
+        res.interviewPlan.priority2 = `System architecture & design: Discuss the structure of your key projects${hasProjects ? " (such as " + res.extractedInfo.projects.substring(0, 50).trim() + "...)" : ""}, focusing on scalability and design choices.`;
+      }
+      if (!res.interviewPlan.priority3) {
+        res.interviewPlan.priority3 = `Problem solving & optimization: Explain how you optimized performance or resolved complex bugs in your projects using ${skillsArray.slice(1, 4).join(", ") || "analytical workflows"}.`;
+      }
+      if (!res.interviewPlan.priority4) {
+        res.interviewPlan.priority4 = `Professional communication & domain knowledge: Explain how you align your technical solutions with business goals and domain best practices.`;
+      }
+
+      // Verification Queue normalization & dynamic generation
+      let vq = res.verificationQueue || result.verification_queue || [];
+      if (!Array.isArray(vq)) vq = [];
+      res.verificationQueue = vq.map(item => ({
+        claim: item.claim || item.text || "",
+        steps: Array.isArray(item.steps) ? item.steps : [item.steps || "Verify this claim"]
+      })).filter(item => item.claim.length > 3);
+
+      if (res.verificationQueue.length === 0) {
+        if (res.extractedInfo.education) {
+          res.verificationQueue.push({
+            claim: `Degree qualification: ${res.extractedInfo.education.split('\n')[0].substring(0, 100)}`,
+            steps: ["Verify completion certificate or transcripts", "Confirm graduation month/year"]
+          });
+        }
+        if (hasExperience) {
+          res.verificationQueue.push({
+            claim: `Professional experience: ${res.extractedInfo.experience.split('\n')[0].substring(0, 100)}`,
+            steps: ["Verify employment duration and reference contacts", "Confirm key tasks and team contribution details"]
+          });
+        }
+        if (hasProjects) {
+          res.verificationQueue.push({
+            claim: `Technical project: ${res.extractedInfo.projects.split('\n')[0].substring(0, 100)}`,
+            steps: ["Inspect source code repository or working demo link", "Evaluate architecture choices and libraries used"]
+          });
+        }
+      }
 
       if (!res.topicMap) {
         res.topicMap = {

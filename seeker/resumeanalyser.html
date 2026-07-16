@@ -593,7 +593,7 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
         <div class="ra-placeholder" id="placeholder">
           <div class="icon" style="display:flex; justify-content:center; margin-bottom:16px; color: var(--text-muted); opacity: 0.7;"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
           <h3 style="font-size:1rem;font-weight:700;color:var(--text-main)">No Analysis Yet</h3>
-          <p style="font-size:0.84rem;max-width:340px">Upload a resume on the left and click <strong>Analyse Resume</strong> to get your ATS score, keyword gaps, and actionable tips.</p>
+          <p style="font-size:0.84rem;max-width:340px">Upload a resume on the left to automatically get your ATS score, keyword gaps, and actionable tips.</p>
         </div>
         <div id="dashboard" style="display:none"></div>
       </div>
@@ -613,15 +613,11 @@ function updateAnalyseButtonState() {
   const btn = document.getElementById('analyseBtn');
   if (!btn) return;
   if (!r) {
+    btn.style.display = 'block';
     btn.disabled = true;
     btn.innerHTML = `<span>＋</span> Analyse Resume`;
   } else {
-    btn.disabled = false;
-    if (analysisResults[activeTab]) {
-      btn.innerHTML = `<span>＋</span> Re-analyse`;
-    } else {
-      btn.innerHTML = `<span>＋</span> Analyse Resume`;
-    }
+    btn.style.display = 'none';
   }
 }
 
@@ -707,6 +703,7 @@ function acceptExisting() {
   updateTabLabel(0, e.name);
   renderViewer(0);
   updateAnalyseButtonState();
+  runAnalysis();
   // Save this as slot-0 so it persists
   const email = localStorage.getItem('seeker_email');
   if (email) {
@@ -732,8 +729,13 @@ function switchTab(idx) {
   renderViewer(idx);
 
   updateAnalyseButtonState();
-  if (analysisResults[idx]) renderDashboard(analysisResults[idx]);
-  else showPlaceholder();
+  if (analysisResults[idx]) {
+    renderDashboard(analysisResults[idx]);
+  } else if (resumes[idx]) {
+    runAnalysis();
+  } else {
+    showPlaceholder();
+  }
 }
 
 function addResume() {
@@ -815,7 +817,7 @@ function handleFile(event) {
     renderViewer(slot);
     updateAnalyseButtonState();
     analysisResults[slot] = null;
-    showPlaceholder();
+    runAnalysis();
 
     // Persist to Cloudinary in background
     const email = localStorage.getItem('seeker_email');
