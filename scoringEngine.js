@@ -863,13 +863,408 @@ export function scoreInterviewRelevance(candidateProfile, role) {
   const preprocessed = preprocessProfileInternal(candidateProfile);
   const roleSkills = extractSkillsFromText(role);
   const ratio = preciseSkillMatchRatio(preprocessed.normalizedUserSkills, roleSkills, role);
-
   let base = ratio * 75;
   if (preprocessed.userExp >= 5) base += 25;
   else if (preprocessed.userExp >= 3) base += 18;
   else if (preprocessed.userExp >= 1) base += 10;
   else base += 5;
-
   const jitter = (Math.random() * 3.0) - 1.5;
   return Math.round(Math.min(100, Math.max(10, base + jitter)));
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MULTI-LEVEL EXPLAINABLE ATS SCORING ENGINE (100 Points)
+// ══════════════════════════════════════════════════════════════════
+// ATS score is NEVER guessed. Every point is traceable to evidence.
+// Categories: structure(15) contact(5) skills(15) experience(20)
+//             projects(15) education(10) keywords(10) achievements(5)
+//             language(3) consistency(2)  [total = 100]
+// Bonus: up to +3 for exceptional quality. Final capped at 100.
+// ══════════════════════════════════════════════════════════════════
+
+const ATS_ACTION_VERBS = [
+  "built","developed","designed","implemented","led","managed","created",
+  "optimized","reduced","improved","increased","achieved","delivered",
+  "deployed","architected","automated","launched","engineered","configured",
+  "maintained","collaborated","mentored","resolved","spearheaded","scaled",
+  "migrated","integrated","drove","established","streamlined","coordinated",
+  "analysed","authored","executed","initiated","revamped","transformed"
+];
+
+const STRONG_ACTION_VERBS = [
+  "architected","spearheaded","engineered","transformed","revamped",
+  "led","launched","drove","automated","orchestrated","pioneered"
+];
+
+const METRIC_REGEX = /(\d[\d,]*\.?\d*)\s*(%|x|k\b|lakh|crore|cr\b|users|ms\b|sec\b|lpa|hrs?|days?|mins?|requests|rpm|tps|gb|mb)/gi;
+const YEAR_REGEX = /\b(19|20)\d{2}\b/g;
+const EMAIL_REGEX = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/;
+const PHONE_REGEX = /(\+?\d[\d\s\-().]{7,})/;
+const URL_REGEX = /https?:\/\/[^\s)">]+/gi;
+
+function clamp100(v) { return Math.max(0, Math.min(100, v)); }
+function ri(v) { return Math.round(clamp100(v)); }  // round-integer within 0-100
+
+function deduce(deductions, issue, pts, evidence) {
+  deductions.push({ issue, points_lost: pts, evidence: evidence || "" });
+  return pts;
+}
+
+// ─── 1. STRUCTURE (15 pts weight) ───────────────────────────────
+function scoreStructure(text, allText) {
+  const deductions = [];
+  const t = (allText || text || "").trim();
+  let score = 100;
+  let conf = 70;
+
+  const sectionHeaders = ["education","experience","skills","projects","certifications","summary","objective","achievements","contact","profile","interests","languages"];
+  const foundHeaders = sectionHeaders.filter(h => new RegExp(`\\b${h}\\b`, 'i').test(t));
+
+  // Structural sections present
+  if (foundHeaders.length < 3) score -= deduce(deductions, "Fewer than 3 standard resume sections detected", 25, `Only found: ${foundHeaders.join(', ') || 'none'}`);
+  else if (foundHeaders.length < 5) score -= deduce(deductions, "Missing some key resume sections", 10, `Found: ${foundHeaders.join(', ')}`);
+
+  // Length suitability
+  const wordCount = t.split(/\s+/).length;
+  if (wordCount < 150) score -= deduce(deductions, "Resume appears too thin (< 150 words)", 20, `Word count: ~${wordCount}`);
+  else if (wordCount < 300) score -= deduce(deductions, "Resume content is sparse (< 300 words)", 10, `Word count: ~${wordCount}`);
+  else if (wordCount > 1200) score -= deduce(deductions, "Resume may be too long (> ~2 pages equivalent)", 8, `Word count: ~${wordCount}`);
+
+  // ATS-safe: no table indicators
+  if (/\|\s*\w+\s*\|/.test(t)) score -= deduce(deductions, "Table-like formatting detected (may break ATS parsers)", 8, "Pipe-delimited content found");
+
+  // Bullet consistency
+  const bulletLines = (t.match(/^[\-•▪◦➤*]\s/gm) || []).length;
+  if (bulletLines < 3 && wordCount > 200) score -= deduce(deductions, "Low use of bullet points for structured content", 7, `Only ${bulletLines} bullets found`);
+
+  // Page count heuristic
+  const lines = t.split('\n').length;
+  if (lines > 120) score -= deduce(deductions, "Resume likely exceeds 2 pages", 5, `~${lines} parsed lines`);
+
+  conf = Math.min(95, 60 + foundHeaders.length * 5);
+  return { score: ri(score), confidence: ri(conf), deductions };
+}
+
+// ─── 2. CONTACT INFO (5 pts weight) ─────────────────────────────
+function scoreContact(contactText, fullText) {
+  const deductions = [];
+  const t = (contactText || fullText || "").toLowerCase();
+  let score = 100;
+  let conf = 90;
+
+  if (!EMAIL_REGEX.test(t)) score -= deduce(deductions, "Email address missing or undetected", 30, "No valid email pattern found");
+  if (!PHONE_REGEX.test(t)) score -= deduce(deductions, "Phone number missing or undetected", 25, "No valid phone pattern found");
+  if (!t.includes("linkedin")) score -= deduce(deductions, "LinkedIn profile link absent", 20, "Keyword 'linkedin' not found in contact");
+  if (!t.includes("github") && !t.includes("portfolio") && !t.includes("behance") && !t.includes("dribbble"))
+    score -= deduce(deductions, "No GitHub or portfolio link found", 15, "Keyword 'github/portfolio' not found");
+  if (!/(bangalore|mumbai|delhi|pune|hyderabad|chennai|kolkata|remote|india|usa|uk|\d{6})/i.test(t))
+    score -= deduce(deductions, "Location not clearly stated", 10, "No city/pin/country detected");
+
+  return { score: ri(score), confidence: 90, deductions };
+}
+
+// ─── 3. SKILLS QUALITY (15 pts weight) ──────────────────────────
+function scoreSkillsQuality(skillsArr, experienceText) {
+  const deductions = [];
+  const skills = Array.isArray(skillsArr) ? skillsArr : [];
+  const expLower = (experienceText || "").toLowerCase();
+  let score = 100;
+  let conf = 80;
+
+  if (skills.length === 0) return { score: 0, confidence: 85, deductions: [{ issue: "No skills listed", points_lost: 100, evidence: "Empty skills array" }] };
+  if (skills.length < 5)   score -= deduce(deductions, "Very few skills listed (< 5)", 25, `Only ${skills.length} skills`);
+  else if (skills.length < 10) score -= deduce(deductions, "Limited skill count (< 10)", 12, `${skills.length} skills listed`);
+
+  const normalized = skills.map(s => s.toLowerCase().trim());
+
+  // Check for duplicates
+  const unique = new Set(normalized);
+  if (unique.size < normalized.length) score -= deduce(deductions, "Duplicate or near-duplicate skills found", 8, `${normalized.length - unique.size} duplicates detected`);
+
+  // Check cluster diversity
+  let clustersRepresented = 0;
+  for (const cluster of SKILL_CLUSTERS) {
+    if (cluster.skills.some(cs => normalized.some(ns => ns.includes(cs) || cs.includes(ns)))) clustersRepresented++;
+  }
+  if (clustersRepresented < 2) score -= deduce(deductions, "Low technology diversity across skill clusters", 15, `Only ${clustersRepresented} skill domains covered`);
+
+  // Check relevance to experience
+  const skillsFoundInExp = normalized.filter(s => expLower.includes(s)).length;
+  if (skills.length > 5 && skillsFoundInExp === 0) score -= deduce(deductions, "Skills not mentioned in experience descriptions (possible inflation)", 10, "No skill keywords found in experience text");
+
+  // Modern tech check
+  const modernTech = ["react","python","node","docker","kubernetes","typescript","aws","llm","langchain","fastapi","nextjs","flutter","go","rust","terraform"];
+  const hasModern = normalized.some(s => modernTech.some(m => s.includes(m)));
+  if (!hasModern) score -= deduce(deductions, "No modern/trending technologies listed", 10, "None of the top in-demand tech keywords detected");
+
+  conf = Math.min(95, 70 + skills.length * 2);
+  return { score: ri(score), confidence: ri(conf), deductions };
+}
+
+// ─── 4. EXPERIENCE QUALITY (20 pts weight) ───────────────────────
+function scoreExperienceQuality(expText) {
+  const deductions = [];
+  const t = (expText || "").trim();
+  if (!t || t.length < 20) return { score: 0, confidence: 90, deductions: [{ issue: "No experience section found", points_lost: 100, evidence: "Empty or missing" }] };
+
+  let score = 100;
+  const lower = t.toLowerCase();
+  const metrics = (t.match(METRIC_REGEX) || []).length;
+  const verbs = ATS_ACTION_VERBS.filter(v => lower.includes(v)).length;
+  const strongVerbs = STRONG_ACTION_VERBS.filter(v => lower.includes(v)).length;
+  const years = (t.match(YEAR_REGEX) || []);
+  const isIntern = /intern|trainee|apprentice/i.test(t);
+  const monthBased = /\d+\s*(months?|weeks?)/i.test(t);
+
+  if (metrics === 0) score -= deduce(deductions, "No quantified achievements (%, numbers, volume) found", 20, "Zero metric patterns like '30%', '10k users', '2x' detected");
+  else if (metrics < 3) score -= deduce(deductions, "Very few quantified achievements", 10, `Only ${metrics} metric found`);
+
+  if (verbs < 3) score -= deduce(deductions, "Insufficient action verbs to describe responsibilities", 15, `Only ${verbs} action verbs found`);
+  else if (verbs < 6) score -= deduce(deductions, "Action verbs used but could be stronger", 5, `${verbs} action verbs`);
+  if (strongVerbs > 0) score += Math.min(5, strongVerbs * 2); // bonus
+
+  if (years.length === 0 && !isIntern && !monthBased) score -= deduce(deductions, "No employment dates found", 15, "No year ranges or duration mentioned");
+
+  if (isIntern || monthBased) {
+    score = Math.max(score, 40); // floor for interns — don't penalise for short duration
+  }
+
+  const conf = t.length > 200 ? 88 : 65;
+  return { score: ri(score), confidence: conf, deductions };
+}
+
+// ─── 5. PROJECTS (15 pts weight) ─────────────────────────────────
+function scoreProjectsQuality(projectsText, certsText) {
+  const deductions = [];
+  const t = (projectsText || "").trim();
+  const hasCerts = certsText && certsText.trim().length > 5;
+
+  if (!t && !hasCerts) return { score: 0, confidence: 88, deductions: [{ issue: "No projects or certifications found", points_lost: 100, evidence: "Both projects and certifications sections are empty" }] };
+  if (!t && hasCerts) {
+    return { score: 45, confidence: 72, deductions: [{ issue: "No standalone projects; only certifications present", points_lost: 55, evidence: `Certifications found: ${certsText.substring(0,80)}` }] };
+  }
+
+  let score = 100;
+  const lower = t.toLowerCase();
+  const metrics = (t.match(METRIC_REGEX) || []).length;
+  const hasGithub = lower.includes("github") || lower.includes("gitlab");
+  const hasDemo   = lower.includes("demo") || lower.includes("live") || URL_REGEX.test(t);
+  const hasTech   = /python|react|node|java|ml|ai|flask|django|spring|docker|aws/i.test(t);
+  const hasTitle  = /\n[A-Z][^\n]{5,50}\n/.test(t); // line that looks like a title
+
+  const numProjects = (t.match(/\n[A-Z][^\n]{3,60}\n/g) || []).length;
+
+  if (numProjects === 0) score -= deduce(deductions, "Project titles not clearly formatted", 15, "No capitalized title lines detected");
+  if (!hasTech) score -= deduce(deductions, "No technologies mentioned in project descriptions", 20, "Missing tech stack keywords");
+  if (!hasGithub) score -= deduce(deductions, "No GitHub or repository link found in projects", 15, "Keyword 'github/gitlab' absent");
+  if (!hasDemo)  score -= deduce(deductions, "No live demo or deployment link mentioned", 10, "Keyword 'demo/live' or URL absent");
+  if (metrics === 0) score -= deduce(deductions, "No quantified impact or results in project descriptions", 15, "Zero metric patterns found");
+
+  if (hasCerts) score = Math.min(100, score + 8); // cert bonus for freshers
+
+  return { score: ri(score), confidence: 82, deductions };
+}
+
+// ─── 6. EDUCATION (10 pts weight) ────────────────────────────────
+function scoreEducation(eduText) {
+  const deductions = [];
+  const t = (eduText || "").trim();
+  if (!t) return { score: 0, confidence: 90, deductions: [{ issue: "No education section found", points_lost: 100, evidence: "Empty education text" }] };
+
+  let score = 100;
+  const lower = t.toLowerCase();
+
+  const hasDegree = /b\.?tech|bachelor|b\.?e\b|b\.?sc|m\.?tech|master|mba|m\.?sc|phd|diploma|hsc|ssc|10th|12th|engineering/i.test(t);
+  const hasInstitute = /institute|university|college|iit|nit|bits|school/i.test(lower);
+  const hasYear = YEAR_REGEX.test(t);
+  const hasGpa = /cgpa|gpa|percentage|%|\d+\.\d+\s*\/\s*10/i.test(t);
+
+  if (!hasDegree)    score -= deduce(deductions, "Degree type not clearly stated", 30, "Keywords like BTech, Bachelor, Diploma not found");
+  if (!hasInstitute) score -= deduce(deductions, "Institution name not detected", 20, "Keywords 'university/college/institute' absent");
+  if (!hasYear)      score -= deduce(deductions, "Graduation year not specified", 20, "No year (19xx/20xx) found in education");
+  if (!hasGpa)       score -= deduce(deductions, "GPA or percentage not mentioned (optional but helpful)", 10, "Keywords 'CGPA/GPA/%' not found");
+
+  return { score: ri(score), confidence: 88, deductions };
+}
+
+// ─── 7. KEYWORD COVERAGE (10 pts weight) ─────────────────────────
+function scoreKeywordCoverage(skillsArr, experienceText, projectsText) {
+  const deductions = [];
+  const allText = `${skillsArr?.join(' ')||''} ${experienceText||''} ${projectsText||''}`.toLowerCase();
+  const skills = Array.isArray(skillsArr) ? skillsArr.map(s => s.toLowerCase()) : [];
+  let score = 100;
+
+  // Industry-standard keyword groups
+  const KEYWORD_GROUPS = [
+    { name: "Version Control", kws: ["git","github","gitlab","bitbucket","version control"] },
+    { name: "Databases", kws: ["sql","mysql","mongodb","postgresql","redis","database"] },
+    { name: "Collaboration", kws: ["agile","scrum","jira","trello","notion","team","sprint"] },
+    { name: "Testing/QA", kws: ["test","testing","unit test","jest","selenium","postman","qa","debug"] },
+    { name: "Deployment", kws: ["deploy","ci/cd","docker","pipeline","devops","cloud","production"] },
+  ];
+
+  const missingGroups = [];
+  for (const g of KEYWORD_GROUPS) {
+    if (!g.kws.some(kw => allText.includes(kw))) missingGroups.push(g.name);
+  }
+
+  if (missingGroups.length >= 4) score -= deduce(deductions, "Very low keyword coverage across key industry domains", 30, `Missing: ${missingGroups.join(', ')}`);
+  else if (missingGroups.length >= 2) score -= deduce(deductions, "Moderate keyword coverage; some domains missing", 15, `Missing: ${missingGroups.join(', ')}`);
+
+  // Keyword density heuristic
+  const words = allText.split(/\s+/).length;
+  const techWords = skills.length;
+  const density = words > 0 ? (techWords / words * 100) : 0;
+  if (density < 2) score -= deduce(deductions, "Keyword density too low", 15, `~${density.toFixed(1)}% keyword density`);
+
+  const conf = skills.length > 5 ? 78 : 60;
+  return { score: ri(score), confidence: conf, deductions };
+}
+
+// ─── 8. ACHIEVEMENTS & IMPACT (5 pts weight) ─────────────────────
+function scoreAchievements(expText, projectsText) {
+  const deductions = [];
+  const t = `${expText||''} ${projectsText||''}`;
+  let score = 100;
+
+  const metrics = (t.match(METRIC_REGEX) || []).length;
+  const hasAwards = /award|recognition|winner|top|honour|scholarship|rank|prize|certificate of merit/i.test(t);
+  const hasImpact = /revenue|cost|saving|growth|scale|users|customers|traffic|performance|speed|latency/i.test(t);
+
+  if (metrics === 0 && !hasAwards && !hasImpact) {
+    score -= deduce(deductions, "No measurable impact, awards, or business outcomes mentioned", 55, "No metric, award, or impact keywords found");
+  } else {
+    if (metrics < 2) score -= deduce(deductions, "Only " + metrics + " quantified metric(s) found", 20, "Aim for 3+ measurable outcomes");
+    if (!hasImpact)  score -= deduce(deductions, "No business or product impact language found", 15, "Words like 'revenue, growth, users' absent");
+    if (!hasAwards)  score -= deduce(deductions, "No awards, recognitions, or honours listed", 10, "Optional but strongly differentiating");
+  }
+
+  return { score: ri(score), confidence: 75, deductions };
+}
+
+// ─── 9. LANGUAGE QUALITY (3 pts weight) ──────────────────────────
+function scoreLanguageQuality(allText) {
+  const deductions = [];
+  const t = (allText || "").trim();
+  let score = 100;
+
+  // Passive voice detection
+  const passiveMatches = (t.match(/\bwas\s+\w+ed\b|\bwere\s+\w+ed\b|\bbeen\s+\w+ed\b/gi) || []).length;
+  if (passiveMatches > 4) score -= deduce(deductions, "Excessive passive voice usage", 15, `${passiveMatches} passive constructs detected`);
+
+  // Repetition: flag same word appearing > 5 times
+  const wordFreq = {};
+  t.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).forEach(w => { if (w.length > 4) wordFreq[w] = (wordFreq[w] || 0) + 1; });
+  const overused = Object.entries(wordFreq).filter(([w, c]) => c > 5 && !["experience","project","skills","worked","using","through"].includes(w));
+  if (overused.length > 3) score -= deduce(deductions, "Repetitive language detected", 10, `Overused words: ${overused.slice(0,3).map(([w]) => w).join(', ')}`);
+
+  // Very short sentences or missing punctuation
+  if (t.length > 200 && !t.includes('.') && !t.includes(',')) score -= deduce(deductions, "Possibly missing punctuation throughout document", 15, "No sentence terminators detected");
+
+  return { score: ri(score), confidence: 68, deductions };
+}
+
+// ─── 10. PROFESSIONAL CONSISTENCY (2 pts weight) ─────────────────
+function scoreConsistency(allText) {
+  const deductions = [];
+  const t = (allText || "").trim();
+  let score = 100;
+
+  // Mixed tense
+  const presentTense = (t.match(/\b(develop|manage|lead|work|build|create|design)\b/gi) || []).length;
+  const pastTense    = (t.match(/\b(developed|managed|led|worked|built|created|designed)\b/gi) || []).length;
+  if (presentTense > 0 && pastTense > 0) score -= deduce(deductions, "Mixed verb tenses detected (present and past)", 30, `Present: ${presentTense}, Past: ${pastTense}`);
+
+  // Date format inconsistency
+  const dateFormats = [
+    (t.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/g) || []).length,
+    (t.match(/\b\d{1,2}\/\d{4}/g) || []).length,
+    (t.match(/\b\d{4}\s*[-–]\s*\d{4}/g) || []).length,
+  ].filter(c => c > 0).length;
+  if (dateFormats > 1) score -= deduce(deductions, "Inconsistent date formatting detected", 25, "Multiple date formats mixed across resume");
+
+  return { score: ri(score), confidence: 70, deductions };
+}
+
+// ─── BONUS CALCULATOR ────────────────────────────────────────────
+function calculateBonus(resumeData) {
+  const t = `${resumeData.experience||''} ${resumeData.projects||''} ${resumeData.skills?.join(' ')||''}`;
+  let bonus = 0;
+
+  const metrics = (t.match(METRIC_REGEX) || []).length;
+  if (metrics >= 6) bonus += 1;
+
+  const strongVerbs = STRONG_ACTION_VERBS.filter(v => t.toLowerCase().includes(v)).length;
+  if (strongVerbs >= 3) bonus += 1;
+
+  const techCount = (Array.isArray(resumeData.skills) ? resumeData.skills : []).length;
+  if (techCount >= 15) bonus += 1;
+
+  return Math.min(3, bonus);
+}
+
+// ─── IMPROVEMENT PRIORITY ────────────────────────────────────────
+function getImprovementPriority(categories) {
+  return [...categories]
+    .sort((a, b) => {
+      const aLoss = a.weight - (a.weight * a.score / 100);
+      const bLoss = b.weight - (b.weight * b.score / 100);
+      return bLoss - aLoss;
+    })
+    .slice(0, 4)
+    .map(c => ({
+      category: c.name,
+      potential_gain: Math.round(c.weight - (c.weight * c.score / 100)),
+      top_issue: c.deductions?.[0]?.issue || "Review section"
+    }));
+}
+
+// ─── MAIN EXPORT ─────────────────────────────────────────────────
+export function calculateExplainableATSScore(resumeData) {
+  const {
+    contact = "", experience = "", projects = "", education = "",
+    skills = [], certifications = "", overview = ""
+  } = resumeData;
+
+  const fullText = `${contact} ${experience} ${projects} ${education} ${overview}`;
+
+  const structureResult     = scoreStructure(overview || experience, fullText);
+  const contactResult       = scoreContact(contact, fullText);
+  const skillsResult        = scoreSkillsQuality(skills, experience);
+  const experienceResult    = scoreExperienceQuality(experience);
+  const projectsResult      = scoreProjectsQuality(projects, certifications);
+  const educationResult     = scoreEducation(education);
+  const keywordsResult      = scoreKeywordCoverage(skills, experience, projects);
+  const achievementsResult  = scoreAchievements(experience, projects);
+  const languageResult      = scoreLanguageQuality(fullText);
+  const consistencyResult   = scoreConsistency(fullText);
+
+  const categories = [
+    { name: "Resume Structure & ATS Compatibility", weight: 15, key: "structure",   ...structureResult },
+    { name: "Contact Information",                   weight: 5,  key: "contact",    ...contactResult },
+    { name: "Skills Quality",                        weight: 15, key: "skills",     ...skillsResult },
+    { name: "Experience Quality",                    weight: 20, key: "experience", ...experienceResult },
+    { name: "Projects",                              weight: 15, key: "projects",   ...projectsResult },
+    { name: "Education",                             weight: 10, key: "education",  ...educationResult },
+    { name: "Keyword Coverage",                      weight: 10, key: "keywords",   ...keywordsResult },
+    { name: "Achievements & Impact",                 weight: 5,  key: "achievements",...achievementsResult },
+    { name: "Language Quality",                      weight: 3,  key: "language",   ...languageResult },
+    { name: "Professional Consistency",              weight: 2,  key: "consistency",...consistencyResult },
+  ];
+
+  let weightedTotal = 0;
+  for (const c of categories) weightedTotal += c.weight * c.score / 100;
+
+  const bonusPoints = calculateBonus(resumeData);
+  const overallScore = Math.min(100, Math.round(weightedTotal + bonusPoints));
+  const overallConfidence = Math.round(categories.reduce((s, c) => s + c.confidence, 0) / categories.length);
+
+  return {
+    overall_score:      overallScore,
+    overall_confidence: overallConfidence,
+    bonus_points:       bonusPoints,
+    categories:         categories.map(c => ({ ...c, score: Math.round(c.score) })),
+    improvement_priority: getImprovementPriority(categories),
+    deduction_summary:  categories.flatMap(c => (c.deductions || []).map(d => ({ ...d, category: c.name }))),
+  };
 }

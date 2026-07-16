@@ -21,7 +21,7 @@ import {
 } from "./ragCache.js";
 import {
   calculateATSScore, calculatePreciseJobMatch, scoreSearchRelevance,
-  preciseSkillMatchRatio
+  preciseSkillMatchRatio, calculateExplainableATSScore
 } from "./scoringEngine.js";
 
 
@@ -4646,49 +4646,47 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
         };
       }
 
-      // ── PRECISION SECTION SCORES via scoringEngine ──
-      // Feed the engine with the richest data available.
-      // certifications thread through for student/fresher partial-project credit.
-      const atsResult = calculateATSScore({
+      // ── EXPLAINABLE ATS ENGINE ──
+      // Score is 100% deterministic — never guessed by LLM.
+      // LLM only provides explanatory text (overview, strengths, etc.)
+      const explainableResult = calculateExplainableATSScore({
+        contact:        res.contact || textData?.contact || "",
         experience:     res.extractedInfo.experience     || "",
         skills:         res.extractedInfo.skills         || [],
         projects:       res.extractedInfo.projects       || "",
         education:      res.extractedInfo.education      || "",
-        overview:       res.overview                     || "",
-        contact:        res.contact || textData?.contact || "",
         certifications: res.extractedInfo.certifications || "",
+        overview:       res.overview                     || "",
       });
 
-      const llmAts = Number(res.atsScore) || 55;
+      // Override LLM atsScore with the deterministic engine score
+      res.atsScore = explainableResult.overall_score;
 
-      // Blend: LLM score is more trustworthy (read full doc) than regex engine
-      // 65% LLM + 35% engine = best of both worlds
-      res.atsScore = Math.round(Math.min(100, Math.max(15, llmAts * 0.65 + atsResult.total * 0.35)));
+      // Attach full explainable payload — the UI will render this
+      res.atsDetail = explainableResult;
 
-      // For section scores: prefer LLM values where engine scores are 0
-      // (engine returns 0 when it can't parse the text, but LLM already assessed it)
-      const llmSec = res.sectionScores || {};
+      // Backward-compatible sectionScores from category keys
+      const catMap = {};
+      for (const c of explainableResult.categories) catMap[c.key] = c.score;
       res.sectionScores = {
-        contactInfo: blendSection(llmSec.contactInfo, atsResult.sections.contact),
-        summary:     blendSection(llmSec.summary,     atsResult.sections.summary),
-        experience:  blendSection(llmSec.experience,  atsResult.sections.experience),
-        education:   blendSection(llmSec.education,   atsResult.sections.education),
-        skills:      blendSection(llmSec.skills,      atsResult.sections.skills),
-        projects:    blendSection(llmSec.projects,    atsResult.sections.projects),
+        contactInfo: catMap.contact     || 0,
+        summary:     catMap.structure   || 0,
+        experience:  catMap.experience  || 0,
+        education:   catMap.education   || 0,
+        skills:      catMap.skills      || 0,
+        projects:    catMap.projects    || 0,
       };
 
       return res;
     }
 
-    // Blends LLM section score with engine score.
-    // When engine gives 0 (couldn't parse), we fall back fully to LLM score.
-    // When both have values, engine wins because it's deterministic.
+    // (blendSection kept for backward compatibility with legacy callers)
     function blendSection(llmVal, engineVal) {
       const lv = Number(llmVal) || 0;
       const ev = Number(engineVal) || 0;
-      if (ev === 0 && lv > 0) return lv;           // engine failed to parse → trust LLM
-      if (ev > 0 && lv === 0) return ev;           // LLM missed it → use engine
-      if (ev > 0 && lv > 0)  return Math.round(lv * 0.45 + ev * 0.55); // blend
+      if (ev === 0 && lv > 0) return lv;
+      if (ev > 0 && lv === 0) return ev;
+      if (ev > 0 && lv > 0)  return Math.round(lv * 0.45 + ev * 0.55);
       return 0;
     }
 

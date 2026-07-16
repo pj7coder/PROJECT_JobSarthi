@@ -532,6 +532,69 @@ if (t && t !== 'dark') { document.documentElement.classList.add(t+'-theme'); doc
   color: var(--text-muted);
   line-height: 1.5;
 }
+/* ── NEW: Explainable ATS Dashboard ── */
+.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+@media(max-width:700px){ .cat-grid { grid-template-columns: 1fr; } }
+.cat-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.015);
+  transition: border-color .2s;
+  cursor: pointer;
+}
+.cat-card:hover { border-color: rgba(99,102,241,.4); }
+.cat-card.expanded { border-color: var(--accent-tertiary); background: rgba(99,102,241,.04); }
+.cat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cat-name { font-size: 0.78rem; font-weight: 700; color: var(--text-main); }
+.cat-score { font-size: 1.1rem; font-weight: 800; }
+.cat-score.green { color: #10b981; }
+.cat-score.amber { color: #f59e0b; }
+.cat-score.red { color: #ef4444; }
+.cat-conf { font-size: 0.68rem; color: var(--text-muted); margin-bottom: 6px; }
+.cat-bar-track { height: 5px; background: var(--border-subtle); border-radius: 3px; overflow: hidden; }
+.cat-bar-fill { height: 100%; border-radius: 3px; transition: width 1.2s ease; }
+.cat-weight { font-size: 0.65rem; color: var(--text-muted); margin-top: 4px; text-align: right; }
+.cat-deductions { margin-top: 10px; display: none; border-top: 1px solid var(--border-subtle); padding-top: 8px; }
+.cat-card.expanded .cat-deductions { display: block; }
+.deduction-item {
+  background: rgba(239,68,68,.06);
+  border: 1px solid rgba(239,68,68,.15);
+  border-radius: 6px;
+  padding: 7px 10px;
+  margin-bottom: 6px;
+  font-size: 0.74rem;
+}
+.deduction-item:last-child { margin-bottom: 0; }
+.ded-issue { color: #f87171; font-weight: 600; margin-bottom: 3px; }
+.ded-pts { display: inline-block; background: rgba(239,68,68,.15); color: #f87171; border-radius: 4px; padding: 1px 6px; font-size: 0.68rem; font-weight: 700; margin-right: 4px; }
+.ded-evidence { color: var(--text-muted); font-style: italic; }
+/* Score hero banner */
+.ats-hero {
+  display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+  background: linear-gradient(135deg, rgba(99,102,241,.08) 0%, rgba(16,185,129,.06) 100%);
+  border: 1px solid rgba(99,102,241,.2);
+  border-radius: 14px; padding: 20px 24px; margin-bottom: 20px;
+}
+.ats-score-wrap { text-align: center; flex-shrink: 0; }
+.ats-score-num { font-size: 3.2rem; font-weight: 900; line-height: 1; }
+.ats-score-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.ats-meta { flex: 1; min-width: 200px; }
+.ats-conf-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.ats-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; border: 1px solid; }
+.bonus-badge { background: rgba(16,185,129,.1); color:#10b981; border-color:rgba(16,185,129,.3); }
+.conf-badge { background: rgba(99,102,241,.1); color:#818cf8; border-color:rgba(99,102,241,.3); }
+/* Priority grid */
+.priority-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media(max-width:700px){ .priority-grid { grid-template-columns: 1fr; } }
+.priority-item {
+  border: 1px solid rgba(245,158,11,.25);
+  background: rgba(245,158,11,.05);
+  border-radius: 8px; padding: 10px 12px;
+}
+.priority-gain { font-size: 1.1rem; font-weight: 800; color: #f59e0b; }
+.priority-cat { font-size: 0.74rem; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+.priority-issue { font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -1061,107 +1124,54 @@ function renderActiveTabContent() {
   
   let html = '';
   
-  if (currentDashTab === 'summary') {
-    const ratingPill = (label, val) => {
-      const cls = val === 'Excellent' ? 'pill-green' : val === 'Good' ? 'pill-amber' : 'pill-red';
-      return `<span class="pill ${cls}">${label}: ${val || 'N/A'}</span>`;
-    };
-
-    const barColor = v => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
-    const sectionScores = d.sectionScores || {};
-    const sections = [
-      ['Contact Info', sectionScores.contactInfo],
-      ['Summary', sectionScores.summary],
-      ['Experience', sectionScores.experience],
-      ['Education', sectionScores.education],
-      ['Skills', sectionScores.skills],
-      ['Projects', sectionScores.projects]
-    ].filter(([,v]) => v !== undefined);
-
+  if (currentDashTab === 'categories') {
     html = `
-      <div style="margin-bottom: 20px;">
-        <h3 style="font-size:0.9rem;font-weight:700;color:var(--text-main);margin-bottom:8px">Candidate Overview</h3>
-        <p style="font-size:.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:12px">${d.overview || 'No overview provided.'}</p>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
-          ${ratingPill('Grammar', d.grammarRating)}
-          ${ratingPill('Structure', d.structureRating)}
-          ${ratingPill('Readability', d.readabilityRating)}
-          ${d.keywordDensity ? `<span class="pill pill-zinc">Keywords: ${d.keywordDensity}</span>` : ''}
-        </div>
-      </div>
-
-      ${sections.length ? `
-      <div class="acard" style="margin-bottom: 16px;">
-        <div class="acard-title" style="margin-bottom: 12px;">Section Breakdown</div>
-        ${sections.map(([label, val]) => `
-        <div class="sbar-row">
-          <span class="sbar-label">${label}</span>
-          <div class="sbar-track"><div class="sbar-fill" style="width:${val}%;background:${barColor(val)}"></div></div>
-          <span class="sbar-val">${val}</span>
-        </div>`).join('')}
-      </div>` : ''}
-
-      <!-- Smart Points Allocation & Tips Section -->
-      <div class="acard" style="margin-bottom: 0;">
-        <div class="acard-title" style="display:flex; align-items:center; gap:6px;">
-          ${SVG_ICONS.info} Smart Points Allocation & Improvement Tips
-        </div>
-        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;line-height:1.4;">
-          Your ATS score is calculated out of 100 points based on the following professional scoring standards:
+      <div class="acard" style="margin-bottom:16px">
+        <div class="acard-title" style="margin-bottom:12px">📊 10-Category ATS Score Breakdown</div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
+          Each category is scored 0–100 using deterministic rules (no AI guessing). 
+          Click any card to see exactly which issues lost you points and why.
         </p>
-        <div style="display:flex; flex-direction:column; gap:10px; font-size:0.78rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-subtle); padding-bottom:6px;">
-            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
-              ${SVG_ICONS.breakdown} Experience (Max 30 pts)
-            </span>
-            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
-              Verbs & metrics. <strong style="color:#10b981; font-weight:600;">Tip: Add quantifiable metrics (%, $, x) to gain up to 10 pts.</strong>
-            </span>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-subtle); padding-bottom:6px;">
-            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
-              ${SVG_ICONS.key} Skills (Max 25 pts)
-            </span>
-            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
-              Core tech. <strong style="color:#10b981; font-weight:600;">Tip: Group core skills clearly by domain/cluster.</strong>
-            </span>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-subtle); padding-bottom:6px;">
-            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
-              ${SVG_ICONS.folder} Projects (Max 20 pts)
-            </span>
-            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
-              Impact & stack. <strong style="color:#10b981; font-weight:600;">Tip: List technical architectures and systems deployed.</strong>
-            </span>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-subtle); padding-bottom:6px;">
-            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
-              ${SVG_ICONS.academic} Education (Max 12 pts)
-            </span>
-            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
-              Degree & GPA. <strong style="color:#10b981; font-weight:600;">Tip: Explicitly mention GPA, CGPA or honors/distinctions.</strong>
-            </span>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-subtle); padding-bottom:6px;">
-            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
-              ${SVG_ICONS.file} Summary (Max 8 pts)
-            </span>
-            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
-              Role focus. <strong style="color:#10b981; font-weight:600;">Tip: Start with years of experience and core domain tags.</strong>
-            </span>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:2px;">
-            <span style="font-weight:600;color:var(--text-main); display:inline-flex; align-items:center; gap:6px;">
-              ${SVG_ICONS.phone} Contact (Max 5 pts)
-            </span>
-            <span style="color:var(--text-muted); font-size:0.75rem; text-align:right;">
-              Professional links. <strong style="color:#10b981; font-weight:600;">Tip: Include active links to LinkedIn and GitHub.</strong>
-            </span>
-          </div>
-        </div>
+        ${renderCategoryGrid(d)}
+      </div>
+      <div class="acard" style="margin-bottom:0">
+        <div class="acard-title" style="margin-bottom:10px">${SVG_ICONS.info} Candidate Summary</div>
+        <p style="font-size:.82rem;color:var(--text-muted);line-height:1.5">${d.overview || 'No overview available.'}</p>
+        ${d.suggestedRoles?.length ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">${d.suggestedRoles.map(r=>`<span class="pill pill-zinc">${r}</span>`).join('')}</div>` : ''}
       </div>
     `;
-  } 
+  }
+  else if (currentDashTab === 'priority') {
+    const det = d.atsDetail || {};
+    const priority = det.improvement_priority || [];
+    const deductions = det.deduction_summary || [];
+    html = `
+      <div class="acard" style="margin-bottom:16px">
+        <div class="acard-title" style="margin-bottom:10px">🎯 Top Improvement Priorities</div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px">Fix these first for the biggest ATS score gains:</p>
+        <div class="priority-grid">
+          ${priority.length ? priority.map(p => `
+            <div class="priority-item">
+              <div class="priority-gain">+${p.potential_gain}pts</div>
+              <div class="priority-cat">${p.category}</div>
+              <div class="priority-issue">${p.top_issue}</div>
+            </div>`).join('') : '<p style="color:var(--text-muted);font-size:.82rem">Great work — no major priority areas found!</p>'}
+        </div>
+      </div>
+      <div class="acard" style="margin-bottom:0">
+        <div class="acard-title" style="margin-bottom:10px">🔍 Full Deduction Log</div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">Every point deduction is shown below with evidence from your resume:</p>
+        ${deductions.length ? deductions.map(d => `
+          <div class="deduction-item" style="margin-bottom:8px">
+            <div class="ded-issue" style="margin-bottom:2px">
+              <span class="ded-pts">-${d.points_lost}pts</span>${d.issue}
+              <span style="font-size:0.65rem;color:var(--text-muted);margin-left:6px">[${d.category}]</span>
+            </div>
+            ${d.evidence ? `<div class="ded-evidence">"${d.evidence.substring(0,150)}"</div>` : ''}
+          </div>`).join('') : '<p style="color:#10b981;font-size:.82rem">✓ No deductions logged — excellent resume!</p>'}
+      </div>
+    `;
+  }
   else if (currentDashTab === 'skills') {
     html = `
       <div class="acard" style="margin-bottom: 16px;">
@@ -1305,55 +1315,81 @@ function renderDashboard(d) {
   document.getElementById('placeholder').style.display = 'none';
   const dash = document.getElementById('dashboard');
   dash.style.display = 'block';
-
   window.currentAnalysis = d;
 
   const score = d.atsScore || 0;
   const scoreColor = score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
-  const circumference = 2 * Math.PI * 54;
-  const offset = circumference - (score / 100) * circumference;
-
+  const det = d.atsDetail || {};
+  const conf = det.overall_confidence || 0;
+  const bonus = det.bonus_points || 0;
   const hasMultiple = analysisResults.filter(Boolean).length > 1;
-  const compareBtn = hasMultiple ? `<button class="compare-toggle" onclick="renderComparison()" style="margin-bottom:16px; display:inline-flex; align-items:center; gap:6px;">${SVG_ICONS.zap} Compare All Resumes</button>` : '';
+  const compareBtn = hasMultiple ? `<button class="compare-toggle" onclick="renderComparison()" style="margin-bottom:16px;display:inline-flex;align-items:center;gap:6px;">${SVG_ICONS.zap} Compare All</button>` : '';
 
   dash.innerHTML = `
   ${compareBtn}
-  <!-- Score Ring Card (Always Visible) -->
-  <div class="acard" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
-    <div style="text-align:center;flex-shrink:0">
-      <svg width="120" height="120" viewBox="0 0 120 120">
-        <circle class="score-ring-bg" cx="60" cy="60" r="54"/>
-        <circle class="score-ring-fg" cx="60" cy="60" r="54"
-          stroke="${scoreColor}"
-          stroke-dasharray="${circumference}"
-          stroke-dashoffset="${offset}"
-          transform="rotate(-90 60 60)"/>
-        <text x="60" y="66" text-anchor="middle" font-size="26" font-weight="800" fill="${scoreColor}">${score}</text>
-        <text x="60" y="82" text-anchor="middle" font-size="11" fill="var(--text-muted)">ATS Score</text>
-      </svg>
+  <!-- ATS Hero Banner -->
+  <div class="ats-hero">
+    <div class="ats-score-wrap">
+      <div class="ats-score-num" style="color:${scoreColor}">${score}</div>
+      <div class="ats-score-label">ATS Score / 100</div>
     </div>
-    <div style="flex:1;min-width:200px">
-      <h3 style="font-size:1.05rem;font-weight:800;color:var(--text-main);margin-bottom:4px; display:inline-flex; align-items:center; gap:6px;">${SVG_ICONS.file} ${resumes[activeTab]?.name || 'Resume'}</h3>
-      <div style="font-size:0.75rem;color:var(--accent-secondary);font-weight:600;margin-bottom:8px">Target: ${d.suggestedRoles?.[0] || 'Professional'}</div>
-      <p style="font-size:.82rem;color:var(--text-muted);line-height:1.45;">Overall compatibility analysis complete. Click through the tabs below to explore keyword alignments, roadmap priorities, and verification steps.</p>
+    <div class="ats-meta">
+      <div style="font-size:1rem;font-weight:800;color:var(--text-main);margin-bottom:6px">${resumes[activeTab]?.name || 'Resume'}</div>
+      <div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:10px">${d.overview ? d.overview.substring(0,130)+'…' : 'AI-powered deterministic ATS analysis complete.'}</div>
+      <div class="ats-conf-row">
+        ${conf ? `<span class="ats-badge conf-badge">🎯 Confidence: ${conf}%</span>` : ''}
+        ${bonus > 0 ? `<span class="ats-badge bonus-badge">⭐ Bonus: +${bonus} pts</span>` : ''}
+        <span class="ats-badge" style="background:rgba(255,255,255,.04);color:var(--text-muted);border-color:var(--border-subtle)">Rule-based · 100% traceable</span>
+      </div>
     </div>
   </div>
 
-  <!-- Interactive Dashboard Tabs -->
+  <!-- Dashboard Tabs -->
   <div class="dash-tabs">
-    <button class="dash-tab active" data-tab="summary" onclick="switchDashTab('summary')">${SVG_ICONS.breakdown} Breakdown</button>
+    <button class="dash-tab active" data-tab="categories" onclick="switchDashTab('categories')">${SVG_ICONS.breakdown} Categories</button>
+    <button class="dash-tab" data-tab="priority" onclick="switchDashTab('priority')">${SVG_ICONS.zap} Priorities</button>
     <button class="dash-tab" data-tab="skills" onclick="switchDashTab('skills')">${SVG_ICONS.key} Keywords</button>
-    <button class="dash-tab" data-tab="action" onclick="switchDashTab('action')">${SVG_ICONS.zap} Actions & Tips</button>
+    <button class="dash-tab" data-tab="action" onclick="switchDashTab('action')">${SVG_ICONS.zap} Actions</button>
     <button class="dash-tab" data-tab="interview" onclick="switchDashTab('interview')">${SVG_ICONS.target} Prep Guide</button>
     <button class="dash-tab" data-tab="verification" onclick="switchDashTab('verification')">${SVG_ICONS.shield} Claims</button>
   </div>
-
-  <!-- Dynamic Content Area -->
   <div id="dash-tab-content"></div>
   `;
 
-  // Initialize active tab content
-  switchDashTab(currentDashTab || 'summary');
+  switchDashTab('categories');
+}
+
+function renderCategoryGrid(d) {
+  const det = d.atsDetail || {};
+  const cats = det.categories || [];
+  if (!cats.length) return '<p style="color:var(--text-muted);font-size:.82rem">Category data not available — using standard overview below.</p>';
+
+  const barColor = v => v >= 75 ? '#10b981' : v >= 50 ? '#f59e0b' : '#ef4444';
+  const scoreClass = v => v >= 75 ? 'green' : v >= 50 ? 'amber' : 'red';
+
+  return `<div class="cat-grid">${cats.map((c, i) => {
+    const deds = (c.deductions || []).map(d => `
+      <div class="deduction-item">
+        <div class="ded-issue"><span class="ded-pts">-${d.points_lost}pts</span>${d.issue}</div>
+        ${d.evidence ? `<div class="ded-evidence">"${d.evidence.substring(0,120)}"</div>` : ''}
+      </div>`).join('');
+    return `
+    <div class="cat-card" id="catcard-${i}" onclick="toggleCatCard(${i})">
+      <div class="cat-header">
+        <div class="cat-name">${c.name}</div>
+        <div class="cat-score ${scoreClass(c.score)}">${c.score}</div>
+      </div>
+      <div class="cat-conf">Confidence: ${c.confidence}% · Max weight: ${c.weight}pts</div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${c.score}%;background:${barColor(c.score)}"></div></div>
+      <div class="cat-weight">${c.deductions?.length ? `${c.deductions.length} issue(s) found — click to expand` : '✓ No issues detected'}</div>
+      ${deds ? `<div class="cat-deductions">${deds}</div>` : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function toggleCatCard(i) {
+  const card = document.getElementById('catcard-'+i);
+  if (card) card.classList.toggle('expanded');
 }
 
 function renderComparison() {
