@@ -4261,41 +4261,44 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
     const hasEducation = extractedText ? (!!extractedText.education && extractedText.education.trim().length > 5) : hasEducationInText;
 
     let contactScore, summaryScore, expScore, eduScore, skillsScore, projScore;
-    
+
     if (extractedText) {
-      // Calculate scores dynamically based on extracted content using the scoring engine!
+      // Calculate scores dynamically based on extracted content using the scoring engine.
+      // Pass certifications so students/freshers without formal "projects" get credit.
       const engineAts = calculateATSScore({
-        experience: extractedText.experience || "",
-        skills: skillsArray,
-        projects: extractedText.projects || "",
-        education: extractedText.education || "",
-        overview: extractedText.overview || extractedText.summary || "",
-        contact: extractedText.contact || "",
+        experience:     extractedText.experience     || "",
+        skills:         skillsArray,
+        projects:       extractedText.projects       || "",
+        education:      extractedText.education      || "",
+        overview:       extractedText.overview || extractedText.summary || "",
+        contact:        extractedText.contact        || "",
+        certifications: extractedText.certifications || "",
       });
       contactScore = engineAts.sections.contact;
       summaryScore = engineAts.sections.summary;
-      expScore = engineAts.sections.experience;
-      eduScore = engineAts.sections.education;
-      skillsScore = engineAts.sections.skills;
-      projScore = engineAts.sections.projects;
+      expScore     = engineAts.sections.experience;
+      eduScore     = engineAts.sections.education;
+      skillsScore  = engineAts.sections.skills;
+      projScore    = engineAts.sections.projects;
     } else {
       // Generate highly realistic, non-repetitive deterministic scores using a hash of the base64 resume content as the seed
       const seed = crypto.createHash('md5').update(base64Data || clientKey).digest('hex');
       contactScore = getDeterministicScore(seed, 'contact', 70, 95);
       summaryScore = getDeterministicScore(seed, 'summary', 45, 80);
-      expScore     = hasExperience ? getDeterministicScore(seed, 'experience', 40, 85) : 0;
-      eduScore     = hasEducation ? getDeterministicScore(seed, 'education', 65, 95) : 0;
-      skillsScore  = skillsArray.length ? getDeterministicScore(seed, 'skills', 45, 85) : 0;
-      projScore    = hasProjects ? getDeterministicScore(seed, 'projects', 40, 80) : 0;
+      expScore     = hasExperience ? getDeterministicScore(seed, 'experience', 35, 70) : 15;
+      eduScore     = hasEducation  ? getDeterministicScore(seed, 'education',  55, 85) : 20;
+      skillsScore  = skillsArray.length ? getDeterministicScore(seed, 'skills', 45, 80) : 10;
+      projScore    = hasProjects   ? getDeterministicScore(seed, 'projects',   35, 70) : 15;
     }
 
+    // Use the same weights as the engine (ATS_WEIGHTS)
     const calculatedTotalAts = Math.round(
-      contactScore * 0.05 +
+      contactScore * 0.06 +
       summaryScore * 0.08 +
-      expScore     * 0.30 +
-      eduScore     * 0.12 +
-      skillsScore  * 0.25 +
-      projScore    * 0.20
+      expScore     * 0.28 +
+      eduScore     * 0.14 +
+      skillsScore  * 0.26 +
+      projScore    * 0.18
     );
 
     return res.json({
@@ -4364,91 +4367,123 @@ ${JSON.stringify(extractedText || { rawText: "Candidate Resume" })}`;
       }
     });
 
-    // Helper function to normalize parsed results
+    // ═══════════════════════════════════════════════════════════════
+    // NORMALISE ANALYSIS RESULT — fixes data-merge priority + scoring
+    // ═══════════════════════════════════════════════════════════════
     function normalizeAnalysisResult(result, textData) {
       if (!result || typeof result !== 'object') return null;
-      
+
       const res = { ...result };
+
+      // ── Basic field fallback from Gemini OCR (textData) ──
       if (!res.fullName && textData?.fullName) res.fullName = textData.fullName;
-      if (!res.contact && textData?.contact) res.contact = textData.contact;
-      
+      if (!res.contact  && textData?.contact)  res.contact  = textData.contact;
+
+      // Normalise atsScore from LLM (may come as ats_score, score, or atsScore)
       if (!res.atsScore) {
         res.atsScore = res.ats_score || res.score || 55;
       }
       res.atsScore = Number(res.atsScore) || 55;
-      
-      // ── CRITICAL FIX: Always rebuild extractedInfo merging ALL sources ──
-      // Groq returns extractedInfo.experience="" while actual data is at res.experience
-      // or in textData (Gemini OCR Step 1). We always pick the richest non-empty value.
-      const _ei = res.extractedInfo || result.extracted_info || {};
-      const _pickStr = (...srcs) => srcs.find(v => typeof v === 'string' && v.trim().length > 4) || "";
+
+      // ── CRITICAL: Rebuild extractedInfo with correct priority ──
+      // Priority: LLM extractedInfo FIRST (it read the full document),
+      // then top-level LLM fields, then Gemini OCR textData as LAST resort.
+      const _ei  = res.extractedInfo || result.extracted_info || {};
+
+      const _pickStr = (...srcs) =>
+        srcs.find(v => typeof v === 'string' && v.trim().length > 4) || "";
+
       const _pickArr = (...srcs) => {
         for (const s of srcs) {
-          if (Array.isArray(s) && s.length > 0) return s;
-          if (typeof s === 'string' && s.trim().length > 2) return s.split(/[,;|\n]+/).map(x => x.trim()).filter(Boolean);
+          if (Array.isArray(s) && s.length > 0)          return s;
+          if (typeof s === 'string' && s.trim().length > 2)
+            return s.split(/[,;|\n]+/).map(x => x.trim()).filter(Boolean);
         }
         return [];
       };
+
       res.extractedInfo = {
-        education:      _pickStr(textData?.education,      _ei.education,      result.education),
-        experience:     _pickStr(textData?.experience,     _ei.experience,     result.experience),
-        projects:       _pickStr(textData?.projects,       _ei.projects,       result.projects),
-        skills:         _pickArr(textData?.skills,         _ei.skills,         result.skills),
-        certifications: _pickStr(textData?.certifications, _ei.certifications, result.certifications),
+        // LLM extractedInfo → top-level LLM field → Gemini OCR textData
+        education:      _pickStr(_ei.education,      result.education,      textData?.education),
+        experience:     _pickStr(_ei.experience,     result.experience,     textData?.experience),
+        projects:       _pickStr(_ei.projects,       result.projects,       textData?.projects),
+        skills:         _pickArr(_ei.skills,         result.skills,         textData?.skills),
+        certifications: _pickStr(_ei.certifications, result.certifications, textData?.certifications),
       };
-      
+
+      // ── Rebuild keyData safely ──
       if (!res.keyData) {
         res.keyData = result.key_data || {
           technologies: res.extractedInfo.skills || [],
-          tools: [],
-          projects: res.extractedInfo.projects ? [res.extractedInfo.projects.substring(0, 100)] : [],
+          tools:        [],
+          projects:     res.extractedInfo.projects ? [res.extractedInfo.projects.substring(0, 100)] : [],
           achievements: [],
-          claims: []
+          claims:       []
         };
       }
-      
+
+      // ── Skills / strengths arrays ──
       if (!res.matchedSkills || !res.matchedSkills.length) {
         res.matchedSkills = res.matched_skills || res.extractedInfo.skills || [];
       }
-      if (!res.missingSkills) res.missingSkills = res.missing_skills || [];
-      if (!res.strengths) res.strengths = [];
-      if (!res.quickWins) res.quickWins = [];
+      if (!res.missingSkills)   res.missingSkills   = res.missing_skills || [];
+      if (!res.strengths)       res.strengths       = [];
+      if (!res.quickWins)       res.quickWins       = [];
       if (!res.recommendations) res.recommendations = [];
-      if (!res.suggestedRoles) res.suggestedRoles = [];
+      if (!res.suggestedRoles)  res.suggestedRoles  = [];
       if (!res.importantClaims) res.importantClaims = res.keyData.claims || [];
-      
+
       if (!res.topicMap) {
         res.topicMap = {
           projectName: "Resume Project",
-          topics: {
-            "Key Focus": res.extractedInfo.skills || ["General Skills"]
-          }
+          topics: { "Key Focus": res.extractedInfo.skills || ["General Skills"] }
         };
       }
-      
-      // ── PRECISION SECTION SCORES via scoringEngine ──
-      const atsResult = calculateATSScore({
-        experience: res.extractedInfo.experience || "",
-        skills:     res.extractedInfo.skills     || [],
-        projects:   res.extractedInfo.projects   || "",
-        education:  res.extractedInfo.education  || "",
-        overview:   res.overview                 || "",
-        contact:    res.contact                  || textData?.contact || "",
-      });
-      const llmAts = Number(res.atsScore) || 55;
-      res.atsScore = Math.round(llmAts * 0.6 + atsResult.total * 0.4);
 
-      // Always replace section scores with precise computed values
+      // ── PRECISION SECTION SCORES via scoringEngine ──
+      // Feed the engine with the richest data available.
+      // certifications thread through for student/fresher partial-project credit.
+      const atsResult = calculateATSScore({
+        experience:     res.extractedInfo.experience     || "",
+        skills:         res.extractedInfo.skills         || [],
+        projects:       res.extractedInfo.projects       || "",
+        education:      res.extractedInfo.education      || "",
+        overview:       res.overview                     || "",
+        contact:        res.contact || textData?.contact || "",
+        certifications: res.extractedInfo.certifications || "",
+      });
+
+      const llmAts = Number(res.atsScore) || 55;
+
+      // Blend: LLM score is more trustworthy (read full doc) than regex engine
+      // 65% LLM + 35% engine = best of both worlds
+      res.atsScore = Math.round(Math.min(100, Math.max(15, llmAts * 0.65 + atsResult.total * 0.35)));
+
+      // For section scores: prefer LLM values where engine scores are 0
+      // (engine returns 0 when it can't parse the text, but LLM already assessed it)
+      const llmSec = res.sectionScores || {};
       res.sectionScores = {
-        contactInfo: atsResult.sections.contact,
-        summary:     atsResult.sections.summary,
-        experience:  atsResult.sections.experience,
-        education:   atsResult.sections.education,
-        skills:      atsResult.sections.skills,
-        projects:    atsResult.sections.projects,
+        contactInfo: blendSection(llmSec.contactInfo, atsResult.sections.contact),
+        summary:     blendSection(llmSec.summary,     atsResult.sections.summary),
+        experience:  blendSection(llmSec.experience,  atsResult.sections.experience),
+        education:   blendSection(llmSec.education,   atsResult.sections.education),
+        skills:      blendSection(llmSec.skills,      atsResult.sections.skills),
+        projects:    blendSection(llmSec.projects,    atsResult.sections.projects),
       };
 
       return res;
+    }
+
+    // Blends LLM section score with engine score.
+    // When engine gives 0 (couldn't parse), we fall back fully to LLM score.
+    // When both have values, engine wins because it's deterministic.
+    function blendSection(llmVal, engineVal) {
+      const lv = Number(llmVal) || 0;
+      const ev = Number(engineVal) || 0;
+      if (ev === 0 && lv > 0) return lv;           // engine failed to parse → trust LLM
+      if (ev > 0 && lv === 0) return ev;           // LLM missed it → use engine
+      if (ev > 0 && lv > 0)  return Math.round(lv * 0.45 + ev * 0.55); // blend
+      return 0;
     }
 
     // ── Helper: store analysis in resume cache after successful response ──
