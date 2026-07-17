@@ -2,7 +2,7 @@
 // Dynamically loads the templates from commonelements/headers.js to bypass CORS issues on local filesystem.
 
 // Dynamic API Base URL configuration (Vercel/file:// compatibility)
-(function () {
+(function() {
   const getApiBaseUrl = () => {
     // Check if we are running locally opening file:// protocol
     if (window.location.protocol === 'file:') {
@@ -93,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (isSeeker && !document.getElementById('notifSidebar')) {
         const notifOverlay = document.createElement('div');
         notifOverlay.id = 'notifSidebarOverlay';
-        notifOverlay.onclick = function () { window.closeNotifSidebar(); };
+        notifOverlay.onclick = function() { window.closeNotifSidebar(); };
         document.body.appendChild(notifOverlay);
 
         const notifSidebar = document.createElement('div');
@@ -320,7 +320,7 @@ document.addEventListener("DOMContentLoaded", () => {
           .catch(err => console.error("Error fetching favourites:", err));
 
         // Define global sync function
-        window.syncFavouritesToDb = function (savedJobIds) {
+        window.syncFavouritesToDb = function(savedJobIds) {
           const url = window.API_BASE_URL
             ? `${window.API_BASE_URL}/api/seeker/favourites`
             : `${prefix}api/seeker/favourites`;
@@ -332,13 +332,13 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             body: JSON.stringify({ email: userEmail, favourites: savedJobIds })
           })
-            .then(res => res.json())
-            .then(data => {
-              console.log("[JobSarthi] Favourites synced to DB successfully:", data);
-            })
-            .catch(err => {
-              console.error("[JobSarthi] Failed to sync favourites to DB:", err);
-            });
+          .then(res => res.json())
+          .then(data => {
+            console.log("[JobSarthi] Favourites synced to DB successfully:", data);
+          })
+          .catch(err => {
+            console.error("[JobSarthi] Failed to sync favourites to DB:", err);
+          });
         };
       }
 
@@ -350,11 +350,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (localSettingsDropdown) {
           localSettingsDropdown.remove();
         }
-
+        
         settingsBtn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-
+          
           if (!document.getElementById('globalSettingsModal')) {
             const isLanding = !window.location.pathname.includes('/recruiter/') && !window.location.pathname.includes('/seeker/');
             const accountDisabled = isLanding ? 'disabled style="opacity: 0.4; pointer-events: none; cursor: not-allowed;" title="Login to access Account settings"' : '';
@@ -634,30 +634,30 @@ document.addEventListener("DOMContentLoaded", () => {
             wrapperDiv.innerHTML = modalHTML.trim();
             const modalEl = wrapperDiv.firstChild;
             document.body.appendChild(modalEl);
-
+            
             // Bind Modal Tab Actions
             const tabBtns = modalEl.querySelectorAll('.settings-tab-label');
             const tabContents = modalEl.querySelectorAll('.settings-tab-content');
             const sliderIndicator = modalEl.querySelector('#liquidSliderIndicator');
-
+            
             tabBtns.forEach(btn => {
               btn.addEventListener('click', () => {
                 const tabId = btn.getAttribute('data-tab');
                 const index = parseInt(btn.getAttribute('data-index') || '0');
-
+                
                 tabBtns.forEach(b => b.classList.remove('active'));
                 tabContents.forEach(c => {
                   c.classList.remove('active');
                   c.style.display = 'none';
                 });
-
+                
                 btn.classList.add('active');
-
+                
                 // Move slider indicator
                 if (sliderIndicator) {
                   sliderIndicator.style.transform = `translateY(${index * 42}px)`;
                 }
-
+                
                 const targetContent = modalEl.querySelector(`#tab-${tabId}`);
                 if (targetContent) {
                   targetContent.classList.add('active');
@@ -665,7 +665,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
               });
             });
-
+            
             // Close buttons
             const closeBtn = modalEl.querySelector('#closeSettingsModalBtn');
             const closeModal = () => {
@@ -679,315 +679,315 @@ document.addEventListener("DOMContentLoaded", () => {
               if (e.key === 'Escape') closeModal();
             });
 
-            // Helper to initialize custom select components
-            const initCustomSelects = (parent) => {
-              parent.querySelectorAll('.custom-select-container').forEach(container => {
-                const trigger = container.querySelector('.custom-select-trigger');
-                const label = container.querySelector('.custom-select-label');
-                const options = container.querySelectorAll('.custom-select-option');
+             // Helper to initialize custom select components
+             const initCustomSelects = (parent) => {
+               parent.querySelectorAll('.custom-select-container').forEach(container => {
+                 const trigger = container.querySelector('.custom-select-trigger');
+                 const label = container.querySelector('.custom-select-label');
+                 const options = container.querySelectorAll('.custom-select-option');
+                 
+                 trigger.addEventListener('click', (e) => {
+                   e.stopPropagation();
+                   parent.querySelectorAll('.custom-select-container').forEach(other => {
+                     if (other !== container) other.classList.remove('open');
+                   });
+                   if (!container.hasAttribute('disabled')) {
+                     container.classList.toggle('open');
+                   }
+                 });
+                 
+                 options.forEach(opt => {
+                   opt.addEventListener('click', (e) => {
+                     e.stopPropagation();
+                     const val = opt.getAttribute('data-value');
+                     const text = opt.textContent;
+                     options.forEach(o => o.classList.remove('selected'));
+                     opt.classList.add('selected');
+                     label.textContent = text;
+                     container.classList.remove('open');
+                     
+                     // Dispatch change event
+                     const changeEvent = new CustomEvent('change', { detail: { value: val } });
+                     container.value = val;
+                     container.dispatchEvent(changeEvent);
+                   });
+                 });
+               });
+               
+               document.addEventListener('click', () => {
+                 parent.querySelectorAll('.custom-select-container').forEach(container => {
+                   container.classList.remove('open');
+                 });
+               });
+             };
 
-                trigger.addEventListener('click', (e) => {
-                  e.stopPropagation();
-                  parent.querySelectorAll('.custom-select-container').forEach(other => {
-                    if (other !== container) other.classList.remove('open');
-                  });
-                  if (!container.hasAttribute('disabled')) {
-                    container.classList.toggle('open');
+             // Helper to programmatically set value of a custom select
+             const setCustomSelectValue = (container, value) => {
+               if (!container) return;
+               container.value = value;
+               const options = container.querySelectorAll('.custom-select-option');
+               const label = container.querySelector('.custom-select-label');
+               options.forEach(opt => {
+                 if (opt.getAttribute('data-value') === value) {
+                   options.forEach(o => o.classList.remove('selected'));
+                   opt.classList.add('selected');
+                   if (label) label.textContent = opt.textContent;
+                 }
+               });
+             };
+             
+             window.setCustomSelectValue = setCustomSelectValue;
+
+             // Initialize custom selects inside modal template
+             initCustomSelects(modalEl);
+
+             // Helper to update sub-options visibility/state visually
+             const updateAdvancedUIContainerState = (isEnabled) => {
+               const advancedUIOptionsContainer = modalEl.querySelector('#advancedUIOptionsContainer');
+               if (advancedUIOptionsContainer) {
+                 if (isEnabled) {
+                   advancedUIOptionsContainer.style.opacity = '1';
+                   advancedUIOptionsContainer.style.pointerEvents = 'auto';
+                   advancedUIOptionsContainer.querySelectorAll('input, select').forEach(el => {
+                     el.removeAttribute('disabled');
+                   });
+                   advancedUIOptionsContainer.querySelectorAll('.custom-select-container').forEach(el => {
+                     el.removeAttribute('disabled');
+                     el.style.pointerEvents = 'auto';
+                     el.style.opacity = '1';
+                   });
+                   // Sync falling text switch visibility based on dynamic header check state
+                   const headerChecked = modalEl.querySelector('#modalHeaderToggle')?.checked;
+                   const ftToggle = modalEl.querySelector('#modalFallingTextToggle');
+                   if (ftToggle) {
+                     if (headerChecked) {
+                       ftToggle.removeAttribute('disabled');
+                       ftToggle.parentElement.parentElement.style.opacity = '1';
+                     } else {
+                       ftToggle.setAttribute('disabled', 'true');
+                       ftToggle.parentElement.parentElement.style.opacity = '0.4';
+                     }
+                   }
+                 } else {
+                   advancedUIOptionsContainer.style.opacity = '0.4';
+                   advancedUIOptionsContainer.style.pointerEvents = 'none';
+                   advancedUIOptionsContainer.querySelectorAll('input, select').forEach(el => {
+                     el.setAttribute('disabled', 'true');
+                   });
+                   advancedUIOptionsContainer.querySelectorAll('.custom-select-container').forEach(el => {
+                     el.setAttribute('disabled', 'true');
+                     el.style.pointerEvents = 'none';
+                     el.style.opacity = '0.4';
+                   });
+                 }
+               }
+             };
+              // Bind card theme selection triggers
+              const themeCards = modalEl.querySelectorAll('.theme-card');
+              themeCards.forEach(card => {
+                card.addEventListener('click', () => {
+                  const selectedTheme = card.getAttribute('data-theme');
+                  if (window.setTheme) {
+                    window.setTheme(selectedTheme);
                   }
                 });
-
-                options.forEach(opt => {
-                  opt.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const val = opt.getAttribute('data-value');
-                    const text = opt.textContent;
-                    options.forEach(o => o.classList.remove('selected'));
-                    opt.classList.add('selected');
-                    label.textContent = text;
-                    container.classList.remove('open');
-
-                    // Dispatch change event
-                    const changeEvent = new CustomEvent('change', { detail: { value: val } });
-                    container.value = val;
-                    container.dispatchEvent(changeEvent);
-                  });
-                });
               });
+ 
+             const modalAdvancedUIToggle = modalEl.querySelector('#modalAdvancedUIToggle');
+             if (modalAdvancedUIToggle) {
+               modalAdvancedUIToggle.addEventListener('change', (e) => {
+                 const checked = e.target.checked;
+                 localStorage.setItem('advanced_ui_enabled', checked ? 'true' : 'false');
+                 updateAdvancedUIContainerState(checked);
+                 if (window.applyAllUIPreferences) window.applyAllUIPreferences();
+               });
+             }
 
-              document.addEventListener('click', () => {
-                parent.querySelectorAll('.custom-select-container').forEach(container => {
-                  container.classList.remove('open');
-                });
-              });
-            };
+             
+             const modalCursorToggle = modalEl.querySelector('#modalCursorToggle');
+             if (modalCursorToggle) {
+               modalCursorToggle.addEventListener('change', (e) => {
+                 localStorage.setItem('splash_cursor_enabled', e.target.checked ? 'true' : 'false');
+                 if (window.toggleSplashCursor) window.toggleSplashCursor(e.target.checked);
+               });
+             }
+             
+             const modalSplashDensitySlider = modalEl.querySelector('#modalSplashDensitySlider');
+             if (modalSplashDensitySlider) {
+               modalSplashDensitySlider.addEventListener('input', (e) => {
+                 if (window.updateSplashDensity) {
+                   window.updateSplashDensity(e.target.value);
+                   const valSpan = modalEl.querySelector('#modalSplashDensityVal');
+                   if (valSpan) valSpan.textContent = e.target.value;
+                 }
+               });
+             }
+ 
+             const modalHeaderToggle = modalEl.querySelector('#modalHeaderToggle');
+             if (modalHeaderToggle) {
+               modalHeaderToggle.addEventListener('change', (e) => {
+                 const checked = e.target.checked;
+                 localStorage.setItem('dynamic_header_enabled', checked ? 'true' : 'false');
+                 
+                 // Dynamically enable/disable falling text toggle in modal
+                 const ftToggle = modalEl.querySelector('#modalFallingTextToggle');
+                 if (ftToggle) {
+                   if (checked) {
+                     ftToggle.removeAttribute('disabled');
+                     ftToggle.parentElement.parentElement.style.opacity = '1';
+                   } else {
+                     ftToggle.setAttribute('disabled', 'true');
+                     ftToggle.parentElement.parentElement.style.opacity = '0.4';
+                   }
+                 }
+                 
+                 if (window.applyAllUIPreferences) window.applyAllUIPreferences();
+               });
+             }
 
-            // Helper to programmatically set value of a custom select
-            const setCustomSelectValue = (container, value) => {
-              if (!container) return;
-              container.value = value;
-              const options = container.querySelectorAll('.custom-select-option');
-              const label = container.querySelector('.custom-select-label');
-              options.forEach(opt => {
-                if (opt.getAttribute('data-value') === value) {
-                  options.forEach(o => o.classList.remove('selected'));
-                  opt.classList.add('selected');
-                  if (label) label.textContent = opt.textContent;
-                }
-              });
-            };
+             const modalFallingTextToggle = modalEl.querySelector('#modalFallingTextToggle');
+             if (modalFallingTextToggle) {
+               modalFallingTextToggle.addEventListener('change', (e) => {
+                 localStorage.setItem('falling_text_enabled', e.target.checked ? 'true' : 'false');
+                 if (window.applyAllUIPreferences) window.applyAllUIPreferences();
+               });
+             }
 
-            window.setCustomSelectValue = setCustomSelectValue;
+             const modalNavigationStyleSelect = modalEl.querySelector('#modalNavigationStyleSelect');
+             if (modalNavigationStyleSelect) {
+               modalNavigationStyleSelect.addEventListener('change', (e) => {
+                 const val = e.detail ? e.detail.value : e.target.value;
+                 localStorage.setItem('header_navigation_style', val);
+                 if (window.headerDockInstance) {
+                   window.headerDockInstance.transformNav();
+                 }
+               });
+             }
 
-            // Initialize custom selects inside modal template
-            initCustomSelects(modalEl);
+             const modalLanguageSelect = modalEl.querySelector('#modalLanguageSelect');
+             if (modalLanguageSelect) {
+               modalLanguageSelect.addEventListener('change', (e) => {
+                 const val = e.target.value;
+                 if (window.i18n && window.i18n.setLang) {
+                   window.i18n.setLang(val);
+                 }
+               });
+             }
+ 
+           }
+           
+           const activeModal = document.getElementById('globalSettingsModal');
+           if (activeModal) {
+             activeModal.classList.add('active');
+             if (window.populateAccountSettings) {
+               window.populateAccountSettings();
+             }
+             // Sync theme cards active states
+               const currentTheme = localStorage.getItem('theme') || 'dark';
+               activeModal.querySelectorAll('.theme-card').forEach(card => {
+                 if (card.getAttribute('data-theme') === currentTheme) {
+                   card.classList.add('active');
+                 } else {
+                   card.classList.remove('active');
+                 }
+               });
 
-            // Helper to update sub-options visibility/state visually
-            const updateAdvancedUIContainerState = (isEnabled) => {
-              const advancedUIOptionsContainer = modalEl.querySelector('#advancedUIOptionsContainer');
-              if (advancedUIOptionsContainer) {
-                if (isEnabled) {
-                  advancedUIOptionsContainer.style.opacity = '1';
-                  advancedUIOptionsContainer.style.pointerEvents = 'auto';
-                  advancedUIOptionsContainer.querySelectorAll('input, select').forEach(el => {
-                    el.removeAttribute('disabled');
-                  });
-                  advancedUIOptionsContainer.querySelectorAll('.custom-select-container').forEach(el => {
-                    el.removeAttribute('disabled');
-                    el.style.pointerEvents = 'auto';
-                    el.style.opacity = '1';
-                  });
-                  // Sync falling text switch visibility based on dynamic header check state
-                  const headerChecked = modalEl.querySelector('#modalHeaderToggle')?.checked;
-                  const ftToggle = modalEl.querySelector('#modalFallingTextToggle');
-                  if (ftToggle) {
-                    if (headerChecked) {
-                      ftToggle.removeAttribute('disabled');
-                      ftToggle.parentElement.parentElement.style.opacity = '1';
-                    } else {
-                      ftToggle.setAttribute('disabled', 'true');
-                      ftToggle.parentElement.parentElement.style.opacity = '0.4';
-                    }
-                  }
-                } else {
-                  advancedUIOptionsContainer.style.opacity = '0.4';
-                  advancedUIOptionsContainer.style.pointerEvents = 'none';
-                  advancedUIOptionsContainer.querySelectorAll('input, select').forEach(el => {
-                    el.setAttribute('disabled', 'true');
-                  });
-                  advancedUIOptionsContainer.querySelectorAll('.custom-select-container').forEach(el => {
-                    el.setAttribute('disabled', 'true');
-                    el.style.pointerEvents = 'none';
-                    el.style.opacity = '0.4';
-                  });
-                }
-              }
-            };
-            // Bind card theme selection triggers
-            const themeCards = modalEl.querySelectorAll('.theme-card');
-            themeCards.forEach(card => {
-              card.addEventListener('click', () => {
-                const selectedTheme = card.getAttribute('data-theme');
-                if (window.setTheme) {
-                  window.setTheme(selectedTheme);
-                }
-              });
-            });
+               // Render accent color options on all pages
+               const isRecruiter = document.body.classList.contains('recruiter-page');
+               const colorsSection = activeModal.querySelector('#themeColorsSection');
+               const colorsSectionTitle = activeModal.querySelector('#themeColorsSectionTitle');
+               if (colorsSection) {
+                 colorsSection.style.display = 'block';
+                 if (colorsSectionTitle) {
+                   colorsSectionTitle.textContent = 'Accent Color';
+                 }
+                 if (window.renderAccentColors) {
+                   window.renderAccentColors(activeModal, isRecruiter ? 'recruiter' : 'seeker', currentTheme);
+                 }
+               }
+ 
+             const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') === 'true';
+             const modalAdvancedUIToggle = activeModal.querySelector('#modalAdvancedUIToggle');
+             if (modalAdvancedUIToggle) {
+               modalAdvancedUIToggle.checked = isAdvancedUI;
+             }
 
-            const modalAdvancedUIToggle = modalEl.querySelector('#modalAdvancedUIToggle');
-            if (modalAdvancedUIToggle) {
-              modalAdvancedUIToggle.addEventListener('change', (e) => {
-                const checked = e.target.checked;
-                localStorage.setItem('advanced_ui_enabled', checked ? 'true' : 'false');
-                updateAdvancedUIContainerState(checked);
-                if (window.applyAllUIPreferences) window.applyAllUIPreferences();
-              });
-            }
+             
+             const modalCursorToggle = activeModal.querySelector('#modalCursorToggle');
+             if (modalCursorToggle) {
+               modalCursorToggle.checked = localStorage.getItem('splash_cursor_enabled') === 'true';
+             }
+             
+             const densityVal = localStorage.getItem('splash_cursor_density_slider') || '7';
+             const modalSplashDensitySlider = activeModal.querySelector('#modalSplashDensitySlider');
+             if (modalSplashDensitySlider) {
+               modalSplashDensitySlider.value = densityVal;
+             }
+             const modalSplashDensityVal = activeModal.querySelector('#modalSplashDensityVal');
+             if (modalSplashDensityVal) {
+               modalSplashDensityVal.textContent = densityVal;
+             }
+ 
+             const modalHeaderToggle = activeModal.querySelector('#modalHeaderToggle');
+             if (modalHeaderToggle) {
+               modalHeaderToggle.checked = localStorage.getItem('dynamic_header_enabled') === 'true';
+             }
 
+             const modalFallingTextToggle = activeModal.querySelector('#modalFallingTextToggle');
+             if (modalFallingTextToggle) {
+               modalFallingTextToggle.checked = localStorage.getItem('falling_text_enabled') === 'true';
+             }
 
-            const modalCursorToggle = modalEl.querySelector('#modalCursorToggle');
-            if (modalCursorToggle) {
-              modalCursorToggle.addEventListener('change', (e) => {
-                localStorage.setItem('splash_cursor_enabled', e.target.checked ? 'true' : 'false');
-                if (window.toggleSplashCursor) window.toggleSplashCursor(e.target.checked);
-              });
-            }
+             const modalNavigationStyleSelect = activeModal.querySelector('#modalNavigationStyleSelect');
+             if (modalNavigationStyleSelect) {
+               setCustomSelectValue(modalNavigationStyleSelect, localStorage.getItem('header_navigation_style') || 'text');
+             }
 
-            const modalSplashDensitySlider = modalEl.querySelector('#modalSplashDensitySlider');
-            if (modalSplashDensitySlider) {
-              modalSplashDensitySlider.addEventListener('input', (e) => {
-                if (window.updateSplashDensity) {
-                  window.updateSplashDensity(e.target.value);
-                  const valSpan = modalEl.querySelector('#modalSplashDensityVal');
-                  if (valSpan) valSpan.textContent = e.target.value;
-                }
-              });
-            }
-
-            const modalHeaderToggle = modalEl.querySelector('#modalHeaderToggle');
-            if (modalHeaderToggle) {
-              modalHeaderToggle.addEventListener('change', (e) => {
-                const checked = e.target.checked;
-                localStorage.setItem('dynamic_header_enabled', checked ? 'true' : 'false');
-
-                // Dynamically enable/disable falling text toggle in modal
-                const ftToggle = modalEl.querySelector('#modalFallingTextToggle');
-                if (ftToggle) {
-                  if (checked) {
-                    ftToggle.removeAttribute('disabled');
-                    ftToggle.parentElement.parentElement.style.opacity = '1';
-                  } else {
-                    ftToggle.setAttribute('disabled', 'true');
-                    ftToggle.parentElement.parentElement.style.opacity = '0.4';
-                  }
-                }
-
-                if (window.applyAllUIPreferences) window.applyAllUIPreferences();
-              });
-            }
-
-            const modalFallingTextToggle = modalEl.querySelector('#modalFallingTextToggle');
-            if (modalFallingTextToggle) {
-              modalFallingTextToggle.addEventListener('change', (e) => {
-                localStorage.setItem('falling_text_enabled', e.target.checked ? 'true' : 'false');
-                if (window.applyAllUIPreferences) window.applyAllUIPreferences();
-              });
-            }
-
-            const modalNavigationStyleSelect = modalEl.querySelector('#modalNavigationStyleSelect');
-            if (modalNavigationStyleSelect) {
-              modalNavigationStyleSelect.addEventListener('change', (e) => {
-                const val = e.detail ? e.detail.value : e.target.value;
-                localStorage.setItem('header_navigation_style', val);
-                if (window.headerDockInstance) {
-                  window.headerDockInstance.transformNav();
-                }
-              });
-            }
-
-            const modalLanguageSelect = modalEl.querySelector('#modalLanguageSelect');
-            if (modalLanguageSelect) {
-              modalLanguageSelect.addEventListener('change', (e) => {
-                const val = e.target.value;
-                if (window.i18n && window.i18n.setLang) {
-                  window.i18n.setLang(val);
-                }
-              });
-            }
-
-          }
-
-          const activeModal = document.getElementById('globalSettingsModal');
-          if (activeModal) {
-            activeModal.classList.add('active');
-            if (window.populateAccountSettings) {
-              window.populateAccountSettings();
-            }
-            // Sync theme cards active states
-            const currentTheme = localStorage.getItem('theme') || 'dark';
-            activeModal.querySelectorAll('.theme-card').forEach(card => {
-              if (card.getAttribute('data-theme') === currentTheme) {
-                card.classList.add('active');
-              } else {
-                card.classList.remove('active');
-              }
-            });
-
-            // Render accent color options on all pages
-            const isRecruiter = document.body.classList.contains('recruiter-page');
-            const colorsSection = activeModal.querySelector('#themeColorsSection');
-            const colorsSectionTitle = activeModal.querySelector('#themeColorsSectionTitle');
-            if (colorsSection) {
-              colorsSection.style.display = 'block';
-              if (colorsSectionTitle) {
-                colorsSectionTitle.textContent = 'Accent Color';
-              }
-              if (window.renderAccentColors) {
-                window.renderAccentColors(activeModal, isRecruiter ? 'recruiter' : 'seeker', currentTheme);
-              }
-            }
-
-            const isAdvancedUI = localStorage.getItem('advanced_ui_enabled') === 'true';
-            const modalAdvancedUIToggle = activeModal.querySelector('#modalAdvancedUIToggle');
-            if (modalAdvancedUIToggle) {
-              modalAdvancedUIToggle.checked = isAdvancedUI;
-            }
-
-
-            const modalCursorToggle = activeModal.querySelector('#modalCursorToggle');
-            if (modalCursorToggle) {
-              modalCursorToggle.checked = localStorage.getItem('splash_cursor_enabled') === 'true';
-            }
-
-            const densityVal = localStorage.getItem('splash_cursor_density_slider') || '7';
-            const modalSplashDensitySlider = activeModal.querySelector('#modalSplashDensitySlider');
-            if (modalSplashDensitySlider) {
-              modalSplashDensitySlider.value = densityVal;
-            }
-            const modalSplashDensityVal = activeModal.querySelector('#modalSplashDensityVal');
-            if (modalSplashDensityVal) {
-              modalSplashDensityVal.textContent = densityVal;
-            }
-
-            const modalHeaderToggle = activeModal.querySelector('#modalHeaderToggle');
-            if (modalHeaderToggle) {
-              modalHeaderToggle.checked = localStorage.getItem('dynamic_header_enabled') === 'true';
-            }
-
-            const modalFallingTextToggle = activeModal.querySelector('#modalFallingTextToggle');
-            if (modalFallingTextToggle) {
-              modalFallingTextToggle.checked = localStorage.getItem('falling_text_enabled') === 'true';
-            }
-
-            const modalNavigationStyleSelect = activeModal.querySelector('#modalNavigationStyleSelect');
-            if (modalNavigationStyleSelect) {
-              setCustomSelectValue(modalNavigationStyleSelect, localStorage.getItem('header_navigation_style') || 'text');
-            }
-
-            const modalLanguageSelect = activeModal.querySelector('#modalLanguageSelect');
-            if (modalLanguageSelect && window.i18n) {
-              modalLanguageSelect.value = window.i18n.getCurrentLang();
-            }
-
-            // Sync visual disabled state of container
-            const advancedUIOptionsContainer = activeModal.querySelector('#advancedUIOptionsContainer');
-            if (advancedUIOptionsContainer) {
-              if (isAdvancedUI) {
-                advancedUIOptionsContainer.style.opacity = '1';
-                advancedUIOptionsContainer.style.pointerEvents = 'auto';
-                advancedUIOptionsContainer.querySelectorAll('input, select').forEach(el => {
-                  el.removeAttribute('disabled');
-                });
-                advancedUIOptionsContainer.querySelectorAll('.custom-select-container').forEach(el => {
-                  el.removeAttribute('disabled');
-                  el.style.pointerEvents = 'auto';
-                  el.style.opacity = '1';
-                });
-                // Also disable/enable falling text toggle based on dynamic header toggle
-                const headerChecked = localStorage.getItem('dynamic_header_enabled') === 'true';
-                const ftToggle = activeModal.querySelector('#modalFallingTextToggle');
-                if (ftToggle) {
-                  if (headerChecked) {
-                    ftToggle.removeAttribute('disabled');
-                    ftToggle.parentElement.parentElement.style.opacity = '1';
-                  } else {
-                    ftToggle.setAttribute('disabled', 'true');
-                    ftToggle.parentElement.parentElement.style.opacity = '0.4';
-                  }
-                }
-              } else {
-                advancedUIOptionsContainer.style.opacity = '0.4';
-                advancedUIOptionsContainer.style.pointerEvents = 'none';
-                advancedUIOptionsContainer.querySelectorAll('input, select').forEach(el => {
-                  el.setAttribute('disabled', 'true');
-                });
-                advancedUIOptionsContainer.querySelectorAll('.custom-select-container').forEach(el => {
-                  el.setAttribute('disabled', 'true');
-                  el.style.pointerEvents = 'none';
-                  el.style.opacity = '0.4';
-                });
-              }
-            }
-
+             const modalLanguageSelect = activeModal.querySelector('#modalLanguageSelect');
+             if (modalLanguageSelect && window.i18n) {
+               modalLanguageSelect.value = window.i18n.getCurrentLang();
+             }
+ 
+             // Sync visual disabled state of container
+             const advancedUIOptionsContainer = activeModal.querySelector('#advancedUIOptionsContainer');
+             if (advancedUIOptionsContainer) {
+               if (isAdvancedUI) {
+                 advancedUIOptionsContainer.style.opacity = '1';
+                 advancedUIOptionsContainer.style.pointerEvents = 'auto';
+                 advancedUIOptionsContainer.querySelectorAll('input, select').forEach(el => {
+                   el.removeAttribute('disabled');
+                 });
+                 advancedUIOptionsContainer.querySelectorAll('.custom-select-container').forEach(el => {
+                   el.removeAttribute('disabled');
+                   el.style.pointerEvents = 'auto';
+                   el.style.opacity = '1';
+                 });
+                 // Also disable/enable falling text toggle based on dynamic header toggle
+                 const headerChecked = localStorage.getItem('dynamic_header_enabled') === 'true';
+                 const ftToggle = activeModal.querySelector('#modalFallingTextToggle');
+                 if (ftToggle) {
+                   if (headerChecked) {
+                     ftToggle.removeAttribute('disabled');
+                     ftToggle.parentElement.parentElement.style.opacity = '1';
+                   } else {
+                     ftToggle.setAttribute('disabled', 'true');
+                     ftToggle.parentElement.parentElement.style.opacity = '0.4';
+                   }
+                 }
+               } else {
+                 advancedUIOptionsContainer.style.opacity = '0.4';
+                 advancedUIOptionsContainer.style.pointerEvents = 'none';
+                 advancedUIOptionsContainer.querySelectorAll('input, select').forEach(el => {
+                   el.setAttribute('disabled', 'true');
+                 });
+                 advancedUIOptionsContainer.querySelectorAll('.custom-select-container').forEach(el => {
+                   el.setAttribute('disabled', 'true');
+                   el.style.pointerEvents = 'none';
+                   el.style.opacity = '0.4';
+                 });
+               }
+             }
+            
             const modalAccountType = activeModal.querySelector('#modalAccountType');
             if (modalAccountType) {
               modalAccountType.textContent = window.location.pathname.includes('/recruiter/') ? 'Recruiter' : 'Candidate';
@@ -1213,7 +1213,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // Global UI preferences manager
 window.applyAllUIPreferences = function () {
   const advancedUIEnabled = localStorage.getItem('advanced_ui_enabled') === 'true';
-
+  
   if (window.headerDockInstance) {
     window.headerDockInstance.transformNav();
   }
@@ -1223,7 +1223,7 @@ window.applyAllUIPreferences = function () {
   if (window.toggleSplashCursor) {
     window.toggleSplashCursor(splashEnabled);
   }
-
+  
   // 2. Dynamic Header physics/shake
   const headerEnabled = advancedUIEnabled && localStorage.getItem('dynamic_header_enabled') === 'true';
   if (!headerEnabled) {
@@ -1336,7 +1336,7 @@ window.applyAllUIPreferences = function () {
   // Clean up any old bg glow override
   const glowStyle = document.getElementById('global-bg-glow-override-style');
   if (glowStyle) glowStyle.remove();
-
+  
   // Clean up any old sarthi pill override
   const sarthiPillStyle = document.getElementById('global-sarthi-pill-override-style');
   if (sarthiPillStyle) sarthiPillStyle.remove();
@@ -1357,17 +1357,17 @@ window.setTheme = function (themeName) {
     // Re-apply saved accent color for light
     const savedAccent = localStorage.getItem('accent_color');
     if (savedAccent) {
-      try { window.applyAccentColor(JSON.parse(savedAccent)); } catch (e) { }
+      try { window.applyAccentColor(JSON.parse(savedAccent)); } catch(e) {}
     }
   } else {
     localStorage.setItem('theme', 'dark');
     // Re-apply saved accent color for dark
     const savedAccent = localStorage.getItem('accent_color');
     if (savedAccent) {
-      try { window.applyAccentColor(JSON.parse(savedAccent)); } catch (e) { }
+      try { window.applyAccentColor(JSON.parse(savedAccent)); } catch(e) {}
     }
   }
-
+  
   // Sync header checkbox if present
   const checkbox = document.getElementById('themeToggleCheckbox');
   if (checkbox) checkbox.checked = (themeName === 'light');
@@ -1413,7 +1413,7 @@ window.logout = function () {
     'recruiter_applicants_list', 'recruiter_jobs_count'
   ];
   keysToRemove.forEach(k => localStorage.removeItem(k));
-  try { sessionStorage.clear(); } catch (e) { }
+  try { sessionStorage.clear(); } catch(e) {}
 
   const isLanding = !window.location.pathname.includes('/seeker/') && !window.location.pathname.includes('/recruiter/');
   const prefix = isLanding ? './' : '../';
@@ -1475,9 +1475,9 @@ window.applyAccentColor = function (accentData) {
 window.renderAccentColors = function (modalEl, portalType, currentTheme) {
   const container = modalEl.querySelector('#themeColorsContainer');
   if (!container) return;
-
+  
   container.innerHTML = '';
-
+  
   const colorsList = (portalType === 'seeker') ? seekerColors : recruiterColors;
   const savedAccent = localStorage.getItem('accent_color');
   let activeKey = '';
@@ -1486,10 +1486,10 @@ window.renderAccentColors = function (modalEl, portalType, currentTheme) {
       const parsed = JSON.parse(savedAccent);
       const match = colorsList.find(c => c.secondary.toLowerCase() === parsed.secondary.toLowerCase());
       if (match) activeKey = match.key;
-    } catch (e) { }
+    } catch(e) {}
   }
   if (!activeKey) activeKey = colorsList[0].key;
-
+  
   colorsList.forEach(color => {
     const btn = document.createElement('button');
     btn.className = 'item-color';
@@ -1529,7 +1529,7 @@ window.populateAccountSettings = async () => {
       if (nameInput) nameInput.value = data.fullName || '';
       if (emailInput) emailInput.value = data.email || '';
       if (mobileInput) mobileInput.value = data.mobile || '';
-
+      
       if (data.role === 'recruiter') {
         if (companyGroup) companyGroup.style.display = 'flex';
         if (companyInput) companyInput.value = data.company || '';
@@ -1568,25 +1568,25 @@ window.saveAccountDetails = async () => {
     if (response.ok) {
       const data = await response.json();
       alert('Account details updated successfully!');
-
+      
       // Update local storage so headers and profile display update dynamically!
       if (isRecruiter) {
         localStorage.setItem('recruiter_company', data.user.company || 'InnovateTech');
       } else {
         localStorage.setItem('seeker_name', data.user.fullName);
       }
-
+      
       // Re-populate names on dashboard
       const headerName = document.getElementById('headerProfileName');
       const popupName = document.getElementById('popupProfileName');
       const sidebarName = document.getElementById('sidebarName');
       const welcomeName = document.getElementById('welcomeName');
-
+      
       if (headerName) headerName.textContent = data.user.fullName;
       if (popupName) popupName.textContent = data.user.fullName;
       if (sidebarName) sidebarName.textContent = data.user.fullName;
       if (welcomeName) welcomeName.textContent = data.user.fullName.split(' ')[0];
-
+      
       // Re-initialize initials
       const initial = data.user.fullName.charAt(0).toUpperCase();
       const headerInitials = document.getElementById('headerProfileInitials');
@@ -1655,7 +1655,7 @@ window.triggerSettingsForgotPassword = async () => {
 };
 
 // ── Notification Sidebar & Dropdown Controller Logic ──────────────────────────────────
-(function () {
+(function() {
   const API = window.API_BASE_URL || '';
   let _notifPollTimer = null;
 
@@ -1674,7 +1674,7 @@ window.triggerSettingsForgotPassword = async () => {
     }
   }
 
-  window.toggleNotifSidebar = function () {
+  window.toggleNotifSidebar = function() {
     const sidebar = document.getElementById('notifSidebar');
     const overlay = document.getElementById('notifSidebarOverlay');
     if (!sidebar || !overlay) return;
@@ -1692,7 +1692,7 @@ window.triggerSettingsForgotPassword = async () => {
     }
   };
 
-  window.closeNotifSidebar = function () {
+  window.closeNotifSidebar = function() {
     const sidebar = document.getElementById('notifSidebar');
     const overlay = document.getElementById('notifSidebarOverlay');
     if (sidebar) {
@@ -1720,7 +1720,7 @@ window.triggerSettingsForgotPassword = async () => {
       } else {
         renderNotifSidebar(notifs);
       }
-    } catch (e) { console.warn('Notif load failed', e); }
+    } catch(e) { console.warn('Notif load failed', e); }
   }
 
   function timeAgo(isoStr) {
@@ -1739,14 +1739,14 @@ window.triggerSettingsForgotPassword = async () => {
     const countEl = document.getElementById('notifSidebarCount');
     if (!list) return;
     const unread = notifs.filter(n => !n.read).length;
-    if (countEl) countEl.textContent = unread > 0 ? unread + ' unread' : '';
+    if (countEl) countEl.textContent = unread > 0 ? unread + ' unread' : 'All caught up';
 
     if (!notifs.length) {
       list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:0.85rem;">No notifications yet.</div>';
       return;
     }
 
-    const iconMap = { star: '\u2B50', calendar: '\uD83D\uDCC5', 'x-circle': '\u274C', 'check-circle': '\u2705', eye: '\uD83D\uDC41\uFE0F', bell: '\uD83D\uDD14', message: '\uD83D\uDCAC' };
+    const iconMap = { star:'\u2B50', calendar:'\uD83D\uDCC5', 'x-circle':'\u274C', 'check-circle':'\u2705', eye:'\uD83D\uDC41\uFE0F', bell:'\uD83D\uDD14', message:'\uD83D\uDCAC' };
     list.innerHTML = notifs.slice(0, 20).map(n => {
       const icon = iconMap[n.icon] || '\uD83D\uDD14';
       return `<div class="notif-sidebar-card ${n.read ? '' : 'unread'}" onclick="markOneNotifRead('${n.id}')">
@@ -1766,14 +1766,14 @@ window.triggerSettingsForgotPassword = async () => {
   function renderNotifDropdown(notifs) {
     const dropdownBody = document.querySelector('.notif-dropdown .dropdown-body');
     if (!dropdownBody) return;
-
+    
     if (!notifs.length) {
       dropdownBody.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;font-size:0.8rem;">No notifications yet.</div>';
       return;
     }
-
-    const iconMap = { star: '⭐', calendar: '📅', 'x-circle': '❌', 'check-circle': '✅', eye: '👁️', bell: '🔔', message: '💬' };
-
+    
+    const iconMap = { star:'⭐', calendar:'📅', 'x-circle':'❌', 'check-circle':'✅', eye:'👁️', bell:'🔔', message:'💬' };
+    
     dropdownBody.innerHTML = notifs.slice(0, 10).map(n => {
       const icon = iconMap[n.icon] || '🔔';
       return `
@@ -1792,7 +1792,7 @@ window.triggerSettingsForgotPassword = async () => {
 
   function updateBadge(notifs, role) {
     const unread = notifs.filter(n => !n.read).length;
-
+    
     if (role === 'recruiter') {
       const dot = document.querySelector('.notif-dropdown')?.parentElement?.querySelector('.notification-dot');
       if (dot) {
@@ -1816,7 +1816,7 @@ window.triggerSettingsForgotPassword = async () => {
     }
   }
 
-  window.markOneNotifRead = async function (id) {
+  window.markOneNotifRead = async function(id) {
     const config = getNotifConfig();
     if (!config.email) return;
     await fetch(API + '/api/notifications/read', {
@@ -1827,7 +1827,7 @@ window.triggerSettingsForgotPassword = async () => {
     loadNotificationsData();
   };
 
-  window.markAllNotifsRead = async function () {
+  window.markAllNotifsRead = async function() {
     const config = getNotifConfig();
     if (!config.email) return;
     await fetch(API + '/api/notifications/read', {
@@ -1838,7 +1838,7 @@ window.triggerSettingsForgotPassword = async () => {
     loadNotificationsData();
   };
 
-  window.clearAllNotifs = async function () {
+  window.clearAllNotifs = async function() {
     const config = getNotifConfig();
     if (!config.email) return;
     await fetch(API + '/api/notifications/clear?email=' + encodeURIComponent(config.email) + '&role=' + config.role, { method: 'DELETE' });
@@ -1849,7 +1849,7 @@ window.triggerSettingsForgotPassword = async () => {
   function startNotifPolling() {
     const config = getNotifConfig();
     if (!config.email) return;
-
+    
     async function pollBadge() {
       try {
         const res = await fetch(API + '/api/notifications?email=' + encodeURIComponent(config.email) + '&role=' + config.role);
@@ -1862,7 +1862,7 @@ window.triggerSettingsForgotPassword = async () => {
             renderNotifSidebar(notifs);
           }
         }
-      } catch (e) { }
+      } catch(e) {}
     }
     pollBadge();
     _notifPollTimer = setInterval(pollBadge, 30000);
