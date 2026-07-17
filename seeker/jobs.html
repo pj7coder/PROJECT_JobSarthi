@@ -811,7 +811,7 @@
               <svg id="favouritesHeartIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5b89" stroke-width="2">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
               </svg>
-              Favourites (favourites)
+              Favourites
             </span>
             <span id="favouritesCountBadge" style="font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; background: rgba(255, 91, 137, 0.15); color: #ff5b89; font-weight: 600;">0</span>
           </div>
@@ -1004,6 +1004,74 @@
       return job.matchScore !== undefined ? job.matchScore : 0;
     }
 
+    function normalizeSkillToken(skill) {
+      if (!skill) return "";
+      const SKILL_ALIASES = {
+        "js": "javascript",
+        "ts": "typescript",
+        "node": "node.js",
+        "nodejs": "node.js",
+        "react": "react.js",
+        "reactjs": "react.js",
+        "vue": "vue.js",
+        "vuejs": "vue.js",
+        "angularjs": "angular",
+        "angular": "angular",
+        "mongo": "mongodb",
+        "mongodb": "mongodb",
+        "postgres": "postgresql",
+        "postgresql": "postgresql",
+        "psql": "postgresql",
+        "py": "python",
+        "python": "python",
+        "ml": "machine learning",
+        "machinelearning": "machine learning",
+        "dl": "deep learning",
+        "deeplearning": "deep learning",
+        "ai": "artificial intelligence",
+        "artificialintelligence": "artificial intelligence",
+        "k8s": "kubernetes",
+        "kubernetes": "kubernetes",
+        "docker": "docker",
+        "tf": "tensorflow",
+        "tensorflow": "tensorflow",
+        "aws": "amazon web services",
+        "amazonwebservices": "amazon web services",
+        "gcp": "google cloud",
+        "googlecloud": "google cloud",
+        "azure": "microsoft azure",
+        "microsoftazure": "microsoft azure",
+        "ci/cd": "ci-cd",
+        "cicd": "ci-cd",
+        "rest": "rest api",
+        "restful": "rest api",
+        "graphql": "graphql",
+        "scss": "css",
+        "sass": "css",
+        "css3": "css",
+        "html5": "html",
+        "cpp": "c++",
+        "cplusplus": "c++",
+        "c#": "csharp",
+        "dotnet": ".net",
+        "aspnet": ".net",
+        "springboot": "spring boot",
+        "spring": "spring boot",
+        "golang": "go",
+        "reactnative": "react native",
+        "nextjs": "next.js",
+        "tailwindcss": "tailwind css",
+        "tailwind": "tailwind css",
+        "powerbi": "power bi",
+        "power-bi": "power bi",
+        "excel": "microsoft excel",
+        "ms-excel": "microsoft excel",
+        "msexcel": "microsoft excel"
+      };
+      const s = skill.trim().toLowerCase().replace(/[\s_-]+/g, "");
+      return SKILL_ALIASES[s] || s;
+    }
+
     // Match breakdown helper
     function getSkillsMatchInfo(job) {
       const jobSkillsStr = job.skills || "";
@@ -1015,14 +1083,22 @@
         return { matched: [], missing: [] };
       }
       
-      const seekerSkillsLower = seekerSkills.map(s => s.trim().toLowerCase());
+      const normalizedSeekerSkills = seekerSkills.map(s => normalizeSkillToken(s));
       
       const matched = [];
       const missing = [];
       
       jobSkills.forEach(js => {
-        const jsLower = js.toLowerCase();
-        if (seekerSkillsLower.includes(jsLower) || seekerSkillsLower.some(ss => ss.includes(jsLower) || jsLower.includes(ss))) {
+        const normJS = normalizeSkillToken(js);
+        const isMatched = normalizedSeekerSkills.some(ss => {
+          if (ss === normJS) return true;
+          const isJavaVSJavaScript = 
+            (ss === "java" && (normJS === "javascript" || normJS === "js" || normJS.endsWith(".js") || normJS.startsWith("js"))) ||
+            (normJS === "java" && (ss === "javascript" || ss === "js" || ss.endsWith(".js") || ss.startsWith("js")));
+          if (isJavaVSJavaScript) return false;
+          return ss.includes(normJS) || normJS.includes(ss);
+        });
+        if (isMatched) {
           matched.push(js);
         } else {
           missing.push(js);

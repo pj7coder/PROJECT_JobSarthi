@@ -278,17 +278,29 @@ export async function buildJobSearchIndex(jobs, apiKey) {
       .slice(0, 3000);
 
     const docs = sample.map(job => {
-      // Build enriched document text
+      // Build richly-detailed document text to maximise semantic recall
       const skillsText = Array.isArray(job.skills)
         ? job.skills.join(", ")
         : (job.skills || "");
+
+      // Explode skills as individual tokens so short-form queries match
+      const skillTokens = skillsText.split(/[,\s]+/).filter(s => s.trim().length > 1).join(" ");
+
+      // Requirements (if available)
+      const reqs = Array.isArray(job.reqs)
+        ? job.reqs.slice(0, 3).join(". ")
+        : (typeof job.reqs === "string" ? job.reqs.slice(0, 200) : "");
+
       const content = [
         job.title || "",
+        job.category || "",
         skillsText,
+        skillTokens,      // individual skill tokens for abbreviation matching
         job.company || "",
         job.location || "",
         job.type || "",
-        (job.description || "").slice(0, 250),   // slightly more than v1
+        (job.description || "").slice(0, 400),
+        reqs,
         job.salary ? `Salary: ${job.salary}` : "",
       ].filter(Boolean).join(". ");
 
@@ -334,31 +346,57 @@ export async function buildJobSearchIndex(jobs, apiKey) {
 
 /**
  * semanticJobSearch
- * Converts a natural-language query into a vector and returns
- * the topK most semantically similar jobs with their scores.
  *
- * Returns null if index isn't ready (caller should fall back to
- * keyword search in that case).
+ * Converts a natural-language query into a vector and retrieves the
+ * most semantically similar jobs from the pre-built MemoryVectorStore.
+ *
+ * PIPELINE:
+ *   1. Expand query with synonyms + role context phrases.
+ *   2. Embed expanded query via Gemini embeddings.
+ *   3. Cosine-search the in-memory index for topK nearest docs.
+ *   4. Convert MemoryVectorStore L2 distances → normalised 0-100 scores.
+ *   5. Return { jobId → semanticScore } map for the caller to blend with
+ *      the keyword relevance score and profile match score.
+ *
+ * Returns null if the index isn't ready (caller falls back to keyword search).
  */
-export async function semanticJobSearch(query, topK = 20, apiKey) {
+export async function semanticJobSearch(query, topK = 150, apiKey) {
   if (!jobSearchIndex) {
     console.warn("[JobIndex] Index not ready — falling back to keyword search.");
     return null;
   }
   try {
-    // ── v2: Expand query with common synonyms for better recall ──
-    const expandedQuery = expandSearchQuery(query);
-    const results = await jobSearchIndex.similaritySearchWithScore(expandedQuery, topK);
-    // scores are cosine distances in LangChain MemoryVectorStore (lower = better match)
-    // We invert and scale to 0-100 for a human-readable score
-    return results.map(([doc, score]) => ({
-      jobId:         doc.metadata.jobId,
-      title:         doc.metadata.title,
-      company:       doc.metadata.company,
-      location:      doc.metadata.location,
-      type:          doc.metadata.type,
-      semanticScore: Math.round((1 - score) * 100),
-    }));
+    const expanded = expandSearchQuery(query);
+    console.log(`[JobIndex] Semantic search: "${query}" → expanded: "${expanded.slice(0, 120)}..."`);
+
+    const results = await jobSearchIndex.similaritySearchWithScore(expanded, topK);
+
+    if (!results.length) {
+      console.warn("[JobIndex] No semantic results returned.");
+      return null;
+    }
+
+    // MemoryVectorStore returns L2 (Euclidean) distance where lower = more similar.
+    // Normalise to 0-100: find min/max distance in this result set and scale linearly.
+    const distances = results.map(([, d]) => d);
+    const minD = Math.min(...distances);
+    const maxD = Math.max(...distances);
+    const range = maxD - minD || 1; // avoid div-by-zero
+
+    const scoreMap = new Map();
+    for (const [doc, dist] of results) {
+      const jobId = doc.metadata.jobId;
+      if (!jobId) continue;
+      // Higher distance = less similar. Score = 100 at minD, ~0 at maxD.
+      const normScore = Math.round(((maxD - dist) / range) * 100);
+      // Keep the best score if same job appears multiple times (shouldn't happen, but guard)
+      if (!scoreMap.has(jobId) || scoreMap.get(jobId) < normScore) {
+        scoreMap.set(jobId, normScore);
+      }
+    }
+
+    console.log(`[JobIndex] Semantic search returned ${scoreMap.size} unique jobs.`);
+    return scoreMap; // Map<jobId, semanticScore(0-100)>
   } catch (err) {
     console.error("[JobIndex] Semantic search error:", err.message);
     return null;
@@ -367,32 +405,75 @@ export async function semanticJobSearch(query, topK = 20, apiKey) {
 
 /**
  * expandSearchQuery
- * Adds common synonyms/abbreviations so the embedding captures
- * more intent. E.g. "ML" → "machine learning ML" so both the
- * abbreviation and full term contribute to the query vector.
+ *
+ * Adds rich contextual phrases so the embedding vector captures more
+ * intent than just the raw query words.
+ *
+ * Examples:
+ *   "react"        → "React react.js ReactJS frontend JavaScript developer job"
+ *   "ml intern"    → "machine learning ML intern internship entry level fresher"
+ *   "devops aws"   → "devops ci/cd deployment amazon web services AWS cloud engineer"
  */
 function expandSearchQuery(query) {
-  const expansions = {
-    "ml": "machine learning ml",
-    "ai": "artificial intelligence ai",
-    "js": "javascript js",
-    "ts": "typescript ts",
-    "fe": "frontend fe",
-    "be": "backend be",
-    "fs": "fullstack full stack fs",
-    "ux": "user experience ux design",
-    "swe": "software engineer swe",
-    "sde": "software development engineer sde",
-    "k8s": "kubernetes k8s",
-    "aws": "amazon web services aws cloud",
-    "gcp": "google cloud platform gcp",
-    "devops": "devops ci/cd deployment",
-    "qa": "quality assurance qa testing",
+  const ROLE_EXPANSIONS = {
+    "ml":        "machine learning ML deep learning AI model training artificial intelligence",
+    "ai":        "artificial intelligence AI machine learning deep learning neural networks",
+    "js":        "javascript JS frontend web development node.js typescript",
+    "ts":        "typescript TS javascript frontend typed",
+    "fe":        "frontend front-end UI developer react vue angular web",
+    "be":        "backend back-end server-side API developer node django spring",
+    "fs":        "fullstack full-stack full stack frontend backend developer",
+    "k8s":       "kubernetes k8s container orchestration docker devops",
+    "aws":       "amazon web services AWS cloud infrastructure devops",
+    "gcp":       "google cloud platform GCP cloud infrastructure",
+    "azure":     "microsoft azure cloud infrastructure devops",
+    "devops":    "devops ci/cd deployment infrastructure platform engineer docker kubernetes",
+    "swe":       "software engineer developer programmer coding",
+    "sde":       "software development engineer developer programming",
+    "qa":        "quality assurance QA testing automation selenium",
+    "dba":       "database administrator DBA SQL database engineer",
+    "data":      "data scientist analyst engineer analytics SQL Python",
+    "intern":    "intern internship fresher trainee graduate entry level",
+    "react":     "React react.js ReactJS frontend JavaScript developer",
+    "node":      "Node.js nodejs backend javascript server API",
+    "python":    "Python developer data science django flask fastapi",
+    "java":      "Java developer spring boot backend enterprise",
+    "android":   "Android developer kotlin mobile app java",
+    "ios":       "iOS developer swift mobile app apple",
+    "flutter":   "flutter dart mobile developer cross-platform",
+    "golang":    "Go golang backend developer microservices",
+    "rust":      "Rust systems developer backend performance",
+    "php":       "PHP developer laravel web backend",
+    "dotnet":    ".NET C# developer microsoft enterprise backend",
+    "mern":      "MERN MongoDB Express React Node.js fullstack",
+    "mean":      "MEAN MongoDB Express Angular Node.js fullstack",
+    "nlp":       "natural language processing NLP text ML AI",
+    "cv":        "computer vision CV image processing deep learning",
+    "cloud":     "cloud engineer AWS GCP Azure infrastructure devops",
+    "security":  "cybersecurity security engineer infosec penetration testing",
+    "blockchain":"blockchain web3 smart contracts solidity ethereum",
+    "product":   "product manager PM product owner roadmap strategy",
+    "design":    "UI/UX designer figma product design user experience",
   };
+
   const q = query.toLowerCase().trim();
-  return expansions[q] || Object.entries(expansions).reduce((acc, [abbr, full]) => {
-    return acc.replace(new RegExp(`\\b${abbr}\\b`, "gi"), full);
-  }, q);
+
+  // Try exact key match first
+  if (ROLE_EXPANSIONS[q]) {
+    return `${query} ${ROLE_EXPANSIONS[q]} job position vacancy`;
+  }
+
+  // Otherwise expand each token individually and combine
+  const tokens = q.split(/\s+/);
+  const expandedParts = [query];
+  for (const token of tokens) {
+    if (ROLE_EXPANSIONS[token]) {
+      expandedParts.push(ROLE_EXPANSIONS[token]);
+    }
+  }
+  expandedParts.push("job position developer engineer");
+
+  return [...new Set(expandedParts.join(" ").split(" "))].join(" ");
 }
 
 export function isJobIndexReady() {

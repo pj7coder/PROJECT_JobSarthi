@@ -206,14 +206,21 @@ export function getSemanticSkillSimilarity(cs, js) {
   
   if (normCS === normJS) return 1.0;
   
-  // Substring match checks
-  if (normCS.includes(normJS) || normJS.includes(normCS)) {
-    return 0.85;
-  }
+  // Exclude false positive substring match for java vs javascript/js/etc.
+  const isJavaVSJavaScript = 
+    (normCS === "java" && (normJS === "javascript" || normJS === "js" || normJS.endsWith(".js") || normJS.startsWith("js"))) ||
+    (normJS === "java" && (normCS === "javascript" || normCS === "js" || normCS.endsWith(".js") || normCS.startsWith("js")));
   
-  // Typo tolerance Jaro-Winkler
-  const jw = jaroWinklerDistance(normCS, normJS);
-  if (jw >= 0.85) return jw;
+  if (!isJavaVSJavaScript) {
+    // Substring match checks
+    if (normCS.includes(normJS) || normJS.includes(normCS)) {
+      return 0.85;
+    }
+    
+    // Typo tolerance Jaro-Winkler
+    const jw = jaroWinklerDistance(normCS, normJS);
+    if (jw >= 0.85) return jw;
+  }
   
   // Taxonomy overlap: check if they share a cluster category
   for (const cluster of SKILL_CLUSTERS) {
@@ -744,11 +751,24 @@ export function calculatePreciseJobMatch(job, profile) {
 
   let finalScore = raw;
   if (normalizedJobSkills.length > 0) {
-    if (skillRatio === 0) {
+    let strongMatchesCount = 0;
+    for (const js of normalizedJobSkills) {
+      let bestMatch = 0;
+      for (const cs of normalizedUserSkills) {
+        const sim = getSemanticSkillSimilarity(cs, js);
+        if (sim > bestMatch) bestMatch = sim;
+        if (bestMatch >= 1.0) break;
+      }
+      if (bestMatch >= 0.75) {
+        strongMatchesCount++;
+      }
+    }
+    const strongSkillRatio = strongMatchesCount / normalizedJobSkills.length;
+    if (strongSkillRatio === 0) {
       finalScore = Math.min(25, finalScore);
-    } else if (skillRatio < 0.15) {
+    } else if (strongSkillRatio < 0.15) {
       finalScore = Math.min(40, finalScore);
-    } else if (skillRatio < 0.3) {
+    } else if (strongSkillRatio < 0.3) {
       finalScore = Math.min(55, finalScore);
     }
   }
@@ -801,11 +821,24 @@ export function rankApplicant(candidateProfile, jobDescription) {
   
   let finalScore = raw;
   if (jdSkills.length > 0) {
-    if (skillRatio === 0) {
+    let strongMatchesCount = 0;
+    for (const js of jdSkills) {
+      let bestMatch = 0;
+      for (const cs of preprocessed.normalizedUserSkills) {
+        const sim = getSemanticSkillSimilarity(cs, js);
+        if (sim > bestMatch) bestMatch = sim;
+        if (bestMatch >= 1.0) break;
+      }
+      if (bestMatch >= 0.75) {
+        strongMatchesCount++;
+      }
+    }
+    const strongSkillRatio = strongMatchesCount / jdSkills.length;
+    if (strongSkillRatio === 0) {
       finalScore = Math.min(25, finalScore);
-    } else if (skillRatio < 0.15) {
+    } else if (strongSkillRatio < 0.15) {
       finalScore = Math.min(40, finalScore);
-    } else if (skillRatio < 0.3) {
+    } else if (strongSkillRatio < 0.3) {
       finalScore = Math.min(55, finalScore);
     }
   }
@@ -848,36 +881,175 @@ function extractSkillsFromText(text) {
 }
 
 // ─────────────────────────────────────────────
-// SEARCH RELEVANCE SCORING — for job search
+// SEARCH TERM SYNONYM EXPANSION
 // ─────────────────────────────────────────────
-export function scoreSearchRelevance(job, query) {
-  const q = query.toLowerCase();
-  const title = (job.title || "").toLowerCase();
-  const company = (job.company || "").toLowerCase();
-  const skills = String(job.skills || "").toLowerCase();
-  const desc = (job.description || "").toLowerCase().slice(0, 500);
+const SEARCH_SYNONYMS = {
+  "ml": ["machine learning", "deep learning", "artificial intelligence", "ml"],
+  "ai": ["artificial intelligence", "machine learning", "deep learning", "ai"],
+  "js": ["javascript", "js", "node.js", "typescript"],
+  "ts": ["typescript", "ts"],
+  "fe": ["frontend", "front end", "ui developer", "react", "vue", "angular"],
+  "be": ["backend", "back end", "server side", "node", "django", "spring"],
+  "fs": ["fullstack", "full stack", "full-stack"],
+  "k8s": ["kubernetes", "k8s", "container orchestration"],
+  "aws": ["amazon web services", "aws", "cloud"],
+  "gcp": ["google cloud", "gcp", "google cloud platform"],
+  "devops": ["devops", "ci/cd", "deployment", "infrastructure", "platform engineer"],
+  "swe": ["software engineer", "swe", "software developer"],
+  "sde": ["software development engineer", "sde", "software engineer"],
+  "qa": ["quality assurance", "qa", "testing", "test engineer"],
+  "dba": ["database administrator", "dba", "database engineer"],
+  "data": ["data scientist", "data analyst", "data engineer", "analytics"],
+  "intern": ["intern", "internship", "trainee", "fresher", "graduate"],
+  "react": ["react", "react.js", "reactjs", "frontend"],
+  "node": ["node.js", "node", "nodejs", "backend"],
+  "python": ["python", "django", "flask", "fastapi", "data science"],
+  "java": ["java", "spring boot", "spring", "j2ee", "backend"],
+  "android": ["android", "kotlin", "mobile developer"],
+  "ios": ["ios", "swift", "mobile developer"],
+  "flutter": ["flutter", "dart", "mobile developer", "cross platform"],
+};
 
-  let score = 0;
+/**
+ * expandQuery
+ * Expands a search query with synonyms for better recall.
+ * Returns { terms: string[], originalQ: string }
+ */
+function expandQuery(query) {
+  const originalQ = query.toLowerCase().trim();
+  const tokens = originalQ.split(/\s+/).filter(t => t.length > 1);
+  const expanded = new Set([originalQ, ...tokens]);
 
-  if (title === q) score += 100;
-  else if (title.startsWith(q)) score += 75;
-  else if (title.includes(q)) score += 50;
+  // Check if the whole query matches a synonym group
+  if (SEARCH_SYNONYMS[originalQ]) {
+    SEARCH_SYNONYMS[originalQ].forEach(s => expanded.add(s.toLowerCase()));
+  }
 
-  const qTokens = q.split(/\s+/).filter(t => t.length > 2);
-  const titleTokens = title.split(/\s+/);
-  const tokenHits = qTokens.filter(qt => titleTokens.some(tt => tt.includes(qt))).length;
-  score += tokenHits * 20;
+  // Check each token against synonyms
+  for (const token of tokens) {
+    if (SEARCH_SYNONYMS[token]) {
+      SEARCH_SYNONYMS[token].forEach(s => expanded.add(s.toLowerCase()));
+    }
+  }
 
-  if (skills.includes(q)) score += 30;
-  qTokens.forEach(qt => { if (skills.includes(qt)) score += 10; });
-
-  if (company.includes(q)) score += 20;
-
-  if (desc.includes(q)) score += 10;
-  qTokens.forEach(qt => { if (desc.includes(qt)) score += 3; });
-
-  return Math.round(score);
+  return { terms: [...expanded], originalQ, tokens };
 }
+
+// ─────────────────────────────────────────────
+// SEARCH RELEVANCE SCORING — hybrid multi-signal
+// ─────────────────────────────────────────────
+/**
+ * scoreSearchRelevance
+ *
+ * Produces a 0-100 relevance score for a job against a search query.
+ * Uses a weighted field model:
+ *   Title        — 40 pts (exact match > starts-with > token match > partial)
+ *   Skills       — 30 pts (token matches, synonym-expanded)
+ *   Company      — 10 pts
+ *   Description  — 10 pts
+ *   Category     — 5 pts
+ *   Location     — 5 pts
+ *
+ * Tokens from expanded synonyms are used for recall; the original
+ * query terms are used for precision boosting.
+ */
+export function scoreSearchRelevance(job, query) {
+  if (!query || !query.trim()) return 50; // neutral score when no query
+
+  const { terms, originalQ, tokens } = expandQuery(query);
+
+  const title    = (job.title    || "").toLowerCase();
+  const company  = (job.company  || "").toLowerCase();
+  const skills   = String(job.skills || "").toLowerCase();
+  const desc     = (job.description || "").toLowerCase().slice(0, 800);
+  const category = (job.category || "").toLowerCase();
+  const location = (job.location || "").toLowerCase();
+
+  let titleScore    = 0;
+  let skillsScore   = 0;
+  let companyScore  = 0;
+  let descScore     = 0;
+  let categoryScore = 0;
+  let locationScore = 0;
+
+  // ── TITLE SCORING (max 40 pts) ─────────────────────────────────
+  if (title === originalQ) {
+    titleScore = 40; // Perfect match
+  } else if (title.startsWith(originalQ)) {
+    titleScore = 35;
+  } else if (title.includes(originalQ)) {
+    titleScore = 28;
+  } else {
+    // Token-level match with expanded terms
+    const titleTokens = title.split(/[\s\-/(),]+/).filter(Boolean);
+    let tokenHits = 0;
+    let hitScore  = 0;
+    for (const term of terms) {
+      if (title.includes(term)) {
+        hitScore = Math.max(hitScore, term === originalQ ? 24 : 16);
+      }
+      const termTokens = term.split(/\s+/);
+      for (const tt of termTokens) {
+        if (tt.length < 2) continue;
+        if (titleTokens.some(jt => jt === tt || jt.startsWith(tt))) {
+          tokenHits++;
+        }
+      }
+    }
+    titleScore = Math.min(40, hitScore + tokenHits * 4);
+  }
+
+  // ── SKILLS SCORING (max 30 pts) ────────────────────────────────
+  {
+    const skillTokens = skills.split(/[,\s]+/).filter(Boolean);
+    let hits = 0;
+    for (const term of terms) {
+      if (skills.includes(term)) {
+        hits += term === originalQ ? 3 : 1.5; // full-phrase hit is stronger
+      }
+    }
+    // Also check individual original tokens against individual skill tokens
+    for (const qt of tokens) {
+      if (qt.length < 2) continue;
+      if (skillTokens.some(st => st === qt || st.startsWith(qt))) hits += 1;
+    }
+    skillsScore = Math.min(30, hits * 4);
+  }
+
+  // ── COMPANY SCORING (max 10 pts) ───────────────────────────────
+  if (company.includes(originalQ)) companyScore = 10;
+  else if (tokens.some(t => company.includes(t))) companyScore = 5;
+
+  // ── DESCRIPTION SCORING (max 10 pts) ───────────────────────────
+  {
+    let descHits = 0;
+    for (const term of terms) {
+      if (desc.includes(term)) descHits += term === originalQ ? 2 : 0.5;
+    }
+    descScore = Math.min(10, descHits * 2);
+  }
+
+  // ── CATEGORY SCORING (max 5 pts) ───────────────────────────────
+  if (category.includes(originalQ)) categoryScore = 5;
+  else if (terms.some(t => category.includes(t))) categoryScore = 2;
+
+  // ── LOCATION SCORING (max 5 pts) ───────────────────────────────
+  if (location.includes(originalQ)) locationScore = 5;
+  else if (tokens.some(t => t.length > 3 && location.includes(t))) locationScore = 2;
+
+  const total = titleScore + skillsScore + companyScore + descScore + categoryScore + locationScore;
+  return Math.min(100, Math.round(total));
+}
+
+/**
+ * isKeywordMatch
+ * Hard check: does a job contain at least one signal matching the
+ * search query (used as a minimum bar before semantic search result fusion).
+ */
+export function isKeywordMatch(job, query) {
+  return scoreSearchRelevance(job, query) >= 5;
+}
+
 
 // ─────────────────────────────────────────────
 // INTERVIEW RELEVANCE SCORE

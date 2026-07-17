@@ -1207,6 +1207,74 @@
       }
     }
 
+    function normalizeSkillToken(skill) {
+      if (!skill) return "";
+      const SKILL_ALIASES = {
+        "js": "javascript",
+        "ts": "typescript",
+        "node": "node.js",
+        "nodejs": "node.js",
+        "react": "react.js",
+        "reactjs": "react.js",
+        "vue": "vue.js",
+        "vuejs": "vue.js",
+        "angularjs": "angular",
+        "angular": "angular",
+        "mongo": "mongodb",
+        "mongodb": "mongodb",
+        "postgres": "postgresql",
+        "postgresql": "postgresql",
+        "psql": "postgresql",
+        "py": "python",
+        "python": "python",
+        "ml": "machine learning",
+        "machinelearning": "machine learning",
+        "dl": "deep learning",
+        "deeplearning": "deep learning",
+        "ai": "artificial intelligence",
+        "artificialintelligence": "artificial intelligence",
+        "k8s": "kubernetes",
+        "kubernetes": "kubernetes",
+        "docker": "docker",
+        "tf": "tensorflow",
+        "tensorflow": "tensorflow",
+        "aws": "amazon web services",
+        "amazonwebservices": "amazon web services",
+        "gcp": "google cloud",
+        "googlecloud": "google cloud",
+        "azure": "microsoft azure",
+        "microsoftazure": "microsoft azure",
+        "ci/cd": "ci-cd",
+        "cicd": "ci-cd",
+        "rest": "rest api",
+        "restful": "rest api",
+        "graphql": "graphql",
+        "scss": "css",
+        "sass": "css",
+        "css3": "css",
+        "html5": "html",
+        "cpp": "c++",
+        "cplusplus": "c++",
+        "c#": "csharp",
+        "dotnet": ".net",
+        "aspnet": ".net",
+        "springboot": "spring boot",
+        "spring": "spring boot",
+        "golang": "go",
+        "reactnative": "react native",
+        "nextjs": "next.js",
+        "tailwindcss": "tailwind css",
+        "tailwind": "tailwind css",
+        "powerbi": "power bi",
+        "power-bi": "power bi",
+        "excel": "microsoft excel",
+        "ms-excel": "microsoft excel",
+        "msexcel": "microsoft excel"
+      };
+      const s = skill.trim().toLowerCase().replace(/[\s_-]+/g, "");
+      return SKILL_ALIASES[s] || s;
+    }
+
     function getSkillsMatchInfo(job) {
       const jobSkillsStr = job.skills || "";
       const jobSkills = jobSkillsStr.split(',')
@@ -1217,14 +1285,22 @@
         return { matched: [], missing: [] };
       }
       
-      const seekerSkillsLower = seekerSkills.map(s => s.trim().toLowerCase());
+      const normalizedSeekerSkills = seekerSkills.map(s => normalizeSkillToken(s));
       
       const matched = [];
       const missing = [];
       
       jobSkills.forEach(js => {
-        const jsLower = js.toLowerCase();
-        if (seekerSkillsLower.includes(jsLower) || seekerSkillsLower.some(ss => ss.includes(jsLower) || jsLower.includes(ss))) {
+        const normJS = normalizeSkillToken(js);
+        const isMatched = normalizedSeekerSkills.some(ss => {
+          if (ss === normJS) return true;
+          const isJavaVSJavaScript = 
+            (ss === "java" && (normJS === "javascript" || normJS === "js" || normJS.endsWith(".js") || normJS.startsWith("js"))) ||
+            (normJS === "java" && (ss === "javascript" || ss === "js" || ss.endsWith(".js") || ss.startsWith("js")));
+          if (isJavaVSJavaScript) return false;
+          return ss.includes(normJS) || normJS.includes(ss);
+        });
+        if (isMatched) {
           matched.push(js);
         } else {
           missing.push(js);

@@ -2042,7 +2042,8 @@ app.get("/api/jobs", async (req, res) => {
     const isSortingByRelevance = (sort === "match-desc" || !sort);
 
     // Block relevance-based job listings if seeker hasn't uploaded a resume
-    if (email && isSortingByRelevance && !hasResume && !ids) {
+    // EXCEPTION: if there is a search query, allow results regardless of resume
+    if (email && isSortingByRelevance && !hasResume && !ids && !search) {
       return res.json({
         jobs: [],
         total: 0,
@@ -2053,7 +2054,29 @@ app.get("/api/jobs", async (req, res) => {
 
     const preprocessedProfile = seekerProfile ? preprocessProfile(seekerProfile) : null;
 
-    // Filter jobs
+    // ── HYBRID SEARCH: run semantic search in parallel with filtering ──────────
+    // semanticScoreMap: Map<jobId, 0-100> — populated only when there's a search query
+    let semanticScoreMap = null;
+    let semanticSearchUsed = false;
+
+    if (search && search.trim().length >= 2) {
+      try {
+        const semResult = await semanticJobSearch(search.trim(), 150);
+        if (semResult && semResult.size > 0) {
+          semanticScoreMap = semResult;
+          semanticSearchUsed = true;
+          console.log(`[Search] Semantic index returned ${semResult.size} matches for: "${search}"`);
+        } else {
+          console.log(`[Search] Semantic index empty/null — using keyword-only search for: "${search}"`);
+        }
+      } catch (semErr) {
+        console.warn("[Search] Semantic search threw error, continuing with keyword fallback:", semErr.message);
+      }
+    }
+
+    // ── HARD FILTERS (non-search filters) ──────────────────────────────────────
+    // IMPORTANT: Search query is NO LONGER a hard filter — it becomes a soft score.
+    // Only status, ids, company, category, location, type are hard filters.
     let filtered = jobs.filter(job => {
       // Filter out closed jobs unless explicitly requested
       if (job.status === "closed" && includeClosed !== "true") return false;
@@ -2064,6 +2087,7 @@ app.get("/api/jobs", async (req, res) => {
         const jobId = job.id || (job._id ? String(job._id) : '');
         if (!idList.includes(String(jobId))) return false;
       }
+
       // Company filter
       if (company) {
         if (company.toLowerCase() === "jobsarthi recruiter") {
@@ -2071,17 +2095,6 @@ app.get("/api/jobs", async (req, res) => {
         } else {
           if (!job.company || job.company.toLowerCase() !== company.toLowerCase()) return false;
         }
-      }
-
-      // Search text query filter
-      if (search) {
-        const query = search.toLowerCase();
-        const matchesSearch = (job.title && job.title.toLowerCase().includes(query)) || 
-                              (job.company && job.company.toLowerCase().includes(query)) ||
-                              (job.description && job.description.toLowerCase().includes(query)) ||
-                              (job.location && job.location.toLowerCase().includes(query)) ||
-                              (job.skills && String(job.skills).toLowerCase().includes(query));
-        if (!matchesSearch) return false;
       }
 
       // Category filter
@@ -2120,8 +2133,7 @@ app.get("/api/jobs", async (req, res) => {
       return true;
     });
 
-    // ── PRECISION SCORING: use calculatePreciseJobMatch from scoringEngine ──
-    // Build a profile compatible with scoringEngine if preprocessedProfile exists
+    // ── BUILD ENGINE PROFILE ────────────────────────────────────────────────────
     const engineProfile = preprocessedProfile ? {
       normalizedUserSkills: preprocessedProfile.normalizedUserSkills,
       preferredLocs: preprocessedProfile.preferredLocs,
@@ -2129,50 +2141,119 @@ app.get("/api/jobs", async (req, res) => {
       userSalary: preprocessedProfile.userSalary,
       expSummaryLower: preprocessedProfile.expSummaryLower,
       userDegreeLower: preprocessedProfile.userDegreeLower,
+      userInIndia: preprocessedProfile.userInIndia,
     } : null;
 
-    // Score & Enrich jobs dynamically
-    filtered = filtered.map(job => {
-      // Use precision engine score (returns float like 73.4)
-      let score = engineProfile
-        ? calculatePreciseJobMatch(job, engineProfile)
-        : 50;
+    // ── SCORE & RANK ────────────────────────────────────────────────────────────
+    // When a search query is active, we apply a two-layer relevance model:
+    //
+    //   searchRelevance = 0.60 * semanticScore + 0.40 * keywordScore   (if semantic available)
+    //                   =                        keywordScore            (if no semantic index)
+    //
+    //   finalScore = 0.50 * searchRelevance + 0.50 * profileMatchScore  (if logged-in user)
+    //              =        searchRelevance                              (if no user profile)
+    //
+    // When there is NO search query at all, finalScore = profileMatchScore (original behaviour).
+    //
+    // Jobs with search active that have ZERO relevance (semantic + keyword both 0) are EXCLUDED.
+    // The minimum keyword signal required is 5/100 (soft threshold, avoids completely off-topic results).
 
-      if (search) {
-        // Use precision search relevance from scoringEngine instead of ad-hoc boosts
-        const searchBoost = scoreSearchRelevance(job, search) * 0.3;
-        score = Math.min(100, score + searchBoost);
+    let scored = filtered.map(job => {
+      const jobId = String(job.id || job._id || "");
+
+      // ── Profile match score ──────────────────────────────────────────
+      let profileScore = engineProfile ? calculatePreciseJobMatch(job, engineProfile) : 50;
+
+      // ── Search relevance score ───────────────────────────────────────
+      let searchRelevance = null;
+
+      if (search && search.trim().length >= 2) {
+        const kwScore = scoreSearchRelevance(job, search.trim());
+
+        if (semanticSearchUsed && semanticScoreMap) {
+          const semScore = semanticScoreMap.get(jobId) ?? 0;
+          // Blend: semantic carries more weight (richer signal)
+          searchRelevance = Math.round(0.60 * semScore + 0.40 * kwScore);
+        } else {
+          // Semantic unavailable: pure keyword
+          searchRelevance = kwScore;
+        }
       }
 
-      const matchScore = Math.round(Math.min(100, Math.max(1, score)));
+      // ── Final composite score ─────────────────────────────────────────
+      let finalScore;
+      if (searchRelevance !== null) {
+        if (engineProfile) {
+          // Both search and profile: blend equally
+          finalScore = 0.50 * searchRelevance + 0.50 * profileScore;
+        } else {
+          // Search only (no logged-in user)
+          finalScore = searchRelevance;
+        }
+      } else {
+        // No search: pure profile match
+        finalScore = profileScore;
+      }
+
+      const matchScore = Math.round(Math.min(100, Math.max(1, finalScore)));
       const v = getVerificationStatus(job.last_seen_at || job.updated_at || job.posted_date || job.created_at, job.status || 'active');
 
       return {
         ...job,
         matchScore,
+        _searchRelevance: searchRelevance,
         verification_score: v.score,
         verification_text: v.text
       };
     });
 
-    // Sort jobs
-    if (sort === "match-desc" || !sort) {
-      filtered.sort((a, b) => b.matchScore - a.matchScore);
-    } else if (sort === "date-desc") {
-      filtered.sort((a, b) => new Date(b.posted_date || b.created_at || 0) - new Date(a.posted_date || a.created_at || 0));
-    } else if (sort === "title-asc") {
-      filtered.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-    } else if (sort === "company-asc") {
-      filtered.sort((a, b) => (a.company || "").localeCompare(b.company || ""));
-    } else {
-      filtered.sort((a, b) => b.matchScore - a.matchScore);
+    // ── SEARCH RESULT FILTERING ─────────────────────────────────────────────────
+    // When a search query is active, exclude jobs that have ZERO relevance
+    // to avoid showing completely unrelated results.
+    if (search && search.trim().length >= 2) {
+      const beforeCount = scored.length;
+
+      if (semanticSearchUsed && semanticScoreMap) {
+        // Semantic search is active: keep jobs that either appeared in semantic results
+        // OR have a non-trivial keyword score (fallback for newly added jobs not in index)
+        scored = scored.filter(job => {
+          const jobId = String(job.id || job._id || "");
+          const inSemantic = semanticScoreMap.has(jobId);
+          const kwScore = scoreSearchRelevance(job, search.trim());
+          return inSemantic || kwScore >= 10;
+        });
+      } else {
+        // Keyword-only mode: require a minimum keyword relevance score
+        scored = scored.filter(job => {
+          const kwScore = scoreSearchRelevance(job, search.trim());
+          return kwScore >= 5;
+        });
+      }
+
+      console.log(`[Search] Query "${search}" → ${beforeCount} jobs pre-filter, ${scored.length} jobs post-filter.`);
     }
 
-    const total = filtered.length;
-    let paginatedJobs = filtered;
+    // Clean up internal _searchRelevance field before sending
+    scored.forEach(j => { delete j._searchRelevance; });
+
+    // ── SORT ────────────────────────────────────────────────────────────────────
+    if (sort === "match-desc" || !sort) {
+      scored.sort((a, b) => b.matchScore - a.matchScore);
+    } else if (sort === "date-desc") {
+      scored.sort((a, b) => new Date(b.posted_date || b.created_at || 0) - new Date(a.posted_date || a.created_at || 0));
+    } else if (sort === "title-asc") {
+      scored.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    } else if (sort === "company-asc") {
+      scored.sort((a, b) => (a.company || "").localeCompare(b.company || ""));
+    } else {
+      scored.sort((a, b) => b.matchScore - a.matchScore);
+    }
+
+    const total = scored.length;
+    let paginatedJobs = scored;
     if (page || limit) {
       const startIndex = (currentPage - 1) * currentLimit;
-      paginatedJobs = filtered.slice(startIndex, startIndex + currentLimit);
+      paginatedJobs = scored.slice(startIndex, startIndex + currentLimit);
     }
 
     const categories = [...new Set(jobs.map(j => j.category || "Software Engineering"))].filter(Boolean).sort();
@@ -2188,7 +2269,12 @@ app.get("/api/jobs", async (req, res) => {
       jobs: paginatedJobs,
       total,
       categories,
-      locations
+      locations,
+      searchMeta: search ? {
+        query: search,
+        semanticSearchUsed,
+        totalMatches: total,
+      } : undefined,
     });
   } catch (err) {
     console.error("API /api/jobs error:", err);
