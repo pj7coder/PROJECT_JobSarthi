@@ -610,7 +610,7 @@
             </div>
             ${job.skills ? `
               <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px;">
-                ${job.skills.split(',').map(s => `<span class="badge" style="background: rgba(255,255,255,0.03); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.05); text-transform:none;">${s.trim()}</span>`).join('')}
+                ${(Array.isArray(job.skills) ? job.skills : job.skills.split(',')).map(s => `<span class="badge" style="background: rgba(255,255,255,0.03); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.05); text-transform:none;">${s.trim()}</span>`).join('')}
               </div>
             ` : ''}
           </div>

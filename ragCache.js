@@ -378,7 +378,11 @@ export async function semanticJobSearch(query, topK = 150, apiKey) {
 
     // MemoryVectorStore returns L2 (Euclidean) distance where lower = more similar.
     // Normalise to 0-100: find min/max distance in this result set and scale linearly.
-    const distances = results.map(([, d]) => d);
+    const distances = results.map(([, d]) => d).filter(d => typeof d === 'number' && !Number.isNaN(d));
+    if (distances.length === 0) {
+      console.warn("[JobIndex] All semantic distances were invalid/NaN.");
+      return null;
+    }
     const minD = Math.min(...distances);
     const maxD = Math.max(...distances);
     const range = maxD - minD || 1; // avoid div-by-zero
@@ -386,9 +390,10 @@ export async function semanticJobSearch(query, topK = 150, apiKey) {
     const scoreMap = new Map();
     for (const [doc, dist] of results) {
       const jobId = doc.metadata.jobId;
-      if (!jobId) continue;
+      if (!jobId || typeof dist !== 'number' || Number.isNaN(dist)) continue;
       // Higher distance = less similar. Score = 100 at minD, ~0 at maxD.
       const normScore = Math.round(((maxD - dist) / range) * 100);
+      if (Number.isNaN(normScore)) continue;
       // Keep the best score if same job appears multiple times (shouldn't happen, but guard)
       if (!scoreMap.has(jobId) || scoreMap.get(jobId) < normScore) {
         scoreMap.set(jobId, normScore);

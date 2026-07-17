@@ -2172,6 +2172,9 @@ app.get("/api/jobs", async (req, res) => {
 
         if (semanticSearchUsed && semanticScoreMap) {
           const semScore = semanticScoreMap.get(jobId) ?? 0;
+          if (Number.isNaN(semScore) || Number.isNaN(kwScore)) {
+            console.log(`[NaN Debug] jobId: ${jobId}, semScore: ${semScore}, kwScore: ${kwScore}`);
+          }
           // Blend: semantic carries more weight (richer signal)
           searchRelevance = Math.round(0.60 * semScore + 0.40 * kwScore);
         } else {
@@ -2193,6 +2196,11 @@ app.get("/api/jobs", async (req, res) => {
       } else {
         // No search: pure profile match
         finalScore = profileScore;
+      }
+
+      if (Number.isNaN(finalScore) || finalScore === null || finalScore === undefined) {
+        console.log(`[NaN Debug] jobId: ${jobId}, finalScore is invalid: ${finalScore}. profileScore: ${profileScore}, searchRelevance: ${searchRelevance}, semScore: ${semanticScoreMap ? semanticScoreMap.get(jobId) : 'N/A'}`);
+        finalScore = profileScore || 50;
       }
 
       const matchScore = Math.round(Math.min(100, Math.max(1, finalScore)));

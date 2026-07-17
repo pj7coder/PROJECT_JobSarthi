@@ -787,7 +787,10 @@
     function renderProfile(profile) {
       if (!profile) return;
       seekerProfile = profile;
-      seekerSkills = profile.skills || [];
+      const rawSkills = profile.skills || [];
+      seekerSkills = Array.isArray(rawSkills) 
+        ? rawSkills 
+        : (typeof rawSkills === 'string' ? rawSkills.split(',').map(s => s.trim()).filter(Boolean) : []);
       
       // Set title
       const sidebarTitle = document.getElementById('sidebarTitle');
@@ -1276,16 +1279,26 @@
     }
 
     function getSkillsMatchInfo(job) {
-      const jobSkillsStr = job.skills || "";
-      const jobSkills = jobSkillsStr.split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
+      if (!job) return { matched: [], missing: [] };
+      
+      let jobSkills = [];
+      if (Array.isArray(job.skills)) {
+        jobSkills = job.skills.map(s => s.trim()).filter(Boolean);
+      } else if (typeof job.skills === 'string') {
+        jobSkills = job.skills.split(',').map(s => s.trim()).filter(Boolean);
+      }
         
       if (jobSkills.length === 0) {
         return { matched: [], missing: [] };
       }
       
-      const normalizedSeekerSkills = seekerSkills.map(s => normalizeSkillToken(s));
+      let parsedSeekerSkills = [];
+      if (Array.isArray(seekerSkills)) {
+        parsedSeekerSkills = seekerSkills;
+      } else if (typeof seekerSkills === 'string') {
+        parsedSeekerSkills = seekerSkills.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      const normalizedSeekerSkills = parsedSeekerSkills.map(s => normalizeSkillToken(s));
       
       const matched = [];
       const missing = [];

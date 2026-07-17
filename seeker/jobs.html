@@ -954,7 +954,10 @@
         if (response.ok) {
           const profile = await response.json();
           seekerProfile = profile;
-          seekerSkills = profile.skills || [];
+          const rawSkills = profile.skills || [];
+          seekerSkills = Array.isArray(rawSkills) 
+            ? rawSkills 
+            : (typeof rawSkills === 'string' ? rawSkills.split(',').map(s => s.trim()).filter(Boolean) : []);
         }
       } catch (err) {
         console.error("Error loading seeker profile for matching:", err);
@@ -1074,16 +1077,26 @@
 
     // Match breakdown helper
     function getSkillsMatchInfo(job) {
-      const jobSkillsStr = job.skills || "";
-      const jobSkills = jobSkillsStr.split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
+      if (!job) return { matched: [], missing: [] };
+      
+      let jobSkills = [];
+      if (Array.isArray(job.skills)) {
+        jobSkills = job.skills.map(s => s.trim()).filter(Boolean);
+      } else if (typeof job.skills === 'string') {
+        jobSkills = job.skills.split(',').map(s => s.trim()).filter(Boolean);
+      }
         
       if (jobSkills.length === 0) {
         return { matched: [], missing: [] };
       }
       
-      const normalizedSeekerSkills = seekerSkills.map(s => normalizeSkillToken(s));
+      let parsedSeekerSkills = [];
+      if (Array.isArray(seekerSkills)) {
+        parsedSeekerSkills = seekerSkills;
+      } else if (typeof seekerSkills === 'string') {
+        parsedSeekerSkills = seekerSkills.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      const normalizedSeekerSkills = parsedSeekerSkills.map(s => normalizeSkillToken(s));
       
       const matched = [];
       const missing = [];
@@ -1229,11 +1242,34 @@
       `;
     }
 
+    // ── Server wake-up helper ───────────────────────────────────────────────────
+    // Pings /api/ping once to warm up the Render.com backend before the main
+    // jobs fetch. Returns true if the server is reachable, false otherwise.
+    async function wakeUpServer() {
+      const base = window.API_BASE_URL || '';
+      try {
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), 8000);
+        const res  = await fetch(base + '/api/ping', { signal: ctrl.signal });
+        clearTimeout(tid);
+        return res.ok;
+      } catch {
+        return false;
+      }
+    }
+
+    // ── Status message helper ───────────────────────────────────────────────────
+    function setLoadingStatus(msg) {
+      const el = document.getElementById('loadingStatusMsg');
+      if (el) el.textContent = msg;
+    }
+
     async function loadJobs() {
-      // Show loading indicator
+      // Show loading indicator with a status sub-line
       const container = document.getElementById('jobsContainer');
       if (container) {
-        container.innerHTML = getLoaderHTML();
+        container.innerHTML = getLoaderHTML() +
+          '<p id="loadingStatusMsg" style="text-align:center; margin-top: 8px; font-size: 0.82rem; color: var(--text-muted); transition: all 0.3s;">Connecting to server…</p>';
       }
 
       await loadSeekerProfile();
@@ -1394,119 +1430,216 @@
       fetchJobsFromServer(keepPage);
     }
 
-    async function fetchJobsFromServer(keepPage = false) {
-      const container = document.getElementById('jobsContainer');
-      if (container) {
-        container.innerHTML = getLoaderHTML();
+    // ── fetchWithTimeout ────────────────────────────────────────────────────────
+    // Wrapper around fetch() that aborts automatically after `ms` milliseconds.
+    async function fetchWithTimeout(url, options, ms) {
+      if (options === undefined) options = {};
+      if (ms === undefined) ms = 25000;
+      const ctrl = new AbortController();
+      const tid  = setTimeout(function() { ctrl.abort(); }, ms);
+      try {
+        const res = await fetch(url, Object.assign({}, options, { signal: ctrl.signal }));
+        clearTimeout(tid);
+        return res;
+      } catch (err) {
+        clearTimeout(tid);
+        throw err;
       }
+    }
 
-      const searchQuery = document.getElementById('jobSearch').value;
-      const selectedCategory = document.getElementById('filterCategory').value;
-      const selectedLocation = document.getElementById('filterLocation').value;
-      const sortVal = document.getElementById('jobSort').value;
-      
+    // ── showRetryError ──────────────────────────────────────────────────────────
+    // Renders a friendly error card with a 15-second auto-retry countdown.
+    let _retryCountdownTimer = null;
+    function showRetryError(container, onRetry) {
+      if (_retryCountdownTimer) clearInterval(_retryCountdownTimer);
+      var secs = 15;
+      container.innerHTML = [
+        '<div class="glass-panel" style="padding:48px 32px;text-align:center;border-radius:16px;',
+        'border:1px solid var(--border-subtle);background:var(--bg-surface);">',
+        '<div style="font-size:3rem;margin-bottom:16px;">&#x2601;&#xFE0F;</div>',
+        '<h3 style="font-size:1.2rem;font-weight:700;color:var(--text-main);margin-bottom:8px;">',
+        'Server is waking up&hellip;</h3>',
+        '<p style="color:var(--text-muted);font-size:0.9rem;max-width:420px;margin:0 auto 24px;line-height:1.6;">',
+        'The backend runs on a free-tier host and may take up to 30 seconds to wake up after',
+        ' inactivity. Please wait &mdash; it will be ready shortly.</p>',
+        '<button id="retryJobsBtn" onclick="window._manualRetryJobs()" class="btn btn-primary"',
+        ' style="min-width:180px;display:inline-flex;align-items:center;justify-content:center;gap:8px;">',
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">',
+        '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
+        ' Retry in <span id="retryCountdown">15</span>s</button>',
+        '<p style="margin-top:16px;font-size:0.78rem;color:var(--text-muted);">',
+        'Or <a href="javascript:void(0)" onclick="window._manualRetryJobs()"',
+        ' style="color:var(--accent-secondary);font-weight:600;">retry immediately</a></p>',
+        '</div>'
+      ].join('');
+
+      _retryCountdownTimer = setInterval(function() {
+        secs--;
+        var el = document.getElementById('retryCountdown');
+        if (el) el.textContent = secs;
+        if (secs <= 0) {
+          clearInterval(_retryCountdownTimer);
+          _retryCountdownTimer = null;
+          onRetry();
+        }
+      }, 1000);
+
+      window._manualRetryJobs = function() {
+        if (_retryCountdownTimer) clearInterval(_retryCountdownTimer);
+        _retryCountdownTimer = null;
+        onRetry();
+      };
+    }
+
+    async function fetchJobsFromServer(keepPage) {
+      if (keepPage === undefined) keepPage = false;
+      const container = document.getElementById('jobsContainer');
+
+      // ── Gather filter parameters ─────────────────────────────────────────────
+      const jobSearchEl = document.getElementById('jobSearch');
+      const searchQuery = jobSearchEl ? jobSearchEl.value.trim() : '';
+      const catEl = document.getElementById('filterCategory');
+      const selectedCategory = catEl ? catEl.value : '';
+      const locEl = document.getElementById('filterLocation');
+      const selectedLocation = locEl ? locEl.value : '';
+      const sortEl = document.getElementById('jobSort');
+      const sortVal = sortEl ? sortEl.value : 'match-desc';
+
       const checkedTypes = [];
-      const checkboxes = document.querySelectorAll('#filterJobTypes input');
-      checkboxes.forEach(cb => {
+      document.querySelectorAll('#filterJobTypes input').forEach(function(cb) {
         if (cb.checked) checkedTypes.push(cb.value);
       });
 
       const email = localStorage.getItem('seeker_email') || '';
 
+      // ── Favourites-only shortcut ─────────────────────────────────────────────
       const isFavouritesOnly = showFavouritesOnly;
-      let savedIdsStr = '';
+      var savedIdsStr = '';
       if (isFavouritesOnly) {
         const savedIds = JSON.parse(localStorage.getItem('saved_jobs') || '[]');
         if (savedIds.length === 0) {
-          container.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-              <h3>No Favourites Saved Yet</h3>
-              <p>Click the heart icon on any job details page or card to bookmark it!</p>
-            </div>
-          `;
-          const counterEl = document.getElementById('jobsCounter');
-          if (counterEl) counterEl.textContent = '0 jobs';
-          const pagEl = document.getElementById('paginationContainer');
-          if (pagEl) pagEl.innerHTML = '';
+          if (container) container.innerHTML = [
+            '<div style="text-align:center;padding:40px;color:var(--text-muted);">',
+            '<h3>No Favourites Saved Yet</h3>',
+            '<p>Click the heart icon on any job to bookmark it!</p></div>'
+          ].join('');
+          var pagEl0 = document.getElementById('paginationContainer');
+          if (pagEl0) pagEl0.innerHTML = '';
           return;
         }
         savedIdsStr = savedIds.join(',');
       }
 
+      // ── Build query string ───────────────────────────────────────────────────
       const params = new URLSearchParams({
-        page: currentPage,
-        limit: jobsPerPage,
-        search: searchQuery,
+        page:     currentPage,
+        limit:    jobsPerPage,
+        search:   searchQuery,
         category: selectedCategory,
         location: selectedLocation,
-        type: checkedTypes.join(','),
-        sort: sortVal,
-        email: email
+        type:     checkedTypes.join(','),
+        sort:     sortVal,
+        email:    email
       });
-      if (isFavouritesOnly) {
-        params.append('ids', savedIdsStr);
+      if (isFavouritesOnly) params.append('ids', savedIdsStr);
+
+      const base   = window.API_BASE_URL || '';
+      const jobUrl = base + '/api/jobs?' + params.toString() + '&t=' + Date.now();
+
+      // ── Retry loop (up to MAX_ATTEMPTS) ─────────────────────────────────────
+      const MAX_ATTEMPTS = 3;
+      var attempt = 0;
+      var lastErr  = null;
+
+      while (attempt < MAX_ATTEMPTS) {
+        attempt++;
+
+        // Show loader with live status text
+        if (container) {
+          var statusText = attempt === 1 ? 'Connecting to server\u2026'
+                         : attempt === 2 ? 'Retrying\u2026 (attempt 2 of 3)'
+                         :                 'Last attempt\u2026 (attempt 3 of 3)';
+          container.innerHTML = getLoaderHTML()
+            + '<p id="loadingStatusMsg" style="text-align:center;margin-top:8px;'
+            + 'font-size:0.82rem;color:var(--text-muted);">' + statusText + '</p>';
+        }
+
+        // On attempt 2+, wake the server first, then back off
+        if (attempt > 1) {
+          setLoadingStatus('Waking up server \u2014 please wait a moment\u2026');
+          await wakeUpServer();
+          await new Promise(function(r) { setTimeout(r, 1500 * (attempt - 1)); });
+          setLoadingStatus('Attempt ' + attempt + ' of ' + MAX_ATTEMPTS + '\u2026');
+        }
+
+        try {
+          const response = await fetchWithTimeout(jobUrl, {}, 25000);
+
+          if (!response.ok) {
+            lastErr = new Error('HTTP ' + response.status);
+            console.warn('[Jobs] Attempt ' + attempt + ' failed: HTTP ' + response.status);
+            continue; // retry
+          }
+
+          const data = await response.json();
+
+          // ── Profile-incomplete gate ────────────────────────────────────────
+          if (data.profileIncomplete) {
+            if (container) {
+              container.innerHTML = [
+                '<div class="glass-panel" style="padding:40px;text-align:center;border-radius:16px;',
+                'border:1px solid var(--border-subtle);background:var(--bg-surface);width:100%;">',
+                '<div style="font-size:3rem;margin-bottom:20px;">&#x1F4C4;</div>',
+                '<h3 style="font-size:1.3rem;font-weight:700;color:var(--text-main);margin-bottom:8px;">',
+                'Resume &amp; Profile Details Required</h3>',
+                '<p style="color:var(--text-muted);font-size:0.95rem;margin-bottom:24px;',
+                'max-width:480px;margin-left:auto;margin-right:auto;">',
+                'To view jobs by Relevance, upload your resume and complete your profile.',
+                ' Sarthi AI uses this to calculate your match score.</p>',
+                '<a href="resume.html" class="btn btn-primary"',
+                ' style="display:inline-flex;align-items:center;gap:8px;">',
+                'Go to Profile &amp; Upload Resume</a></div>'
+              ].join('');
+            }
+            document.getElementById('feedSummaryText').textContent = 'Showing 0 matching jobs';
+            var pagEl1 = document.getElementById('paginationContainer');
+            if (pagEl1) pagEl1.innerHTML = '';
+            return;
+          }
+
+          // ── Success path ─────────────────────────────────────────────────────
+          dbJobs       = data.jobs  || [];
+          dbTotalCount = data.total || 0;
+
+          const catSelect = document.getElementById('filterCategory');
+          if (catSelect && catSelect.options.length <= 1 && data.categories) {
+            populateFilterOptions(data.categories, data.locations || []);
+          }
+
+          const counterEl = document.getElementById('jobsCounter');
+          if (counterEl) {
+            counterEl.textContent = 'Browse and search through ' + dbTotalCount
+              + ' active opportunities matching your criteria.';
+          }
+
+          document.getElementById('feedSummaryText').textContent =
+            'Showing ' + dbJobs.length + ' matching jobs on this page (out of ' + dbTotalCount + ' total)';
+
+          renderJobs(dbJobs);
+          renderPaginationControls(Math.ceil(dbTotalCount / jobsPerPage) || 1);
+          return; // ← exit retry loop on success
+
+        } catch (err) {
+          lastErr = err;
+          console.warn('[Jobs] Attempt ' + attempt + ' threw:', err.message);
+          // continue to next attempt
+        }
       }
 
-      try {
-        const response = await fetch((window.API_BASE_URL || '') + `/api/jobs?${params.toString()}&t=${Date.now()}`);
-        if (!response.ok) throw new Error("Failed to fetch jobs");
-        const data = await response.json();
-        
-        if (data.profileIncomplete) {
-          if (container) {
-            container.innerHTML = `
-              <div class="glass-panel" style="padding: 40px; text-align: center; border-radius: 16px; border: 1px solid var(--border-subtle); background: var(--bg-surface); grid-column: 1 / -1; width: 100%;">
-                <div style="font-size: 3rem; margin-bottom: 20px;">📄</div>
-                <h3 style="font-size: 1.3rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Resume & Profile Details Required</h3>
-                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; max-width: 480px; margin-left: auto; margin-right: auto;">
-                  To view and sort jobs by Relevance, you need to upload your resume and complete your profile details. Sarthi AI uses this data to calculate your match score.
-                </p>
-                <a href="resume.html" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
-                  Go to Profile & Upload Resume
-                </a>
-              </div>
-            `;
-          }
-          const counterEl = document.getElementById('jobsCounter');
-          if (counterEl) counterEl.textContent = 'Browse and search through 0 active opportunities.';
-          
-          document.getElementById('feedSummaryText').textContent = `Showing 0 matching jobs`;
-          const pagEl = document.getElementById('paginationContainer');
-          if (pagEl) pagEl.innerHTML = '';
-          return;
-        }
-
-        dbJobs = data.jobs || [];
-        dbTotalCount = data.total || 0;
-        
-        // Populate filter options only on first load
-        const catSelect = document.getElementById('filterCategory');
-        if (catSelect && catSelect.options.length <= 1 && data.categories) {
-          populateFilterOptions(data.categories, data.locations || []);
-        }
-
-        // Update welcome banner counter
-        const counterEl = document.getElementById('jobsCounter');
-        if (counterEl) {
-          counterEl.textContent = `Browse and search through ${dbTotalCount} active opportunities matching your criteria.`;
-        }
-        
-        // Update feed summary sentence
-        document.getElementById('feedSummaryText').textContent = `Showing ${dbJobs.length} matching jobs on this page (out of ${dbTotalCount} total)`;
-
-        renderJobs(dbJobs);
-        
-        const totalPages = Math.ceil(dbTotalCount / jobsPerPage) || 1;
-        renderPaginationControls(totalPages);
-      } catch (err) {
-        console.error("Failed to fetch jobs from server:", err);
-        if (container) {
-          container.innerHTML = `
-            <div class="glass-panel" style="padding: 40px; text-align: center; color: var(--text-muted); border-radius: 16px;">
-              Failed to load jobs from server. Please try again.
-            </div>
-          `;
-        }
+      // ── All attempts exhausted — show friendly error with auto-retry ─────────
+      console.error('[Jobs] All fetch attempts failed. Last error:', lastErr);
+      if (container) {
+        showRetryError(container, function() { fetchJobsFromServer(keepPage); });
       }
     }
 
