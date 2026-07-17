@@ -145,31 +145,10 @@ window.headerSeekerHTML = `
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
-          <span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:0.6rem;font-weight:800;border-radius:999px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;">0</span>
+          <span id="notifBadge" class="notif-badge-pill">0</span>
         </button>
       </div>
-
-      <!-- Notification Sidebar Overlay -->
-      <div id="notifSidebarOverlay" onclick="closeNotifSidebar()" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.35);backdrop-filter:blur(2px);"></div>
-      <div id="notifSidebar" style="display:none;position:fixed;top:0;right:0;width:360px;max-width:95vw;height:100vh;z-index:9999;background:var(--bg-surface);border-left:1px solid var(--border-subtle);box-shadow:-8px 0 40px rgba(0,0,0,0.4);flex-direction:column;overflow:hidden;">
-        <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <h3 style="font-size:1.05rem;font-weight:800;color:var(--text-main);margin:0;">Notifications</h3>
-            <p id="notifSidebarCount" style="font-size:0.75rem;color:var(--text-muted);margin:2px 0 0;">Loading…</p>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button onclick="markAllNotifsRead()" style="font-size:0.72rem;color:var(--accent-secondary);background:none;border:none;cursor:pointer;font-weight:600;">Mark all read</button>
-            <button onclick="clearAllNotifs()" style="font-size:0.72rem;color:var(--text-muted);background:none;border:none;cursor:pointer;">Clear all</button>
-            <button onclick="closeNotifSidebar()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;line-height:1;padding:2px 4px;">✕</button>
-          </div>
-        </div>
-        <div id="notifSidebarList" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
-          <div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:0.85rem;">Loading notifications…</div>
-        </div>
-        <div style="padding:12px 16px;border-top:1px solid var(--border-subtle);">
-          <a href="notifications.html" style="display:block;text-align:center;font-size:0.8rem;color:var(--accent-secondary);text-decoration:none;font-weight:600;">View All Notifications →</a>
-        </div>
-      </div>
+      <!-- NOTE: #notifSidebar and #notifSidebarOverlay are injected into <body> by header.js to avoid z-index/overlap issues -->
 
       <!-- Settings Trigger -->
       <div class="header-dropdown-container">

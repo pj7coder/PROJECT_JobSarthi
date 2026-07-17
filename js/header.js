@@ -88,6 +88,38 @@ document.addEventListener("DOMContentLoaded", () => {
       // Inject template
       headerWrapper.innerHTML = headerTemplate;
 
+      // 1b. Inject Notification Sidebar & Overlay into <body> for seeker pages
+      // (must be at body level for correct z-index stacking, not inside header-wrapper)
+      if (isSeeker && !document.getElementById('notifSidebar')) {
+        const notifOverlay = document.createElement('div');
+        notifOverlay.id = 'notifSidebarOverlay';
+        notifOverlay.onclick = function() { window.closeNotifSidebar(); };
+        document.body.appendChild(notifOverlay);
+
+        const notifSidebar = document.createElement('div');
+        notifSidebar.id = 'notifSidebar';
+        notifSidebar.innerHTML = `
+          <div class="notif-sidebar-header">
+            <div>
+              <h3 class="notif-sidebar-title">Notifications</h3>
+              <p id="notifSidebarCount" class="notif-sidebar-count">Loading\u2026</p>
+            </div>
+            <div class="notif-sidebar-actions">
+              <button class="notif-sidebar-action-btn" onclick="markAllNotifsRead()">Mark all read</button>
+              <button class="notif-sidebar-action-btn muted" onclick="clearAllNotifs()">Clear all</button>
+              <button class="notif-sidebar-close-btn" onclick="closeNotifSidebar()">\u2715</button>
+            </div>
+          </div>
+          <div id="notifSidebarList">
+            <div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:0.85rem;">Loading notifications\u2026</div>
+          </div>
+          <div class="notif-sidebar-footer">
+            <a href="notifications.html">View All Notifications \u2192</a>
+          </div>
+        `;
+        document.body.appendChild(notifSidebar);
+      }
+
       // 2. Inject shared About panel content
       const aboutContentContainer = document.getElementById('aboutContent');
       if (aboutContentContainer && window.aboutContentHTML) {
@@ -1646,12 +1678,16 @@ window.triggerSettingsForgotPassword = async () => {
     const sidebar = document.getElementById('notifSidebar');
     const overlay = document.getElementById('notifSidebarOverlay');
     if (!sidebar || !overlay) return;
-    const isOpen = sidebar.style.display === 'flex';
+    const isOpen = sidebar.classList.contains('notif-sidebar-open');
     if (isOpen) {
-      closeNotifSidebar();
+      window.closeNotifSidebar();
     } else {
+      // Show with CSS animation
       sidebar.style.display = 'flex';
       overlay.style.display = 'block';
+      // Trigger reflow to allow transition to play
+      void sidebar.offsetWidth;
+      sidebar.classList.add('notif-sidebar-open');
       loadNotificationsData();
     }
   };
@@ -1659,7 +1695,15 @@ window.triggerSettingsForgotPassword = async () => {
   window.closeNotifSidebar = function() {
     const sidebar = document.getElementById('notifSidebar');
     const overlay = document.getElementById('notifSidebarOverlay');
-    if (sidebar) sidebar.style.display = 'none';
+    if (sidebar) {
+      sidebar.classList.remove('notif-sidebar-open');
+      // Hide after transition completes
+      setTimeout(() => {
+        if (!sidebar.classList.contains('notif-sidebar-open')) {
+          sidebar.style.display = 'none';
+        }
+      }, 320);
+    }
     if (overlay) overlay.style.display = 'none';
   };
 
@@ -1702,18 +1746,18 @@ window.triggerSettingsForgotPassword = async () => {
       return;
     }
 
-    const iconMap = { star:'⭐', calendar:'📅', 'x-circle':'❌', 'check-circle':'✅', eye:'👁️', bell:'🔔', message:'💬' };
+    const iconMap = { star:'\u2B50', calendar:'\uD83D\uDCC5', 'x-circle':'\u274C', 'check-circle':'\u2705', eye:'\uD83D\uDC41\uFE0F', bell:'\uD83D\uDD14', message:'\uD83D\uDCAC' };
     list.innerHTML = notifs.slice(0, 20).map(n => {
-      const icon = iconMap[n.icon] || '🔔';
-      return `<div onclick="markOneNotifRead('${n.id}')" style="padding:12px;border-radius:10px;background:${n.read ? 'transparent' : 'rgba(6,182,212,0.07)'};border:1px solid ${n.read ? 'var(--border-subtle)' : 'rgba(6,182,212,0.25)'};cursor:pointer;transition:background 0.2s;margin-bottom:8px;">
-        <div style="display:flex;gap:10px;align-items:flex-start;">
-          <span style="font-size:1.2rem;line-height:1.3;">${icon}</span>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:0.82rem;font-weight:${n.read ? '500' : '700'};color:var(--text-main);margin-bottom:2px;">${n.title}</div>
-            <div style="font-size:0.75rem;color:var(--text-muted);line-height:1.4;">${n.desc}</div>
-            <div style="font-size:0.7rem;color:var(--text-dark);margin-top:4px;">${timeAgo(n.createdAt)}</div>
+      const icon = iconMap[n.icon] || '\uD83D\uDD14';
+      return `<div class="notif-card ${n.read ? '' : 'unread'}" onclick="markOneNotifRead('${n.id}')">
+        <div class="notif-card-inner">
+          <span class="notif-card-icon">${icon}</span>
+          <div class="notif-card-body">
+            <div class="notif-card-title ${n.read ? '' : 'bold'}">${n.title}</div>
+            <div class="notif-card-desc">${n.desc}</div>
+            <div class="notif-card-time">${timeAgo(n.createdAt)}</div>
           </div>
-          ${!n.read ? '<span style="width:7px;height:7px;border-radius:50%;background:#06b6d4;flex-shrink:0;margin-top:4px;"></span>' : ''}
+          ${!n.read ? '<span class="notif-card-unread-dot"></span>' : ''}
         </div>
       </div>`;
     }).join('');
@@ -1759,13 +1803,14 @@ window.triggerSettingsForgotPassword = async () => {
         }
       }
     } else {
+      // Use .notif-badge-pill class (display controlled via CSS class)
       const badge = document.getElementById('notifBadge');
       if (badge) {
         if (unread > 0) {
           badge.textContent = unread > 9 ? '9+' : unread;
-          badge.style.display = 'block';
+          badge.style.display = 'block'; // override CSS 'none' with inline block
         } else {
-          badge.style.display = 'none';
+          badge.style.display = ''; // revert to CSS default (none)
         }
       }
     }
