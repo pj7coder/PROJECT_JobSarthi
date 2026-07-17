@@ -1749,15 +1749,15 @@ window.triggerSettingsForgotPassword = async () => {
     const iconMap = { star:'\u2B50', calendar:'\uD83D\uDCC5', 'x-circle':'\u274C', 'check-circle':'\u2705', eye:'\uD83D\uDC41\uFE0F', bell:'\uD83D\uDD14', message:'\uD83D\uDCAC' };
     list.innerHTML = notifs.slice(0, 20).map(n => {
       const icon = iconMap[n.icon] || '\uD83D\uDD14';
-      return `<div class="notif-card ${n.read ? '' : 'unread'}" onclick="markOneNotifRead('${n.id}')">
-        <div class="notif-card-inner">
-          <span class="notif-card-icon">${icon}</span>
-          <div class="notif-card-body">
-            <div class="notif-card-title ${n.read ? '' : 'bold'}">${n.title}</div>
-            <div class="notif-card-desc">${n.desc}</div>
-            <div class="notif-card-time">${timeAgo(n.createdAt)}</div>
+      return `<div class="notif-sidebar-card ${n.read ? '' : 'unread'}" onclick="markOneNotifRead('${n.id}')">
+        <div class="notif-sidebar-card-inner">
+          <span class="notif-sidebar-card-icon">${icon}</span>
+          <div class="notif-sidebar-card-body">
+            <div class="notif-sidebar-card-title ${n.read ? '' : 'bold'}">${n.title}</div>
+            <div class="notif-sidebar-card-desc">${n.desc}</div>
+            <div class="notif-sidebar-card-time">${timeAgo(n.createdAt)}</div>
           </div>
-          ${!n.read ? '<span class="notif-card-unread-dot"></span>' : ''}
+          ${!n.read ? '<span class="notif-sidebar-card-unread-dot"></span>' : ''}
         </div>
       </div>`;
     }).join('');
@@ -1783,7 +1783,7 @@ window.triggerSettingsForgotPassword = async () => {
           <div class="notif-content" style="flex:1;min-width:0;">
             <div class="notif-title" style="font-size:0.82rem;font-weight:${n.read ? '500' : '700'};color:var(--text-main);margin-bottom:2px;white-space:normal;overflow:visible;">${n.title}</div>
             <div class="notif-desc" style="font-size:0.75rem;color:var(--text-muted);line-height:1.4;white-space:normal;overflow:visible;">${n.desc}</div>
-            <div class="notif-time" style="font-size:0.7rem;color:var(--text-dark);margin-top:4px;">${timeAgo(n.createdAt)}</div>
+            <div class="notif-time" style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">${timeAgo(n.createdAt)}</div>
           </div>
         </div>
       `;

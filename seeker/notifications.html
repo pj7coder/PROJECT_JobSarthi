@@ -114,7 +114,7 @@
 
     .notif-time {
       font-size: 0.78rem;
-      color: var(--text-dark);
+      color: var(--text-muted);
       margin-top: 6px;
     }
 
@@ -126,13 +126,44 @@
 
     .action-check {
       cursor: pointer;
-      color: var(--text-dark);
+      color: var(--text-muted);
       background: none;
       border: none;
       transition: var(--transition-fast);
     }
 
     .action-check:hover {
+      color: var(--accent-secondary);
+    }
+
+    /* Unread Card Tint & Hover States */
+    .notif-card.unread {
+      background: rgba(37, 99, 235, 0.06);
+      border-color: rgba(37, 99, 235, 0.2);
+    }
+
+    /* Light Theme Compatibility */
+    body.light-theme .notif-tab.active {
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--text-main);
+      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.02);
+    }
+
+    body.light-theme .notif-tab:hover:not(.active) {
+      background: rgba(0, 0, 0, 0.02);
+      color: var(--text-main);
+    }
+
+    body.light-theme .notif-card.unread {
+      background: rgba(37, 99, 235, 0.04);
+      border-color: rgba(37, 99, 235, 0.15);
+    }
+
+    body.light-theme .action-check {
+      color: var(--text-muted);
+    }
+
+    body.light-theme .action-check:hover {
       color: var(--accent-secondary);
     }
   </style>
@@ -258,7 +289,7 @@
           <div class="notif-actions">
             ${!n.read ? `<button class="action-check" title="Mark as Read" onclick="markAsRead('${n.id}')">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            </button>` : `<span style="color:var(--text-dark);font-size:0.8rem;">Read</span>`}
+            </button>` : `<span style="color:var(--text-muted);font-size:0.8rem;">Read</span>`}
           </div>`;
         container.appendChild(card);
       });
