@@ -102,7 +102,6 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="notif-sidebar-header">
             <div>
               <h3 class="notif-sidebar-title">Notifications</h3>
-              <p id="notifSidebarCount" class="notif-sidebar-count">Loading\u2026</p>
             </div>
             <div class="notif-sidebar-actions">
               <button class="notif-sidebar-action-btn" onclick="markAllNotifsRead()">Mark all read</button>
@@ -1736,10 +1735,8 @@ window.triggerSettingsForgotPassword = async () => {
 
   function renderNotifSidebar(notifs) {
     const list = document.getElementById('notifSidebarList');
-    const countEl = document.getElementById('notifSidebarCount');
     if (!list) return;
     const unread = notifs.filter(n => !n.read).length;
-    if (countEl) countEl.textContent = unread > 0 ? unread + ' unread' : 'All caught up';
 
     if (!notifs.length) {
       list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:0.85rem;">No notifications yet.</div>';
