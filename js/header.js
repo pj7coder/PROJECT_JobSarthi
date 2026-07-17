@@ -88,37 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Inject template
       headerWrapper.innerHTML = headerTemplate;
 
-      // 1b. Inject Notification Sidebar & Overlay into <body> for seeker pages
-      // (must be at body level for correct z-index stacking, not inside header-wrapper)
-      if (isSeeker && !document.getElementById('notifSidebar')) {
-        const notifOverlay = document.createElement('div');
-        notifOverlay.id = 'notifSidebarOverlay';
-        notifOverlay.onclick = function() { window.closeNotifSidebar(); };
-        document.body.appendChild(notifOverlay);
-
-        const notifSidebar = document.createElement('div');
-        notifSidebar.id = 'notifSidebar';
-        notifSidebar.innerHTML = `
-          <div class="notif-sidebar-header">
-            <div>
-              <h3 class="notif-sidebar-title">Notifications</h3>
-              <p id="notifSidebarCount" class="notif-sidebar-count">Loading\u2026</p>
-            </div>
-            <div class="notif-sidebar-actions">
-              <button class="notif-sidebar-action-btn" onclick="markAllNotifsRead()">Mark all read</button>
-              <button class="notif-sidebar-action-btn muted" onclick="clearAllNotifs()">Clear all</button>
-              <button class="notif-sidebar-close-btn" onclick="closeNotifSidebar()">\u2715</button>
-            </div>
-          </div>
-          <div id="notifSidebarList">
-            <div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:0.85rem;">Loading notifications\u2026</div>
-          </div>
-          <div class="notif-sidebar-footer">
-            <a href="notifications.html">View All Notifications \u2192</a>
-          </div>
-        `;
-        document.body.appendChild(notifSidebar);
-      }
+      // 1b. Seeker notification sidebar injection removed (replaced with header dropdown template)
 
       // 2. Inject shared About panel content
       const aboutContentContainer = document.getElementById('aboutContent');
@@ -1674,38 +1644,8 @@ window.triggerSettingsForgotPassword = async () => {
     }
   }
 
-  window.toggleNotifSidebar = function() {
-    const sidebar = document.getElementById('notifSidebar');
-    const overlay = document.getElementById('notifSidebarOverlay');
-    if (!sidebar || !overlay) return;
-    const isOpen = sidebar.classList.contains('notif-sidebar-open');
-    if (isOpen) {
-      window.closeNotifSidebar();
-    } else {
-      // Show with CSS animation
-      sidebar.style.display = 'flex';
-      overlay.style.display = 'block';
-      // Trigger reflow to allow transition to play
-      void sidebar.offsetWidth;
-      sidebar.classList.add('notif-sidebar-open');
-      loadNotificationsData();
-    }
-  };
-
-  window.closeNotifSidebar = function() {
-    const sidebar = document.getElementById('notifSidebar');
-    const overlay = document.getElementById('notifSidebarOverlay');
-    if (sidebar) {
-      sidebar.classList.remove('notif-sidebar-open');
-      // Hide after transition completes
-      setTimeout(() => {
-        if (!sidebar.classList.contains('notif-sidebar-open')) {
-          sidebar.style.display = 'none';
-        }
-      }, 320);
-    }
-    if (overlay) overlay.style.display = 'none';
-  };
+  window.toggleNotifSidebar = function() {};
+  window.closeNotifSidebar = function() {};
 
   async function loadNotificationsData() {
     const config = getNotifConfig();
@@ -1715,11 +1655,7 @@ window.triggerSettingsForgotPassword = async () => {
       if (!res.ok) return;
       const notifs = await res.json();
       updateBadge(notifs, config.role);
-      if (config.role === 'recruiter') {
-        renderNotifDropdown(notifs);
-      } else {
-        renderNotifSidebar(notifs);
-      }
+      renderNotifDropdown(notifs);
     } catch(e) { console.warn('Notif load failed', e); }
   }
 
@@ -1734,56 +1670,35 @@ window.triggerSettingsForgotPassword = async () => {
     return Math.floor(h / 24) + 'd ago';
   }
 
-  function renderNotifSidebar(notifs) {
-    const list = document.getElementById('notifSidebarList');
-    const countEl = document.getElementById('notifSidebarCount');
-    if (!list) return;
-    const unread = notifs.filter(n => !n.read).length;
-    if (countEl) countEl.textContent = unread > 0 ? unread + ' unread' : 'All caught up';
-
-    if (!notifs.length) {
-      list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:0.85rem;">No notifications yet.</div>';
-      return;
-    }
-
-    const iconMap = { star:'\u2B50', calendar:'\uD83D\uDCC5', 'x-circle':'\u274C', 'check-circle':'\u2705', eye:'\uD83D\uDC41\uFE0F', bell:'\uD83D\uDD14', message:'\uD83D\uDCAC' };
-    list.innerHTML = notifs.slice(0, 20).map(n => {
-      const icon = iconMap[n.icon] || '\uD83D\uDD14';
-      return `<div class="notif-sidebar-card ${n.read ? '' : 'unread'}" onclick="markOneNotifRead('${n.id}')">
-        <div class="notif-sidebar-card-inner">
-          <span class="notif-sidebar-card-icon">${icon}</span>
-          <div class="notif-sidebar-card-body">
-            <div class="notif-sidebar-card-title ${n.read ? '' : 'bold'}">${n.title}</div>
-            <div class="notif-sidebar-card-desc">${n.desc}</div>
-            <div class="notif-sidebar-card-time">${timeAgo(n.createdAt)}</div>
-          </div>
-          ${!n.read ? '<span class="notif-sidebar-card-unread-dot"></span>' : ''}
-        </div>
-      </div>`;
-    }).join('');
-  }
-
   function renderNotifDropdown(notifs) {
     const dropdownBody = document.querySelector('.notif-dropdown .dropdown-body');
+    const countEl = document.getElementById('notifDropdownCount');
     if (!dropdownBody) return;
-    
+
+    const unread = notifs.filter(n => !n.read).length;
+    if (countEl) {
+      countEl.textContent = unread > 0 ? unread + ' unread' : '';
+    }
+
     if (!notifs.length) {
       dropdownBody.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;font-size:0.8rem;">No notifications yet.</div>';
       return;
     }
-    
+
     const iconMap = { star:'⭐', calendar:'📅', 'x-circle':'❌', 'check-circle':'✅', eye:'👁️', bell:'🔔', message:'💬' };
-    
-    dropdownBody.innerHTML = notifs.slice(0, 10).map(n => {
+
+    dropdownBody.innerHTML = notifs.slice(0, 15).map(n => {
       const icon = iconMap[n.icon] || '🔔';
       return `
-        <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markOneNotifRead('${n.id}')" style="display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background 0.2s;">
-          <div class="notif-bullet" style="width:6px;height:6px;border-radius:50%;background:${n.read ? 'transparent' : 'var(--accent-secondary)'};flex-shrink:0;margin-top:5px;"></div>
-          <span style="font-size:1.1rem;line-height:1.2;">${icon}</span>
-          <div class="notif-content" style="flex:1;min-width:0;">
-            <div class="notif-title" style="font-size:0.82rem;font-weight:${n.read ? '500' : '700'};color:var(--text-main);margin-bottom:2px;white-space:normal;overflow:visible;">${n.title}</div>
-            <div class="notif-desc" style="font-size:0.75rem;color:var(--text-muted);line-height:1.4;white-space:normal;overflow:visible;">${n.desc}</div>
-            <div class="notif-time" style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">${timeAgo(n.createdAt)}</div>
+        <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markOneNotifRead('${n.id}')">
+          <div class="notif-item-inner">
+            <span class="notif-item-icon">${icon}</span>
+            <div class="notif-item-body">
+              <div class="notif-item-title ${n.read ? '' : 'bold'}">${n.title}</div>
+              <div class="notif-item-desc">${n.desc}</div>
+              <div class="notif-item-time">${timeAgo(n.createdAt)}</div>
+            </div>
+            ${!n.read ? '<span class="notif-item-unread-dot"></span>' : ''}
           </div>
         </div>
       `;
@@ -1792,26 +1707,13 @@ window.triggerSettingsForgotPassword = async () => {
 
   function updateBadge(notifs, role) {
     const unread = notifs.filter(n => !n.read).length;
-    
-    if (role === 'recruiter') {
-      const dot = document.querySelector('.notif-dropdown')?.parentElement?.querySelector('.notification-dot');
-      if (dot) {
-        if (unread > 0) {
-          dot.classList.add('active');
-        } else {
-          dot.classList.remove('active');
-        }
-      }
-    } else {
-      // Use .notif-badge-pill class (display controlled via CSS class)
-      const badge = document.getElementById('notifBadge');
-      if (badge) {
-        if (unread > 0) {
-          badge.textContent = unread > 9 ? '9+' : unread;
-          badge.style.display = 'block'; // override CSS 'none' with inline block
-        } else {
-          badge.style.display = ''; // revert to CSS default (none)
-        }
+    const badge = document.getElementById('notifBadge');
+    if (badge) {
+      if (unread > 0) {
+        badge.textContent = unread > 9 ? '9+' : unread;
+        badge.style.display = 'block';
+      } else {
+        badge.style.display = 'none';
       }
     }
   }
@@ -1849,18 +1751,14 @@ window.triggerSettingsForgotPassword = async () => {
   function startNotifPolling() {
     const config = getNotifConfig();
     if (!config.email) return;
-    
+
     async function pollBadge() {
       try {
         const res = await fetch(API + '/api/notifications?email=' + encodeURIComponent(config.email) + '&role=' + config.role);
         if (res.ok) {
           const notifs = await res.json();
           updateBadge(notifs, config.role);
-          if (config.role === 'recruiter') {
-            renderNotifDropdown(notifs);
-          } else {
-            renderNotifSidebar(notifs);
-          }
+          renderNotifDropdown(notifs);
         }
       } catch(e) {}
     }
