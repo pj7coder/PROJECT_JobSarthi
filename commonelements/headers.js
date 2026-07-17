@@ -140,33 +140,15 @@ window.headerSeekerHTML = `
     <div class="header-actions">
       <!-- Notification Bell -->
       <div class="header-dropdown-container" style="position:relative;">
-        <button class="btn-icon dropdown-trigger" id="notifBellBtn" aria-label="Notifications" style="position:relative;">
+        <button class="btn-icon" id="notifBellBtn" aria-label="Notifications" onclick="toggleNotifSidebar()" style="position:relative;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
           <span id="notifBadge" class="notif-badge-pill">0</span>
         </button>
-        <!-- Notification Dropdown -->
-        <div class="header-dropdown-menu notif-dropdown">
-          <div class="dropdown-header">
-            <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
-              <h4 style="margin:0; font-size:0.95rem; font-weight:600; color:var(--text-main);">Notifications</h4>
-              <span id="notifDropdownCount" style="font-size:0.7rem; color:var(--text-muted);"></span>
-            </div>
-            <div class="notif-actions" style="display:flex; gap:8px; align-items:center;">
-              <button class="notif-action-btn" onclick="markAllNotifsRead()">Mark all read</button>
-              <button class="notif-action-btn muted" onclick="clearAllNotifs()">Clear all</button>
-            </div>
-          </div>
-          <div class="dropdown-body">
-            <div style="text-align:center;color:var(--text-muted);padding:20px 0;font-size:0.8rem;">Loading notifications…</div>
-          </div>
-          <div class="dropdown-footer" style="padding:10px 16px; text-align:center; border-top:1px solid var(--border-subtle); background:var(--bg-surface);">
-            <a href="notifications.html" style="font-size:0.75rem; color:var(--accent-secondary); font-weight:600; display:block; text-decoration:none;">View All Notifications →</a>
-          </div>
-        </div>
       </div>
+      <!-- NOTE: #notifSidebar and #notifSidebarOverlay are injected into <body> by header.js to avoid z-index/overlap issues -->
 
       <!-- Settings Trigger -->
       <div class="header-dropdown-container">
@@ -268,31 +250,22 @@ window.headerRecruiterHTML = `
     </nav>
     <div class="header-actions">
       <!-- Notification Trigger -->
-      <div class="header-dropdown-container" style="position:relative;">
-        <button class="btn-icon dropdown-trigger" id="notifBellBtn" aria-label="Notifications" style="position:relative;">
+      <div class="header-dropdown-container">
+        <button class="btn-icon dropdown-trigger" aria-label="Notifications">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
-          <span id="notifBadge" class="notif-badge-pill">0</span>
+          <span class="notification-dot"></span>
         </button>
         <!-- Notification Dropdown -->
         <div class="header-dropdown-menu notif-dropdown">
           <div class="dropdown-header">
-            <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
-              <h4 style="margin:0; font-size:0.95rem; font-weight:600; color:var(--text-main);">Notifications</h4>
-              <span id="notifDropdownCount" style="font-size:0.7rem; color:var(--text-muted);"></span>
-            </div>
-            <div class="notif-actions" style="display:flex; gap:8px; align-items:center;">
-              <button class="notif-action-btn" onclick="markAllNotifsRead()">Mark all read</button>
-              <button class="notif-action-btn muted" onclick="clearAllNotifs()">Clear all</button>
-            </div>
+            <h4>Notifications</h4>
+            <button class="mark-all-read-btn" onclick="markAllNotifsRead()">Mark all as read</button>
           </div>
           <div class="dropdown-body">
             <div style="text-align:center;color:var(--text-muted);padding:20px 0;font-size:0.8rem;">Loading notifications…</div>
-          </div>
-          <div class="dropdown-footer" style="padding:10px 16px; text-align:center; border-top:1px solid var(--border-subtle); background:var(--bg-surface);">
-            <a href="notifications.html" style="font-size:0.75rem; color:var(--accent-secondary); font-weight:600; display:block; text-decoration:none;">View All Notifications →</a>
           </div>
         </div>
       </div>
