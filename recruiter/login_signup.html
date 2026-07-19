@@ -596,9 +596,9 @@
       submitBtn.disabled = true;
       submitBtn.textContent = 'Connecting...';
 
-      // Cold start warning indicator
+      // Connection feedback indicator
       const warningTimer = setTimeout(() => {
-        submitBtn.textContent = 'Waking up server (takes up to 30s)...';
+        submitBtn.textContent = 'Connecting to secure servers...';
       }, 3500);
 
       let body = {};

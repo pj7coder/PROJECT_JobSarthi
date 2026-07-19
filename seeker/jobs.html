@@ -1458,10 +1458,10 @@
         'border:1px solid var(--border-subtle);background:var(--bg-surface);">',
         '<div style="font-size:3rem;margin-bottom:16px;">&#x2601;&#xFE0F;</div>',
         '<h3 style="font-size:1.2rem;font-weight:700;color:var(--text-main);margin-bottom:8px;">',
-        'Server is waking up&hellip;</h3>',
+        'Connecting to server&hellip;</h3>',
         '<p style="color:var(--text-muted);font-size:0.9rem;max-width:420px;margin:0 auto 24px;line-height:1.6;">',
-        'The backend runs on a free-tier host and may take up to 30 seconds to wake up after',
-        ' inactivity. Please wait &mdash; it will be ready shortly.</p>',
+        'Establishing a secure connection with our data network. This might take a few moments under',
+        ' high traffic loads. Please wait &mdash; it will be ready shortly.</p>',
         '<button id="retryJobsBtn" onclick="window._manualRetryJobs()" class="btn btn-primary"',
         ' style="min-width:180px;display:inline-flex;align-items:center;justify-content:center;gap:8px;">',
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">',
@@ -1564,9 +1564,9 @@
             + 'font-size:0.82rem;color:var(--text-muted);">' + statusText + '</p>';
         }
 
-        // On attempt 2+, wake the server first, then back off
+        // On attempt 2+, connect/warm up the server first, then back off
         if (attempt > 1) {
-          setLoadingStatus('Waking up server \u2014 please wait a moment\u2026');
+          setLoadingStatus('Connecting to secure servers \u2014 please wait a moment\u2026');
           await wakeUpServer();
           await new Promise(function(r) { setTimeout(r, 1500 * (attempt - 1)); });
           setLoadingStatus('Attempt ' + attempt + ' of ' + MAX_ATTEMPTS + '\u2026');
