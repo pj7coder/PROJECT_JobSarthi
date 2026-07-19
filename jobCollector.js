@@ -317,6 +317,156 @@ function extractSkillsFromText(text) {
   return matched.join(", ");
 }
 
+// Robust server-side parser to extract requirements/qualifications from description HTML or plain text
+export function extractReqsFromText(description, title = "", skillsStr = "") {
+  if (!description || typeof description !== "string") return [];
+
+  // 1. Strip HTML tags but preserve list item tags (<li>) or line breaks
+  let cleaned = description
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, "") // strip all other HTML tags
+    .trim();
+
+  // Decode double HTML entities
+  cleaned = cleaned
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+
+  const lines = cleaned.split("\n").map(l => l.trim()).filter(Boolean);
+  
+  // 2. Identify sections related to requirements/qualifications
+  const reqKeywords = [
+    "requirement", "qualification", "who you are", "what you bring", 
+    "what we look for", "what we're looking for", "basic skills", 
+    "experience", "what you need"
+  ];
+  
+  const stopKeywords = [
+    "benefit", "perk", "what we offer", "compensation", "about the company", 
+    "about us", "equal opportunity"
+  ];
+
+  let inReqSection = false;
+  const candidateReqs = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lowerLine = line.toLowerCase();
+
+    // Check if we hit a stop keyword
+    if (stopKeywords.some(kw => lowerLine.includes(kw) && line.length < 50)) {
+      inReqSection = false;
+    }
+
+    // Check if we enter a requirement section
+    if (reqKeywords.some(kw => lowerLine.includes(kw) && line.length < 50)) {
+      inReqSection = true;
+      continue;
+    }
+
+    // If we are in the section, collect lines that look like bullet points or requirements
+    if (inReqSection) {
+      // Clean leading bullet symbols or numbers
+      const cleanLine = line.replace(/^[•\-\*\s\d\.\)]+/, "").trim();
+      if (cleanLine.length > 15 && cleanLine.length < 250) {
+        candidateReqs.push(cleanLine);
+      }
+    }
+  }
+
+  // If we collected at least 3 requirements, return them
+  if (candidateReqs.length >= 3) {
+    return candidateReqs.slice(0, 6);
+  }
+
+  // Fallback 2: Look for any bullet points in the text containing requirement keywords
+  const genericBullets = [];
+  for (const line of lines) {
+    const cleanLine = line.replace(/^[•\-\*\s\d\.\)]+/, "").trim();
+    if (cleanLine.length > 15 && cleanLine.length < 250) {
+      const lower = cleanLine.toLowerCase();
+      if (
+        lower.includes("experience") || lower.includes("degree") || 
+        lower.includes("proficiency") || lower.includes("skill") || 
+        lower.includes("knowledge") || lower.includes("ability") || 
+        lower.includes("understand") || lower.includes("strong") || 
+        lower.includes("familiar") || lower.includes("git") || 
+        lower.includes("api") || lower.includes("framework") || 
+        lower.includes("development")
+      ) {
+        genericBullets.push(cleanLine);
+      }
+    }
+  }
+
+  if (genericBullets.length >= 3) {
+    return genericBullets.slice(0, 6);
+  }
+
+  // Fallback 3: Generate context-aware requirements
+  return generateContextualRequirements(title, skillsStr);
+}
+
+// Generate fallback requirements contextually based on title and skills
+function generateContextualRequirements(title, skillsStr) {
+  const t = (title || "").toLowerCase();
+  
+  let skills = [];
+  if (Array.isArray(skillsStr)) {
+    skills = skillsStr;
+  } else if (typeof skillsStr === "string") {
+    skills = skillsStr.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  const topSkills = skills.slice(0, 3).join(', ') || 'relevant software engineering tools';
+  
+  const reqList = [];
+  
+  if (t.includes('front') || t.includes('react') || t.includes('web') || t.includes('ui') || t.includes('html') || t.includes('css')) {
+    reqList.push(`Demonstrated experience building responsive web interfaces with modern frontend technologies, particularly ${topSkills}.`);
+    reqList.push("Strong proficiency in core web standards: JavaScript (ES6+), HTML5, and CSS3 layouts.");
+    reqList.push("Experience integrating RESTful APIs and managing application state (Redux or equivalent).");
+    reqList.push("Understanding of web performance optimization, accessibility standards (WCAG), and responsive designs.");
+  } 
+  else if (t.includes('back') || t.includes('node') || t.includes('api') || t.includes('server') || t.includes('django') || t.includes('spring') || t.includes('java') || t.includes('python')) {
+    reqList.push(`Strong backend development experience using server-side environments and frameworks like ${topSkills}.`);
+    reqList.push("Solid experience designing database schemas, writing complex queries (SQL or NoSQL), and optimizing cache configurations.");
+    reqList.push("Experience architecting secure, reliable RESTful or gRPC APIs and implementing authentication protocols.");
+    reqList.push("Knowledge of system scalability, message brokers, or asynchronous background processing.");
+  }
+  else if (t.includes('full') || t.includes('stack') || t.includes('mern') || t.includes('software')) {
+    reqList.push(`Comprehensive full-stack project experience spanning frontend and backend technologies, including ${topSkills}.`);
+    reqList.push("Proficiency in modern JavaScript/TypeScript, database modeling, and server architectures.");
+    reqList.push("Experience building end-to-end features, designing robust API contracts, and deploying software modules.");
+    reqList.push("Familiarity with cloud platforms (AWS, GCP, or Azure) and containerized workflows (Docker).");
+  }
+  else if (t.includes('data') || t.includes('analyst') || t.includes('science') || t.includes('ml') || t.includes('ai') || t.includes('python')) {
+    reqList.push(`Strong data engineering or analytics experience using tools like ${topSkills}.`);
+    reqList.push("Excellent SQL querying skills and experience processing large-scale datasets.");
+    reqList.push("Familiarity with mathematical reasoning, machine learning pipelines, or building interactive BI dashboards.");
+    reqList.push("Ability to translate complex data telemetry into actionable business strategies.");
+  }
+  else if (t.includes('devops') || t.includes('cloud') || t.includes('kubernetes') || t.includes('infrastructure') || t.includes('aws') || t.includes('site')) {
+    reqList.push("Hands-on experience configuring cloud architectures (AWS, Azure, or GCP) and services.");
+    reqList.push("Proficiency in container technologies like Docker and orchestration with Kubernetes.");
+    reqList.push("Experience setting up automated CI/CD deployment pipelines (GitHub Actions or Jenkins).");
+    reqList.push("Knowledge of Infrastructure as Code (Terraform), server logging, and monitoring systems.");
+  }
+  else {
+    reqList.push(`Prior experience working with tech systems and libraries such as ${topSkills}.`);
+    reqList.push("Solid comprehension of the software development life cycle (SDLC) and version control workflows using Git.");
+    reqList.push("Ability to analyze complex technical specifications and write clean, modular, and reusable code.");
+    reqList.push("Eagerness to collaborate in cross-functional agile teams and align code implementations with business goals.");
+  }
+  
+  return reqList;
+}
+
 // Heuristic check to filter jobs suitable for Indian job seekers (either remote, or located in India)
 export function isJobSuitableForIndia(job) {
   const loc = (job.location || "").toLowerCase();
@@ -473,11 +623,11 @@ export async function processAndSaveJobs(allCollectedJobs, syncedCompanies, curr
         logo: "🌐",
         category: job.department || "Software Engineering",
         salary: job.salary || "Not specified",
-        reqs: job.reqs || [
+        reqs: (job.reqs && job.reqs.length > 0 && !job.reqs.every(r => [
           "Demonstrated project experience.",
           "Solid knowledge of core engineering principles.",
           "Strong communication and collaborative alignment."
-        ],
+        ].includes(r))) ? job.reqs : extractReqsFromText(job.description, job.title, job.skills),
         updated_at: currentSyncTimestamp
       };
 
@@ -564,11 +714,11 @@ export async function processAndSaveJobs(allCollectedJobs, syncedCompanies, curr
         logo: "🌐",
         category: job.department || "Software Engineering",
         salary: job.salary || "Not specified",
-        reqs: job.reqs || [
+        reqs: (job.reqs && job.reqs.length > 0 && !job.reqs.every(r => [
           "Demonstrated project experience.",
           "Solid knowledge of core engineering principles.",
           "Strong communication and collaborative alignment."
-        ],
+        ].includes(r))) ? job.reqs : extractReqsFromText(job.description, job.title, job.skills),
         updated_at: currentSyncTimestamp
       };
 

@@ -231,6 +231,316 @@
     `;
   }
 
+  /**
+   * Dynamically parse and extract requirements (qualifications) and benefits/compensation details
+   * from the job description HTML/text. If none can be found, generate realistic ones.
+   */
+  function parseOrGenerateJobDetails(job) {
+    const description = job.description || '';
+    const title = job.title || '';
+    const company = job.company || '';
+    const skillsStr = job.skills || '';
+    
+    // Default fallback values in DB/collector
+    const defaultReqs = [
+      "Demonstrated project experience.",
+      "Solid knowledge of core engineering principles.",
+      "Strong communication and collaborative alignment."
+    ];
+    
+    let parsedReqs = [];
+    let parsedBenefits = [];
+    
+    // Helper to clean text
+    const cleanText = str => str.replace(/\s+/g, ' ').trim();
+    
+    if (description) {
+      // Decode double HTML entities and create a helper element to parse
+      const decoded = decodeHtml(description);
+      const doc = document.createElement('div');
+      doc.innerHTML = decoded;
+      
+      // Collect headers/paragraphs/bold text to find headings
+      const headers = [];
+      doc.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, p, div').forEach(el => {
+        const txt = el.textContent.trim();
+        // A heading candidate is typically short
+        if (txt && txt.length > 2 && txt.length < 60) {
+          headers.push({ el, text: txt.toLowerCase() });
+        }
+      });
+      
+      const reqHeaders = headers.filter(h => 
+        h.text.includes('requirement') || 
+        h.text.includes('qualification') || 
+        h.text.includes('who you are') || 
+        h.text.includes('what you bring') || 
+        h.text.includes('what we look for') || 
+        h.text.includes('what we\'re looking for') || 
+        h.text.includes('basic skills') || 
+        h.text.includes('experience') || 
+        h.text.includes('what you need') || 
+        h.text.includes('key skills')
+      );
+      
+      const benHeaders = headers.filter(h => 
+        h.text.includes('benefit') || 
+        h.text.includes('perk') || 
+        h.text.includes('what we offer') || 
+        h.text.includes('what you\'ll get') || 
+        h.text.includes('compensation') || 
+        h.text.includes('why join') || 
+        h.text.includes('life at') || 
+        h.text.includes('what we provide')
+      );
+      
+      // Helper to collect lists following a header element
+      const collectBulletsAfter = (headerEl) => {
+        const bullets = [];
+        let next = headerEl.nextElementSibling;
+        
+        // If the header itself is inside a paragraph or strong tag, we might need to go to its parent's sibling
+        if (headerEl.tagName.toLowerCase() === 'strong' || headerEl.tagName.toLowerCase() === 'span') {
+          let parent = headerEl.parentElement;
+          if (parent && (parent.tagName.toLowerCase() === 'p' || parent.tagName.toLowerCase() === 'div' || /^h[1-6]$/i.test(parent.tagName))) {
+            next = parent.nextElementSibling;
+          }
+        }
+        
+        let limit = 4; // search depth
+        while (next && limit > 0) {
+          const tagName = next.tagName.toLowerCase();
+          // If we hit another heading tag, stop
+          if (/^(h[1-6])$/.test(tagName)) break;
+          // If we see another strong paragraph that looks like a new heading, stop
+          if ((tagName === 'p' || tagName === 'div') && next.querySelector('strong') && next.textContent.trim().length < 50) {
+            break;
+          }
+          
+          if (tagName === 'ul' || tagName === 'ol') {
+            next.querySelectorAll('li').forEach(li => {
+              const text = cleanText(li.textContent);
+              if (text && text.length > 10 && text.length < 300) {
+                bullets.push(text);
+              }
+            });
+            if (bullets.length > 0) break; // found list, stop looking
+          }
+          
+          if (tagName === 'p' || tagName === 'div') {
+            // Check if there are list items or line breaks
+            const lis = next.querySelectorAll('li');
+            if (lis.length > 0) {
+              lis.forEach(li => {
+                const text = cleanText(li.textContent);
+                if (text && text.length > 10 && text.length < 300) {
+                  bullets.push(text);
+                }
+              });
+              if (bullets.length > 0) break;
+            }
+            
+            // Check for line-break separated lines starting with bullet symbols or numbers
+            const htmlContent = next.innerHTML;
+            if (htmlContent.includes('<br')) {
+              const lines = htmlContent.split(/<br\s*\/?>/i);
+              lines.forEach(line => {
+                const temp = document.createElement('div');
+                temp.innerHTML = line;
+                const text = cleanText(temp.textContent).replace(/^[•\-\*\s\d\.\)]+/, '').trim();
+                if (text && text.length > 12 && text.length < 300) {
+                  bullets.push(text);
+                }
+              });
+              if (bullets.length > 0) break;
+            } else {
+              // Just a single paragraph - if it starts with a bullet character or is of reasonable length
+              const text = cleanText(next.textContent).replace(/^[•\-\*\s\d\.\)]+/, '').trim();
+              if (text && text.length > 15 && text.length < 300) {
+                bullets.push(text);
+              }
+            }
+          }
+          
+          next = next.nextElementSibling;
+          limit--;
+        }
+        return bullets;
+      };
+      
+      // Try to extract qualifications
+      if (reqHeaders.length > 0) {
+        for (const h of reqHeaders) {
+          const bullets = collectBulletsAfter(h.el);
+          if (bullets.length >= 2) {
+            parsedReqs = bullets;
+            break;
+          }
+        }
+      }
+      
+      // If we couldn't find reqs under headings, look for any list items that look like qualifications
+      if (parsedReqs.length < 2) {
+        const allLis = Array.from(doc.querySelectorAll('li'));
+        const matchedLis = allLis.filter(li => {
+          const txt = li.textContent.toLowerCase();
+          return txt.includes('experience') || txt.includes('degree') || txt.includes('proficiency') || 
+                 txt.includes('skills in') || txt.includes('knowledge of') || txt.includes('ability to') || 
+                 txt.includes('understanding of') || txt.includes('familiarity with') || txt.includes('years of') ||
+                 txt.includes('fluent') || txt.includes('background in');
+        });
+        if (matchedLis.length >= 3) {
+          parsedReqs = matchedLis.map(li => cleanText(li.textContent)).filter(t => t.length > 12 && t.length < 250);
+        }
+      }
+      
+      // Try to extract benefits
+      if (benHeaders.length > 0) {
+        for (const h of benHeaders) {
+          const bullets = collectBulletsAfter(h.el);
+          if (bullets.length >= 2) {
+            parsedBenefits = bullets;
+            break;
+          }
+        }
+      }
+      
+      // If we couldn't find benefits under headings, look for list items that look like benefits
+      if (parsedBenefits.length < 2) {
+        const allLis = Array.from(doc.querySelectorAll('li'));
+        const matchedLis = allLis.filter(li => {
+          const txt = li.textContent.toLowerCase();
+          return txt.includes('medical') || txt.includes('health') || txt.includes('insurance') || 
+                 txt.includes('pto') || txt.includes('vacation') || txt.includes('perk') || 
+                 txt.includes('wellness') || txt.includes('stipend') || txt.includes('flexible') || 
+                 txt.includes('remote work') || txt.includes('equity') || txt.includes('401(k)') ||
+                 txt.includes('catered') || txt.includes('allowance');
+        });
+        if (matchedLis.length >= 3) {
+          parsedBenefits = matchedLis.map(li => cleanText(li.textContent)).filter(t => t.length > 12 && t.length < 250);
+        }
+      }
+    }
+    
+    // Check if the job has custom reqs (not matching default fallbacks)
+    const hasCustomJobReqs = job.reqs && job.reqs.length > 0 && !job.reqs.every(r => defaultReqs.includes(r));
+    
+    let finalReqs = [];
+    if (parsedReqs.length >= 3) {
+      finalReqs = parsedReqs;
+    } else if (hasCustomJobReqs) {
+      finalReqs = job.reqs;
+    } else {
+      finalReqs = generateContextualRequirements(title, skillsStr);
+    }
+    
+    // Deduplicate and clean
+    finalReqs = [...new Set(finalReqs)].slice(0, 5);
+    
+    let finalBenefits = [];
+    if (parsedBenefits.length >= 3) {
+      finalBenefits = parsedBenefits;
+    } else {
+      finalBenefits = generateContextualBenefits(company || title);
+    }
+    
+    finalBenefits = [...new Set(finalBenefits)].slice(0, 4);
+    
+    return {
+      requirements: finalReqs,
+      benefits: finalBenefits
+    };
+  }
+
+  function generateContextualRequirements(title, skills) {
+    const t = (title || "").toLowerCase();
+    
+    let skillsList = [];
+    if (Array.isArray(skills)) {
+      skillsList = skills;
+    } else if (typeof skills === 'string') {
+      skillsList = skills.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    
+    const topSkills = skillsList.slice(0, 3).join(', ') || 'relevant software engineering tools';
+    const reqList = [];
+    
+    if (t.includes('front') || t.includes('react') || t.includes('web') || t.includes('ui') || t.includes('html') || t.includes('css')) {
+      reqList.push(`Demonstrated experience building responsive web interfaces with modern frontend technologies, particularly ${topSkills}.`);
+      reqList.push("Strong proficiency in core web standards: JavaScript (ES6+), HTML5, and CSS3 layouts.");
+      reqList.push("Experience integrating RESTful APIs and managing application state (Redux, Zustand, or Context API).");
+      reqList.push("Understanding of web performance optimization, accessibility standards (WCAG), and cross-browser consistency.");
+    } 
+    else if (t.includes('back') || t.includes('node') || t.includes('api') || t.includes('server') || t.includes('django') || t.includes('spring') || t.includes('java') || t.includes('python')) {
+      reqList.push(`Strong backend development experience using server-side environments and frameworks like ${topSkills}.`);
+      reqList.push("Solid experience designing database schemas, writing complex queries (SQL or NoSQL), and optimizing cache configurations.");
+      reqList.push("Experience architecting secure, reliable RESTful or gRPC APIs and implementing authentication protocols.");
+      reqList.push("Knowledge of system scalability, message brokers (RabbitMQ/Kafka), or asynchronous background processing.");
+    }
+    else if (t.includes('full') || t.includes('stack') || t.includes('mern') || t.includes('software')) {
+      reqList.push(`Comprehensive full-stack project experience spanning frontend and backend technologies, including ${topSkills}.`);
+      reqList.push("Proficiency in modern JavaScript/TypeScript, database modeling, and server architectures.");
+      reqList.push("Experience building end-to-end features, designing robust API contracts, and deploying software modules.");
+      reqList.push("Familiarity with cloud platforms (AWS, GCP, or Azure) and containerized workflows (Docker).");
+    }
+    else if (t.includes('data') || t.includes('analyst') || t.includes('science') || t.includes('ml') || t.includes('ai') || t.includes('python')) {
+      reqList.push(`Strong data engineering or analytics experience using tools like ${topSkills}.`);
+      reqList.push("Excellent SQL querying skills and experience processing large-scale datasets.");
+      reqList.push("Familiarity with mathematical reasoning, machine learning pipelines, or building interactive BI dashboards.");
+      reqList.push("Ability to translate complex data telemetry into actionable business strategies.");
+    }
+    else if (t.includes('devops') || t.includes('cloud') || t.includes('kubernetes') || t.includes('infrastructure') || t.includes('aws') || t.includes('site')) {
+      reqList.push("Hands-on experience configuring cloud architectures (AWS, Azure, or GCP) and services.");
+      reqList.push("Proficiency in container technologies like Docker and orchestration with Kubernetes.");
+      reqList.push("Experience setting up automated CI/CD deployment pipelines (GitHub Actions, Jenkins, or GitLab CI).");
+      reqList.push("Knowledge of Infrastructure as Code (Terraform), server logging (ELK stack), and monitoring systems.");
+    }
+    else {
+      reqList.push(`Prior experience working with tech systems and libraries such as ${topSkills}.`);
+      reqList.push("Solid comprehension of the software development life cycle (SDLC) and version control workflows using Git.");
+      reqList.push("Ability to analyze complex technical specifications and write clean, modular, and reusable code.");
+      reqList.push("Eagerness to collaborate in cross-functional agile teams and align code implementations with business goals.");
+    }
+    
+    return reqList;
+  }
+
+  function generateContextualBenefits(seedText) {
+    const benefitsPool = [
+      "Comprehensive medical, dental, and vision insurance plans for employees and dependents.",
+      "Flexible hybrid working options (remotely and in-office alignment).",
+      "Annual learning and development stipends to support professional certifications and courses.",
+      "Premium workstation setup allowance (MacBook Pro, high-res monitor, ergonomic accessories).",
+      "Generous paid time off (PTO), sick leaves, and supportive parental leave policies.",
+      "Wellness benefits, fitness membership reimbursements, and mental health resources.",
+      "Retirement savings plans (Provident Fund matching or 401k) and company equity options (ESOPs).",
+      "Regular collaborative team events, quarterly offsites, and modern office spaces.",
+      "Complimentary catered meals, premium snacks, and beverages in the office.",
+      "Flexible working hours to encourage healthy work-life integration."
+    ];
+    
+    // Seeded random selection based on seedText to make benefits deterministic per job
+    let hash = 0;
+    const str = String(seedText || "JobSarthi Opportunity");
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    hash = Math.abs(hash);
+    
+    const selected = [];
+    const poolCopy = [...benefitsPool];
+    
+    // Select 3-4 benefits deterministically
+    const count = 3 + (hash % 2); // 3 or 4 benefits
+    for (let j = 0; j < count; j++) {
+      const index = (hash + j * 7) % poolCopy.length;
+      selected.push(poolCopy[index]);
+      poolCopy.splice(index, 1);
+    }
+    
+    return selected;
+  }
+
   // ── Public API ──────────────────────────────────────────────────────────────
 
   window.JobDrawer = {
@@ -322,18 +632,39 @@
         toggleBtn.style.display = 'none';
       }
 
+      // Extract or generate unique job details
+      const parsedDetails = parseOrGenerateJobDetails(job);
+
       // Requirements
       const reqsUl = _getEl('jd_reqs');
       reqsUl.innerHTML = '';
-      const reqs = job.reqs || [];
-      if (!reqs.length) {
+      if (!parsedDetails.requirements || !parsedDetails.requirements.length) {
         reqsUl.innerHTML = '<li>Refer to the job description for specific requirements.</li>';
       } else {
-        reqs.forEach(r => { const li = document.createElement('li'); li.textContent = r; reqsUl.appendChild(li); });
+        parsedDetails.requirements.forEach(r => {
+          const li = document.createElement('li');
+          li.textContent = r;
+          reqsUl.appendChild(li);
+        });
       }
 
-      // Compensation
-      _getEl('jd_comp').textContent = `Offering a highly competitive salary range of ${job.salary || 'Not specified'}. We also provide comprehensive medical coverage, premium wellness benefits, learning stipends, and hardware options.`;
+      // Compensation & Benefits
+      const compEl = _getEl('jd_comp');
+      compEl.innerHTML = '';
+      
+      const compText = document.createElement('p');
+      compText.style.marginBottom = '8px';
+      compText.textContent = `Offering a highly competitive salary range of ${job.salary || 'Not specified'}. We also provide a comprehensive benefits package including:`;
+      compEl.appendChild(compText);
+      
+      const benUl = document.createElement('ul');
+      benUl.style.cssText = 'padding-left: 20px; margin: 0;';
+      parsedDetails.benefits.forEach(b => {
+        const li = document.createElement('li');
+        li.textContent = b;
+        benUl.appendChild(li);
+      });
+      compEl.appendChild(benUl);
 
       // Match analysis
       _renderMatchAnalysis(job);
